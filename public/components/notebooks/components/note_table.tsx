@@ -101,7 +101,7 @@ export function NoteTable({
       notebooks.length
     );
     fetchNotebooks();
-  }, [fetchNotebooks, notebooks.length]);
+  }, [notebooks.length]);
 
   useEffect(() => {
     const url = window.location.hash.split('/');

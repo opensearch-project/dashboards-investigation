@@ -99,13 +99,15 @@ export function Notebook({
   const history = useHistory();
   const location = useLocation();
 
-  // State management using useState
   const [selectedViewId, setSelectedViewId] = useState('view_both');
   const [path, setPath] = useState('');
   const [paragraphs, setParagraphs] = useState<any[]>([]);
   const [parsedPara, setParsedPara] = useState<ParaType[]>([]);
+  const [dateCreated, setDateCreated] = useState('');
+  const [vizPrefix, setVizPrefix] = useState('');
   const [isAddParaPopoverOpen, setIsAddParaPopoverOpen] = useState(false);
   const [isParaActionsPopoverOpen, setIsParaActionsPopoverOpen] = useState(false);
+  const [isNoteActionsPopoverOpen, setIsNoteActionsPopoverOpen] = useState(false);
   const [isReportingPluginInstalled, setIsReportingPluginInstalled] = useState(false);
   const [isReportingActionsPopoverOpen, setIsReportingActionsPopoverOpen] = useState(false);
   const [isReportingLoadingModalOpen, setIsReportingLoadingModalOpen] = useState(false);
@@ -118,7 +120,6 @@ export function Notebook({
   const [dataSourceMDSLabel, setDataSourceMDSLabel] = useState<string | undefined | null>(null);
   const [dataSourceMDSEnabled, setDataSourceMDSEnabled] = useState(false);
   const [context, setContext] = useState<NotebookContext | undefined>(undefined);
-
   // Refs for task subscriptions
   const taskSubscriptions = useRef(new Map<string, Subscription>());
 
@@ -126,7 +127,7 @@ export function Notebook({
     setIsReportingLoadingModalOpen(show);
   };
 
-  const parseAllParagraphs = () => {
+  const parseAllParagraphs = (paragraphs: any[]) => {
     const parsedPara = parseParagraphs(paragraphs);
     setParsedPara(parsedPara);
   };
@@ -152,32 +153,25 @@ export function Notebook({
 
   // Assigns Loading, Running & inQueue for paragraphs in current notebook
   const showParagraphRunning = (param: number | string) => {
-    setParsedPara((prevParsedPara) =>
-      prevParsedPara.map((para: ParaType, index: number) => {
-        if (param === 'queue') {
-          para.inQueue = true;
-          para.isOutputHidden = true;
-        } else if (param === 'loading') {
-          para.isRunning = true;
-          para.isOutputHidden = true;
-        } else if (param === index) {
-          para.isRunning = true;
-          para.isOutputHidden = true;
-        }
-        return para;
-      })
-    );
+    const newParsedPara = parsedPara;
+    newParsedPara.map((_: ParaType, index: number) => {
+      if (param === 'queue') {
+        parsedPara[index].inQueue = true;
+        parsedPara[index].isOutputHidden = true;
+      } else if (param === 'loading') {
+        parsedPara[index].isRunning = true;
+        parsedPara[index].isOutputHidden = true;
+      } else if (param === index) {
+        parsedPara[index].isRunning = true;
+        parsedPara[index].isOutputHidden = true;
+      }
+    });
+    setParsedPara(newParsedPara);
   };
 
   // Sets a paragraph to selected and deselects all others
   const paragraphSelector = (index: number) => {
-    setParsedPara((prevParsedPara) =>
-      prevParsedPara.map((para: ParaType, idx: number) => {
-        if (index === idx) para.isSelected = true;
-        else para.isSelected = false;
-        return para;
-      })
-    );
+    setParsedPara((prev) => prev.map((para, idx) => ({ ...para, isSelected: idx === index })));
   };
 
   // Function for delete a Notebook button
@@ -240,7 +234,7 @@ export function Notebook({
             })
             .then((res) => {
               setParagraphs(res.paragraphs);
-              parseAllParagraphs();
+              parseAllParagraphs(res.paragraphs);
               notifications.toasts.addSuccess('Paragraphs successfully deleted!');
             })
             .catch((err) => {
@@ -471,7 +465,7 @@ export function Notebook({
       .delete(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/` + openedNoteId + '/' + uniqueId)
       .then((res) => {
         setParagraphs(res.paragraphs);
-        parseAllParagraphs();
+        parseAllParagraphs(res.paragraphs);
       })
       .catch((err) => {
         notifications.toasts.addDanger(
@@ -495,21 +489,18 @@ export function Notebook({
         body: JSON.stringify(addParaObj),
       })
       .then((res) => {
-        setParagraphs((prevParagraphs) => {
-          const newParagraphs = [...prevParagraphs];
-          newParagraphs.splice(index, 0, res);
-          return newParagraphs;
-        });
+        const newParagraphs = [...paragraphs];
+        newParagraphs.splice(index, 0, res);
         const newPara = parseParagraphs([res])[0];
         newPara.isInputExpanded = true;
-        setParsedPara((prevParsedPara) => {
-          const newParsedPara = [...prevParsedPara];
-          newParsedPara.splice(index, 0, newPara);
-          return newParsedPara;
-        });
-
+        const newParsedPara = [...parsedPara];
+        newParsedPara.splice(index, 0, newPara);
+        setParagraphs(newParagraphs);
+        setParsedPara(newParsedPara);
         paragraphSelector(index);
-        if (selectedViewId === 'output_only') setSelectedViewId('view_both');
+        if (selectedViewId === 'output_only') {
+          setSelectedViewId('view_both');
+        }
       })
       .catch((err) => {
         notifications.toasts.addDanger(
@@ -535,25 +526,23 @@ export function Notebook({
 
   // Function to move a paragraph
   const movePara = (index: number, targetIndex: number) => {
-    setParagraphs((prevParagraphs) => {
-      const newParagraphs = [...prevParagraphs];
-      newParagraphs.splice(targetIndex, 0, newParagraphs.splice(index, 1)[0]);
-      return newParagraphs;
-    });
-    setParsedPara((prevParsedPara) => {
-      const newParsedPara = [...prevParsedPara];
-      newParsedPara.splice(targetIndex, 0, newParsedPara.splice(index, 1)[0]);
-      return newParsedPara;
-    });
+    const newParagraphs = [...paragraphs];
+    newParagraphs.splice(targetIndex, 0, newParagraphs.splice(index, 1)[0]);
+    const newParsedPara = [...parsedPara];
+    newParsedPara.splice(targetIndex, 0, newParsedPara.splice(index, 1)[0]);
 
     const moveParaObj = {
       noteId: openedNoteId,
-      paragraphs: paragraphs,
+      paragraphs: newParagraphs,
     };
 
     return http
       .post(`${NOTEBOOKS_API_PREFIX}/savedNotebook/set_paragraphs`, {
         body: JSON.stringify(moveParaObj),
+      })
+      .then((_res) => {
+        setParagraphs(newParagraphs);
+        setParsedPara(newParsedPara);
       })
       .then((_res) => scrollToPara(targetIndex))
       .catch((err) => {
@@ -586,7 +575,7 @@ export function Notebook({
       })
       .then((res) => {
         setParagraphs(res.paragraphs);
-        parseAllParagraphs();
+        parseAllParagraphs(res.paragraphs);
       })
       .catch((err) => {
         notifications.toasts.addDanger(
@@ -611,12 +600,12 @@ export function Notebook({
         }),
       });
 
-      const paragraphs = parsedPara;
-      paragraphs[index] = response;
-      const parsedPara = [...parsedPara];
-      parsedPara[index] = parseParagraphs([response])[0];
-
-      setParsedPara(parsedPara);
+      const newParagraphs = paragraphs;
+      newParagraphs[index] = response;
+      const newParsedPara = [...parsedPara];
+      newParsedPara[index] = parseParagraphs([response])[0];
+      setParagraphs(newParagraphs);
+      setParsedPara(newParsedPara);
       return response;
     } catch (error) {
       console.error('Failed to update bubble paragraph:', error);
@@ -640,97 +629,94 @@ export function Notebook({
     }
   };
 
-  const registerDeepResearchParagraphUpdater = useCallback(
-    ({
+  const registerDeepResearchParagraphUpdater = ({
+    taskId,
+    paraUniqueId,
+    agentId,
+    baseMemoryId,
+  }: {
+    taskId: string;
+    paraUniqueId: string;
+    agentId: string;
+    baseMemoryId?: string | undefined;
+  }) => {
+    const cleanTaskSubscription = () => {
+      taskSubscriptions.current.get(taskId)?.unsubscribe();
+      taskSubscriptions.current.delete(taskId);
+    };
+    taskSubscriptions.current.set(
       taskId,
-      paraUniqueId,
-      agentId,
-      baseMemoryId,
-    }: {
-      taskId: string;
-      paraUniqueId: string;
-      agentId: string;
-      baseMemoryId?: string | undefined;
-    }) => {
-      const cleanTaskSubscription = () => {
-        taskSubscriptions.current.get(taskId)?.unsubscribe();
-        taskSubscriptions.current.delete(taskId);
-      };
-      taskSubscriptions.current.set(
-        taskId,
-        timer(0, 5000)
-          .pipe(
-            switchMap(() => {
-              const parsePara = parsedPara.find((para) => para.uniqueId === paraUniqueId);
-              if (!parsePara) {
-                return 'STOP';
-              }
-              return getMLCommonsTask({
-                http,
-                taskId,
-                dataSourceId: parsePara.dataSourceMDSId,
-              });
-            })
-          )
-          .pipe(takeWhile((res) => res !== 'STOP' && !isStateCompletedOrFailed(res.state), true))
-          .subscribe({
-            next: (payload) => {
-              if (payload === 'STOP') {
-                cleanTaskSubscription();
-                return;
-              }
-              const currentParsedParaIndex = parsedPara.findIndex(
-                (para) => para.uniqueId === paraUniqueId
-              );
-              const result = JSON.stringify(
-                constructDeepResearchParagraphOut({
-                  task: payload,
-                  taskId,
-                  agentId,
-                  baseMemoryId,
-                })
-              );
-              if (
-                !isStateCompletedOrFailed(payload.state) &&
-                result === parsedPara[currentParsedParaIndex]?.out[0]
-              ) {
-                return;
-              }
-              if (isStateCompletedOrFailed(payload.state)) {
-                cleanTaskSubscription();
-              }
-              const out = [result];
-              setParsedPara([
-                ...parsedPara.slice(0, currentParsedParaIndex),
-                {
-                  ...parsedPara[currentParsedParaIndex],
-                  out,
-                  isRunning: false,
-                },
-                ...parsedPara.slice(currentParsedParaIndex + 1),
-              ]);
-              http.put(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
-                body: JSON.stringify({
-                  noteId: openedNoteId,
-                  paragraphId: paraUniqueId,
-                  paragraphOutput: [
-                    {
-                      outputType: 'DEEP_RESEARCH',
-                      result,
-                    },
-                  ],
-                }),
-              });
-            },
-            error: (...args) => {
-              console.log('Failed to fetch task status', ...args);
-              cleanTaskSubscription();
-            },
+      timer(0, 5000)
+        .pipe(
+          switchMap(() => {
+            const para = parsedPara.find((para) => para.uniqueId === paraUniqueId);
+            if (!para) {
+              return 'STOP';
+            }
+            return getMLCommonsTask({
+              http,
+              taskId,
+              dataSourceId: para.dataSourceMDSId,
+            });
           })
-      );
-    },
-    [parsedPara, http]
-  );
+        )
+        .pipe(takeWhile((res) => res !== 'STOP' && !isStateCompletedOrFailed(res.state), true))
+        .subscribe({
+          next: (payload) => {
+            if (payload === 'STOP') {
+              cleanTaskSubscription();
+              return;
+            }
+            const currentParsedParaIndex = parsedPara.findIndex(
+              (para) => para.uniqueId === paraUniqueId
+            );
+            const result = JSON.stringify(
+              constructDeepResearchParagraphOut({
+                task: payload,
+                taskId,
+                agentId,
+                baseMemoryId,
+              })
+            );
+            if (
+              !isStateCompletedOrFailed(payload.state) &&
+              result === parsedPara[currentParsedParaIndex]?.out[0]
+            ) {
+              return;
+            }
+            if (isStateCompletedOrFailed(payload.state)) {
+              cleanTaskSubscription();
+            }
+            const out = [result];
+            setParsedPara([
+              ...parsedPara.slice(0, currentParsedParaIndex),
+              {
+                ...parsedPara[currentParsedParaIndex],
+                out,
+                isRunning: false,
+              },
+              ...parsedPara.slice(currentParsedParaIndex + 1),
+            ]);
+            http.put(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
+              body: JSON.stringify({
+                noteId: openedNoteId,
+                paragraphId: paraUniqueId,
+                paragraphOutput: [
+                  {
+                    outputType: 'DEEP_RESEARCH',
+                    result,
+                  },
+                ],
+              }),
+            });
+          },
+          error: (...args) => {
+            console.log('Failed to fetch task status', ...args);
+            cleanTaskSubscription();
+          },
+        })
+    );
+  };
 
   // Backend call to update and run contents of paragraph
   const updateRunParagraph = (
@@ -744,7 +730,7 @@ export function Notebook({
   ) => {
     showParagraphRunning(index);
     if (vizObjectInput) {
-      para.inp = vizObjectInput; // "%sh check"
+      para.inp = vizPrefix + vizObjectInput; // "%sh check"
     }
 
     const paraUpdateObject = {
@@ -774,10 +760,10 @@ export function Notebook({
           }
         }
         const legacyParsedParagraphData = parsedPara[index];
-        const paragraphs = parsedPara;
-        paragraphs[index] = res;
-        const parsedPara = [...parsedPara];
-        parsedPara[index] = parseParagraphs([res])[0];
+        const newParagraphs = paragraphs;
+        newParagraphs[index] = res;
+        const newParsedPara = [...parsedPara];
+        newParsedPara[index] = parseParagraphs([res])[0];
 
         if (res.output[0]?.outputType === 'DEEP_RESEARCH') {
           parsedPara[index].isRunning = true;
@@ -795,7 +781,8 @@ export function Notebook({
             baseMemoryId: deepResearchBaseMemoryId,
           });
         }
-        setParsedPara(parsedPara);
+        setParsedPara(newParsedPara);
+        setParagraphs(newParagraphs);
       })
       .catch((err) => {
         console.log(err);
@@ -832,9 +819,9 @@ export function Notebook({
   // Handles text editor value and syncs with paragraph input
   const textValueEditor = (evt: React.ChangeEvent<HTMLTextAreaElement>, index: number) => {
     if (!(evt.key === 'Enter' && evt.shiftKey)) {
-      const parsedPara = parsedPara;
-      parsedPara[index].inp = evt.target.value;
-      setParsedPara(parsedPara);
+      const newParsedPara = parsedPara;
+      newParsedPara[index].inp = evt.target.value;
+      setParsedPara(newParsedPara);
     }
   };
 
@@ -848,18 +835,17 @@ export function Notebook({
   // update view mode, scrolls to paragraph and expands input if scrollToIndex is given
   const updateView = (selectedViewId: string, scrollToIndex?: number) => {
     configureViewParameter(selectedViewId);
-    const parsedPara = [...parsedPara];
-    setParsedPara(
-      parsedPara.map((para: ParaType, index: number) => {
-        parsedPara[index].isInputExpanded = selectedViewId === 'input_only';
-        return parsedPara[index];
-      })
-    );
+    const newParsedPara = [...parsedPara];
+
+    newParsedPara.map((para: ParaType, index: number) => {
+      newParsedPara[index].isInputExpanded = selectedViewId === 'input_only';
+    });
 
     if (scrollToIndex !== undefined) {
       parsedPara[scrollToIndex].isInputExpanded = true;
       scrollToPara(scrollToIndex);
     }
+    setParsedPara(newParsedPara);
     setSelectedViewId(selectedViewId);
     paragraphSelector(scrollToIndex !== undefined ? scrollToIndex : -1);
   };
@@ -929,8 +915,11 @@ export function Notebook({
             });
           }
         }
-        setParsedPara(res.paragraphs);
-        parseAllParagraphs();
+        setParagraphs(res.paragraphs);
+        setDateCreated(res.dateCreated);
+        setContext(res.context);
+        setPath(res.path);
+        parseAllParagraphs(res.paragraphs);
       })
       .catch((err) => {
         notifications.toasts.addDanger(
@@ -967,9 +956,9 @@ export function Notebook({
   };
 
   const setPara = (para: ParaType, index: number) => {
-    const parsedPara = [...parsedPara];
-    parsedPara.splice(index, 1, para);
-    setParsedPara(parsedPara);
+    const newParsedPara = [...parsedPara];
+    newParsedPara.splice(index, 1, para);
+    setParsedPara(newParsedPara);
   };
 
   const setBreadcrumbs = (path: string) => {
@@ -1041,19 +1030,7 @@ export function Notebook({
     } else if (view === 'input_only') {
       setSelectedViewId('input_only');
     }
-  }, [
-    location.search,
-    location.pathname,
-    openedNoteId,
-    dataSourceEnabled,
-    loadNotebook,
-    checkIfReportingPluginIsInstalled,
-  ]);
-
-  useEffect(() => {
-    console.log('history', history);
-    console.log('location', location);
-  }, [history, location]);
+  }, [location.search, location.pathname, openedNoteId, dataSourceEnabled]);
 
   const viewOptions: EuiButtonGroupOptionProps[] = [
     {
@@ -1103,8 +1080,6 @@ export function Notebook({
   ];
 
   const renderParaActionButtons = () => {
-    const { parsedPara, selectedViewId } = parsedPara;
-
     return (
       <EuiFlexGroup gutterSize="s" alignItems="center">
         <EuiFlexItem grow={false}>
@@ -1382,7 +1357,7 @@ export function Notebook({
 
   const notebookHeader = newNavigation ? (
     <HeaderControlledComponentsWrapper
-      description={`Created on ${moment('').format(UI_DATE_FORMAT)}`}
+      description={`Created on ${moment(dateCreated).format(UI_DATE_FORMAT)}`}
       components={[
         noteActionIcons,
         <EuiFlexItem grow={false}>{showReportingContextMenu}</EuiFlexItem>,
@@ -1405,7 +1380,7 @@ export function Notebook({
       </EuiFlexGroup>
       <EuiFlexGroup justifyContent="spaceBetween" alignItems="center">
         <EuiFlexItem grow={false}>
-          <p>{`Created on ${moment('').format(UI_DATE_FORMAT)}`}</p>
+          <p>{`Created on ${moment(dateCreated).format(UI_DATE_FORMAT)}`}</p>
         </EuiFlexItem>
       </EuiFlexGroup>
       <EuiSpacer size="s" />

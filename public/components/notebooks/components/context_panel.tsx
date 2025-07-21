@@ -48,7 +48,7 @@ export const ContextPanel = (props: AddButtonProps) => {
   const DataSourceSelector =
     dataSourceManagementSetup.enabled &&
     dataSourceManagementSetup.dataSourceManagement.ui.DataSourceSelector;
-  const indexOptions = [{ label: context.index, id: context.index }];
+  const indexOptions = [{ label: context.index ?? '', id: context.index ?? '' }];
 
   return (
     <>
