@@ -25,7 +25,7 @@ import {
 } from '@elastic/eui';
 import truncate from 'lodash/truncate';
 import moment from 'moment';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { CoreStart, HttpStart, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
@@ -75,7 +75,7 @@ export function NoteTable({
   const history = useHistory();
 
   // Fetches path and id for all stored notebooks
-  const fetchNotebooks = () => {
+  const fetchNotebooks = useCallback(() => {
     // Notebooks plugin only supports savedNotebooks stored in .kibana
     // The support for notebooks in .opensearch-observability is removed in OSD 3.0.0 version
     // Related Issue: https://github.com/opensearch-project/dashboards-observability/issues/2350
@@ -87,7 +87,7 @@ export function NoteTable({
       .catch((err) => {
         console.error('Issue in fetching the notebooks', err.body.message);
       });
-  };
+  }, [http]);
 
   useEffect(() => {
     setNavBreadCrumbs(
@@ -101,14 +101,7 @@ export function NoteTable({
       notebooks.length
     );
     fetchNotebooks();
-  }, [notebooks.length]);
-
-  useEffect(() => {
-    const url = window.location.hash.split('/');
-    if (url[url.length - 1] === 'create') {
-      createNote();
-    }
-  }, [location]);
+  }, [notebooks.length, fetchNotebooks]);
 
   const closeModal = () => {
     setIsModalVisible(false);
@@ -169,7 +162,7 @@ export function NoteTable({
     closeModal();
   };
 
-  const createNote = () => {
+  const createNote = useCallback(() => {
     setModalLayout(
       getCustomModal(
         onCreate,
@@ -186,7 +179,14 @@ export function NoteTable({
       )
     );
     showModal();
-  };
+  }, [onCreate, closeModal, history]);
+
+  useEffect(() => {
+    const url = window.location.hash.split('/');
+    if (url[url.length - 1] === 'create') {
+      createNote();
+    }
+  }, [location, createNote]);
 
   const deleteNote = () => {
     const notebookString = `notebook${selectedNotebooks.length > 1 ? 's' : ''}`;

@@ -29,8 +29,8 @@ import { FormattedMessage } from '@osd/i18n/react';
 import CSS from 'csstype';
 import moment from 'moment';
 import queryString from 'query-string';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { RouteComponentProps, useHistory, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useHistory, useLocation } from 'react-router-dom';
 import { Subscription, timer } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 

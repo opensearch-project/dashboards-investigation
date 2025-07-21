@@ -4,7 +4,6 @@
  */
 
 import {
-  EuiCard,
   EuiComboBox,
   EuiFlexGroup,
   EuiFlexItem,
@@ -24,9 +23,8 @@ interface AddButtonProps {
   addPara: (index: number, newParaContent: string, inputType: string) => Promise<void>;
 }
 
-export const ContextPanel = (props: AddButtonProps) => {
+export const ContextPanel = ({ addPara }: AddButtonProps) => {
   const context = useContext(NotebookReactContext);
-  console.log('context', context);
   const coreStart = getCoreStart();
   const dataSourceManagementSetup = getDataSourceManagementSetup();
   const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +32,7 @@ export const ContextPanel = (props: AddButtonProps) => {
   const fetchBubbleData = useCallback(async () => {
     setIsLoading(true);
     try {
-      await props.addPara(0, '', 'ANOMALY_VISUALIZATION_ANALYSIS');
+      await addPara(0, '', 'ANOMALY_VISUALIZATION_ANALYSIS');
     } catch (error) {
       console.log(error);
     }

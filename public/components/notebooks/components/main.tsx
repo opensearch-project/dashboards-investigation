@@ -3,24 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { EuiGlobalToastList, EuiLink } from '@elastic/eui';
-import { Toast } from '@elastic/eui/src/components/toast/global_toast_list';
-import React, { ReactChild } from 'react';
+import React from 'react';
 // eslint-disable-next-line @osd/eslint/module_migration
 import { Route, Switch } from 'react-router';
 import { HashRouter } from 'react-router-dom';
-import {
-  ChromeBreadcrumb,
-  CoreStart,
-  MountPoint,
-  SavedObjectsStart,
-} from '../../../../../../src/core/public';
+import { CoreStart, MountPoint, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
-import {
-  NOTEBOOKS_API_PREFIX,
-  NOTEBOOKS_DOCUMENTATION_URL,
-} from '../../../../common/constants/notebooks';
+import { NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
 import { isValidUUID } from './helpers/notebooks_parser';
 import { NoteTable } from './note_table';
 import { Notebook } from './notebook';
