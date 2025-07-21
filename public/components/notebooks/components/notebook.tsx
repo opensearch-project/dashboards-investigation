@@ -84,13 +84,9 @@ interface NotebookProps {
   openedNoteId: string;
   DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
   http: CoreStart['http'];
-  renameNotebook: (newNoteName: string, noteId: string) => Promise<any>;
-  cloneNotebook: (newNoteName: string, noteId: string) => Promise<string>;
   deleteNotebook: (noteList: string[], toastMessage?: string) => void;
-  setToast: (title: string, color?: string, text?: string) => void;
   location: RouteComponentProps['location'];
   history: RouteComponentProps['history'];
-  migrateNotebook: (newNoteName: string, noteId: string) => Promise<string>;
   dataSourceManagement: DataSourceManagementPluginSetup;
   setActionMenu: (menuMount: MountPoint | undefined) => void;
   notifications: CoreStart['notifications'];
@@ -173,9 +169,8 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
       });
       return parsedPara;
     } catch (err) {
-      this.props.setToast(
-        'Error parsing paragraphs, please make sure you have the correct permission.',
-        'danger'
+      this.props.notifications.toasts.addDanger(
+        'Error parsing paragraphs, please make sure you have the correct permission.'
       );
       this.setState({ parsedPara: [] });
       return [];
@@ -228,9 +223,8 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
           this.setState({ paragraphs, parsedPara });
         })
         .catch((err) => {
-          this.props.setToast(
-            'Error deleting paragraph, please make sure you have the correct permission.',
-            'danger'
+          this.props.notifications.toasts.addDanger(
+            'Error deleting paragraph, please make sure you have the correct permission.'
           );
           console.error(err);
         });
@@ -267,12 +261,11 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
             .then((res) => {
               this.setState({ paragraphs: res.paragraphs });
               this.parseAllParagraphs();
-              this.props.setToast('Paragraphs successfully deleted!');
+              this.props.notifications.toasts.addSuccess('Paragraphs successfully deleted!');
             })
             .catch((err) => {
-              this.props.setToast(
-                'Error deleting paragraph, please make sure you have the correct permission.',
-                'danger'
+              this.props.notifications.toasts.addDanger(
+                'Error deleting paragraph, please make sure you have the correct permission.'
               );
               console.error(err);
             });
@@ -300,11 +293,40 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
     this.setState({ isModalVisible: true });
   };
 
+  // Renames an existing notebook
+  renameNotebook = async (editedNoteName: string, editedNoteID: string): Promise<any> => {
+    if (editedNoteName.length >= 50 || editedNoteName.length === 0) {
+      this.props.notifications.toasts.addDanger('Invalid notebook name');
+      return;
+    }
+    const renameNoteObject = {
+      name: editedNoteName,
+      noteId: editedNoteID,
+    };
+
+    return this.props.http
+      .put(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook/rename`, {
+        body: JSON.stringify(renameNoteObject),
+      })
+      .then((res) => {
+        this.props.notifications.toasts.addSuccess(
+          `Notebook successfully renamed into "${editedNoteName}"`
+        );
+        return res;
+      })
+      .catch((err) => {
+        this.props.notifications.toasts.addDanger(
+          'Error renaming notebook, please make sure you have the correct permission.'
+        );
+        console.error(err.body.message);
+      });
+  };
+
   showRenameModal = () => {
     this.setState({
       modalLayout: getCustomModal(
         (newName: string) => {
-          this.props.renameNotebook(newName, this.props.openedNoteId).then((res) => {
+          this.renameNotebook(newName, this.props.openedNoteId).then((res) => {
             this.setState({ isModalVisible: false });
             window.location.assign(`#/${res.id}`);
             setTimeout(() => {
@@ -324,11 +346,67 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
     this.setState({ isModalVisible: true });
   };
 
+  // Clones an existing notebook, return new notebook's id
+  cloneNotebook = async (clonedNoteName: string, clonedNoteID: string): Promise<string> => {
+    if (clonedNoteName.length >= 50 || clonedNoteName.length === 0) {
+      this.props.notifications.toasts.addDanger('Invalid notebook name');
+      return Promise.reject();
+    }
+    const cloneNoteObject = {
+      name: clonedNoteName,
+      noteId: clonedNoteID,
+    };
+
+    return this.props.http
+      .post(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook/clone`, {
+        body: JSON.stringify(cloneNoteObject),
+      })
+      .then((res) => {
+        this.props.notifications.toasts.addSuccess(
+          `Notebook "${clonedNoteName}" successfully created!`
+        );
+        return res.id;
+      })
+      .catch((err) => {
+        this.props.notifications.toasts.addDanger(
+          'Error cloning notebook, please make sure you have the correct permission.'
+        );
+        console.error(err.body.message);
+      });
+  };
+
+  migrateNotebook = async (migrateNoteName: string, migrateNoteID: string): Promise<string> => {
+    if (migrateNoteName.length >= 50 || migrateNoteName.length === 0) {
+      this.props.notifications.toasts.addDanger('Invalid notebook name');
+      return Promise.reject();
+    }
+    const migrateNoteObject = {
+      name: migrateNoteName,
+      noteId: migrateNoteID,
+    };
+    return this.props.http
+      .post(`${NOTEBOOKS_API_PREFIX}/note/migrate`, {
+        body: JSON.stringify(migrateNoteObject),
+      })
+      .then((res) => {
+        this.props.notifications.toasts.addSuccess(
+          `Notebook "${migrateNoteName}" successfully created!`
+        );
+        return res.id;
+      })
+      .catch((err) => {
+        this.props.notifications.toasts.addDanger(
+          'Error migrating notebook, please make sure you have the correct permission.'
+        );
+        console.error(err.body.message);
+      });
+  };
+
   showCloneModal = () => {
     this.setState({
       modalLayout: getCustomModal(
         (newName: string) => {
-          this.props.cloneNotebook(newName, this.props.openedNoteId).then((id: string) => {
+          this.cloneNotebook(newName, this.props.openedNoteId).then((id: string) => {
             window.location.assign(`#/${id}`);
             setTimeout(() => {
               this.loadNotebook();
@@ -352,7 +430,7 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
     this.setState({
       modalLayout: getCustomModal(
         (newName: string) => {
-          this.props.migrateNotebook(newName, this.props.openedNoteId).then((id: string) => {
+          this.migrateNotebook(newName, this.props.openedNoteId).then((id: string) => {
             window.location.assign(`#/${id}`);
             setTimeout(() => {
               this.loadNotebook();
@@ -408,9 +486,8 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
         this.parseAllParagraphs();
       })
       .catch((err) => {
-        this.props.setToast(
-          'Error deleting visualization, please make sure you have the correct permission.',
-          'danger'
+        this.props.notifications.toasts.addDanger(
+          'Error deleting visualization, please make sure you have the correct permission.'
         );
         console.error(err);
       });
@@ -443,9 +520,8 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
           this.setState({ selectedViewId: 'view_both' });
       })
       .catch((err) => {
-        this.props.setToast(
-          'Error adding paragraph, please make sure you have the correct permission.',
-          'danger'
+        this.props.notifications.toasts.addDanger(
+          'Error adding paragraph, please make sure you have the correct permission.'
         );
         console.error(err);
       });
@@ -484,9 +560,8 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
       .then((_res) => this.setState({ paragraphs, parsedPara }))
       .then((_res) => this.scrollToPara(targetIndex))
       .catch((err) => {
-        this.props.setToast(
-          'Error moving paragraphs, please make sure you have the correct permission.',
-          'danger'
+        this.props.notifications.toasts.addDanger(
+          'Error moving paragraphs, please make sure you have the correct permission.'
         );
         console.error(err);
       });
@@ -517,9 +592,8 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
         this.parseAllParagraphs();
       })
       .catch((err) => {
-        this.props.setToast(
-          'Error clearing paragraphs, please make sure you have the correct permission.',
-          'danger'
+        this.props.notifications.toasts.addDanger(
+          'Error clearing paragraphs, please make sure you have the correct permission.'
         );
         console.error(err);
       });
@@ -734,11 +808,10 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
       .catch((err) => {
         console.log(err);
         if (err.body.statusCode === 413)
-          this.props.setToast(`Error running paragraph: ${err.body.message}`, 'danger');
+          this.props.notifications.toasts.addDanger(`Error running paragraph: ${err.body.message}`);
         else
-          this.props.setToast(
-            'Error running paragraph, please make sure you have the correct permission.',
-            'danger'
+          this.props.notifications.toasts.addDanger(
+            'Error running paragraph, please make sure you have the correct permission.'
           );
       });
   };
@@ -832,9 +905,8 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
             res.paragraphs[index].dataSourceMDSId
           ) {
             res.paragraphs[index].output[0] = [];
-            this.props.setToast(
-              `Data source ${res.paragraphs[index].dataSourceMDSLabel} is not available. Please configure your dataSources`,
-              'danger'
+            this.props.notifications.toasts.addDanger(
+              `Data source ${res.paragraphs[index].dataSourceMDSLabel} is not available. Please configure your dataSources`
             );
           } else if (
             res.paragraphs[index].output[0]?.outputType === 'QUERY' &&
@@ -871,9 +943,8 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
         this.setState(res, this.parseAllParagraphs);
       })
       .catch((err) => {
-        this.props.setToast(
-          'Error fetching notebooks, please make sure you have the correct permission.',
-          'danger'
+        this.props.notifications.toasts.addDanger(
+          'Error fetching notebooks, please make sure you have the correct permission.'
         );
         console.error(err);
       });
@@ -899,7 +970,7 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
         return paragraph;
       })
       .catch((err) => {
-        this.props.setToast('Error getting query output', 'danger');
+        this.props.notifications.toasts.addDanger('Error getting query output');
         console.error(err);
       });
   };
@@ -953,7 +1024,9 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
         }
       })
       .catch((error) => {
-        this.props.setToast('Error checking Reporting Plugin Installation status.', 'danger');
+        this.props.notifications.toasts.addDanger(
+          'Error checking Reporting Plugin Installation status.'
+        );
         console.error(error);
       });
   }

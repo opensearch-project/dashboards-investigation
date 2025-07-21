@@ -27,12 +27,7 @@ import truncate from 'lodash/truncate';
 import moment from 'moment';
 import React, { useEffect, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
-import {
-  ChromeBreadcrumb,
-  CoreStart,
-  MountPoint,
-  SavedObjectsStart,
-} from '../../../../../../src/core/public';
+import { CoreStart, HttpStart, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
 import {
   CREATE_NOTE_MESSAGE,
@@ -48,46 +43,51 @@ import {
   getSampleNotebooksModal,
 } from './helpers/modal_containers';
 import { NotebookType } from './main';
+import { NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
+import { toMountPoint } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 const newNavigation = coreRefs.chrome?.navGroup.getNavGroupEnabled();
 
 interface NoteTableProps {
-  loading: boolean;
-  fetchNotebooks: () => void;
-  addSampleNotebooks: (
-    dataSourceMDSId: string | undefined,
-    dataSourceLabel: string | undefined
-  ) => void;
-  notebooks: NotebookType[];
-  createNotebook: (newNoteName: string) => void;
-  renameNotebook: (newNoteName: string, noteId: string) => void;
   deleteNotebook: (noteList: string[], toastMessage?: string) => void;
   dataSourceEnabled: boolean;
   dataSourceManagement: DataSourceManagementPluginSetup;
-  setActionMenu: (menuMount: MountPoint | undefined) => void;
   savedObjectsMDSClient: SavedObjectsStart;
   notifications: CoreStart['notifications'];
-  // setToast: (title: string, color?: string, text?: string) => void;
+  http: HttpStart;
 }
 
 export function NoteTable({
-  loading,
-  fetchNotebooks,
-  addSampleNotebooks,
-  notebooks,
-  createNotebook,
   deleteNotebook,
   dataSourceEnabled,
   dataSourceManagement,
   savedObjectsMDSClient,
   notifications,
+  http,
 }: NoteTableProps) {
+  const [notebooks, setNotebooks] = useState<NotebookType[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false); // Modal Toggle
   const [modalLayout, setModalLayout] = useState(<EuiOverlayMask />); // Modal Layout
   const [selectedNotebooks, setSelectedNotebooks] = useState<NotebookType[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
   const location = useLocation();
   const history = useHistory();
+
+  // Fetches path and id for all stored notebooks
+  const fetchNotebooks = () => {
+    // Notebooks plugin only supports savedNotebooks stored in .kibana
+    // The support for notebooks in .opensearch-observability is removed in OSD 3.0.0 version
+    // Related Issue: https://github.com/opensearch-project/dashboards-observability/issues/2350
+    return http
+      .get(`${NOTEBOOKS_API_PREFIX}/savedNotebook`)
+      .then((savedNotebooksResponse) => {
+        setNotebooks(savedNotebooksResponse.data);
+      })
+      .catch((err) => {
+        console.error('Issue in fetching the notebooks', err.body.message);
+      });
+  };
 
   useEffect(() => {
     setNavBreadCrumbs(
@@ -117,6 +117,39 @@ export function NoteTable({
     setIsModalVisible(true);
   };
 
+  // Creates a new notebook
+  const createNotebook = async (newNoteName: string) => {
+    if (newNoteName.length >= 50 || newNoteName.length === 0) {
+      notifications.toasts.addDanger('Invalid notebook name');
+      window.location.assign('#/');
+      return;
+    }
+    const newNoteObject = {
+      name: newNoteName,
+    };
+
+    return http
+      .post(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook`, {
+        body: JSON.stringify(newNoteObject),
+      })
+      .then(async (res) => {
+        notifications.toasts.addSuccess(`Notebook "${newNoteName}" successfully created!`);
+        window.location.assign(`#/${res}`);
+      })
+      .catch((err) => {
+        notifications.toasts.addDanger({
+          title: 'Please ask your administrator to enable Notebooks for you.',
+          text: toMountPoint(
+            <EuiLink href={NOTEBOOKS_DOCUMENTATION_URL} target="_blank">
+              Documentation
+            </EuiLink>
+          ),
+        });
+
+        console.error(err);
+      });
+  };
+
   const onCreate = async (newNoteName: string) => {
     createNotebook(newNoteName);
     closeModal();
@@ -129,6 +162,9 @@ export function NoteTable({
     await deleteNotebook(
       selectedNotebooks.map((note) => note.id),
       toastMessage
+    );
+    setNotebooks((prevState) =>
+      prevState.filter((notebook) => !selectedNotebooks.includes(notebook))
     );
     closeModal();
   };
@@ -163,6 +199,151 @@ export function NoteTable({
       />
     );
     showModal();
+  };
+
+  const addSampleNotebooks = async (dataSourceMDSId?: string, dataSourceMDSLabel?: string) => {
+    try {
+      setLoading(true);
+      const flights = await http
+        .get('../api/saved_objects/_find', {
+          query: {
+            type: 'index-pattern',
+            search_fields: 'title',
+            search: 'opensearch_dashboards_sample_data_flights',
+          },
+        })
+        .then((resp) => {
+          if (resp.total === 0) {
+            return true;
+          }
+          const hasDataSourceMDSId = resp.saved_objects.some((obj) =>
+            obj.references.some((ref) => ref.type === 'data-source' && ref.id === dataSourceMDSId)
+          );
+
+          // Return true if dataSourceMDSId is not found in any references
+          return !hasDataSourceMDSId;
+        });
+      const logs = await http
+        .get('../api/saved_objects/_find', {
+          query: {
+            type: 'index-pattern',
+            search_fields: 'title',
+            search: 'opensearch_dashboards_sample_data_logs',
+          },
+        })
+        .then((resp) => {
+          if (resp.total === 0) {
+            return true;
+          }
+          const hasDataSourceMDSId = resp.saved_objects.some((obj) =>
+            obj.references.some((ref) => ref.type === 'data-source' && ref.id === dataSourceMDSId)
+          );
+
+          // Return true if dataSourceMDSId is not found in any references
+          return !hasDataSourceMDSId;
+        });
+      if (flights) {
+        notifications.toasts.addSuccess('Adding sample data for flights. This can take some time.');
+        await http.post('../api/sample_data/flights', {
+          query: { data_source_id: dataSourceMDSId },
+        });
+      }
+      if (logs) {
+        notifications.toasts.addSuccess('Adding sample data for logs. This can take some time.');
+        await http.post('../api/sample_data/logs', {
+          query: { data_source_id: dataSourceMDSId },
+        });
+      }
+      const visIds: string[] = [];
+      await http
+        .get('../api/saved_objects/_find', {
+          query: {
+            type: 'visualization',
+            search_fields: 'title',
+            search:
+              `[Logs] Response Codes Over Time + Annotations` +
+              (dataSourceMDSLabel ? `_${dataSourceMDSLabel}` : ''),
+          },
+        })
+        .then((resp) => {
+          if (dataSourceEnabled) {
+            const searchTitle = `[Logs] Response Codes Over Time + Annotations_${dataSourceMDSLabel}`;
+            const savedObjects = resp.saved_objects;
+
+            const foundObject = savedObjects.find((obj) => obj.attributes.title === searchTitle);
+            if (foundObject) {
+              visIds.push(foundObject.id);
+            }
+          } else {
+            visIds.push(resp.saved_objects[0].id);
+          }
+        });
+      await http
+        .get('../api/saved_objects/_find', {
+          query: {
+            type: 'visualization',
+            search_fields: 'title',
+            search:
+              `[Logs] Unique Visitors vs. Average Bytes` +
+              (dataSourceMDSLabel ? `_${dataSourceMDSLabel}` : ''),
+          },
+        })
+        .then((resp) => {
+          if (dataSourceEnabled) {
+            const searchTitle = `[Logs] Unique Visitors vs. Average Bytes_${dataSourceMDSLabel}`;
+            const savedObjects = resp.saved_objects;
+
+            const foundObject = savedObjects.find((obj) => obj.attributes.title === searchTitle);
+            if (foundObject) {
+              visIds.push(foundObject.id);
+            }
+          } else {
+            visIds.push(resp.saved_objects[0].id);
+          }
+        });
+      await http
+        .get('../api/saved_objects/_find', {
+          query: {
+            type: 'visualization',
+            search_fields: 'title',
+            search:
+              `[Flights] Flight Count and Average Ticket Price` +
+              (dataSourceMDSLabel ? `_${dataSourceMDSLabel}` : ''),
+          },
+        })
+        .then((resp) => {
+          if (dataSourceEnabled) {
+            const searchTitle = `[Flights] Flight Count and Average Ticket Price_${dataSourceMDSLabel}`;
+            const savedObjects = resp.saved_objects;
+
+            const foundObject = savedObjects.find((obj) => obj.attributes.title === searchTitle);
+            if (foundObject) {
+              visIds.push(foundObject.id);
+            }
+          } else {
+            visIds.push(resp.saved_objects[0].id);
+          }
+        });
+      await http
+        .post(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook/addSampleNotebooks`, {
+          body: JSON.stringify({ visIds }),
+        })
+        .then((res) => {
+          const newData = res.body.map((notebook: any) => ({
+            path: notebook.name,
+            id: notebook.id,
+            dateCreated: notebook.dateCreated,
+            dateModified: notebook.dateModified,
+          }));
+          setNotebooks((prevState) => [...prevState, ...newData]);
+        });
+      notifications.toasts.addSuccess(`Sample notebooks successfully added.`);
+    } catch (err: any) {
+      notifications.toasts.addDanger('Error adding sample notebooks.');
+      console.error(err.body.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addSampleNotebooksModal = async () => {
