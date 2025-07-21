@@ -17,7 +17,7 @@ export const NotebookContextProvider = (props: {
     props.contextInput?.specs || []
   );
   const [state, dispatch] = useReducer(paragraphReducer, initialState);
-  const reducer = {state, dispatch};
+  const reducer = { state, dispatch };
 
   useEffect(() => {
     if (props.contextInput?.specs) {
@@ -29,9 +29,7 @@ export const NotebookContextProvider = (props: {
     setSpecs(newSpecs);
   };
   return (
-    <NotebookReactContext.Provider
-      value={{ ...props.contextInput, updateSpecs, specs, reducer }}
-    >
+    <NotebookReactContext.Provider value={{ ...props.contextInput, updateSpecs, specs, reducer }}>
       {props.children}
     </NotebookReactContext.Provider>
   );

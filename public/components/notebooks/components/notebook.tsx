@@ -395,9 +395,9 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
     this.props.http
       .delete(
         `${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/` +
-        this.props.openedNoteId +
-        '/' +
-        uniqueId
+          this.props.openedNoteId +
+          '/' +
+          uniqueId
       )
       .then((res) => {
         this.setState({ paragraphs: res.paragraphs });

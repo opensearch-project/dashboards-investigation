@@ -20,11 +20,11 @@ interface InputPanelProps {
   onCreateParagraph: (paragraphInput: string, inputType: string) => Promise<void>;
 }
 
-const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => {
+export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => {
   const [inputValue, setInputValue] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const context = useContext(NotebookReactContext)
+  const context = useContext(NotebookReactContext);
 
   useEffectOnce(() => {
     if (textareaRef.current) {
@@ -38,7 +38,6 @@ const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => {
   });
 
   useEffect(() => {
-    console.log('state', context?.reducer?.state);
     if (!context?.reducer?.state.isLoading) {
       setInputValue('');
     }
@@ -47,8 +46,16 @@ const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => {
   const paragraphOptions: EuiSelectableOption[] = [
     { label: 'PPL', key: 'PPL', 'data-test-subj': 'paragraph-type-ppl' },
     { label: 'MARKDOWN', key: 'MARKDOWN', 'data-test-subj': 'paragraph-type-markdown' },
-    { label: 'Visualization', key: 'VISUALIZATION', 'data-test-subj': 'paragraph-type-visualization' },
-    { label: 'Continue investigation', key: 'DEEP_RESEARCH_AGENT', 'data-test-subj': 'paragraph-type-deep-research' },
+    {
+      label: 'Visualization',
+      key: 'VISUALIZATION',
+      'data-test-subj': 'paragraph-type-visualization',
+    },
+    {
+      label: 'Continue investigation',
+      key: 'DEEP_RESEARCH_AGENT',
+      'data-test-subj': 'paragraph-type-deep-research',
+    },
   ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -68,16 +75,16 @@ const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => {
   };
 
   const handleParagraphSelection = async (options: EuiSelectableOption[]) => {
-    const selectedOption = options.find(option => option.checked === 'on');
+    const selectedOption = options.find((option) => option.checked === 'on');
     if (selectedOption) {
       const paragraphType = selectedOption.key as string;
       // Dispatch action to create new paragraph
       context?.reducer?.dispatch({
         actionType: ACTION_TYPES.CREATE_PARAGRAPH_REQUEST,
         payload: {
-          paragraphType: paragraphType
-        }
-      })
+          paragraphType,
+        },
+      });
 
       // Determine paragraph type and input content
       let inputType = 'CODE';
@@ -104,13 +111,13 @@ const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => {
           inputType = 'CODE';
           paragraphInput = '';
       }
-      
+
       await onCreateParagraph(paragraphInput, inputType);
 
       // Dispatch action to create the paragraph successfully
       context?.reducer?.dispatch({
-        actionType: ACTION_TYPES.CREATE_PARAGRAPH_SUCCESS
-      })
+        actionType: ACTION_TYPES.CREATE_PARAGRAPH_SUCCESS,
+      });
 
       closePopover();
     }
@@ -140,7 +147,7 @@ const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => {
               backgroundColor: 'white',
               paddingRight: 40,
             }}
-            placeholder={"Type % to show paragraph options"}
+            placeholder={'Type % to show paragraph options'}
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={(e) => {
@@ -184,15 +191,9 @@ const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => {
           onChange={handleParagraphSelection}
           data-test-subj="paragraph-type-selector"
         >
-          {(list) => (
-            <div>
-              {list}
-            </div>
-          )}
+          {(list) => <div>{list}</div>}
         </EuiSelectable>
       </div>
     </EuiInputPopover>
   );
 };
-
-export default InputPanel;
