@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useReducer, useState } from 'react';
 import { NotebookContext } from '../../../../common/types/notebooks';
+import { initialState, paragraphReducer } from '../reducers/paragraphReducer';
 
 export const NotebookReactContext = React.createContext<NotebookContext | undefined>(undefined);
 
@@ -15,6 +16,8 @@ export const NotebookContextProvider = (props: {
   const [specs, setSpecs] = useState<Array<Record<string, unknown>>>(
     props.contextInput?.specs || []
   );
+  const [state, dispatch] = useReducer(paragraphReducer, initialState);
+  const reducer = {state, dispatch};
 
   useEffect(() => {
     if (props.contextInput?.specs) {
@@ -27,7 +30,7 @@ export const NotebookContextProvider = (props: {
   };
   return (
     <NotebookReactContext.Provider
-      value={props.contextInput ? { ...props.contextInput, updateSpecs, specs } : undefined}
+      value={{ ...props.contextInput, updateSpecs, specs, reducer }}
     >
       {props.children}
     </NotebookReactContext.Provider>

@@ -59,6 +59,7 @@ import { getMLCommonsTask } from '../../../utils/ml_commons_apis';
 import { parseParagraphOut } from '../../../utils/paragraph';
 import { isStateCompletedOrFailed } from '../../../utils/task';
 import { constructDeepResearchParagraphOut } from '../../../../common/utils/paragraph';
+import InputPanel from './paragraph_components/input_panel';
 
 const ParagraphTypeDeepResearch = 'DEEP_RESEARCH';
 
@@ -394,9 +395,9 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
     this.props.http
       .delete(
         `${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/` +
-          this.props.openedNoteId +
-          '/' +
-          uniqueId
+        this.props.openedNoteId +
+        '/' +
+        uniqueId
       )
       .then((res) => {
         this.setState({ paragraphs: res.paragraphs });
@@ -1338,10 +1339,15 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
       </div>
     );
 
+    const handleCreateParagraph = async (paragraphInput: string, inputType: string) => {
+      // Add paragraph at the end
+      await this.addPara(this.state.paragraphs.length, paragraphInput, inputType);
+    };
+
     return (
       <NotebookContextProvider contextInput={this.state.context}>
         <>
-          <EuiPage>
+          <EuiPage direction="column">
             <EuiPageBody component="div">
               {notebookHeader}
               {!this.state.savedObjectNotebook && (
@@ -1407,7 +1413,8 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
                   </EuiFlexGroup>
                 </EuiFlexItem>
               </EuiFlexGroup>
-              <ContextPanel addPara={this.addPara} />
+              {/* Temporarily determine whether to display the context panel based on datasource id */}
+              {this.state.context?.dataSourceId && <ContextPanel addPara={this.addPara} />}
               {this.state.parsedPara.length > 0 ? (
                 <>
                   {this.state.parsedPara.map((para: ParaType, index: number) => (
@@ -1548,6 +1555,8 @@ export class Notebook extends Component<NotebookProps, NotebookState> {
               )}
               {showLoadingModal}
             </EuiPageBody>
+            <EuiSpacer />
+            <InputPanel onCreateParagraph={handleCreateParagraph} />
           </EuiPage>
           {this.state.isModalVisible && this.state.modalLayout}
         </>

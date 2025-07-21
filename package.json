@@ -28,6 +28,7 @@
     "@nteract/presentational-components": "^3.4.3",
     "@reduxjs/toolkit": "^1.6.1",
     "ajv": "^8.11.0",
+    "autosize": "^6.0.1",
     "json5": "^2.2.3",
     "mime": "^3.0.0",
     "performance-now": "^2.1.0",
@@ -40,6 +41,7 @@
   },
   "devDependencies": {
     "@cypress/skip-test": "^2.6.1",
+    "@types/autosize": "^4.0.3",
     "@types/enzyme-adapter-react-16": "^1.0.6",
     "@types/mime": "^3.0.1",
     "@types/react-plotly.js": "^2.6.3",
