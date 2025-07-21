@@ -7,3 +7,5 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Maintainer              | GitHub ID                                       | Affiliation |
 | ----------------------- | ----------------------------------------------- | ----------- |
 | Zhou Su                 | [SuZhou-Joe](https://github.com/SuZhou-Joe)     | Amazon      |
+| Tianyu Ga               | [raintygao](https://github.com/raintygao)       | Amazon      |
+| Lin Wang                | [wanglam](https://github.com/wanglam)           | Amazon      |
