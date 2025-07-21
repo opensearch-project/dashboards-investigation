@@ -19,7 +19,7 @@ jest.mock('../../../../../../../../src/plugins/embeddable/public', () => ({
 }));
 
 jest.mock('../../bubbleup/bubble_up_container', () => ({
-  BubbleUpContainer: () => <div />
+  BubbleUpContainer: () => <div />,
 }));
 
 const mockFind = jest.fn().mockResolvedValue({

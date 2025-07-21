@@ -34,7 +34,7 @@ jest.mock('../../../../../../../src/plugins/embeddable/public', () => ({
 }));
 
 jest.mock('../bubbleup/bubble_up_container', () => ({
-  BubbleUpContainer: () => <div />
+  BubbleUpContainer: () => <div />,
 }));
 
 jest.mock('../context_panel', () => ({

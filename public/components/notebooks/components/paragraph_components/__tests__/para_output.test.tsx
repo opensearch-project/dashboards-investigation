@@ -15,7 +15,7 @@ import {
 import { ParaOutput } from '../para_output';
 
 jest.mock('../../bubbleup/bubble_up_container', () => ({
-  BubbleUpContainer: () => <div />
+  BubbleUpContainer: () => <div />,
 }));
 
 describe('<ParaOutput /> spec', () => {

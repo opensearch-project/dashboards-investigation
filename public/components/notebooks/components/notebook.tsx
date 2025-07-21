@@ -34,11 +34,7 @@ import { RouteComponentProps } from 'react-router-dom';
 import { Subscription, timer } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
-import {
-  CoreStart,
-  MountPoint,
-  SavedObjectsStart,
-} from '../../../../../../src/core/public';
+import { CoreStart, MountPoint, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
 import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
