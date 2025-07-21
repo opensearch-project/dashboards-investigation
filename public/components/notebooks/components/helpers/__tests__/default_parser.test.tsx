@@ -73,6 +73,10 @@ describe('Testing default backend parser function with perfect schema', () => {
         visStartTime: isVisualization ? '2020-07-21T18:37:44.710Z' : undefined,
         visEndTime: isVisualization ? '2020-08-20T18:37:44.710Z' : undefined,
         visSavedObjId: isVisualization ? '935afa20-e0cd-11e7-9d07-1398ccfcefa3' : undefined,
+        dataSourceMDSId: undefined,
+        dataSourceMDSLabel: undefined,
+        isAnomalyVisualizationAnalysis: false,
+        isDeepResearch: false,
       };
     });
     expect(parsedPara).toEqual(expected);

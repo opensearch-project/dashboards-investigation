@@ -35,7 +35,6 @@ import { Subscription, timer } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
 import {
-  ChromeBreadcrumb,
   CoreStart,
   MountPoint,
   SavedObjectsStart,

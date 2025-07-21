@@ -241,9 +241,6 @@ exports[`<Paragraphs /> spec renders the component 1`] = `
       </div>
       <div
         class="euiFlexItem euiFlexItem--flexGrowZero"
-      />
-      <div
-        class="euiFlexItem euiFlexItem--flexGrowZero"
       >
         <svg
           aria-hidden="true"
@@ -656,9 +653,6 @@ exports[`<Paragraphs /> spec use SavedObject find to fetch visualizations when d
           </span>
         </button>
       </div>
-      <div
-        class="euiFlexItem euiFlexItem--flexGrowZero"
-      />
       <div
         class="euiFlexItem euiFlexItem--flexGrowZero"
       >

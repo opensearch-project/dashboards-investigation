@@ -157,6 +157,10 @@ export const sampleParsedParagraghs1 = [
     editorLanguage: 'md',
     typeOut: ['MARKDOWN'],
     out: ['# Type your input here'],
+    dataSourceMDSId: undefined,
+    dataSourceMDSLabel: undefined,
+    isAnomalyVisualizationAnalysis: false,
+    isDeepResearch: false,
   },
   {
     uniqueId: 'paragraph_c3107b15-da7d-4836-aef4-0996abbc8ab2',
@@ -181,6 +185,10 @@ export const sampleParsedParagraghs1 = [
     editorLanguage: 'md',
     typeOut: ['MARKDOWN'],
     out: ['# add code here\n'],
+    dataSourceMDSId: undefined,
+    dataSourceMDSLabel: undefined,
+    isAnomalyVisualizationAnalysis: false,
+    isDeepResearch: false,
   },
   {
     uniqueId: 'paragraph_6d3237a9-6486-4f93-aa25-0a1c838faabd',
@@ -207,6 +215,10 @@ export const sampleParsedParagraghs1 = [
     editorLanguage: '',
     typeOut: ['VISUALIZATION'],
     out: [''],
+    dataSourceMDSId: undefined,
+    dataSourceMDSLabel: undefined,
+    isAnomalyVisualizationAnalysis: false,
+    isDeepResearch: false,
   },
   {
     uniqueId: 'paragraph_f1b2db55-8704-4822-a8ff-6445fe1fa10c',
@@ -233,6 +245,10 @@ export const sampleParsedParagraghs1 = [
     out: [
       '{"schema":[{"name":"FlightNum","type":"keyword"},{"name":"Origin","type":"keyword"},{"name":"OriginLocation","type":"geo_point"},{"name":"DestLocation","type":"geo_point"},{"name":"FlightDelay","type":"boolean"},{"name":"DistanceMiles","type":"float"},{"name":"FlightTimeMin","type":"float"},{"name":"OriginWeather","type":"keyword"},{"name":"dayOfWeek","type":"integer"},{"name":"AvgTicketPrice","type":"float"},{"name":"Carrier","type":"keyword"},{"name":"FlightDelayMin","type":"integer"},{"name":"OriginRegion","type":"keyword"},{"name":"DestAirportID","type":"keyword"},{"name":"FlightDelayType","type":"keyword"},{"name":"timestamp","type":"timestamp"},{"name":"Dest","type":"keyword"},{"name":"FlightTimeHour","type":"keyword"},{"name":"Cancelled","type":"boolean"},{"name":"DistanceKilometers","type":"float"},{"name":"OriginCityName","type":"keyword"},{"name":"DestWeather","type":"keyword"},{"name":"OriginCountry","type":"keyword"},{"name":"DestCountry","type":"keyword"},{"name":"DestRegion","type":"keyword"},{"name":"DestCityName","type":"keyword"},{"name":"OriginAirportID","type":"keyword"}],"datarows":[["9HY9SWR","Frankfurt am Main Airport",{"lat":50.033333,"lon":8.570556},{"lat":-33.94609833,"lon":151.177002},false,10247.856,1030.7704,"Sunny",0,841.2656,"OpenSearch Dashboards Airlines",0,"DE-HE","SYD","No Delay","2021-11-01 00:00:00","Sydney Kingsford Smith International Airport","17.179506930998397",false,16492.326,"Frankfurt am Main","Rain","DE","AU","SE-BD","Sydney","FRA"],["X98CCZO","Cape Town International Airport",{"lat":-33.96480179,"lon":18.60169983},{"lat":45.505299,"lon":12.3519},false,5482.6064,464.3895,"Clear",0,882.98267,"Logstash Airways",0,"SE-BD","VE05","No Delay","2021-11-01 18:27:00","Venice Marco Polo Airport","7.73982468459836",false,8823.4,"Cape Town","Sunny","ZA","IT","IT-34","Venice","CPT"]],"total":2,"size":2,"status":200}',
     ],
+    dataSourceMDSId: undefined,
+    dataSourceMDSLabel: undefined,
+    isAnomalyVisualizationAnalysis: false,
+    isDeepResearch: false,
   },
 ];
 
@@ -339,6 +355,10 @@ export const sampleParsedParagraghs2 = [
     out: [
       '# Type no output here\n* Sample link: [link](https://opensearch.org/)\n* ~~Strike~~, **Bold**, __Italic__',
     ],
+    dataSourceMDSId: undefined,
+    dataSourceMDSLabel: undefined,
+    isAnomalyVisualizationAnalysis: false,
+    isDeepResearch: false,
   },
   {
     uniqueId: 'paragraph_c3107b15-da7d-4836-aef4-0996abbc8ab2',
@@ -363,6 +383,10 @@ export const sampleParsedParagraghs2 = [
     editorLanguage: 'md',
     typeOut: [],
     out: [],
+    dataSourceMDSId: undefined,
+    dataSourceMDSLabel: undefined,
+    isAnomalyVisualizationAnalysis: false,
+    isDeepResearch: false,
   },
   {
     uniqueId: 'paragraph_6d3237a9-6486-4f93-aa25-0a1c838faabd',
@@ -389,6 +413,10 @@ export const sampleParsedParagraghs2 = [
     editorLanguage: '',
     typeOut: [],
     out: [],
+    dataSourceMDSId: undefined,
+    dataSourceMDSLabel: undefined,
+    isAnomalyVisualizationAnalysis: false,
+    isDeepResearch: false,
   },
 ];
 

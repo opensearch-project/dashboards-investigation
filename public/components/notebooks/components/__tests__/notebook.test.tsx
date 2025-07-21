@@ -33,6 +33,14 @@ jest.mock('../../../../../../../src/plugins/embeddable/public', () => ({
   },
 }));
 
+jest.mock('../bubbleup/bubble_up_container', () => ({
+  BubbleUpContainer: () => <div />
+}));
+
+jest.mock('../context_panel', () => ({
+  ContextPanel: () => <div />,
+}));
+
 // @ts-ignore
 global.fetch = jest.fn(() =>
   Promise.resolve({
@@ -64,12 +72,9 @@ describe('<Notebook /> spec', () => {
     httpClient.get = jest.fn(() => Promise.resolve((emptyNotebook as unknown) as HttpResponse));
     const utils = render(
       <Notebook
-        pplService={pplService}
         openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
         renameNotebook={renameNotebook}
         cloneNotebook={cloneNotebook}
         deleteNotebook={deleteNotebook}
