@@ -126,9 +126,6 @@ export class Main extends React.Component<MainProps, MainState> {
                   openedNoteId={props.match.params.id}
                   DashboardContainerByValueRenderer={this.props.DashboardContainerByValueRenderer}
                   http={this.props.http}
-                  deleteNotebook={this.deleteNotebook}
-                  location={props.location}
-                  history={props.history}
                   dataSourceManagement={this.props.dataSourceManagement}
                   setActionMenu={this.props.setActionMenu}
                   notifications={this.props.notifications}
