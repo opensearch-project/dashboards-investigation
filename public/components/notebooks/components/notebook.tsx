@@ -59,7 +59,7 @@ import { getMLCommonsTask } from '../../../utils/ml_commons_apis';
 import { parseParagraphOut } from '../../../utils/paragraph';
 import { isStateCompletedOrFailed } from '../../../utils/task';
 import { constructDeepResearchParagraphOut } from '../../../../common/utils/paragraph';
-import InputPanel from './paragraph_components/input_panel';
+import { InputPanel } from './input_panel';
 
 const ParagraphTypeDeepResearch = 'DEEP_RESEARCH';
 

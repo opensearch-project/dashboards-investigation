@@ -13,8 +13,8 @@ import {
 } from '@elastic/eui';
 import autosize from 'autosize';
 import { useEffectOnce } from 'react-use';
-import { ACTION_TYPES } from '../../reducers/paragraphReducer';
-import { NotebookReactContext } from '../../context_provider/context_provider';
+import { ACTION_TYPES } from '../reducers/paragraphReducer';
+import { NotebookReactContext } from '../context_provider/context_provider';
 
 interface InputPanelProps {
   onCreateParagraph: (paragraphInput: string, inputType: string) => Promise<void>;
@@ -130,6 +130,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => 
     }
 
     textareaRef.current.value = '';
+    textareaRef.current.style.height = '45px';
   };
 
   return (
@@ -141,7 +142,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => 
             // autoFocus
             fullWidth
             style={{
-              minHeight: 40,
+              minHeight: 45,
               maxHeight: 200,
               borderRadius: 6,
               backgroundColor: 'white',

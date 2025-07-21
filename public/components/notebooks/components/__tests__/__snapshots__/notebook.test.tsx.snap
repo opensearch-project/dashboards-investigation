@@ -2,7 +2,7 @@
 
 exports[`<Notebook /> spec Renders the empty component 1`] = `
 <div
-  class="euiPage euiPage--paddingMedium euiPage--grow"
+  class="euiPage euiPage--paddingMedium euiPage--column euiPage--grow"
 >
   <div
     class="euiPageBody euiPageBody--borderRadiusNone"
@@ -294,7 +294,6 @@ exports[`<Notebook /> spec Renders the empty component 1`] = `
         </div>
       </div>
     </div>
-    <div />
     <div
       style="margin-top: 10px;"
     >
@@ -529,12 +528,16 @@ exports[`<Notebook /> spec Renders the empty component 1`] = `
       </div>
     </div>
   </div>
+  <div
+    class="euiSpacer euiSpacer--l"
+  />
+  <div />
 </div>
 `;
 
 exports[`<Notebook /> spec Renders the visualization component 1`] = `
 <div
-  class="euiPage euiPage--paddingMedium euiPage--grow"
+  class="euiPage euiPage--paddingMedium euiPage--column euiPage--grow"
 >
   <div
     class="euiPageBody euiPageBody--borderRadiusNone"
@@ -681,7 +684,6 @@ exports[`<Notebook /> spec Renders the visualization component 1`] = `
         />
       </div>
     </div>
-    <div />
     <div
       style="margin-top: 10px;"
     >
@@ -716,5 +718,9 @@ exports[`<Notebook /> spec Renders the visualization component 1`] = `
       </div>
     </div>
   </div>
+  <div
+    class="euiSpacer euiSpacer--l"
+  />
+  <div />
 </div>
 `;

@@ -41,6 +41,10 @@ jest.mock('../context_panel', () => ({
   ContextPanel: () => <div />,
 }));
 
+jest.mock('../input_panel.tsx', () => ({
+  InputPanel: () => <div />,
+}));
+
 // @ts-ignore
 global.fetch = jest.fn(() =>
   Promise.resolve({
