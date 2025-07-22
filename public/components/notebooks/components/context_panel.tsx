@@ -37,7 +37,7 @@ export const ContextPanel = ({ addPara }: AddButtonProps) => {
       console.log(error);
     }
     setIsLoading(false);
-  }, [context]);
+  }, [addPara]);
 
   if (!context) {
     return null;

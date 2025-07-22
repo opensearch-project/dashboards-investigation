@@ -103,50 +103,56 @@ export function NoteTable({
     fetchNotebooks();
   }, [notebooks.length, fetchNotebooks]);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalVisible(false);
-  };
+  }, []);
   const showModal = () => {
     setIsModalVisible(true);
   };
 
   // Creates a new notebook
-  const createNotebook = async (newNoteName: string) => {
-    if (newNoteName.length >= 50 || newNoteName.length === 0) {
-      notifications.toasts.addDanger('Invalid notebook name');
-      window.location.assign('#/');
-      return;
-    }
-    const newNoteObject = {
-      name: newNoteName,
-    };
+  const createNotebook = useCallback(
+    async (newNoteName: string) => {
+      if (newNoteName.length >= 50 || newNoteName.length === 0) {
+        notifications.toasts.addDanger('Invalid notebook name');
+        window.location.assign('#/');
+        return;
+      }
+      const newNoteObject = {
+        name: newNoteName,
+      };
 
-    return http
-      .post(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook`, {
-        body: JSON.stringify(newNoteObject),
-      })
-      .then(async (res) => {
-        notifications.toasts.addSuccess(`Notebook "${newNoteName}" successfully created!`);
-        window.location.assign(`#/${res}`);
-      })
-      .catch((err) => {
-        notifications.toasts.addDanger({
-          title: 'Please ask your administrator to enable Notebooks for you.',
-          text: toMountPoint(
-            <EuiLink href={NOTEBOOKS_DOCUMENTATION_URL} target="_blank">
-              Documentation
-            </EuiLink>
-          ),
+      return http
+        .post(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook`, {
+          body: JSON.stringify(newNoteObject),
+        })
+        .then(async (res) => {
+          notifications.toasts.addSuccess(`Notebook "${newNoteName}" successfully created!`);
+          window.location.assign(`#/${res}`);
+        })
+        .catch((err) => {
+          notifications.toasts.addDanger({
+            title: 'Please ask your administrator to enable Notebooks for you.',
+            text: toMountPoint(
+              <EuiLink href={NOTEBOOKS_DOCUMENTATION_URL} target="_blank">
+                Documentation
+              </EuiLink>
+            ),
+          });
+
+          console.error(err);
         });
+    },
+    [http, notifications]
+  );
 
-        console.error(err);
-      });
-  };
-
-  const onCreate = async (newNoteName: string) => {
-    createNotebook(newNoteName);
-    closeModal();
-  };
+  const onCreate = useCallback(
+    async (newNoteName: string) => {
+      createNotebook(newNoteName);
+      closeModal();
+    },
+    [createNotebook, closeModal]
+  );
 
   const onDelete = async () => {
     const toastMessage = `Notebook${

@@ -105,10 +105,9 @@ export function Notebook({
   const [paragraphs, setParagraphs] = useState<any[]>([]);
   const [parsedPara, setParsedPara] = useState<ParaType[]>([]);
   const [dateCreated, setDateCreated] = useState('');
-  const [vizPrefix, setVizPrefix] = useState('');
+  const [vizPrefix, _setVizPrefix] = useState('');
   const [isAddParaPopoverOpen, setIsAddParaPopoverOpen] = useState(false);
   const [isParaActionsPopoverOpen, setIsParaActionsPopoverOpen] = useState(false);
-  const [isNoteActionsPopoverOpen, setIsNoteActionsPopoverOpen] = useState(false);
   const [isReportingPluginInstalled, setIsReportingPluginInstalled] = useState(false);
   const [isReportingActionsPopoverOpen, setIsReportingActionsPopoverOpen] = useState(false);
   const [isReportingLoadingModalOpen, setIsReportingLoadingModalOpen] = useState(false);
@@ -128,21 +127,21 @@ export function Notebook({
     setIsReportingLoadingModalOpen(show);
   };
 
-  const parseAllParagraphs = (paragraphs: any[]) => {
-    const parsedPara = parseParagraphs(paragraphs);
-    setParsedPara(parsedPara);
+  const parseAllParagraphs = (allParagraphs: any[]) => {
+    const newParsedPara = parseParagraphs(allParagraphs);
+    setParsedPara(newParsedPara);
   };
 
   // parse paragraphs based on backend
-  const parseParagraphs = (paragraphs: any[]): ParaType[] => {
+  const parseParagraphs = (paragraphsProp: any[]): ParaType[] => {
     try {
-      const parsedPara = defaultParagraphParser(paragraphs);
-      parsedPara.forEach((para: ParaType) => {
+      const newParsedPara = defaultParagraphParser(paragraphsProp);
+      newParsedPara.forEach((para: ParaType) => {
         para.isInputExpanded = selectedViewId === 'input_only';
         para.paraRef = React.createRef();
         para.paraDivRef = React.createRef<HTMLDivElement>();
       });
-      return parsedPara;
+      return newParsedPara;
     } catch (err) {
       notifications.toasts.addDanger(
         'Error parsing paragraphs, please make sure you have the correct permission.'
@@ -650,14 +649,14 @@ export function Notebook({
       timer(0, 5000)
         .pipe(
           switchMap(() => {
-            const para = parsedPara.find((para) => para.uniqueId === paraUniqueId);
-            if (!para) {
+            const uniquePara = parsedPara.find((para) => para.uniqueId === paraUniqueId);
+            if (!uniquePara) {
               return 'STOP';
             }
             return getMLCommonsTask({
               http,
               taskId,
-              dataSourceId: para.dataSourceMDSId,
+              dataSourceId: uniquePara.dataSourceMDSId,
             });
           })
         )
@@ -833,13 +832,20 @@ export function Notebook({
     }
   };
 
+  const configureViewParameter = (id: string) => {
+    history.replace({
+      ...location,
+      search: `view=${id}`,
+    });
+  };
+
   // update view mode, scrolls to paragraph and expands input if scrollToIndex is given
-  const updateView = (selectedViewId: string, scrollToIndex?: number) => {
-    configureViewParameter(selectedViewId);
+  const updateView = (viewId: string, scrollToIndex?: number) => {
+    configureViewParameter(viewId);
     const newParsedPara = [...parsedPara];
 
     newParsedPara.map((para: ParaType, index: number) => {
-      newParsedPara[index].isInputExpanded = selectedViewId === 'input_only';
+      newParsedPara[index].isInputExpanded = viewId === 'input_only';
     });
 
     if (scrollToIndex !== undefined) {
@@ -847,8 +853,45 @@ export function Notebook({
       scrollToPara(scrollToIndex);
     }
     setParsedPara(newParsedPara);
-    setSelectedViewId(selectedViewId);
+    setSelectedViewId(viewId);
     paragraphSelector(scrollToIndex !== undefined ? scrollToIndex : -1);
+  };
+
+  const setBreadcrumbs = (notePath: string) => {
+    setNavBreadCrumbs(
+      [],
+      [
+        {
+          text: 'Notebooks',
+          href: '#/',
+        },
+        {
+          text: notePath,
+          href: `#/${openedNoteId}`,
+        },
+      ]
+    );
+  };
+
+  const loadQueryResultsFromInput = async (paragraph: any, MDSId?: any) => {
+    const queryType =
+      paragraph.input.inputText.substring(0, 4) === '%sql' ? 'sqlquery' : 'pplquery';
+    const query = {
+      dataSourceMDSId: MDSId,
+    };
+    await http
+      .post(`/api/investigation/sql/${queryType}`, {
+        body: JSON.stringify(paragraph.output[0].result),
+        ...(dataSourceEnabled && { query }),
+      })
+      .then((response) => {
+        paragraph.output[0].result = response.data.resp || JSON.stringify({ error: 'no response' });
+        return paragraph;
+      })
+      .catch((err) => {
+        notifications.toasts.addDanger('Error getting query output');
+        console.error(err);
+      });
   };
 
   const loadNotebook = async () => {
@@ -935,47 +978,10 @@ export function Notebook({
     setDataSourceMDSLabel(label);
   };
 
-  const loadQueryResultsFromInput = async (paragraph: any, dataSourceMDSId?: any) => {
-    const queryType =
-      paragraph.input.inputText.substring(0, 4) === '%sql' ? 'sqlquery' : 'pplquery';
-    const query = {
-      dataSourceMDSId,
-    };
-    await http
-      .post(`/api/investigation/sql/${queryType}`, {
-        body: JSON.stringify(paragraph.output[0].result),
-        ...(dataSourceEnabled && { query }),
-      })
-      .then((response) => {
-        paragraph.output[0].result = response.data.resp || JSON.stringify({ error: 'no response' });
-        return paragraph;
-      })
-      .catch((err) => {
-        notifications.toasts.addDanger('Error getting query output');
-        console.error(err);
-      });
-  };
-
   const setPara = (para: ParaType, index: number) => {
     const newParsedPara = [...parsedPara];
     newParsedPara.splice(index, 1, para);
     setParsedPara(newParsedPara);
-  };
-
-  const setBreadcrumbs = (path: string) => {
-    setNavBreadCrumbs(
-      [],
-      [
-        {
-          text: 'Notebooks',
-          href: '#/',
-        },
-        {
-          text: path,
-          href: `#/${openedNoteId}`,
-        },
-      ]
-    );
   };
 
   const checkIfReportingPluginIsInstalled = () => {
@@ -1010,13 +1016,6 @@ export function Notebook({
       });
   };
 
-  const configureViewParameter = (id: string) => {
-    history.replace({
-      ...location,
-      search: `view=${id}`,
-    });
-  };
-
   useEffect(() => {
     setBreadcrumbs('');
     loadNotebook();
@@ -1031,6 +1030,8 @@ export function Notebook({
     } else if (view === 'input_only') {
       setSelectedViewId('input_only');
     }
+    // This useEffect should not set loadNotebook as a dependency, because it will cause infinite re-render. The data flow of this component should be updated.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search, location.pathname, openedNoteId, dataSourceEnabled]);
 
   const viewOptions: EuiButtonGroupOptionProps[] = [
@@ -1396,7 +1397,7 @@ export function Notebook({
   return (
     <NotebookContextProvider contextInput={context}>
       <>
-        <EuiPage>
+        <EuiPage direction="column">
           <EuiPageBody component="div">
             {notebookHeader}
             {!savedObjectNotebook && (
