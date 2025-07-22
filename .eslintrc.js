@@ -13,9 +13,6 @@ module.exports = {
   extends: [
     '@elastic/eslint-config-kibana',
     'plugin:@elastic/eui/recommended',
-    'plugin:react-hooks/recommended',
-    'plugin:jest/recommended',
-    'plugin:prettier/recommended',
   ],
   
   rules: {

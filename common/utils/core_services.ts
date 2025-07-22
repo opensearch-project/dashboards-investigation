@@ -32,6 +32,6 @@ export const uiSettingsService = {
 };
 
 export const [getOSDHttp, setOSDHttp] = createGetterSetter<HttpStart>('http');
-export const [c, setOSDSavedObjectsClient] = createGetterSetter<SavedObjectsClientContract>(
-  'SavedObjectsClient'
-);
+export const [getOSDSavedObjectsClient, setOSDSavedObjectsClient] = createGetterSetter<
+  SavedObjectsClientContract
+>('SavedObjectsClient');

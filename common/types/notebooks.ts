@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ParagraphContextType } from 'public/components/notebooks/reducers/paragraphReducer';
 import { RefObject } from 'react';
 
 export interface NotebooksPluginSetup {
@@ -60,16 +61,17 @@ export enum NoteBookSource {
 
 export interface NotebookContext {
   dataSourceId?: string;
-  timeField: string;
-  index: string;
+  timeField?: string;
+  index?: string;
   timeRange?: {
     from: number;
     to: number;
   };
-  source: NoteBookSource;
+  source?: NoteBookSource;
   filters?: Array<Record<string, any>>; // For phase 1, we only support DSL filter
   summary?: string;
   specs?: Array<Record<string, unknown>>;
   updateSpecs?: (newSpecs: Array<Record<string, unknown>>) => void;
-  PPLFilters: string[];
+  PPLFilters?: string[];
+  reducer?: ParagraphContextType;
 }

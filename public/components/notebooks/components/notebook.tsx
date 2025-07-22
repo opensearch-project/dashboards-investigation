@@ -59,6 +59,7 @@ import { getMLCommonsTask } from '../../../utils/ml_commons_apis';
 import { parseParagraphOut } from '../../../utils/paragraph';
 import { isStateCompletedOrFailed } from '../../../utils/task';
 import { constructDeepResearchParagraphOut } from '../../../../common/utils/paragraph';
+import { InputPanel } from './input_panel';
 
 const ParagraphTypeDeepResearch = 'DEEP_RESEARCH';
 
@@ -1343,6 +1344,11 @@ export function Notebook({
     </EuiFlexGroup>
   );
 
+  const handleCreateParagraph = async (paragraphInput: string, inputType: string) => {
+    // Add paragraph at the end
+    await addPara(paragraphs.length, paragraphInput, inputType);
+  };
+
   const reportingTopButton = !savedObjectNotebook ? (
     <EuiFlexItem grow={false}>
       <EuiSmallButton
@@ -1452,7 +1458,8 @@ export function Notebook({
                 </EuiFlexGroup>
               </EuiFlexItem>
             </EuiFlexGroup>
-            <ContextPanel addPara={addPara} />
+            {/* Temporarily determine whether to display the context panel based on datasource id */}
+            {context?.dataSourceId && <ContextPanel addPara={addPara} />}
             {parsedPara.length > 0 ? (
               <>
                 {parsedPara.map((para: ParaType, index: number) => (
@@ -1591,6 +1598,8 @@ export function Notebook({
             )}
             {showLoadingModal}
           </EuiPageBody>
+          <EuiSpacer />
+          <InputPanel onCreateParagraph={handleCreateParagraph} />
         </EuiPage>
         {isModalVisible && modalLayout}
       </>

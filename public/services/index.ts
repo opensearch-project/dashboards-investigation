@@ -18,5 +18,5 @@ export const [getCoreStart, setCoreStart] = createGetterSetter<CoreStart>('CoreS
 export const [getDataSourceManagementSetup, setDataSourceManagementSetup] = createGetterSetter<
   | { enabled: true; dataSourceManagement: DataSourceManagementPluginSetup }
   | { enabled: false; dataSourceManagement: undefined }
->('DataSourceManagementPluginSetup');
+>('DataSourceManagementSetup');
 export const [getClient, setClient] = createGetterSetter<CoreStart['http']>('http');

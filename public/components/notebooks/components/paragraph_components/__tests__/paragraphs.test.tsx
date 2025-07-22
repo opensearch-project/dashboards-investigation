@@ -18,6 +18,10 @@ jest.mock('../../../../../../../../src/plugins/embeddable/public', () => ({
   },
 }));
 
+jest.mock('../../bubbleup/bubble_up_container', () => ({
+  BubbleUpContainer: () => <div />,
+}));
+
 const mockFind = jest.fn().mockResolvedValue({
   savedObjects: [],
 });
@@ -72,6 +76,7 @@ describe('<Paragraphs /> spec', () => {
         showQueryParagraphError={false}
         queryParagraphErrorMessage="error-message"
         dataSourceEnabled={false}
+        paragraphs={[]}
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();
@@ -147,6 +152,7 @@ describe('<Paragraphs /> spec', () => {
         queryParagraphErrorMessage="error-message"
         dataSourceEnabled={true}
         dataSourceManagement={{ ui: { DataSourceSelector: <></> } }}
+        paragraphs={[]}
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();

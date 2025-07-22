@@ -1,0 +1,57 @@
+name: 'Install Dashboards with Plugin via Binary'
+
+on: [push, pull_request]
+env:
+  CI: 1
+  # avoid warnings like "tput: No value for $TERM and no -T specified"
+  TERM: xterm
+
+jobs:
+  verify-binary-installation:
+    name: Run binary installation
+    # skip build for now since https://github.com/opensearch-project/OpenSearch-Dashboards/commit/ae1adcb7c6f2fe86fc16984a59f064a3663cca61#commitcomment-162483426
+    if: false
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        # TODO: add windows support when OSD core is stable on windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Branch
+        uses: actions/checkout@v4
+
+      - name: Set env
+        run: |
+          opensearch_version=$(node -p "require('./opensearch_dashboards.json').opensearchDashboardsVersion")
+          plugin_version=$(node -p "require('./opensearch_dashboards.json').version")
+          echo "OPENSEARCH_VERSION=$opensearch_version" >> $GITHUB_ENV
+          echo "PLUGIN_VERSION=$plugin_version" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Run Opensearch
+        uses: derek-ho/start-opensearch@v6
+        with:
+          opensearch-version: ${{ env.OPENSEARCH_VERSION }}
+          security-enabled: false
+          jdk-version: 21
+
+      - name: Run Dashboard
+        id: setup-dashboards
+        uses: derek-ho/setup-opensearch-dashboards@v2
+        with:
+          plugin_name: dashboards-investigation
+          built_plugin_name: investigationDashboards
+          built_plugin_suffix: ${{ env.OPENSEARCH_VERSION }}
+          install_zip: true
+
+      - name: Start the binary
+        run: |
+          nohup ./bin/opensearch-dashboards &
+        working-directory: ${{ steps.setup-dashboards.outputs.dashboards-binary-directory }}
+        shell: bash
+
+      - name: Health check
+        run: |
+          timeout 300 bash -c 'while [[ "$(curl http://localhost:5601/api/status | jq -r '.status.overall.state')" != "green" ]]; do sleep 5; done'
+        shell: bash
