@@ -9,6 +9,11 @@ import { configure } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 import React from 'react';
 import { NoteTable } from '../note_table';
+import {
+  httpServiceMock,
+  notificationServiceMock,
+} from '../../../../../../../src/core/public/mocks';
+import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
 
 jest.mock('react-router-dom', () => ({
   useLocation: jest.fn().mockReturnValue({
@@ -25,21 +30,48 @@ describe('<NoteTable /> spec', () => {
   configure({ adapter: new Adapter() });
 
   const props = {
-    loading: false,
-    fetchNotebooks: jest.fn(),
-    addSampleNotebooks: jest.fn(),
-    createNotebook: jest.fn(),
-    renameNotebook: jest.fn(),
-    cloneNotebook: jest.fn(),
     deleteNotebook: jest.fn(),
-    parentBreadcrumb: { href: 'parent-href', text: 'parent-text' },
-    setBreadcrumbs: jest.fn(),
-    setToast: jest.fn(),
+    http: {
+      ...httpServiceMock.createStartContract(),
+      get: jest.fn().mockResolvedValue({
+        body: [],
+        saved_objects: [],
+        data: [
+          {
+            path: 'path-1',
+            id: 'id-1',
+            dateCreated: '2023-01-01 12:00:00',
+            dateModified: '2023-01-01 12:00:00',
+          },
+        ],
+      }),
+      post: jest.fn().mockResolvedValue({ body: [], saved_objects: [], data: [{}] }),
+    },
+    dataSourceEnabled: true,
+    dataSourceManagement: {
+      ui: {
+        DataSourceSelector: () => <div>DataSourceSelector</div>,
+      },
+    } as any,
+    savedObjectsMDSClient: {
+      get: jest.fn().mockResolvedValue({ body: {}, saved_objects: [], data: [] }),
+    } as any,
+    notifications: notificationServiceMock.createStartContract(),
   };
 
-  const renderNoteTable = (overrides = {}) => {
+  const renderNoteTable = async (overrides: { notebooks?: any[] } = {}) => {
+    if (overrides.notebooks) {
+      props.http.get.mockResolvedValue({
+        body: [],
+        saved_objects: [],
+        data: overrides.notebooks,
+      });
+    }
     const utils = render(<NoteTable {...props} {...overrides} />);
-    // Additional setup or assertions if needed
+    // Wait for the initial fetch to complete
+    await waitFor(() => {
+      expect(props.http.get).toHaveBeenCalledWith(`${NOTEBOOKS_API_PREFIX}/savedNotebook`);
+    });
     return utils;
   };
 
@@ -47,19 +79,19 @@ describe('<NoteTable /> spec', () => {
     cleanup(); // Cleanup the rendered component after each test
   });
 
-  it('renders the empty component', () => {
-    const utils = renderNoteTable({ notebooks: [] });
+  it('renders the empty component', async () => {
+    const utils = await renderNoteTable({ notebooks: [] });
     expect(utils.container.firstChild).toMatchSnapshot();
   });
 
-  it('renders the component', () => {
+  it('renders the component', async () => {
     const notebooks = Array.from({ length: 5 }, (v, k) => ({
       path: `path-${k}`,
       id: `id-${k}`,
       dateCreated: '2023-01-01 12:00:00',
       dateModified: '2023-01-02 12:00:00',
     }));
-    const { getByTestId, getAllByText, ...utils } = renderNoteTable({ notebooks });
+    const { getByTestId, getAllByText, ...utils } = await renderNoteTable({ notebooks });
     expect(utils.container.firstChild).toMatchSnapshot();
     fireEvent.click(utils.getByText('Add sample notebooks'));
     fireEvent.click(utils.getAllByLabelText('Select this row')[0]);
@@ -76,15 +108,15 @@ describe('<NoteTable /> spec', () => {
       dateCreated: 'date-created',
       dateModified: 'date-modified',
     }));
-    const utils = renderNoteTable({ notebooks });
+    const utils = await renderNoteTable({ notebooks });
     fireEvent.click(utils.getByText('Create notebook'));
     await waitFor(() => {
       expect(global.window.location.href).toContain('/create');
     });
   });
 
-  it('filters notebooks based on search input', () => {
-    const { getByPlaceholderText, getAllByText, queryByText } = renderNoteTable({
+  it('filters notebooks based on search input', async () => {
+    const { getByPlaceholderText, getAllByText, queryByText } = await renderNoteTable({
       notebooks: [
         {
           path: 'path-1',
@@ -104,8 +136,8 @@ describe('<NoteTable /> spec', () => {
     expect(queryByText('path-2')).toBeNull();
   });
 
-  it('displays empty state message and create notebook button', () => {
-    const { getAllByText, getAllByTestId } = renderNoteTable({ notebooks: [] });
+  it('displays empty state message and create notebook button', async () => {
+    const { getAllByText, getAllByTestId } = await renderNoteTable({ notebooks: [] });
 
     expect(getAllByText('No notebooks')).toHaveLength(1);
 
@@ -116,10 +148,12 @@ describe('<NoteTable /> spec', () => {
       target: { value: 'test-notebook' },
     });
     fireEvent.click(getAllByText('Create')[0]);
-    expect(props.createNotebook).toHaveBeenCalledTimes(1);
+    expect(props.http.post).toHaveBeenCalledWith(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook`, {
+      body: JSON.stringify({ name: 'test-notebook' }),
+    });
   });
 
-  it('deletes a notebook', () => {
+  it('deletes a notebook', async () => {
     const notebooks = [
       {
         path: 'path-1',
@@ -128,7 +162,7 @@ describe('<NoteTable /> spec', () => {
         dateModified: 'date-modified',
       },
     ];
-    const { getByLabelText, getAllByText, getByTestId } = renderNoteTable({ notebooks });
+    const { getByLabelText, getAllByText, getByTestId } = await renderNoteTable({ notebooks });
 
     // Select a notebook
     fireEvent.click(getByLabelText('Select this row'));
@@ -151,7 +185,7 @@ describe('<NoteTable /> spec', () => {
   });
 
   it('adds sample notebooks', async () => {
-    const { getAllByText, getByTestId } = renderNoteTable({ notebooks: [] });
+    const { getAllByText, getByTestId } = await renderNoteTable({ notebooks: [] });
 
     // Add samples
     fireEvent.click(getAllByText('Add sample notebooks')[0]);
@@ -163,10 +197,19 @@ describe('<NoteTable /> spec', () => {
     fireEvent.click(getByTestId('confirmModalConfirmButton'));
 
     // Assert that the addSampleNotebooks function is called
-    expect(props.addSampleNotebooks).toHaveBeenCalledTimes(1);
+    expect(props.http.get).toHaveBeenCalledWith(
+      '../api/saved_objects/_find',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          type: 'index-pattern',
+          search_fields: 'title',
+          search: 'opensearch_dashboards_sample_data_flights',
+        }),
+      })
+    );
   });
 
-  it('closes the delete modal', () => {
+  it('closes the delete modal', async () => {
     const notebooks = [
       {
         path: 'path-1',
@@ -175,7 +218,9 @@ describe('<NoteTable /> spec', () => {
         dateModified: 'date-modified',
       },
     ];
-    const { getByText, getByLabelText, getAllByText, getByTestId } = renderNoteTable({ notebooks });
+    const { getByText, getByLabelText, getAllByText, getByTestId } = await renderNoteTable({
+      notebooks,
+    });
 
     // Select a notebook
     fireEvent.click(getByLabelText('Select this row'));

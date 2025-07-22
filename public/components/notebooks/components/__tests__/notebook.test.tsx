@@ -25,12 +25,28 @@ import { sampleSavedVisualization } from '../../../../../test/panels_constants';
 import PPLService from '../../../../services/requests/ppl';
 import { SavedObjectsActions } from '../../../../services/saved_objects/saved_object_client/saved_objects_actions';
 import { Notebook } from '../notebook';
+import { notificationServiceMock } from '../../../../../../../src/core/public/mocks';
+import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
 
 jest.mock('../../../../../../../src/plugins/embeddable/public', () => ({
   ViewMode: {
     EDIT: 'edit',
     VIEW: 'view',
   },
+}));
+
+jest.mock('react-router-dom', () => ({
+  useLocation: jest.fn().mockReturnValue({
+    pathname: '/notebooks',
+    search: '',
+    hash: '',
+    state: null,
+    key: '',
+  }),
+  useHistory: jest.fn().mockReturnValue({
+    replace: jest.fn(),
+    push: jest.fn(),
+  }),
 }));
 
 jest.mock('../bubbleup/bubble_up_container', () => ({
@@ -71,6 +87,7 @@ describe('<Notebook /> spec', () => {
   const history = jest.fn() as any;
   history.replace = jest.fn();
   history.push = jest.fn();
+  const notifications = notificationServiceMock.createStartContract();
 
   it('Renders the empty component', async () => {
     httpClient.get = jest.fn(() => Promise.resolve((emptyNotebook as unknown) as HttpResponse));
@@ -79,13 +96,13 @@ describe('<Notebook /> spec', () => {
         openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        renameNotebook={renameNotebook}
-        cloneNotebook={cloneNotebook}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
+        dataSourceManagement={{
+          ui: { DataSourceSelector: () => <div /> },
+          getDataSourceMenu: () => jest.fn(),
+        }}
+        setActionMenu={jest.fn()}
         dataSourceEnabled={false}
+        notifications={notifications}
       />
     );
     await waitFor(() => {
@@ -105,19 +122,16 @@ describe('<Notebook /> spec', () => {
     });
     const utils = render(
       <Notebook
-        pplService={pplService}
         openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
-        renameNotebook={renameNotebook}
-        cloneNotebook={cloneNotebook}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
+        dataSourceManagement={{
+          ui: { DataSourceSelector: () => <div /> },
+          getDataSourceMenu: () => jest.fn(),
+        }}
+        setActionMenu={jest.fn()}
         dataSourceEnabled={false}
+        notifications={notifications}
       />
     );
     await waitFor(() => {
@@ -144,19 +158,16 @@ describe('<Notebook /> spec', () => {
     });
     const utils = render(
       <Notebook
-        pplService={pplService}
         openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
-        renameNotebook={renameNotebook}
-        cloneNotebook={cloneNotebook}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
+        dataSourceManagement={{
+          ui: { DataSourceSelector: () => <div /> },
+          getDataSourceMenu: () => jest.fn(),
+        }}
+        setActionMenu={jest.fn()}
         dataSourceEnabled={false}
+        notifications={notifications}
       />
     );
     await waitFor(() => {
@@ -191,19 +202,16 @@ describe('<Notebook /> spec', () => {
     });
     const utils = render(
       <Notebook
-        pplService={pplService}
         openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
-        renameNotebook={renameNotebook}
-        cloneNotebook={cloneNotebook}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
+        dataSourceManagement={{
+          ui: { DataSourceSelector: () => <div /> },
+          getDataSourceMenu: () => jest.fn(),
+        }}
+        setActionMenu={jest.fn()}
         dataSourceEnabled={false}
+        notifications={notifications}
       />
     );
     await waitFor(() => {
@@ -248,6 +256,7 @@ describe('<Notebook /> spec', () => {
         location={location}
         history={history}
         dataSourceEnabled={false}
+        notifications={notifications}
       />
     );
     await waitFor(() => {
@@ -303,19 +312,16 @@ describe('<Notebook /> spec', () => {
 
     const utils = render(
       <Notebook
-        pplService={pplService}
         openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
-        renameNotebook={renameNotebook}
-        cloneNotebook={cloneNotebook}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
+        dataSourceManagement={{
+          ui: { DataSourceSelector: () => <div /> },
+          getDataSourceMenu: () => jest.fn(),
+        }}
+        setActionMenu={jest.fn()}
         dataSourceEnabled={false}
+        notifications={notifications}
       />
     );
     await waitFor(() => {
@@ -364,10 +370,6 @@ describe('<Notebook /> spec', () => {
   });
 
   it('Checks notebook rename action', async () => {
-    const renameNotebookMock = jest.fn(() =>
-      Promise.resolve((notebookPutResponse as unknown) as HttpResponse)
-    );
-    const cloneNotebookMock = jest.fn(() => Promise.resolve('dummy-string'));
     httpClient.get = jest.fn(() => Promise.resolve((codeBlockNotebook as unknown) as HttpResponse));
 
     httpClient.put = jest.fn(() => {
@@ -380,19 +382,16 @@ describe('<Notebook /> spec', () => {
 
     const utils = render(
       <Notebook
-        pplService={pplService}
         openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
-        renameNotebook={renameNotebookMock}
-        cloneNotebook={cloneNotebookMock}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
+        dataSourceManagement={{
+          ui: { DataSourceSelector: () => <div /> },
+          getDataSourceMenu: () => jest.fn(),
+        }}
+        setActionMenu={jest.fn()}
         dataSourceEnabled={false}
+        notifications={notifications}
       />
     );
     await waitFor(() => {
@@ -415,15 +414,19 @@ describe('<Notebook /> spec', () => {
     });
 
     await waitFor(() => {
-      expect(renameNotebookMock).toHaveBeenCalledTimes(1);
+      expect(httpClient.put).toHaveBeenCalledWith(
+        `${NOTEBOOKS_API_PREFIX}/note/savedNotebook/rename`,
+        {
+          body: JSON.stringify({
+            name: 'sample-notebook-1',
+            noteId: '458e1320-3f05-11ef-bd29-e58626f102c0',
+          }),
+        }
+      );
     });
   });
 
   it('Checks notebook clone action', async () => {
-    const renameNotebookMock = jest.fn(() =>
-      Promise.resolve((notebookPutResponse as unknown) as HttpResponse)
-    );
-    const cloneNotebookMock = jest.fn(() => Promise.resolve('dummy-string'));
     httpClient.get = jest.fn(() => Promise.resolve((codeBlockNotebook as unknown) as HttpResponse));
 
     httpClient.put = jest.fn(() => {
@@ -436,19 +439,16 @@ describe('<Notebook /> spec', () => {
 
     const utils = render(
       <Notebook
-        pplService={pplService}
         openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
-        renameNotebook={renameNotebookMock}
-        cloneNotebook={cloneNotebookMock}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
+        dataSourceManagement={{
+          ui: { DataSourceSelector: () => <div /> },
+          getDataSourceMenu: () => jest.fn(),
+        }}
+        setActionMenu={jest.fn()}
         dataSourceEnabled={false}
+        notifications={notifications}
       />
     );
     await waitFor(() => {
@@ -467,14 +467,18 @@ describe('<Notebook /> spec', () => {
       fireEvent.click(utils.getByTestId('custom-input-modal-confirm-button'));
     });
 
-    expect(cloneNotebookMock).toHaveBeenCalledTimes(1);
+    expect(httpClient.post).toHaveBeenCalledWith(
+      `${NOTEBOOKS_API_PREFIX}/note/savedNotebook/clone`,
+      {
+        body: JSON.stringify({
+          name: 'sample-notebook-1 (copy)',
+          noteId: '458e1320-3f05-11ef-bd29-e58626f102c0',
+        }),
+      }
+    );
   });
 
   it('Checks notebook delete action', async () => {
-    const renameNotebookMock = jest.fn(() =>
-      Promise.resolve((notebookPutResponse as unknown) as HttpResponse)
-    );
-    const cloneNotebookMock = jest.fn(() => Promise.resolve('dummy-string'));
     httpClient.get = jest.fn(() => Promise.resolve((codeBlockNotebook as unknown) as HttpResponse));
 
     httpClient.put = jest.fn(() => {
@@ -487,19 +491,16 @@ describe('<Notebook /> spec', () => {
 
     const utils = render(
       <Notebook
-        pplService={pplService}
         openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
-        renameNotebook={renameNotebookMock}
-        cloneNotebook={cloneNotebookMock}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
+        dataSourceManagement={{
+          ui: { DataSourceSelector: () => <div /> },
+          getDataSourceMenu: () => jest.fn(),
+        }}
+        setActionMenu={jest.fn()}
         dataSourceEnabled={false}
+        notifications={notifications}
       />
     );
     await waitFor(() => {
@@ -524,7 +525,9 @@ describe('<Notebook /> spec', () => {
       fireEvent.click(utils.getByTestId('delete-notebook-modal-delete-button'));
     });
 
-    expect(deleteNotebook).toHaveBeenCalledTimes(1);
+    expect(httpClient.delete).toHaveBeenCalledWith(
+      `${NOTEBOOKS_API_PREFIX}/note/savedNotebook/458e1320-3f05-11ef-bd29-e58626f102c0`
+    );
   });
 
   it('Checks notebook reporting action presence', async () => {
@@ -532,19 +535,16 @@ describe('<Notebook /> spec', () => {
 
     const utils = render(
       <Notebook
-        pplService={pplService}
         openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
-        renameNotebook={jest.fn()}
-        cloneNotebook={jest.fn()}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
+        dataSourceManagement={{
+          ui: { DataSourceSelector: () => <div /> },
+          getDataSourceMenu: () => jest.fn(),
+        }}
+        setActionMenu={jest.fn()}
         dataSourceEnabled={false}
+        notifications={notifications}
       />
     );
     await waitFor(() => {
@@ -560,19 +560,16 @@ describe('<Notebook /> spec', () => {
 
     const utils = render(
       <Notebook
-        pplService={pplService}
         openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
-        renameNotebook={jest.fn()}
-        cloneNotebook={jest.fn()}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
+        dataSourceManagement={{
+          ui: { DataSourceSelector: () => <div /> },
+          getDataSourceMenu: () => jest.fn(),
+        }}
+        setActionMenu={jest.fn()}
         dataSourceEnabled={true}
+        notifications={notifications}
       />
     );
     await waitFor(() => {
@@ -609,19 +606,15 @@ describe('<Notebook /> spec', () => {
     );
     const utils = render(
       <Notebook
-        pplService={pplService}
         openedNoteId={sampleNotebook1.id}
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
-        renameNotebook={renameNotebook}
-        cloneNotebook={cloneNotebook}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
-        dataSourceManagement={{ ui: { DataSourceSelector: <></> } }}
+        dataSourceManagement={{
+          ui: { DataSourceSelector: () => <div /> },
+          getDataSourceMenu: () => jest.fn(),
+        }}
+        setActionMenu={jest.fn()}
+        notifications={notifications}
       />
     );
 
@@ -638,26 +631,21 @@ describe('<Notebook /> spec', () => {
     httpClient.delete = jest.fn(() =>
       Promise.resolve(({ paragraphs: [] } as unknown) as HttpResponse)
     );
-    const migrateNotebookMock = jest.fn(() => Promise.resolve('dummy-string'));
     httpClient.get = jest.fn(() =>
       Promise.resolve((migrateBlockNotebook as unknown) as HttpResponse)
     );
     const utils = render(
       <Notebook
-        pplService={pplService}
         openedNoteId="mock-id"
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
-        renameNotebook={renameNotebook}
-        cloneNotebook={cloneNotebook}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
+        dataSourceManagement={{
+          ui: { DataSourceSelector: () => <div /> },
+          getDataSourceMenu: () => jest.fn(),
+        }}
+        setActionMenu={jest.fn()}
         dataSourceEnabled={false}
-        migrateNotebook={migrateNotebookMock}
+        notifications={notifications}
       />
     );
     await waitFor(() => {
@@ -674,14 +662,15 @@ describe('<Notebook /> spec', () => {
       fireEvent.click(utils.getByTestId('custom-input-modal-confirm-button'));
     });
 
-    expect(migrateNotebookMock).toHaveBeenCalledTimes(1);
+    expect(httpClient.post).toHaveBeenCalledWith(`${NOTEBOOKS_API_PREFIX}/note/migrate`, {
+      body: JSON.stringify({
+        name: 'sample-notebook-1 (upgraded)',
+        noteId: 'mock-id',
+      }),
+    });
   });
 
   it('Checks old notebook delete action', async () => {
-    const renameNotebookMock = jest.fn(() =>
-      Promise.resolve((notebookPutResponse as unknown) as HttpResponse)
-    );
-    const cloneNotebookMock = jest.fn(() => Promise.resolve('dummy-string'));
     httpClient.get = jest.fn(() => Promise.resolve((codeBlockNotebook as unknown) as HttpResponse));
 
     httpClient.put = jest.fn(() => {
@@ -694,19 +683,16 @@ describe('<Notebook /> spec', () => {
 
     const utils = render(
       <Notebook
-        pplService={pplService}
         openedNoteId="mock-id"
         DashboardContainerByValueRenderer={jest.fn()}
         http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
-        renameNotebook={renameNotebookMock}
-        cloneNotebook={cloneNotebookMock}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
+        dataSourceManagement={{
+          ui: { DataSourceSelector: () => <div /> },
+          getDataSourceMenu: () => jest.fn(),
+        }}
+        setActionMenu={jest.fn()}
         dataSourceEnabled={false}
+        notifications={notifications}
       />
     );
     await waitFor(() => {
@@ -731,6 +717,6 @@ describe('<Notebook /> spec', () => {
       fireEvent.click(utils.getByTestId('delete-notebook-modal-delete-button'));
     });
 
-    expect(deleteNotebook).toHaveBeenCalledTimes(1);
+    expect(httpClient.delete).toHaveBeenCalledWith(`${NOTEBOOKS_API_PREFIX}/note/mock-id`);
   });
 });

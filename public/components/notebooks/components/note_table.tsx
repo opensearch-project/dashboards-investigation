@@ -85,7 +85,10 @@ export function NoteTable({
         setNotebooks(savedNotebooksResponse.data);
       })
       .catch((err) => {
-        console.error('Issue in fetching the notebooks', err.body.message);
+        console.error(
+          'Issue in fetching the notebooks',
+          err?.body?.message || err?.message || 'Unknown error'
+        );
       });
   }, [http]);
 
@@ -346,7 +349,7 @@ export function NoteTable({
       notifications.toasts.addSuccess(`Sample notebooks successfully added.`);
     } catch (err: any) {
       notifications.toasts.addDanger('Error adding sample notebooks.');
-      console.error(err.body.message);
+      console.error(err?.body?.message || err?.message || 'Unknown error');
     } finally {
       setLoading(false);
     }
