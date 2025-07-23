@@ -964,6 +964,12 @@ export function Notebook({
         setContext(res.context);
         setPath(res.path);
         parseAllParagraphs(res.paragraphs);
+        if (!res.paragraphs.length) {
+          const resContext = res.context;
+          if (resContext?.filters && resContext?.timeRange && resContext?.index) {
+            addPara(0, '', 'ANOMALY_VISUALIZATION_ANALYSIS');
+          }
+        }
       })
       .catch((err) => {
         notifications.toasts.addDanger(

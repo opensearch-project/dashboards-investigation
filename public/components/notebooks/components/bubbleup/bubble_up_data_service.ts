@@ -24,7 +24,7 @@ class BubbleUpDataService {
   private baseCount: number;
   private selectCount: number;
   private logPatternField: string = '';
-  private dataSourceId: string = '';
+  private dataSourceId: string | undefined = '';
   private index: string = '';
   private startTime: number = NaN;
   private endTime: number = NaN;
@@ -40,7 +40,7 @@ class BubbleUpDataService {
   }
 
   public setConfig(
-    dataSourceId: string,
+    dataSourceId: string | undefined,
     index: string,
     startTime: number,
     endTime: number,
@@ -50,7 +50,7 @@ class BubbleUpDataService {
     this.dataSourceId = dataSourceId;
     this.index = index;
     this.startTime = startTime;
-    this.endTime = endTime;
+    this.endTime = endTime || +new Date();
     this.timeField = timeField;
     this.pplFilter = pplFilter || [];
   }
