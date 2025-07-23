@@ -4,18 +4,14 @@
  */
 
 import { BehaviorSubject } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export class ObservableState<TValue = {}> {
   private value$: BehaviorSubject<TValue>;
   constructor(initialValue: TValue) {
     this.value$ = new BehaviorSubject<TValue>(initialValue);
   }
-
-  protected get value() {
-    return this.value$.getValue();
-  }
-
-  updateValue(value: Partial<TValue>) {
+  protected updateValue(value: Partial<TValue>) {
     this.value$.next({
       ...this.value$.getValue(),
       ...value,
@@ -23,12 +19,13 @@ export class ObservableState<TValue = {}> {
 
     return this;
   }
-  protected getValue() {
-    return this.value;
-  }
   protected getValue$() {
-    return this.value$.pipe();
+    return this.value$.pipe(map((item) => item));
   }
+  public get value() {
+    return this.value$.getValue();
+  }
+
   destroy() {
     this.value$.unsubscribe();
     this.value$.complete();

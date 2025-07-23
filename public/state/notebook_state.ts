@@ -6,11 +6,12 @@
 import { NotebookContext } from 'common/types/notebooks';
 import { ObservableState } from './observable_state';
 import { ParagraphState } from './paragraph_state';
+import { TopContextState } from './top_context_state';
 
 interface NotebookStateValue {
   paragraphs: ParagraphState[];
   id: string;
-  context: ObservableState<NotebookContext>;
+  context: TopContextState;
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {
