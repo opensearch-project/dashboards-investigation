@@ -5,7 +5,7 @@
 
 import { ObservableState } from './observable_state';
 
-interface ParagraphStateValue<TInput extends { type: string }, TOutput, TFullfilledOutput> {
+interface ParagraphStateValue<TInput, TOutput, TFullfilledOutput> {
   input: TInput;
   output: TOutput; // output only has some meta data like message_id / task_id
   fullfilledOutput: TFullfilledOutput; // this is the fullfilled output, like PPL query result / PER agent response
@@ -15,7 +15,7 @@ interface ParagraphStateValue<TInput extends { type: string }, TOutput, TFullfil
 }
 
 export class ParagraphState<
-  TInput extends { type: string } = { type: string },
+  TInput = {},
   TOutput = {},
   TFullfilledOutput = {}
 > extends ObservableState<ParagraphStateValue<TInput, TOutput, TFullfilledOutput>> {
