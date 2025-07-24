@@ -2,42 +2,14 @@
 
 exports[`<Paragraphs /> spec renders the component 1`] = `
 <div
-  class="euiPanel euiPanel--paddingMedium euiPanel--borderRadiusMedium euiPanel--plain euiPanel--hasShadow"
+  class="euiPanel euiPanel--borderRadiusMedium euiPanel--plain euiPanel--noShadow euiPanel--noBorder notebookParagraphWrapper"
 >
   <div
-    class="euiFlexGroup euiFlexGroup--gutterLarge euiFlexGroup--directionRow euiFlexGroup--responsive"
+    class="euiFlexGroup euiFlexGroup--gutterLarge euiFlexGroup--directionRow euiFlexGroup--responsive notebookHeaderActionMenu"
   >
     <div
       class="euiFlexItem"
-    >
-      <div
-        class="euiText euiText--medium"
-        style="font-size: 17px;"
-      >
-        [1] Code block 
-        <button
-          aria-label="Toggle show input"
-          class="euiButtonIcon euiButtonIcon--primary euiButtonIcon--empty euiButtonIcon--small"
-          data-test-subj="paragraphToggleInputBtn"
-          type="button"
-        >
-          <svg
-            aria-hidden="true"
-            class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
-            focusable="false"
-            height="16"
-            role="img"
-            viewBox="0 0 16 16"
-            width="16"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M5.277 10.088c.02.014.04.03.057.047.582.55 1.134.812 1.666.812.586 0 1.84-.293 3.713-.88L9 6.212V2H7v4.212l-1.723 3.876Zm-.438.987L3.539 14h8.922l-1.32-2.969C9.096 11.677 7.733 12 7 12c-.74 0-1.463-.315-2.161-.925ZM6 2H5V1h6v1h-1v4l3.375 7.594A1 1 0 0 1 12.461 15H3.54a1 1 0 0 1-.914-1.406L6 6V2Z"
-            />
-          </svg>
-        </button>
-      </div>
-    </div>
+    />
     <div
       class="euiFlexItem euiFlexItem--flexGrowZero"
     >
@@ -71,12 +43,6 @@ exports[`<Paragraphs /> spec renders the component 1`] = `
       </div>
     </div>
   </div>
-  <div
-    class="euiSpacer euiSpacer--s"
-  />
-  <div
-    class="euiSpacer euiSpacer--s"
-  />
   <div
     class="notebooks-paragraph notebooks-paragraph-light"
   >
@@ -239,47 +205,12 @@ exports[`<Paragraphs /> spec renders the component 1`] = `
           </span>
         </button>
       </div>
-      <div
-        class="euiFlexItem euiFlexItem--flexGrowZero"
-      >
-        <svg
-          aria-hidden="true"
-          class="euiIcon euiIcon--medium euiIcon--secondary euiIcon-isLoading"
-          focusable="false"
-          height="16"
-          role="img"
-          viewBox="0 0 16 16"
-          width="16"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M5.277 10.088c.02.014.04.03.057.047.582.55 1.134.812 1.666.812.586 0 1.84-.293 3.713-.88L9 6.212V2H7v4.212l-1.723 3.876Zm-.438.987L3.539 14h8.922l-1.32-2.969C9.096 11.677 7.733 12 7 12c-.74 0-1.463-.315-2.161-.925ZM6 2H5V1h6v1h-1v4l3.375 7.594A1 1 0 0 1 12.461 15H3.54a1 1 0 0 1-.914-1.406L6 6V2Z"
-          />
-        </svg>
-      </div>
-      <div
-        class="euiFlexItem"
-      >
-        <div
-          class="euiText euiText--small"
-          data-test-subj="lastRunText"
-        >
-          <div
-            class="euiTextColor euiTextColor--subdued"
-          >
-            Last successful run 11/01/2023 01:02 AM.
-          </div>
-        </div>
-      </div>
     </div>
     <div
       class="euiSpacer euiSpacer--m"
     />
-    <hr
-      class="euiHorizontalRule euiHorizontalRule--full"
-    />
     <div
-      style="opacity: 1; padding: 15px;"
+      style="opacity: 1;"
     >
       <div
         class="euiText euiText--small wrapAll markdown-output-text"
@@ -300,43 +231,14 @@ exports[`<Paragraphs /> spec renders the component 1`] = `
 
 exports[`<Paragraphs /> spec use SavedObject find to fetch visualizations when dataSourceEnabled 1`] = `
 <div
-  class="euiPanel euiPanel--paddingMedium euiPanel--borderRadiusMedium euiPanel--plain euiPanel--hasShadow"
+  class="euiPanel euiPanel--borderRadiusMedium euiPanel--plain euiPanel--noShadow euiPanel--noBorder notebookParagraphWrapper"
 >
   <div
-    class="euiFlexGroup euiFlexGroup--gutterLarge euiFlexGroup--directionRow euiFlexGroup--responsive"
+    class="euiFlexGroup euiFlexGroup--gutterLarge euiFlexGroup--directionRow euiFlexGroup--responsive notebookHeaderActionMenu"
   >
     <div
       class="euiFlexItem"
-    >
-      <div
-        class="euiText euiText--medium"
-        style="font-size: 17px;"
-      >
-        [1] Visualization 
-        <button
-          aria-label="Toggle show input"
-          class="euiButtonIcon euiButtonIcon--primary euiButtonIcon--empty euiButtonIcon--small"
-          data-test-subj="paragraphToggleInputBtn"
-          type="button"
-        >
-          <svg
-            aria-hidden="true"
-            class="euiIcon euiIcon--medium euiIcon--inherit euiButtonIcon__icon"
-            focusable="false"
-            height="16"
-            role="img"
-            viewBox="0 0 16 16"
-            width="16"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="m2.931 10.843 4.685-4.611a.546.546 0 0 1 .768 0l4.685 4.61c.213.21.558.21.771 0a.53.53 0 0 0 0-.759l-4.684-4.61a1.65 1.65 0 0 0-2.312 0l-4.684 4.61a.53.53 0 0 0 0 .76c.213.21.558.21.771 0Z"
-              fill-rule="nonzero"
-            />
-          </svg>
-        </button>
-      </div>
-    </div>
+    />
     <div
       class="euiFlexItem euiFlexItem--flexGrowZero"
     >
@@ -370,12 +272,6 @@ exports[`<Paragraphs /> spec use SavedObject find to fetch visualizations when d
       </div>
     </div>
   </div>
-  <div
-    class="euiSpacer euiSpacer--s"
-  />
-  <div
-    class="euiSpacer euiSpacer--s"
-  />
   <div
     class="notebooks-paragraph notebooks-paragraph-light"
   >
@@ -653,48 +549,12 @@ exports[`<Paragraphs /> spec use SavedObject find to fetch visualizations when d
           </span>
         </button>
       </div>
-      <div
-        class="euiFlexItem euiFlexItem--flexGrowZero"
-      >
-        <svg
-          aria-hidden="true"
-          class="euiIcon euiIcon--medium euiIcon--secondary"
-          focusable="false"
-          height="16"
-          role="img"
-          viewBox="0 0 16 16"
-          width="16"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M6.5 12a.502.502 0 0 1-.354-.146l-4-4a.502.502 0 0 1 .708-.708L6.5 10.793l6.646-6.647a.502.502 0 0 1 .708.708l-7 7A.502.502 0 0 1 6.5 12"
-            fill-rule="evenodd"
-          />
-        </svg>
-      </div>
-      <div
-        class="euiFlexItem"
-      >
-        <div
-          class="euiText euiText--small"
-          data-test-subj="lastRunText"
-        >
-          <div
-            class="euiTextColor euiTextColor--subdued"
-          >
-            Last successful run 11/01/2023 01:02 AM.
-          </div>
-        </div>
-      </div>
     </div>
     <div
       class="euiSpacer euiSpacer--m"
     />
-    <hr
-      class="euiHorizontalRule euiHorizontalRule--full"
-    />
     <div
-      style="opacity: 1; padding: 15px;"
+      style="opacity: 1;"
     >
       <div
         class="euiText euiText--small wrapAll markdown-output-text"
