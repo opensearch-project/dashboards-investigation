@@ -76,7 +76,7 @@ const panelStyles: CSS.Properties = {
  * DashboardContainerByValueRenderer - Dashboard container renderer for visualization
  * http object - for making API requests
  */
-interface NotebookProps {
+export interface NotebookProps {
   openedNoteId: string;
   DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
   http: CoreStart['http'];

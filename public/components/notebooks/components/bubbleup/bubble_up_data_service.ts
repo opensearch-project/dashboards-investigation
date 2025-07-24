@@ -18,7 +18,7 @@ import { HttpSetup } from '../../../../../../../src/core/public';
 const longTextFields = ['message', 'body'];
 const DEFAULT_PPL_QUERY_DATE_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 
-class BubbleUpDataService {
+export class BubbleUpDataService {
   private readonly search: ISearchStart;
   private readonly data: DataPublicPluginStart;
   private baseCount: number;
@@ -568,5 +568,3 @@ export async function searchQuery(
     withLongNumeralsSupport: true,
   });
 }
-
-export const bubbleUpDataService = new BubbleUpDataService();

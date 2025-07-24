@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import React from 'react';
 import { AppMountParameters, CoreSetup, CoreStart, Plugin } from '../../../src/core/public';
 import {
   investigationNotebookID,
@@ -31,6 +32,7 @@ import {
   setExpressions,
   setSearch,
 } from './services';
+import { Notebook, NotebookProps } from './components/notebooks/components/notebook';
 
 export class InvestigationPlugin
   implements
@@ -38,9 +40,8 @@ export class InvestigationPlugin
   public setup(
     core: CoreSetup<AppPluginStartDependencies>,
     setupDeps: SetupDependencies
-  ): ObservabilitySetup {
+  ): InvestigationSetup {
     uiSettingsService.init(core.uiSettings, core.notifications);
-    const pplService = new PPLService(core.http);
     setOSDHttp(core.http);
     core.getStartServices().then(([coreStart]) => {
       setOSDSavedObjectsClient(coreStart.savedObjects.client);
@@ -54,7 +55,7 @@ export class InvestigationPlugin
         coreStart,
         depsStart as AppPluginStartDependencies,
         params,
-        dataSourceManagement,
+        dataSourceManagement!,
         coreStart.savedObjects
       );
     };
@@ -85,11 +86,29 @@ export class InvestigationPlugin
           }
     );
 
+    const getNotebook = async (props: Pick<NotebookProps, 'openedNoteId' | 'setActionMenu'>) => {
+      const [coreStart, depsStart] = await core.getStartServices();
+      return (
+        <Notebook
+          http={core.http}
+          dataSourceManagement={setupDeps.dataSourceManagement!}
+          dataSourceEnabled={!!setupDeps.dataSource}
+          DashboardContainerByValueRenderer={depsStart.dashboard.DashboardContainerByValueRenderer}
+          notifications={coreStart.notifications}
+          savedObjectsMDSClient={coreStart.savedObjects}
+          {...props}
+        />
+      );
+    };
     // Return methods that should be available to other plugins
-    return {};
+    return {
+      ui: {
+        getNotebook,
+      },
+    };
   }
 
-  public start(core: CoreStart, startDeps: AppPluginStartDependencies): ObservabilityStart {
+  public start(core: CoreStart, startDeps: AppPluginStartDependencies): InvestigationStart {
     const pplService: PPLService = new PPLService(core.http);
 
     coreRefs.core = core;
