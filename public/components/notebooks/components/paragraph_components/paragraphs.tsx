@@ -10,7 +10,6 @@ import {
   EuiContextMenuPanelDescriptor,
   EuiFlexGroup,
   EuiFlexItem,
-  EuiHorizontalRule,
   EuiIcon,
   EuiLink,
   EuiPanel,
@@ -23,7 +22,6 @@ import {
   htmlIdGenerator,
 } from '@elastic/eui';
 import filter from 'lodash/filter';
-import moment from 'moment';
 import React, {
   forwardRef,
   useEffect,
@@ -32,6 +30,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useCallback } from 'react';
 import {
   CoreStart,
   MountPoint,
@@ -48,7 +47,6 @@ import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks'
 import {
   PPL_DOCUMENTATION_URL,
   SQL_DOCUMENTATION_URL,
-  UI_DATE_FORMAT,
 } from '../../../../../common/constants/shared';
 import { ParaType } from '../../../../../common/types/notebooks';
 import { uiSettingsService } from '../../../../../common/utils';
@@ -202,7 +200,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
     },
   }));
 
-  const fetchVisualizations = async () => {
+  const fetchVisualizations = useCallback(async () => {
     if (dataSourceEnabled) {
       let opts: EuiComboBoxOptionOption[] = [];
       const vizOptions: SavedObjectsFindOptions = {
@@ -273,14 +271,20 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
         setSelectedVisOption(selectedObject);
       }
     }
-  };
+  }, [dataSourceEnabled, dataSourceMDSId, http, para.visSavedObjId]);
 
   useEffect(() => {
     if (para.isVizualisation) {
       if (para.visSavedObjId !== '') setVisInput(JSON.parse(para.vizObjectInput));
       fetchVisualizations();
     }
-  }, [dataSourceMDSId]);
+  }, [
+    dataSourceMDSId,
+    fetchVisualizations,
+    para.isVizualisation,
+    para.visSavedObjId,
+    para.vizObjectInput,
+  ]);
 
   const createDashboardVizObject = (objectId: string) => {
     const vizUniqueId = htmlIdGenerator()();
@@ -514,89 +518,26 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
     ];
 
     return (
-      <>
-        <EuiFlexGroup>
-          <EuiFlexItem>
-            <EuiText style={{ fontSize: 17 }}>
-              {`[${idx + 1}] ${type} `}
+      <EuiFlexGroup className="notebookHeaderActionMenu">
+        <EuiFlexItem grow />
+        <EuiFlexItem grow={false}>
+          <EuiPopover
+            panelPaddingSize="none"
+            button={
               <EuiSmallButtonIcon
-                data-test-subj="paragraphToggleInputBtn"
-                aria-label="Toggle show input"
-                iconType={para.isInputExpanded ? 'arrowUp' : 'arrowDown'}
-                onClick={() => {
-                  const newPara = props.para;
-                  newPara.isInputExpanded = !newPara.isInputExpanded;
-                  props.setPara(newPara);
-                }}
+                aria-label="Open paragraph menu"
+                iconType="boxesHorizontal"
+                onClick={() => setIsPopoverOpen(!isPopoverOpen)}
               />
-            </EuiText>
-          </EuiFlexItem>
-          <EuiFlexItem grow={false}>
-            <EuiPopover
-              panelPaddingSize="none"
-              button={
-                <EuiSmallButtonIcon
-                  aria-label="Open paragraph menu"
-                  iconType="boxesHorizontal"
-                  onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-                />
-              }
-              isOpen={isPopoverOpen}
-              closePopover={() => setIsPopoverOpen(false)}
-            >
-              <EuiContextMenu initialPanelId={0} panels={panels} size="s" />
-            </EuiPopover>
-          </EuiFlexItem>
-        </EuiFlexGroup>
-        <EuiSpacer size="s" />
-      </>
+            }
+            isOpen={isPopoverOpen}
+            closePopover={() => setIsPopoverOpen(false)}
+          >
+            <EuiContextMenu initialPanelId={0} panels={panels} size="s" />
+          </EuiPopover>
+        </EuiFlexItem>
+      </EuiFlexGroup>
     );
-  };
-
-  const renderOutputTimestampMessage = () => {
-    console.log('output');
-    if (props.selectedViewId === 'view_both') {
-      return (
-        <>
-          <EuiFlexItem grow={false}>
-            {para.isOutputStale ? (
-              <EuiIcon type="questionInCircle" color="primary" />
-            ) : (
-              <EuiIcon type="check" color="secondary" />
-            )}
-          </EuiFlexItem>
-          <EuiFlexItem>
-            <EuiText color="subdued" data-test-subj="lastRunText" size="s">
-              {`Last successful run ${moment(props.dateModified).format(UI_DATE_FORMAT)}.`}
-            </EuiText>
-          </EuiFlexItem>
-        </>
-      );
-    } else {
-      // render message when view mode is input_only
-      return (
-        <>
-          <EuiFlexItem grow={false}>
-            <EuiIcon type="questionInCircle" color="primary" />
-          </EuiFlexItem>
-          <EuiFlexItem grow={false}>
-            <EuiText color="subdued" size="s">
-              {`Output available from ${moment(props.dateModified).format(UI_DATE_FORMAT)}`}
-            </EuiText>
-          </EuiFlexItem>
-          <EuiFlexItem>
-            <EuiText size="s">
-              <EuiLink
-                data-test-subj="viewBothLink"
-                onClick={() => props.setSelectedViewId('view_both', index)}
-              >
-                View both
-              </EuiLink>
-            </EuiText>
-          </EuiFlexItem>
-        </>
-      );
-    }
   };
 
   const sqlIcon = (
@@ -675,125 +616,121 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   );
 
   return (
-    <>
-      <EuiPanel>
-        {renderParaHeader(
-          para.isAnomalyVisualizationAnalysis
-            ? 'Anomaly Visualization Analysis'
-            : para.isDeepResearch
-            ? `Deep Research${deepResearchMemoryId ? ` (Memory ID: ${deepResearchMemoryId})` : ''}`
-            : !para.isVizualisation
-            ? 'Code block'
-            : 'Visualization',
-          index
-        )}
-        {dataSourceEnabled && !para.isVizualisation && !para.isAnomalyVisualizationAnalysis && (
-          <EuiFlexGroup>
-            <EuiFlexItem>
-              <DataSourceSelector
-                savedObjectsClient={savedObjectsMDSClient.client}
-                notifications={notifications}
-                onSelectedDataSource={onSelectedDataSource}
-                disabled={false}
-                fullWidth={false}
-                removePrepend={false}
-                defaultOption={
-                  paradataSourceMDSId !== undefined && [
-                    { id: paradataSourceMDSId, label: dataSourceMDSLabel },
-                  ]
-                }
-                dataSourceFilter={dataSourceFilterFn}
-              />
-            </EuiFlexItem>
-            {para.isDeepResearch && (
-              <>
-                <EuiFlexItem>
-                  <MemorySelector
-                    value={deepResearchBaseMemoryId}
-                    onChange={setDeepResearchBaseMemoryId}
-                    memoryIds={memoryIds}
-                  />
-                </EuiFlexItem>
-                <EuiFlexItem>
-                  <AgentsSelector
-                    http={http}
-                    value={deepResearchAgentId}
-                    dataSourceMDSId={dataSourceMDSId}
-                    onChange={setDeepResearchAgentId}
-                  />
-                </EuiFlexItem>
-              </>
-            )}
-          </EuiFlexGroup>
-        )}
-        <EuiSpacer size="s" />
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
-        <div
-          key={index}
-          className={paraClass}
-          onClick={executeButtonDisabled ? undefined : () => paragraphSelector(index)}
-        >
-          {para.isInputExpanded && !para.isAnomalyVisualizationAnalysis && (
+    <EuiPanel
+      className="notebookParagraphWrapper"
+      hasShadow={false}
+      paddingSize="none"
+      hasBorder={false}
+    >
+      {renderParaHeader(
+        para.isAnomalyVisualizationAnalysis
+          ? 'Anomaly Visualization Analysis'
+          : para.isDeepResearch
+          ? `Deep Research${deepResearchMemoryId ? ` (Memory ID: ${deepResearchMemoryId})` : ''}`
+          : !para.isVizualisation
+          ? 'Code block'
+          : 'Visualization',
+        index
+      )}
+      {dataSourceEnabled && !para.isVizualisation && !para.isAnomalyVisualizationAnalysis && (
+        <EuiFlexGroup>
+          <EuiFlexItem>
+            <DataSourceSelector
+              savedObjectsClient={savedObjectsMDSClient.client}
+              notifications={notifications}
+              onSelectedDataSource={onSelectedDataSource}
+              disabled={false}
+              fullWidth={false}
+              removePrepend={false}
+              defaultOption={
+                paradataSourceMDSId !== undefined && [
+                  { id: paradataSourceMDSId, label: dataSourceMDSLabel },
+                ]
+              }
+              dataSourceFilter={dataSourceFilterFn}
+            />
+          </EuiFlexItem>
+          {para.isDeepResearch && (
             <>
-              <EuiSpacer size="s" />
-              <EuiCompressedFormRow
-                fullWidth={true}
-                helpText={paragraphLabel}
-                isInvalid={showQueryParagraphError}
-                error={queryErrorMessage}
-              >
-                <ParaInput
-                  para={para}
-                  index={index}
-                  runParaError={runParaError}
-                  textValueEditor={textValueEditor}
-                  handleKeyPress={handleKeyPress}
-                  startTime={para.visStartTime}
-                  setStartTime={setStartTime}
-                  endTime={para.visEndTime}
-                  setEndTime={setEndTime}
-                  setIsOutputStale={setIsOutputStale}
-                  visOptions={visOptions}
-                  selectedVisOption={selectedVisOption}
-                  setSelectedVisOption={setSelectedVisOption}
-                  setVisType={setVisType}
-                  dataSourceManagement={dataSourceManagement}
-                  notifications={notifications}
-                  dataSourceEnabled={dataSourceEnabled}
-                  savedObjectsMDSClient={savedObjectsMDSClient}
+              <EuiFlexItem>
+                <MemorySelector
+                  value={deepResearchBaseMemoryId}
+                  onChange={setDeepResearchBaseMemoryId}
+                  memoryIds={memoryIds}
                 />
-              </EuiCompressedFormRow>
-              {runParaError && (
-                <EuiText color="danger" size="s" data-test-subj="paragraphInputErrorText">{`${
-                  para.isVizualisation ? 'Visualization' : 'Input'
-                } is required.`}</EuiText>
-              )}
-              <EuiSpacer size="m" />
-              <EuiFlexGroup alignItems="center" gutterSize="s">
-                <EuiFlexItem grow={false}>
-                  {executeButtonDisabled ? (
-                    <EuiToolTip content="Insert a new deep research paragraph to execute base selected memory">
-                      {executeButton}
-                    </EuiToolTip>
-                  ) : (
-                    executeButton
-                  )}
-                </EuiFlexItem>
-                {isOutputAvailable && renderOutputTimestampMessage()}
-              </EuiFlexGroup>
-              <EuiSpacer size="m" />
+              </EuiFlexItem>
+              <EuiFlexItem>
+                <AgentsSelector
+                  http={http}
+                  value={deepResearchAgentId}
+                  dataSourceMDSId={dataSourceMDSId}
+                  onChange={setDeepResearchAgentId}
+                />
+              </EuiFlexItem>
             </>
           )}
-          {props.selectedViewId !== 'input_only' && isOutputAvailable && (
-            <>
-              <EuiHorizontalRule margin="none" />
-              <div style={{ opacity: para.isOutputStale ? 0.5 : 1, padding: '15px' }}>
-                {paraOutput}
-              </div>
-            </>
-          )}
-        </div>
-      </EuiPanel>
-    </>
+        </EuiFlexGroup>
+      )}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
+      <div
+        key={index}
+        className={paraClass}
+        onClick={executeButtonDisabled ? undefined : () => paragraphSelector(index)}
+      >
+        {para.isInputExpanded && !para.isAnomalyVisualizationAnalysis && (
+          <>
+            <EuiSpacer size="s" />
+            <EuiCompressedFormRow
+              fullWidth={true}
+              helpText={paragraphLabel}
+              isInvalid={showQueryParagraphError}
+              error={queryErrorMessage}
+            >
+              <ParaInput
+                para={para}
+                index={index}
+                runParaError={runParaError}
+                textValueEditor={textValueEditor}
+                handleKeyPress={handleKeyPress}
+                startTime={para.visStartTime}
+                setStartTime={setStartTime}
+                endTime={para.visEndTime}
+                setEndTime={setEndTime}
+                setIsOutputStale={setIsOutputStale}
+                visOptions={visOptions}
+                selectedVisOption={selectedVisOption}
+                setSelectedVisOption={setSelectedVisOption}
+                setVisType={setVisType}
+                dataSourceManagement={dataSourceManagement}
+                notifications={notifications}
+                dataSourceEnabled={dataSourceEnabled}
+                savedObjectsMDSClient={savedObjectsMDSClient}
+              />
+            </EuiCompressedFormRow>
+            {runParaError && (
+              <EuiText color="danger" size="s" data-test-subj="paragraphInputErrorText">{`${
+                para.isVizualisation ? 'Visualization' : 'Input'
+              } is required.`}</EuiText>
+            )}
+            <EuiSpacer size="m" />
+            <EuiFlexGroup alignItems="center" gutterSize="s">
+              <EuiFlexItem grow={false}>
+                {executeButtonDisabled ? (
+                  <EuiToolTip content="Insert a new deep research paragraph to execute base selected memory">
+                    {executeButton}
+                  </EuiToolTip>
+                ) : (
+                  executeButton
+                )}
+              </EuiFlexItem>
+            </EuiFlexGroup>
+            <EuiSpacer size="m" />
+          </>
+        )}
+        {props.selectedViewId !== 'input_only' && isOutputAvailable && (
+          <div style={{ opacity: para.isOutputStale ? 0.5 : 1 }}>{paraOutput}</div>
+        )}
+      </div>
+    </EuiPanel>
   );
 });

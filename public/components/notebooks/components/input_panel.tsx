@@ -182,6 +182,8 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => 
         position: 'sticky',
         bottom: 10,
         width: 700,
+        marginLeft: '50%',
+        transform: 'translateX(-50%)',
         // marginTop: 'auto',
       }}
     >
