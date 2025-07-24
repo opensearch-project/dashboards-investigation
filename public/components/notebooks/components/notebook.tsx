@@ -5,6 +5,7 @@
 
 import {
   EuiButtonIcon,
+  EuiCallOut,
   EuiCard,
   EuiContextMenu,
   EuiContextMenuPanelDescriptor,
@@ -1169,6 +1170,20 @@ export function Notebook({
         <EuiPage direction="column">
           <EuiPageBody>
             {notebookHeader}
+            {!savedObjectNotebook && (
+              <EuiFlexItem>
+                <EuiCallOut color="primary" iconType="iInCircle">
+                  Upgrade this notebook to take full advantage of the latest features
+                  <EuiSpacer size="s" />
+                  <EuiSmallButton
+                    data-test-subj="upgrade-notebook"
+                    onClick={() => showUpgradeModal()}
+                  >
+                    Upgrade Notebook
+                  </EuiSmallButton>
+                </EuiCallOut>
+              </EuiFlexItem>
+            )}
             <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
               {notebookLoading ? (
                 <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
@@ -1176,50 +1191,44 @@ export function Notebook({
               {/* Temporarily determine whether to display the context panel based on datasource id */}
               {context?.dataSourceId && <ContextPanel addPara={addPara} />}
               {notebookLoading ? null : parsedPara.length > 0 ? (
-                <>
-                  {parsedPara.map((para: ParaType, index: number) => (
-                    <div
-                      ref={parsedPara[index].paraDivRef}
-                      key={`para_div_${para.uniqueId}`}
-                      style={panelStyles}
-                    >
-                      <Paragraphs
-                        ref={parsedPara[index].paraRef}
-                        para={para}
-                        setPara={(pr: ParaType) => setPara(pr, index)}
-                        dateModified={paragraphs[index]?.dateModified}
-                        index={index}
-                        paraCount={parsedPara.length}
-                        paragraphSelector={paragraphSelector}
-                        textValueEditor={textValueEditor}
-                        handleKeyPress={handleKeyPress}
-                        addPara={addPara}
-                        DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
-                        deleteVizualization={deleteVizualization}
-                        http={http}
-                        selectedViewId={selectedViewId}
-                        setSelectedViewId={updateView}
-                        deletePara={showDeleteParaModal}
-                        runPara={updateRunParagraph}
-                        clonePara={cloneParaButton}
-                        movePara={movePara}
-                        showQueryParagraphError={showQueryParagraphError}
-                        queryParagraphErrorMessage={queryParagraphErrorMessage}
-                        dataSourceManagement={dataSourceManagement}
-                        setActionMenu={setActionMenu}
-                        notifications={notifications}
-                        dataSourceEnabled={dataSourceMDSEnabled}
-                        savedObjectsMDSClient={savedObjectsMDSClient}
-                        handleSelectedDataSourceChange={handleSelectedDataSourceChange}
-                        paradataSourceMDSId={parsedPara[index].dataSourceMDSId}
-                        dataSourceMDSLabel={parsedPara[index].dataSourceMDSLabel}
-                        paragraphs={parsedPara}
-                        updateBubbleParagraph={updateBubbleParagraph}
-                        updateNotebookContext={updateNotebookContext}
-                      />
-                    </div>
-                  ))}
-                </>
+                parsedPara.map((para: ParaType, index: number) => (
+                  <div ref={parsedPara[index].paraDivRef} key={`para_div_${para.uniqueId}`}>
+                    <Paragraphs
+                      ref={parsedPara[index].paraRef}
+                      para={para}
+                      setPara={(pr: ParaType) => setPara(pr, index)}
+                      dateModified={paragraphs[index]?.dateModified}
+                      index={index}
+                      paraCount={parsedPara.length}
+                      paragraphSelector={paragraphSelector}
+                      textValueEditor={textValueEditor}
+                      handleKeyPress={handleKeyPress}
+                      addPara={addPara}
+                      DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
+                      deleteVizualization={deleteVizualization}
+                      http={http}
+                      selectedViewId={selectedViewId}
+                      setSelectedViewId={updateView}
+                      deletePara={showDeleteParaModal}
+                      runPara={updateRunParagraph}
+                      clonePara={cloneParaButton}
+                      movePara={movePara}
+                      showQueryParagraphError={showQueryParagraphError}
+                      queryParagraphErrorMessage={queryParagraphErrorMessage}
+                      dataSourceManagement={dataSourceManagement}
+                      setActionMenu={setActionMenu}
+                      notifications={notifications}
+                      dataSourceEnabled={dataSourceMDSEnabled}
+                      savedObjectsMDSClient={savedObjectsMDSClient}
+                      handleSelectedDataSourceChange={handleSelectedDataSourceChange}
+                      paradataSourceMDSId={parsedPara[index].dataSourceMDSId}
+                      dataSourceMDSLabel={parsedPara[index].dataSourceMDSLabel}
+                      paragraphs={parsedPara}
+                      updateBubbleParagraph={updateBubbleParagraph}
+                      updateNotebookContext={updateNotebookContext}
+                    />
+                  </div>
+                ))
               ) : (
                 // show default paragraph if no paragraphs in this notebook
                 <div style={panelStyles}>

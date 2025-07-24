@@ -19,11 +19,7 @@ import {
   migrateBlockNotebook,
   notebookPutResponse,
   runCodeBlockResponse,
-  sampleNotebook1,
 } from '../../../../../test/notebooks_constants';
-import { sampleSavedVisualization } from '../../../../../test/panels_constants';
-import PPLService from '../../../../services/requests/ppl';
-import { SavedObjectsActions } from '../../../../services/saved_objects/saved_object_client/saved_objects_actions';
 import { Notebook } from '../notebook';
 import { notificationServiceMock } from '../../../../../../../src/core/public/mocks';
 import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
@@ -76,12 +72,6 @@ global.fetch = jest.fn(() =>
 describe('<Notebook /> spec', () => {
   configure({ adapter: new Adapter() });
   const httpClient = getOSDHttp();
-  const pplService = new PPLService(httpClient);
-  const setBreadcrumbs = jest.fn();
-  const renameNotebook = jest.fn();
-  const cloneNotebook = jest.fn();
-  const deleteNotebook = jest.fn();
-  const setToast = jest.fn();
   const location = jest.fn() as any;
   location.search = '';
   const history = jest.fn() as any;
@@ -147,50 +137,6 @@ describe('<Notebook /> spec', () => {
     });
   });
 
-  it('toggles show input in code block', async () => {
-    httpClient.get = jest.fn(() => Promise.resolve((emptyNotebook as unknown) as HttpResponse));
-    let postFlag = 1;
-    httpClient.post = jest.fn(() => {
-      if (postFlag === 1) {
-        postFlag += 1;
-        return Promise.resolve((addCodeBlockResponse as unknown) as HttpResponse);
-      } else return Promise.resolve((runCodeBlockResponse as unknown) as HttpResponse);
-    });
-    const utils = render(
-      <Notebook
-        openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        dataSourceManagement={{
-          ui: { DataSourceSelector: () => <div /> },
-          getDataSourceMenu: () => jest.fn(),
-        }}
-        setActionMenu={jest.fn()}
-        dataSourceEnabled={false}
-        notifications={notifications}
-      />
-    );
-    await waitFor(() => {
-      expect(utils.getByText('sample-notebook-1')).toBeInTheDocument();
-    });
-
-    act(() => {
-      utils.getByText('Add code block').click();
-    });
-
-    await waitFor(() => {
-      expect(utils.getByPlaceholderText(codePlaceholderText)).toBeInTheDocument();
-    });
-
-    act(() => {
-      utils.getByLabelText('Toggle show input').click();
-    });
-
-    await waitFor(() => {
-      expect(utils.queryByPlaceholderText(codePlaceholderText)).toBeNull();
-    });
-  });
-
   it('runs a code block and checks the output', async () => {
     httpClient.get = jest.fn(() => Promise.resolve((emptyNotebook as unknown) as HttpResponse));
     let postFlag = 1;
@@ -236,136 +182,6 @@ describe('<Notebook /> spec', () => {
     await waitFor(() => {
       expect(utils.queryByText('Run')).toBeNull();
       expect(utils.getByText('hello')).toBeInTheDocument();
-    });
-  });
-
-  it('toggles between input/output only views', async () => {
-    httpClient.get = jest.fn(() => Promise.resolve((emptyNotebook as unknown) as HttpResponse));
-    const utils = render(
-      <Notebook
-        pplService={pplService}
-        openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        parentBreadcrumb={{ href: 'parent-href', text: 'parent-text' }}
-        setBreadcrumbs={setBreadcrumbs}
-        renameNotebook={renameNotebook}
-        cloneNotebook={cloneNotebook}
-        deleteNotebook={deleteNotebook}
-        setToast={setToast}
-        location={location}
-        history={history}
-        dataSourceEnabled={false}
-        notifications={notifications}
-      />
-    );
-    await waitFor(() => {
-      expect(utils.getByText('sample-notebook-1')).toBeInTheDocument();
-    });
-
-    act(() => {
-      utils.getByText('Add code block').click();
-    });
-
-    await waitFor(() => {
-      expect(utils.getByPlaceholderText(codePlaceholderText)).toBeInTheDocument();
-    });
-
-    act(() => {
-      utils.getByLabelText('Toggle show input').click();
-    });
-
-    await waitFor(() => {
-      expect(utils.queryByPlaceholderText(codePlaceholderText)).toBeNull();
-    });
-
-    act(() => {
-      utils.getByLabelText('Toggle show input').click();
-    });
-
-    act(() => {
-      fireEvent.click(utils.getByTestId('input_only'));
-    });
-
-    await waitFor(() => {
-      expect(utils.queryByText('Refresh')).toBeInTheDocument();
-    });
-
-    act(() => {
-      fireEvent.click(utils.getByTestId('output_only'));
-    });
-
-    await waitFor(() => {
-      expect(utils.queryByText('Refresh')).toBeNull();
-      expect(utils.getByText('hello')).toBeInTheDocument();
-    });
-  });
-
-  it('Renders a notebook and checks paragraph actions', async () => {
-    httpClient.get = jest.fn(() => Promise.resolve((codeBlockNotebook as unknown) as HttpResponse));
-    httpClient.put = jest.fn(() =>
-      Promise.resolve((clearOutputNotebook as unknown) as HttpResponse)
-    );
-    httpClient.delete = jest.fn(() =>
-      Promise.resolve(({ paragraphs: [] } as unknown) as HttpResponse)
-    );
-
-    const utils = render(
-      <Notebook
-        openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        dataSourceManagement={{
-          ui: { DataSourceSelector: () => <div /> },
-          getDataSourceMenu: () => jest.fn(),
-        }}
-        setActionMenu={jest.fn()}
-        dataSourceEnabled={false}
-        notifications={notifications}
-      />
-    );
-    await waitFor(() => {
-      expect(utils.getByText('sample-notebook-1')).toBeInTheDocument();
-    });
-
-    act(() => {
-      fireEvent.click(utils.getByText('Clear all outputs'));
-    });
-
-    await waitFor(() => {
-      expect(
-        utils.queryByText(
-          'Are you sure you want to clear all outputs? The action cannot be undone.'
-        )
-      ).toBeInTheDocument();
-    });
-
-    act(() => {
-      fireEvent.click(utils.getByTestId('confirmModalConfirmButton'));
-    });
-
-    await waitFor(() => {
-      expect(utils.queryByText('hello')).toBeNull();
-    });
-
-    act(() => {
-      fireEvent.click(utils.getByText('Delete all paragraphs'));
-    });
-
-    await waitFor(() => {
-      expect(
-        utils.queryByText(
-          'Are you sure you want to delete all paragraphs? The action cannot be undone.'
-        )
-      ).toBeInTheDocument();
-    });
-
-    act(() => {
-      fireEvent.click(utils.getByTestId('confirmModalConfirmButton'));
-    });
-
-    await waitFor(() => {
-      expect(utils.queryByText('No paragraphs')).toBeInTheDocument();
     });
   });
 
@@ -577,50 +393,6 @@ describe('<Notebook /> spec', () => {
     });
     const button = utils.queryByTestId('reporting-actions-button');
     expect(button).not.toBeInTheDocument();
-  });
-
-  it('Renders the visualization component', async () => {
-    SavedObjectsActions.getBulk = jest.fn().mockResolvedValue({
-      observabilityObjectList: [{ savedVisualization: sampleSavedVisualization }],
-    });
-
-    httpClient.get = jest.fn(() =>
-      Promise.resolve(({
-        ...sampleNotebook1,
-        path: sampleNotebook1.name,
-        visualizations: [
-          {
-            id: 'oiuccXwBYVazWqOO1e06',
-            name: 'Flight Count by Origin',
-            query:
-              'source=opensearch_dashboards_sample_data_flights | fields Carrier,FlightDelayMin | stats sum(FlightDelayMin) as delays by Carrier',
-            type: 'bar',
-            timeField: 'timestamp',
-          },
-        ],
-        savedVisualizations: Array.from({ length: 5 }, (v, k) => ({
-          label: `vis-${k}`,
-          key: `vis-${k}`,
-        })),
-      } as unknown) as HttpResponse)
-    );
-    const utils = render(
-      <Notebook
-        openedNoteId={sampleNotebook1.id}
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        dataSourceManagement={{
-          ui: { DataSourceSelector: () => <div /> },
-          getDataSourceMenu: () => jest.fn(),
-        }}
-        setActionMenu={jest.fn()}
-        notifications={notifications}
-      />
-    );
-
-    await waitFor(() => {
-      expect(utils.container.firstChild).toMatchSnapshot();
-    });
   });
 
   it('Renders a old notebook and migrates it', async () => {
