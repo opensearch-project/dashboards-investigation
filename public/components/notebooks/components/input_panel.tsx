@@ -10,21 +10,97 @@ import {
   EuiSelectableOption,
   EuiInputPopover,
   EuiIcon,
+  EuiLoadingSpinner,
 } from '@elastic/eui';
 import autosize from 'autosize';
 import { useEffectOnce } from 'react-use';
 import { ACTION_TYPES } from '../reducers/paragraphReducer';
 import { NotebookReactContext } from '../context_provider/context_provider';
 
-interface InputPanelProps {
-  onCreateParagraph: (paragraphInput: string, inputType: string) => Promise<void>;
+export interface ActionInputMetadata {
+  [key: string]: {
+    type: string;
+    description: string;
+    required?: boolean;
+  };
 }
 
-export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => {
+export interface ActionMetadata {
+  id: string;
+  title: string;
+  description: string;
+  input_metadata?: ActionInputMetadata;
+}
+
+interface InputPanelProps {
+  onCreateParagraph: (paragraphInput: string, inputType: string) => Promise<void>;
+  selectAction: (
+    input: string,
+    actionsMetadata: ActionMetadata[]
+  ) => Promise<{
+    inference_results: Array<{
+      output: Array<{
+        name: string;
+        result: string;
+      }>;
+    }>;
+  }>;
+}
+
+export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, selectAction }) => {
+  const [isLoading, setIsLoading] = useState(false);
+
   const [inputValue, setInputValue] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const context = useContext(NotebookReactContext);
+  const actionsMetadata: ActionMetadata[] = [
+    {
+      id: 'PPL',
+      title: 'PPL',
+      description:
+        'display PPL block: Piped Processing Language (PPL) is a query language that focuses on processing data in a sequential, step-by-step manner.',
+      input_metadata: {
+        ppl: {
+          type: 'string',
+          description: 'ppl query',
+          required: true,
+        },
+      },
+    },
+    {
+      id: 'DEEP_RESEARCH_AGENT',
+      title: 'PlanAndExecuteAgent',
+      description:
+        'display PlanAndExecuteAgent block: PlanAndExecuteAgent is capable of breaking down complex tasks into simple steps and re-evaluating the steps based on intermediate results.',
+      input_metadata: {
+        question: {
+          type: 'string',
+          description: 'user question',
+          required: true,
+        },
+      },
+    },
+    {
+      id: 'VISUALIZATION',
+      title: 'Visualization',
+      description:
+        'display visualization block: user can select existing visualization and display it in the block.',
+    },
+    {
+      id: 'MARKDOWN',
+      title: 'Markdown',
+      description:
+        'display markdown block: If the input follows markdown syntax, use the markdown editor to create formatted text.',
+      input_metadata: {
+        markdown_text: {
+          type: 'string',
+          description: 'markdown text',
+          required: true,
+        },
+      },
+    },
+  ];
 
   useEffectOnce(() => {
     if (textareaRef.current) {
@@ -125,78 +201,129 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => 
 
   // TODO: Submit use's question
   const onSubmit = async () => {
+    setIsLoading(true);
+
     if (!textareaRef.current || !textareaRef.current.value.trim()) {
       return;
     }
 
-    textareaRef.current.value = '';
+    const response = await selectAction(textareaRef.current.value, actionsMetadata);
+    const rawResult = response.inference_results[0].output[0].result;
+    const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
+    let inputType = 'DEEP_RESEARCH';
+    let paragraphInput = '';
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[0]);
+      console.log(result);
+      switch (result.action) {
+        case 'PPL':
+          inputType = 'CODE';
+          paragraphInput = '%ppl\n' + result.input;
+          break;
+        case 'MARKDOWN':
+          inputType = 'CODE';
+          paragraphInput = '%md\n' + result.input;
+          break;
+        case 'VISUALIZATION':
+          inputType = 'VISUALIZATION';
+          paragraphInput = result.input;
+          break;
+        case 'DEEP_RESEARCH_AGENT':
+          inputType = 'DEEP_RESEARCH';
+          paragraphInput = result.input;
+          break;
+        default:
+          inputType = 'CODE';
+          paragraphInput = result.input;
+      }
+    }
+
+    await onCreateParagraph(paragraphInput, inputType);
+    setIsLoading(false);
+
+    setInputValue('');
     textareaRef.current.style.height = '45px';
   };
 
   return (
-    <EuiInputPopover
-      input={
-        <div>
-          <EuiTextArea
-            inputRef={textareaRef}
-            // autoFocus
-            fullWidth
-            style={{
-              minHeight: 45,
-              maxHeight: 200,
-              borderRadius: 6,
-              backgroundColor: 'white',
-              paddingRight: 40,
-            }}
-            placeholder={'Type % to show paragraph options'}
-            value={inputValue}
-            onChange={handleInputChange}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                onSubmit();
-              }
-            }}
-            rows={1}
-            resize="none"
-            data-test-subj="notebook-paragraph-input-panel"
-          />
-          <EuiIcon
-            type="rocket"
-            style={{
-              position: 'absolute',
-              right: 10,
-              top: '50%',
-              transform: 'translateY(-50%)',
-            }}
-            onClick={onSubmit}
-            data-test-subj="notebook-input-icon"
-          />
-        </div>
-      }
-      fullWidth
-      isOpen={isPopoverOpen}
-      closePopover={closePopover}
-      panelPaddingSize="none"
-      style={{
-        position: 'sticky',
-        bottom: 10,
-        width: 700,
-        marginLeft: '50%',
+    <>
+      <EuiInputPopover
+        input={
+          <div>
+            <EuiTextArea
+              inputRef={textareaRef}
+              // autoFocus
+              fullWidth
+              style={{
+                minHeight: 45,
+                maxHeight: 200,
+                borderRadius: 6,
+                backgroundColor: 'white',
+                paddingRight: 40,
+              }}
+              placeholder={'Type % to show paragraph options'}
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  onSubmit();
+                }
+              }}
+              disabled={isLoading}
+              rows={1}
+              resize="none"
+              data-test-subj="notebook-paragraph-input-panel"
+            />
+            {isLoading ? (
+              <EuiLoadingSpinner
+                size="m"
+                style={{
+                  position: 'absolute',
+                  right: 10,
+                  top: '30%',
+                }}
+                data-test-subj="notebook-input-loading"
+              />
+            ) : (
+              <EuiIcon
+                type="rocket"
+                style={{
+                  position: 'absolute',
+                  right: 10,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                }}
+                onClick={onSubmit}
+                data-test-subj="notebook-input-icon"
+              />
+            )}
+          </div>
+        }
+        fullWidth
+        isOpen={isPopoverOpen}
+        closePopover={closePopover}
+        panelPaddingSize="none"
+        style={{
+          position: 'sticky',
+          bottom: 10,
+          width: 700,
+          marginLeft: '50%',
         transform: 'translateX(-50%)',
         // marginTop: 'auto',
-      }}
-    >
-      <div>
-        <EuiSelectable
-          options={paragraphOptions}
-          singleSelection="always"
-          onChange={handleParagraphSelection}
-          data-test-subj="paragraph-type-selector"
-        >
-          {(list) => <div>{list}</div>}
-        </EuiSelectable>
-      </div>
-    </EuiInputPopover>
+        }}
+      >
+        <div>
+          <EuiSelectable
+            options={paragraphOptions}
+            singleSelection="always"
+            onChange={handleParagraphSelection}
+            data-test-subj="paragraph-type-selector"
+          >
+            {(list) => <div>{list}</div>}
+          </EuiSelectable>
+        </div>
+      </EuiInputPopover>
+    </>
   );
 };

@@ -8,7 +8,7 @@ const OPENSEARCH_ML_COMMONS_API_PREFIX = '/_plugins/_ml';
 export const OPENSEARCH_ML_COMMONS_API = {
   singleTask: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/tasks/{taskId}`,
   agentsSearch: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/agents/_search`,
-  agentExecute: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/agent/{agentId}/_execute`,
+  agentExecute: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/agents/{agentId}/_execute`,
   memorySearch: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/memory/_search`,
   singleMemory: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/memory/{memoryId}`,
   memoryMessages: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/memory/{memoryId}/messages`,

@@ -56,11 +56,12 @@ import {
 import { Paragraphs } from './paragraph_components/paragraphs';
 import { ContextPanel } from './context_panel';
 import { NotebookContextProvider } from '../context_provider/context_provider';
-import { getMLCommonsTask } from '../../../utils/ml_commons_apis';
+import { getMLCommonsTask, executeMLCommonsAgent, getMLCommonsConfig } from '../../../utils/ml_commons_apis';
 import { parseParagraphOut } from '../../../utils/paragraph';
 import { isStateCompletedOrFailed } from '../../../utils/task';
 import { constructDeepResearchParagraphOut } from '../../../../common/utils/paragraph';
-import { InputPanel } from './input_panel';
+import { ActionMetadata, InputPanel } from './input_panel';
+import { clog } from '../../../../../../src/plugins/expressions';
 
 const ParagraphTypeDeepResearch = 'DEEP_RESEARCH';
 
@@ -122,6 +123,12 @@ export function Notebook({
   const [context, setContext] = useState<NotebookContext | undefined>(undefined);
   // Refs for task subscriptions
   const taskSubscriptions = useRef(new Map<string, Subscription>());
+
+  const executeActionSelectionAgent = async (input: string, actionsMetadata: ActionMetadata[]) => {
+    const {configuration: {agent_id: actionSelectionAgentId}} = await getMLCommonsConfig({http: http, configName: "action-selection-agent"})
+    const result = await executeMLCommonsAgent({ http: http, agentId: actionSelectionAgentId, dataSourceId: dataSourceMDSId ?? undefined, parameters: {actions_metadata: actionsMetadata.map((acion) => JSON.stringify(acion)).join(','), input_question: input} })
+    return result;
+  }
 
   const toggleReportingLoadingModal = (show: boolean) => {
     setIsReportingLoadingModalOpen(show);
@@ -1302,7 +1309,11 @@ export function Notebook({
             </EuiPageContent>
           </EuiPageBody>
           <EuiSpacer />
-          <InputPanel onCreateParagraph={handleCreateParagraph} />
+          <InputPanel
+              onCreateParagraph={handleCreateParagraph}
+              selectAction={(input: string, actionsMetadata: ActionMetadata[]) => executeActionSelectionAgent(input, actionsMetadata)
+              }
+            />
         </EuiPage>
         {isModalVisible && modalLayout}
       </>
