@@ -5,7 +5,7 @@
 
 import { NotebookContext } from 'common/types/notebooks';
 import { ObservableState } from './observable_state';
-import { ParagraphState } from './paragraph_state';
+import { ParagraphState, ParagraphStateValue } from './paragraph_state';
 import { TopContextState } from './top_context_state';
 
 interface NotebookStateValue {
@@ -44,5 +44,13 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
     });
 
     return this;
+  }
+  updateParagraphs(paragraphs: ParagraphStateValue[]) {
+    this.updateValue({
+      paragraphs: paragraphs.map((paragraph) => new ParagraphState(paragraph)),
+    });
+  }
+  getValue$() {
+    return super.getValue$();
   }
 }

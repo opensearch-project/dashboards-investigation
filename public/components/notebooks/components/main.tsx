@@ -111,18 +111,20 @@ export class Main extends React.Component<MainProps, MainState> {
             <Route
               exact
               path="/:id"
-              render={(props) => (
-                <Notebook
-                  openedNoteId={props.match.params.id}
-                  DashboardContainerByValueRenderer={this.props.DashboardContainerByValueRenderer}
-                  http={this.props.http}
-                  dataSourceManagement={this.props.dataSourceManagement}
-                  setActionMenu={this.props.setActionMenu}
-                  notifications={this.props.notifications}
-                  dataSourceEnabled={this.props.dataSourceEnabled}
-                  savedObjectsMDSClient={this.props.savedObjectsMDSClient}
-                />
-              )}
+              render={(props) => {
+                return (
+                  <Notebook
+                    openedNoteId={props.match.params.id}
+                    DashboardContainerByValueRenderer={this.props.DashboardContainerByValueRenderer}
+                    http={this.props.http}
+                    dataSourceManagement={this.props.dataSourceManagement}
+                    setActionMenu={this.props.setActionMenu}
+                    notifications={this.props.notifications}
+                    dataSourceEnabled={this.props.dataSourceEnabled}
+                    savedObjectsMDSClient={this.props.savedObjectsMDSClient}
+                  />
+                );
+              }}
             />
           </Switch>
         </>

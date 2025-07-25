@@ -5,10 +5,10 @@
 
 import { ObservableState } from './observable_state';
 
-interface ParagraphStateValue<TInput, TOutput, TFullfilledOutput> {
-  input: TInput;
-  output: TOutput; // output only has some meta data like message_id / task_id
-  fullfilledOutput: TFullfilledOutput; // this is the fullfilled output, like PPL query result / PER agent response
+export interface ParagraphStateValue<TInput = {}, TOutput = {}, TFullfilledOutput = {}> {
+  input?: Partial<TInput>;
+  output?: Partial<TOutput>; // output only has some meta data like message_id / task_id
+  fullfilledOutput?: Partial<TFullfilledOutput>; // this is the fullfilled output, like PPL query result / PER agent response
   paragraphId: string;
   paragraphType: string; // mardown / sql / ppl / visualization / deep_search
   viewMode: 'inputOnly' | 'outputOnly' | 'both';
@@ -36,7 +36,7 @@ export class ParagraphState<
       },
     });
   }
-  updateFullfilledOutput(fullfilledOutput: Partial<TOutput>) {
+  updateFullfilledOutput(fullfilledOutput: Partial<TFullfilledOutput>) {
     this.updateValue({
       fullfilledOutput: {
         ...this.value.fullfilledOutput,
