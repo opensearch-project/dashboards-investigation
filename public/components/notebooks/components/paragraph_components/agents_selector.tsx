@@ -8,28 +8,26 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import _ from 'lodash';
 
 import { CoreStart } from '../../../../../../../src/core/public';
-import { INVESTIGATION_ML_COMMONS_API } from '../../../../../common/constants/ml_commons';
+import { searchMLCommonsAgents } from '../../../../../public/utils/ml_commons_apis';
 
 // Create a debounced request function that's memoized by data source ID
-const fetchAgents = _.memoize(
-  (dataSourceMDSId, types = 'plan_execute_and_reflect', http: CoreStart['http']) => {
+const fetchPERAgents = _.memoize(
+  (dataSourceMDSId, http: CoreStart['http']) => {
     // Return a promise that will be resolved with the HTTP response
     return new Promise((resolve, reject) => {
       // Schedule the actual HTTP request with debounce
       const makeRequest = _.debounce(
         () => {
-          http
-            .get(INVESTIGATION_ML_COMMONS_API.agents, {
-              query: {
-                data_source_id: dataSourceMDSId,
-                types,
-              },
-            })
+          searchMLCommonsAgents({
+            http,
+            dataSourceId: dataSourceMDSId,
+            types: ['plan_execute_and_reflect'],
+          })
             .then(resolve)
             .catch(reject)
             .finally(() => {
               // Clear this entry from the memoize cache after request completes
-              fetchAgents.cache.delete(`${dataSourceMDSId}:${types}`);
+              fetchPERAgents.cache.delete(dataSourceMDSId);
             });
         },
         50,
@@ -41,7 +39,7 @@ const fetchAgents = _.memoize(
     });
   },
   // Custom resolver function for memoization key
-  (dataSourceMDSId, types = 'plan_execute_and_reflect') => `${dataSourceMDSId}:${types}`
+  (dataSourceMDSId) => dataSourceMDSId
 );
 
 export const AgentsSelector = ({
@@ -57,10 +55,12 @@ export const AgentsSelector = ({
 }) => {
   const [agents, setAgents] = useState([]);
   const valueRef = useRef(value);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   useEffect(() => {
     let canceled = false;
-    fetchAgents(dataSourceMDSId, 'plan_execute_and_reflect', http).then(({ hits }) => {
+    fetchPERAgents(dataSourceMDSId, http).then(({ hits }) => {
       if (!canceled) {
         const agentResults = hits.hits.map(({ _id, _source: { name } }) => ({ id: _id, name }));
         setAgents(agentResults);
@@ -68,7 +68,7 @@ export const AgentsSelector = ({
           const recommendAgent = agentResults.find(
             ({ name }) => name.includes('3.7') && name.includes('ppl')
           );
-          onChange(recommendAgent?.id ?? agentResults[0]?.id);
+          onChangeRef.current(recommendAgent?.id ?? agentResults[0]?.id);
         }
       }
     });
