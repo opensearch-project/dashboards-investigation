@@ -131,7 +131,10 @@ export function NotebookComponent({
   const taskSubscriptions = useRef(new Map<string, Subscription>());
 
   const notebookContext = useContext(NotebookReactContext);
-  const notebookState = useObservable(notebookContext.reducer.state.getValue$(), notebookContext.reducer.state.value);
+  const notebookState = useObservable(
+    notebookContext.reducer.state.getValue$(),
+    notebookContext.reducer.state.value
+  );
   const openedNoteId = notebookState?.id;
   const paragraphs = notebookState?.paragraphs.map((item) => item.value);
   const setParagraphs = useCallback(
@@ -865,7 +868,6 @@ export function NotebookComponent({
         }
       })
       .catch((err) => {
-        debugger;
         notifications.toasts.addDanger(
           'Error fetching notebooks, please make sure you have the correct permission.'
         );
