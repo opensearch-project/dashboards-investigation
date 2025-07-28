@@ -33,6 +33,19 @@ export const actionsMetadata: ActionMetadata[] = [
     },
   },
   {
+    id: 'T2PPL',
+    title: 'Text to PPL',
+    description:
+      'display T2PPL block: User input what data they want to query, which will be tranformed into PPL query in this block',
+    input_metadata: {
+      input: {
+        type: 'string',
+        description: 'natural language input',
+        required: true,
+      },
+    },
+  },
+  {
     id: 'DEEP_RESEARCH_AGENT',
     title: 'PlanAndExecuteAgent',
     description:
