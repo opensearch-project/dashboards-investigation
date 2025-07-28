@@ -156,7 +156,6 @@ export function NotebookComponent({
         const newParsedPara = defaultParagraphParser(paragraphsProp || []);
         newParsedPara.forEach((para: ParaType) => {
           para.isInputExpanded = true;
-          para.paraRef = React.createRef();
           para.paraDivRef = React.createRef<HTMLDivElement>();
           para.isSelected = true;
         });
@@ -470,8 +469,6 @@ export function NotebookComponent({
   const movePara = (index: number, targetIndex: number) => {
     const newParagraphs = [...paragraphs];
     newParagraphs.splice(targetIndex, 0, newParagraphs.splice(index, 1)[0]);
-    const newParsedPara = [...parsedPara];
-    newParsedPara.splice(targetIndex, 0, newParsedPara.splice(index, 1)[0]);
 
     const moveParaObj = {
       noteId: openedNoteId,
@@ -521,8 +518,6 @@ export function NotebookComponent({
 
       const newParagraphs = paragraphs;
       newParagraphs[index] = response;
-      const newParsedPara = [...parsedPara];
-      newParsedPara[index] = parseParagraphs([response])[0];
       setParagraphs(newParagraphs);
       return response;
     } catch (error) {
@@ -742,14 +737,14 @@ export function NotebookComponent({
   // update view mode, scrolls to paragraph and expands input if scrollToIndex is given
   const updateView = (viewId: string, scrollToIndex?: number) => {
     configureViewParameter(viewId);
-    const newParsedPara = [...parsedPara];
+    const newParas = [...parsedPara];
 
-    newParsedPara.map((para: ParaType, index: number) => {
-      newParsedPara[index].isInputExpanded = viewId === 'input_only';
+    newParas.map((para: ParaType, index: number) => {
+      newParas[index].isInputExpanded = viewId === 'input_only';
     });
 
     if (scrollToIndex !== undefined) {
-      parsedPara[scrollToIndex].isInputExpanded = true;
+      newParas[scrollToIndex].isInputExpanded = true;
       scrollToPara(scrollToIndex);
     }
     setSelectedViewId(viewId);
@@ -886,8 +881,9 @@ export function NotebookComponent({
   };
 
   const setPara = (para: ParaType, index: number) => {
-    const newParsedPara = [...parsedPara];
-    newParsedPara.splice(index, 1, para);
+    const newParas = [...parsedPara];
+    newParas.splice(index, 1, para);
+    setParagraphs(newParas);
   };
 
   const checkIfReportingPluginIsInstalled = () => {
@@ -1164,7 +1160,6 @@ export function NotebookComponent({
               parsedPara.map((para: ParaType, index: number) => (
                 <div ref={parsedPara[index].paraDivRef} key={`para_div_${para.uniqueId}`}>
                   <Paragraphs
-                    ref={parsedPara[index].paraRef}
                     para={para}
                     setPara={(pr: ParaType) => setPara(pr, index)}
                     dateModified={paragraphs[index]?.dateModified}

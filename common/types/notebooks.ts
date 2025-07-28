@@ -45,7 +45,6 @@ export interface ParaType {
   out: any[];
   isInputExpanded: boolean;
   isOutputStale: boolean;
-  paraRef: RefObject<React.ReactElement>;
   paraDivRef: RefObject<HTMLDivElement>;
   visStartTime?: string;
   visEndTime?: string;

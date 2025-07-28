@@ -117,7 +117,6 @@ describe('<Paragraphs /> spec', () => {
       isInputExpanded: false,
       isOutputStale: false,
       paraDivRef: undefined,
-      paraRef: undefined,
       visEndTime: undefined,
       visSavedObjId: undefined,
       visStartTime: undefined,

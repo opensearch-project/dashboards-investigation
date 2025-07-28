@@ -108,7 +108,6 @@ export const defaultParagraphParser = (defaultBackendParagraphs: any) => {
         out: message.outputData,
         isInputExpanded: false,
         isOutputStale: false,
-        paraRef: undefined,
         paraDivRef: undefined,
         visStartTime: vizParams.visStartTime,
         visEndTime: vizParams.visEndTime,
