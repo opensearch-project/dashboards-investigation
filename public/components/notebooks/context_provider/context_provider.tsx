@@ -14,21 +14,21 @@ const defaultState = new NotebookState({
   paragraphs: [],
   id: '',
   context: new TopContextState({}),
+  dataSourceEnabled: false,
+  dateCreated: '',
+  isLoading: false,
+  path: '',
 });
 
 export const NotebookReactContext = React.createContext<
   (NotebookContext | undefined) & {
-    reducer: {
-      state: NotebookState;
-      dispatch: React.Dispatch<Action>;
-    };
+    state: NotebookState;
+    dispatch: React.Dispatch<Action>;
     http: HttpStart;
   }
 >({
-  reducer: {
-    state: defaultState,
-    dispatch: () => {},
-  },
+  state: defaultState,
+  dispatch: () => {},
   http: {} as HttpStart,
 });
 
@@ -37,6 +37,7 @@ export const NotebookContextProvider = (props: {
   contextInput?: NotebookContext;
   notebookId: string;
   http: HttpStart;
+  dataSourceEnabled: boolean;
 }) => {
   const [specs, setSpecs] = useState<Array<Record<string, unknown>>>(
     props.contextInput?.specs || []
@@ -47,10 +48,12 @@ export const NotebookContextProvider = (props: {
       paragraphs: [],
       id: props.notebookId,
       context: new TopContextState({}),
+      dataSourceEnabled: props.dataSourceEnabled,
+      isLoading: true,
+      dateCreated: '',
+      path: '',
     })
   );
-
-  const reducer = { state, dispatch };
 
   useEffect(() => {
     if (props.contextInput?.specs) {
@@ -67,7 +70,8 @@ export const NotebookContextProvider = (props: {
         ...props.contextInput,
         updateSpecs,
         specs,
-        reducer,
+        state,
+        dispatch,
         http: props.http,
       }}
     >

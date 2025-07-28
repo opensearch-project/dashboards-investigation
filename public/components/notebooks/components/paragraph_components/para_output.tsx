@@ -239,7 +239,7 @@ export const ParaOutput = (props: {
   } = props;
 
   return (
-    !para.isOutputHidden && (
+    !para.isRunning && (
       <>
         {para.typeOut.map((typeOut: string, tIdx: number) => {
           return (

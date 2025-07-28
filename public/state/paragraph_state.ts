@@ -11,7 +11,9 @@ export interface ParagraphStateValue<TInput = {}, TOutput = {}, TFullfilledOutpu
   fullfilledOutput?: Partial<TFullfilledOutput>; // this is the fullfilled output, like PPL query result / PER agent response
   paragraphId: string;
   paragraphType: string; // mardown / sql / ppl / visualization / deep_search
-  viewMode: 'inputOnly' | 'outputOnly' | 'both';
+  viewMode: 'input_only' | 'output_only' | 'view_both';
+  inQueue?: boolean;
+  isRunning?: boolean;
 }
 
 export class ParagraphState<

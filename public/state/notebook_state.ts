@@ -12,6 +12,10 @@ interface NotebookStateValue {
   paragraphs: ParagraphState[];
   id: string;
   context: TopContextState;
+  dataSourceEnabled: boolean;
+  dateCreated: string;
+  isLoading: boolean;
+  path: string;
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {

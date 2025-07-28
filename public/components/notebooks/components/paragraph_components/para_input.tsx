@@ -71,7 +71,7 @@ export const ParaInput = (props: {
     return (
       <div style={{ width: '100%' }}>
         {/* If the para is selected show the editor else display the code in the paragraph */}
-        {para.isSelected ? (
+        {para.viewMode !== 'output_only' ? (
           <EuiCompressedTextArea
             data-test-subj={`editorArea-${index}`}
             placeholder={inputPlaceholderString}
@@ -245,7 +245,7 @@ export const ParaInput = (props: {
   };
 
   return (
-    <Input hidden={para.isInputHidden}>
+    <Input>
       <Prompt blank={true} running={para.isRunning} queued={para.inQueue} />
       {para.isVizualisation ? RenderVisInput() : RenderParaInput()}
     </Input>

@@ -29,9 +29,6 @@ export interface ParaType {
   uniqueId: string;
   isRunning: boolean;
   inQueue: boolean;
-  isSelected: boolean;
-  isInputHidden: boolean;
-  isOutputHidden: boolean;
   showAddPara: boolean;
   isVizualisation: boolean;
   isDeepResearch: boolean;
@@ -43,7 +40,6 @@ export interface ParaType {
   editorLanguage: string;
   typeOut: string[];
   out: any[];
-  isInputExpanded: boolean;
   isOutputStale: boolean;
   paraDivRef: RefObject<HTMLDivElement>;
   visStartTime?: string;
@@ -51,6 +47,7 @@ export interface ParaType {
   visSavedObjId?: string;
   dataSourceMDSId?: string;
   dataSourceMDSLabel?: string;
+  viewMode?: 'input_only' | 'output_only' | 'view_both';
 }
 
 export enum NoteBookSource {

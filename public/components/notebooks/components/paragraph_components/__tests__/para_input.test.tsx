@@ -87,7 +87,6 @@ describe('<para_input /> spec', () => {
 
   it('types in the markdown component', () => {
     const para = sampleParsedParagraghs1[0];
-    para.isSelected = true;
     const textValueEditor = jest.fn();
     const handleKeyPress = jest.fn();
     const setStartTime = jest.fn();
@@ -120,7 +119,6 @@ describe('<para_input /> spec', () => {
 
   it('clicks the visualization component', async () => {
     const para = sampleParsedParagraghs1[2];
-    para.isSelected = true;
     const textValueEditor = jest.fn();
     const handleKeyPress = jest.fn();
     const setStartTime = jest.fn();

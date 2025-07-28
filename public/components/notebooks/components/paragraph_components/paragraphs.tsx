@@ -680,7 +680,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
         </EuiFlexGroup>
       )}
       <div key={index} className={paraClass}>
-        {para.isInputExpanded && !para.isAnomalyVisualizationAnalysis && (
+        {!para.isAnomalyVisualizationAnalysis && (
           <>
             <EuiSpacer size="s" />
             <EuiCompressedFormRow

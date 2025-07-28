@@ -122,6 +122,7 @@ export class Main extends React.Component<MainProps, MainState> {
                     notifications={this.props.notifications}
                     dataSourceEnabled={this.props.dataSourceEnabled}
                     savedObjectsMDSClient={this.props.savedObjectsMDSClient}
+                    chrome={this.props.chrome}
                   />
                 );
               }}
