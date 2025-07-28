@@ -354,13 +354,23 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   };
 
   const setStartTime = (time: string) => {
-    const newPara = props.para;
-    newPara.visStartTime = time;
+    const newPara = props.originalPara;
+    const { timeRange, ...others } = JSON.parse(newPara.input.inputText);
+    timeRange.from = time;
+    newPara.input.inputText = JSON.stringify({
+      ...others,
+      timeRange,
+    });
     props.setPara(newPara);
   };
   const setEndTime = (time: string) => {
-    const newPara = props.para;
-    newPara.visEndTime = time;
+    const newPara = props.originalPara;
+    const { timeRange, ...others } = JSON.parse(newPara.input.inputText);
+    timeRange.to = time;
+    newPara.input.inputText = JSON.stringify({
+      ...others,
+      timeRange,
+    });
     props.setPara(newPara);
   };
   const setIsOutputStale = (isStale: boolean) => {
