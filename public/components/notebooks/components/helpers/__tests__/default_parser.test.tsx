@@ -68,7 +68,6 @@ describe('Testing default backend parser function with perfect schema', () => {
         out: isVisualization ? [''] : [`text-${k}`],
         isInputExpanded: false,
         isOutputStale: false,
-        paraRef: undefined,
         paraDivRef: undefined,
         visStartTime: isVisualization ? '2020-07-21T18:37:44.710Z' : undefined,
         visEndTime: isVisualization ? '2020-08-20T18:37:44.710Z' : undefined,

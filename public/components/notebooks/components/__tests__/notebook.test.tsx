@@ -176,11 +176,17 @@ describe('<Notebook /> spec', () => {
       fireEvent.input(utils.getByPlaceholderText(codePlaceholderText), {
         target: { value: '%md \\n hello' },
       });
+    });
+
+    await act(() => {
+      // wait sometime to rerender
+    });
+
+    await act(() => {
       fireEvent.click(utils.getByText('Run'));
     });
 
     await waitFor(() => {
-      expect(utils.queryByText('Run')).toBeNull();
       expect(utils.getByText('hello')).toBeInTheDocument();
     });
   });

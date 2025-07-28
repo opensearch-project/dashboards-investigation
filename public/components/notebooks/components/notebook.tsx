@@ -35,7 +35,11 @@ import { useHistory, useLocation } from 'react-router-dom';
 import { Subscription, timer } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
-import { ActionMetadata } from 'common/constants/actions';
+import { useContext } from 'react';
+import { useObservable } from 'react-use';
+import { useCallback } from 'react';
+import { useMemo } from 'react';
+import { ActionMetadata } from '../../../../common/constants/actions';
 import { CoreStart, MountPoint, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
@@ -43,7 +47,7 @@ import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/co
 import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
 import { NotebookContext, ParaType } from '../../../../common/types/notebooks';
 import { setNavBreadCrumbs } from '../../../../common/utils/set_nav_bread_crumbs';
-import { HeaderControlledComponentsWrapper } from '../../../../public/plugin_helpers/plugin_headerControl';
+import { HeaderControlledComponentsWrapper } from '../../../plugin_helpers/plugin_headerControl';
 import { coreRefs } from '../../../framework/core_refs';
 import { GenerateReportLoadingModal } from './helpers/custom_modals/reporting_loading_modal';
 import { defaultParagraphParser } from './helpers/default_parser';
@@ -56,7 +60,10 @@ import {
 } from './helpers/reporting_context_menu_helper';
 import { Paragraphs } from './paragraph_components/paragraphs';
 import { ContextPanel } from './context_panel';
-import { NotebookContextProvider } from '../context_provider/context_provider';
+import {
+  NotebookContextProvider,
+  NotebookReactContext,
+} from '../context_provider/context_provider';
 import {
   getMLCommonsTask,
   executeMLCommonsAgent,
@@ -66,6 +73,8 @@ import { parseParagraphOut } from '../../../utils/paragraph';
 import { isStateCompletedOrFailed } from '../../../utils/task';
 import { constructDeepResearchParagraphOut } from '../../../../common/utils/paragraph';
 import { InputPanel } from './input_panel';
+import { ACTION_TYPES } from '../reducers/notebook_reducer';
+import { useParagraphs } from '../../../hooks/use_paragraphs';
 
 const ParagraphTypeDeepResearch = 'DEEP_RESEARCH';
 
@@ -93,8 +102,7 @@ export interface NotebookProps {
   savedObjectsMDSClient: SavedObjectsStart;
 }
 
-export function Notebook({
-  openedNoteId,
+export function NotebookComponent({
   DashboardContainerByValueRenderer,
   http,
   dataSourceManagement,
@@ -108,8 +116,6 @@ export function Notebook({
 
   const [selectedViewId, setSelectedViewId] = useState('view_both');
   const [path, setPath] = useState('');
-  const [paragraphs, setParagraphs] = useState<any[]>([]);
-  const [parsedPara, setParsedPara] = useState<ParaType[]>([]);
   const [dateCreated, setDateCreated] = useState('');
   const [vizPrefix, _setVizPrefix] = useState('');
   const [notebookLoading, setNotebookLoading] = useState(true);
@@ -125,6 +131,7 @@ export function Notebook({
   const [dataSourceMDSLabel, setDataSourceMDSLabel] = useState<string | undefined | null>(null);
   const [dataSourceMDSEnabled, setDataSourceMDSEnabled] = useState(false);
   const [context, setContext] = useState<NotebookContext | undefined>(undefined);
+  const { createParagraph } = useParagraphs();
   // Refs for task subscriptions
   const taskSubscriptions = useRef(new Map<string, Subscription>());
 
@@ -144,55 +151,68 @@ export function Notebook({
     return result;
   };
 
+  const notebookContext = useContext(NotebookReactContext);
+  const notebookState = useObservable(
+    notebookContext.reducer.state.getValue$(),
+    notebookContext.reducer.state.value
+  );
+  const openedNoteId = notebookState?.id;
+  const paragraphs = notebookState?.paragraphs.map((item) => item.value);
+  const setParagraphs = useCallback(
+    (newParagraphs) => {
+      notebookContext.reducer.dispatch({
+        actionType: ACTION_TYPES.UPDATE_PARAGRAPHS,
+        payload: {
+          paragraphs: newParagraphs,
+        },
+      });
+    },
+    [notebookContext.reducer]
+  );
+
+  // parse paragraphs based on backend
+  const parseParagraphs = useCallback(
+    (paragraphsProp: any[]): ParaType[] => {
+      try {
+        const newParsedPara = defaultParagraphParser(paragraphsProp || []);
+        newParsedPara.forEach((para: ParaType) => {
+          para.isInputExpanded = true;
+          para.paraDivRef = React.createRef<HTMLDivElement>();
+          para.isSelected = true;
+        });
+        return newParsedPara;
+      } catch (err) {
+        notifications.toasts.addDanger(
+          'Error parsing paragraphs, please make sure you have the correct permission.'
+        );
+        return [];
+      }
+    },
+    [notifications.toasts]
+  );
+
+  const parsedPara = useMemo(() => parseParagraphs(paragraphs), [paragraphs, parseParagraphs]);
+
   const toggleReportingLoadingModal = (show: boolean) => {
     setIsReportingLoadingModalOpen(show);
   };
 
-  const parseAllParagraphs = (allParagraphs: any[]) => {
-    const newParsedPara = parseParagraphs(allParagraphs);
-    setParsedPara(newParsedPara);
-  };
-
-  // parse paragraphs based on backend
-  const parseParagraphs = (paragraphsProp: any[]): ParaType[] => {
-    try {
-      const newParsedPara = defaultParagraphParser(paragraphsProp);
-      newParsedPara.forEach((para: ParaType) => {
-        para.isInputExpanded = selectedViewId === 'input_only';
-        para.paraRef = React.createRef();
-        para.paraDivRef = React.createRef<HTMLDivElement>();
-      });
-      return newParsedPara;
-    } catch (err) {
-      notifications.toasts.addDanger(
-        'Error parsing paragraphs, please make sure you have the correct permission.'
-      );
-      setParsedPara([]);
-      return [];
-    }
-  };
-
   // Assigns Loading, Running & inQueue for paragraphs in current notebook
   const showParagraphRunning = (param: number | string) => {
-    const newParsedPara = parsedPara;
-    newParsedPara.map((_: ParaType, index: number) => {
+    const newParas = paragraphs;
+    newParas.forEach((_: ParaType, index: number) => {
       if (param === 'queue') {
-        parsedPara[index].inQueue = true;
-        parsedPara[index].isOutputHidden = true;
+        newParas[index].inQueue = true;
+        newParas[index].isOutputHidden = true;
       } else if (param === 'loading') {
-        parsedPara[index].isRunning = true;
-        parsedPara[index].isOutputHidden = true;
+        newParas[index].isRunning = true;
+        newParas[index].isOutputHidden = true;
       } else if (param === index) {
-        parsedPara[index].isRunning = true;
-        parsedPara[index].isOutputHidden = true;
+        newParas[index].isRunning = true;
+        newParas[index].isOutputHidden = true;
       }
     });
-    setParsedPara(newParsedPara);
-  };
-
-  // Sets a paragraph to selected and deselects all others
-  const paragraphSelector = (index: number) => {
-    setParsedPara((prev) => prev.map((para, idx) => ({ ...para, isSelected: idx === index })));
+    setParagraphs(newParas);
   };
 
   // Function for delete a Notebook button
@@ -210,11 +230,6 @@ export function Notebook({
             const newParagraphs = [...prevParagraphs];
             newParagraphs.splice(index, 1);
             return newParagraphs;
-          });
-          setParsedPara((prevParsedPara) => {
-            const newParsedPara = [...prevParsedPara];
-            newParsedPara.splice(index, 1);
-            return newParsedPara;
           });
         })
         .catch((err) => {
@@ -439,7 +454,6 @@ export function Notebook({
       .delete(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/` + openedNoteId + '/' + uniqueId)
       .then((res) => {
         setParagraphs(res.paragraphs);
-        parseAllParagraphs(res.paragraphs);
       })
       .catch((err) => {
         notifications.toasts.addDanger(
@@ -449,39 +463,13 @@ export function Notebook({
       });
   };
 
-  // Backend call to add a paragraph, switch to "view both" if in output only view
   const addPara = (index: number, newParaContent: string, inpType: string) => {
-    const addParaObj = {
-      noteId: openedNoteId,
-      paragraphIndex: index,
-      paragraphInput: newParaContent,
-      inputType: inpType,
-    };
-
-    return http
-      .post(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
-        body: JSON.stringify(addParaObj),
-      })
-      .then((res) => {
-        const newParagraphs = [...paragraphs];
-        newParagraphs.splice(index, 0, res);
-        const newPara = parseParagraphs([res])[0];
-        newPara.isInputExpanded = true;
-        const newParsedPara = [...parsedPara];
-        newParsedPara.splice(index, 0, newPara);
-        setParagraphs(newParagraphs);
-        setParsedPara(newParsedPara);
-        paragraphSelector(index);
-        if (selectedViewId === 'output_only') {
-          setSelectedViewId('view_both');
-        }
-      })
-      .catch((err) => {
-        notifications.toasts.addDanger(
-          'Error adding paragraph, please make sure you have the correct permission.'
-        );
-        console.error(err);
-      });
+    return createParagraph(index, newParaContent, inpType).catch((err) => {
+      notifications.toasts.addDanger(
+        'Error adding paragraph, please make sure you have the correct permission.'
+      );
+      console.error(err);
+    });
   };
 
   // Function to clone a paragraph
@@ -502,8 +490,6 @@ export function Notebook({
   const movePara = (index: number, targetIndex: number) => {
     const newParagraphs = [...paragraphs];
     newParagraphs.splice(targetIndex, 0, newParagraphs.splice(index, 1)[0]);
-    const newParsedPara = [...parsedPara];
-    newParsedPara.splice(targetIndex, 0, newParsedPara.splice(index, 1)[0]);
 
     const moveParaObj = {
       noteId: openedNoteId,
@@ -516,7 +502,6 @@ export function Notebook({
       })
       .then((_res) => {
         setParagraphs(newParagraphs);
-        setParsedPara(newParsedPara);
       })
       .then((_res) => scrollToPara(targetIndex))
       .catch((err) => {
@@ -554,10 +539,7 @@ export function Notebook({
 
       const newParagraphs = paragraphs;
       newParagraphs[index] = response;
-      const newParsedPara = [...parsedPara];
-      newParsedPara[index] = parseParagraphs([response])[0];
       setParagraphs(newParagraphs);
-      setParsedPara(newParsedPara);
       return response;
     } catch (error) {
       console.error('Failed to update bubble paragraph:', error);
@@ -639,16 +621,6 @@ export function Notebook({
             if (isStateCompletedOrFailed(payload.state)) {
               cleanTaskSubscription();
             }
-            const out = [result];
-            setParsedPara([
-              ...parsedPara.slice(0, currentParsedParaIndex),
-              {
-                ...parsedPara[currentParsedParaIndex],
-                out,
-                isRunning: false,
-              },
-              ...parsedPara.slice(currentParsedParaIndex + 1),
-            ]);
             http.put(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
               body: JSON.stringify({
                 noteId: openedNoteId,
@@ -711,14 +683,12 @@ export function Notebook({
             return;
           }
         }
-        const legacyParsedParagraphData = parsedPara[index];
-        const newParagraphs = paragraphs;
+        const legacyParsedParagraphData = paragraphs[index];
+        const newParagraphs = [...paragraphs];
         newParagraphs[index] = res;
-        const newParsedPara = [...parsedPara];
-        newParsedPara[index] = parseParagraphs([res])[0];
 
         if (res.output[0]?.outputType === 'DEEP_RESEARCH') {
-          parsedPara[index].isRunning = true;
+          newParagraphs[index].isRunning = true;
           const legacyParsedParagraphOut = parseParagraphOut(legacyParsedParagraphData)[0];
           const legacyTaskId = legacyParsedParagraphOut?.task_id;
           if (legacyTaskId) {
@@ -733,7 +703,6 @@ export function Notebook({
             baseMemoryId: deepResearchBaseMemoryId,
           });
         }
-        setParsedPara(newParsedPara);
         setParagraphs(newParagraphs);
       })
       .catch((err) => {
@@ -765,9 +734,10 @@ export function Notebook({
   // Handles text editor value and syncs with paragraph input
   const textValueEditor = (evt: React.ChangeEvent<HTMLTextAreaElement>, index: number) => {
     if (!(evt.key === 'Enter' && evt.shiftKey)) {
-      const newParsedPara = parsedPara;
-      newParsedPara[index].inp = evt.target.value;
-      setParsedPara(newParsedPara);
+      const newParas = [...paragraphs];
+      newParas[index].input = newParas[index].input || {};
+      newParas[index].input.inputText = evt.target.value;
+      setParagraphs(newParas);
     }
   };
 
@@ -788,19 +758,18 @@ export function Notebook({
   // update view mode, scrolls to paragraph and expands input if scrollToIndex is given
   const updateView = (viewId: string, scrollToIndex?: number) => {
     configureViewParameter(viewId);
-    const newParsedPara = [...parsedPara];
+    const newParas = [...paragraphs];
 
-    newParsedPara.map((para: ParaType, index: number) => {
-      newParsedPara[index].isInputExpanded = viewId === 'input_only';
+    newParas.map((para: ParaType, index: number) => {
+      newParas[index].isInputExpanded = true;
     });
 
     if (scrollToIndex !== undefined) {
-      parsedPara[scrollToIndex].isInputExpanded = true;
+      newParas[scrollToIndex].isInputExpanded = true;
       scrollToPara(scrollToIndex);
     }
-    setParsedPara(newParsedPara);
     setSelectedViewId(viewId);
-    paragraphSelector(scrollToIndex !== undefined ? scrollToIndex : -1);
+    setParagraphs(newParas);
   };
 
   const setBreadcrumbs = (notePath: string) => {
@@ -910,7 +879,6 @@ export function Notebook({
         setDateCreated(res.dateCreated);
         setContext(res.context);
         setPath(res.path);
-        parseAllParagraphs(res.paragraphs);
         if (!res.paragraphs.length) {
           const resContext = res.context;
           if (resContext?.filters && resContext?.timeRange && resContext?.index) {
@@ -935,9 +903,9 @@ export function Notebook({
   };
 
   const setPara = (para: ParaType, index: number) => {
-    const newParsedPara = [...parsedPara];
-    newParsedPara.splice(index, 1, para);
-    setParsedPara(newParsedPara);
+    const newParas = [...paragraphs];
+    newParas.splice(index, 1, para);
+    setParagraphs(newParas);
   };
 
   const checkIfReportingPluginIsInstalled = () => {
@@ -1186,152 +1154,157 @@ export function Notebook({
   );
 
   return (
-    <NotebookContextProvider contextInput={context}>
-      <>
-        <EuiPage direction="column">
-          <EuiPageBody>
-            {notebookHeader}
-            {!savedObjectNotebook && (
-              <EuiFlexItem>
-                <EuiCallOut color="primary" iconType="iInCircle">
-                  Upgrade this notebook to take full advantage of the latest features
-                  <EuiSpacer size="s" />
-                  <EuiSmallButton
-                    data-test-subj="upgrade-notebook"
-                    onClick={() => showUpgradeModal()}
-                  >
-                    Upgrade Notebook
-                  </EuiSmallButton>
-                </EuiCallOut>
-              </EuiFlexItem>
-            )}
-            <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
-              {notebookLoading ? (
-                <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
-              ) : null}
-              {/* Temporarily determine whether to display the context panel based on datasource id */}
-              {context?.dataSourceId && <ContextPanel addPara={addPara} />}
-              {notebookLoading ? null : parsedPara.length > 0 ? (
-                parsedPara.map((para: ParaType, index: number) => (
-                  <div ref={parsedPara[index].paraDivRef} key={`para_div_${para.uniqueId}`}>
-                    <Paragraphs
-                      ref={parsedPara[index].paraRef}
-                      para={para}
-                      setPara={(pr: ParaType) => setPara(pr, index)}
-                      dateModified={paragraphs[index]?.dateModified}
-                      index={index}
-                      paraCount={parsedPara.length}
-                      paragraphSelector={paragraphSelector}
-                      textValueEditor={textValueEditor}
-                      handleKeyPress={handleKeyPress}
-                      addPara={addPara}
-                      DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
-                      deleteVizualization={deleteVizualization}
-                      http={http}
-                      selectedViewId={selectedViewId}
-                      setSelectedViewId={updateView}
-                      deletePara={showDeleteParaModal}
-                      runPara={updateRunParagraph}
-                      clonePara={cloneParaButton}
-                      movePara={movePara}
-                      showQueryParagraphError={showQueryParagraphError}
-                      queryParagraphErrorMessage={queryParagraphErrorMessage}
-                      dataSourceManagement={dataSourceManagement}
-                      setActionMenu={setActionMenu}
-                      notifications={notifications}
-                      dataSourceEnabled={dataSourceMDSEnabled}
-                      savedObjectsMDSClient={savedObjectsMDSClient}
-                      handleSelectedDataSourceChange={handleSelectedDataSourceChange}
-                      paradataSourceMDSId={parsedPara[index].dataSourceMDSId}
-                      dataSourceMDSLabel={parsedPara[index].dataSourceMDSLabel}
-                      paragraphs={parsedPara}
-                      updateBubbleParagraph={updateBubbleParagraph}
-                      updateNotebookContext={updateNotebookContext}
-                    />
-                  </div>
-                ))
-              ) : (
-                // show default paragraph if no paragraphs in this notebook
-                <div style={panelStyles}>
-                  <EuiPanel>
-                    <EuiSpacer size="xxl" />
-                    <EuiText textAlign="center">
-                      <h2>No paragraphs</h2>
-                      <EuiText size="s">
-                        Add a paragraph to compose your document or story. Notebooks now support two
-                        types of input:
-                      </EuiText>
-                    </EuiText>
-                    <EuiSpacer size="xl" />
-                    {savedObjectNotebook && (
-                      <EuiFlexGroup justifyContent="spaceEvenly">
-                        <EuiFlexItem grow={2} />
-                        <EuiFlexItem grow={3}>
-                          <EuiCard
-                            icon={<EuiIcon size="xxl" type="editorCodeBlock" />}
-                            title="Code block"
-                            description="Write contents directly using markdown, SQL or PPL."
-                            footer={
-                              <EuiSmallButton
-                                data-test-subj="emptyNotebookAddCodeBlockBtn"
-                                onClick={() => addPara(0, '', 'CODE')}
-                                style={{ marginBottom: 17 }}
-                              >
-                                Add code block
-                              </EuiSmallButton>
-                            }
-                          />
-                        </EuiFlexItem>
-                        <EuiFlexItem grow={3}>
-                          <EuiCard
-                            icon={<EuiIcon size="xxl" type="visArea" />}
-                            title="Visualization"
-                            description="Import OpenSearch Dashboards or Observability visualizations to the notes."
-                            footer={
-                              <EuiSmallButton
-                                onClick={() => addPara(0, '', 'VISUALIZATION')}
-                                style={{ marginBottom: 17 }}
-                              >
-                                Add visualization
-                              </EuiSmallButton>
-                            }
-                          />
-                        </EuiFlexItem>
-                        <EuiFlexItem grow={3}>
-                          <EuiCard
-                            icon={<EuiIcon size="xxl" type="inspect" />}
-                            title="Deep Research"
-                            description="Use deep research to analytics question."
-                            footer={
-                              <EuiSmallButton
-                                onClick={() => addPara(0, '', ParagraphTypeDeepResearch)}
-                                style={{ marginBottom: 17 }}
-                              >
-                                Add deep research
-                              </EuiSmallButton>
-                            }
-                          />
-                        </EuiFlexItem>
-                        <EuiFlexItem grow={2} />
-                      </EuiFlexGroup>
-                    )}
-                    <EuiSpacer size="xxl" />
-                  </EuiPanel>
+    <>
+      <EuiPage direction="column">
+        <EuiPageBody>
+          {notebookHeader}
+          {!savedObjectNotebook && (
+            <EuiFlexItem>
+              <EuiCallOut color="primary" iconType="iInCircle">
+                Upgrade this notebook to take full advantage of the latest features
+                <EuiSpacer size="s" />
+                <EuiSmallButton
+                  data-test-subj="upgrade-notebook"
+                  onClick={() => showUpgradeModal()}
+                >
+                  Upgrade Notebook
+                </EuiSmallButton>
+              </EuiCallOut>
+            </EuiFlexItem>
+          )}
+          <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
+            {notebookLoading ? (
+              <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
+            ) : null}
+            {/* Temporarily determine whether to display the context panel based on datasource id */}
+            {context?.dataSourceId && <ContextPanel addPara={addPara} />}
+            {notebookLoading ? null : parsedPara.length > 0 ? (
+              parsedPara.map((para: ParaType, index: number) => (
+                <div ref={parsedPara[index].paraDivRef} key={`para_div_${para.uniqueId}`}>
+                  <Paragraphs
+                    para={para}
+                    originalPara={paragraphs[index]}
+                    setPara={(pr: ParaType) => setPara(pr, index)}
+                    dateModified={paragraphs[index]?.dateModified}
+                    index={index}
+                    paraCount={parsedPara.length}
+                    textValueEditor={textValueEditor}
+                    handleKeyPress={handleKeyPress}
+                    addPara={addPara}
+                    DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
+                    deleteVizualization={deleteVizualization}
+                    http={http}
+                    selectedViewId={selectedViewId}
+                    setSelectedViewId={updateView}
+                    deletePara={showDeleteParaModal}
+                    runPara={updateRunParagraph}
+                    clonePara={cloneParaButton}
+                    movePara={movePara}
+                    showQueryParagraphError={showQueryParagraphError}
+                    queryParagraphErrorMessage={queryParagraphErrorMessage}
+                    dataSourceManagement={dataSourceManagement}
+                    setActionMenu={setActionMenu}
+                    notifications={notifications}
+                    dataSourceEnabled={dataSourceMDSEnabled}
+                    savedObjectsMDSClient={savedObjectsMDSClient}
+                    handleSelectedDataSourceChange={handleSelectedDataSourceChange}
+                    paradataSourceMDSId={parsedPara[index].dataSourceMDSId}
+                    dataSourceMDSLabel={parsedPara[index].dataSourceMDSLabel}
+                    paragraphs={parsedPara}
+                    updateBubbleParagraph={updateBubbleParagraph}
+                    updateNotebookContext={updateNotebookContext}
+                  />
                 </div>
-              )}
-              {showLoadingModal}
-            </EuiPageContent>
-          </EuiPageBody>
-          <EuiSpacer />
-          <InputPanel
-            onCreateParagraph={handleCreateParagraph}
-            selectAction={(input: string, actionsMetadata: ActionMetadata[]) =>
-              executeActionSelectionAgent(input, actionsMetadata)
-            }
-          />
-        </EuiPage>
-        {isModalVisible && modalLayout}
-      </>
-    </NotebookContextProvider>
+              ))
+            ) : (
+              // show default paragraph if no paragraphs in this notebook
+              <div style={panelStyles}>
+                <EuiPanel>
+                  <EuiSpacer size="xxl" />
+                  <EuiText textAlign="center">
+                    <h2>No paragraphs</h2>
+                    <EuiText size="s">
+                      Add a paragraph to compose your document or story. Notebooks now support two
+                      types of input:
+                    </EuiText>
+                  </EuiText>
+                  <EuiSpacer size="xl" />
+                  {savedObjectNotebook && (
+                    <EuiFlexGroup justifyContent="spaceEvenly">
+                      <EuiFlexItem grow={2} />
+                      <EuiFlexItem grow={3}>
+                        <EuiCard
+                          icon={<EuiIcon size="xxl" type="editorCodeBlock" />}
+                          title="Code block"
+                          description="Write contents directly using markdown, SQL or PPL."
+                          footer={
+                            <EuiSmallButton
+                              data-test-subj="emptyNotebookAddCodeBlockBtn"
+                              onClick={() => addPara(0, '', 'CODE')}
+                              style={{ marginBottom: 17 }}
+                            >
+                              Add code block
+                            </EuiSmallButton>
+                          }
+                        />
+                      </EuiFlexItem>
+                      <EuiFlexItem grow={3}>
+                        <EuiCard
+                          icon={<EuiIcon size="xxl" type="visArea" />}
+                          title="Visualization"
+                          description="Import OpenSearch Dashboards or Observability visualizations to the notes."
+                          footer={
+                            <EuiSmallButton
+                              onClick={() => addPara(0, '', 'VISUALIZATION')}
+                              style={{ marginBottom: 17 }}
+                            >
+                              Add visualization
+                            </EuiSmallButton>
+                          }
+                        />
+                      </EuiFlexItem>
+                      <EuiFlexItem grow={3}>
+                        <EuiCard
+                          icon={<EuiIcon size="xxl" type="inspect" />}
+                          title="Deep Research"
+                          description="Use deep research to analytics question."
+                          footer={
+                            <EuiSmallButton
+                              onClick={() => addPara(0, '', ParagraphTypeDeepResearch)}
+                              style={{ marginBottom: 17 }}
+                            >
+                              Add deep research
+                            </EuiSmallButton>
+                          }
+                        />
+                      </EuiFlexItem>
+                      <EuiFlexItem grow={2} />
+                    </EuiFlexGroup>
+                  )}
+                  <EuiSpacer size="xxl" />
+                </EuiPanel>
+              </div>
+            )}
+            {showLoadingModal}
+          </EuiPageContent>
+        </EuiPageBody>
+        <EuiSpacer />
+        <InputPanel
+          onCreateParagraph={handleCreateParagraph}
+          selectAction={(input: string, actionsMetadata: ActionMetadata[]) =>
+            executeActionSelectionAgent(input, actionsMetadata)
+          }
+        />
+      </EuiPage>
+      {isModalVisible && modalLayout}
+    </>
   );
 }
+
+export const Notebook = (props: NotebookProps) => {
+  return (
+    <NotebookContextProvider notebookId={props.openedNoteId} http={props.http}>
+      <NotebookComponent {...props} />
+    </NotebookContextProvider>
+  );
+};

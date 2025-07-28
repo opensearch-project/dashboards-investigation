@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ParagraphContextType } from 'public/components/notebooks/reducers/paragraphReducer';
 import { RefObject } from 'react';
 
 export interface NotebooksPluginSetup {
@@ -46,7 +45,6 @@ export interface ParaType {
   out: any[];
   isInputExpanded: boolean;
   isOutputStale: boolean;
-  paraRef: RefObject<React.ReactElement>;
   paraDivRef: RefObject<HTMLDivElement>;
   visStartTime?: string;
   visEndTime?: string;
@@ -73,5 +71,4 @@ export interface NotebookContext {
   specs?: Array<Record<string, unknown>>;
   updateSpecs?: (newSpecs: Array<Record<string, unknown>>) => void;
   PPLFilters?: string[];
-  reducer?: ParagraphContextType;
 }

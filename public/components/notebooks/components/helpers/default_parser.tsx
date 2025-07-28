@@ -88,11 +88,11 @@ export const defaultParagraphParser = (defaultBackendParagraphs: any) => {
 
       const tempPara: ParaType = {
         uniqueId: paraObject.id,
-        isRunning: false,
-        inQueue: false,
+        isRunning: paraObject.isRunning || false,
+        inQueue: paraObject.isQueue || false,
         isSelected: false,
         isInputHidden: false,
-        isOutputHidden: false,
+        isOutputHidden: paraObject.isOutputHidden || false,
         showAddPara: false,
         isVizualisation: vizParams.isViz,
         isDeepResearch: paraObject.input.inputType.includes('DEEP_RESEARCH'),
@@ -108,7 +108,6 @@ export const defaultParagraphParser = (defaultBackendParagraphs: any) => {
         out: message.outputData,
         isInputExpanded: false,
         isOutputStale: false,
-        paraRef: undefined,
         paraDivRef: undefined,
         visStartTime: vizParams.visStartTime,
         visEndTime: vizParams.visEndTime,

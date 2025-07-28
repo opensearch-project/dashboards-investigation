@@ -67,7 +67,6 @@ import { MemorySelector } from './memory_selector';
  * para - parsed paragraph from notebook
  * dateModified - last modified time of paragraph
  * index - index of paragraph in the notebook
- * paragraphSelector - function used to select a para on click
  * textValueEditor - function for handling input in textarea
  * handleKeyPress - function for handling key press like "Shift-key+Enter" to run paragraph
  * addPara - function to add a new para onclick - "Add Para" Div
@@ -86,11 +85,11 @@ import { MemorySelector } from './memory_selector';
  */
 interface ParagraphProps {
   para: ParaType;
+  originalPara: unknown;
   setPara: (para: ParaType) => void;
   dateModified: string;
   index: number;
   paraCount: number;
-  paragraphSelector: (index: number) => void;
   textValueEditor: (evt: React.ChangeEvent<HTMLTextAreaElement>, index: number) => void;
   handleKeyPress: (
     evt: React.KeyboardEvent<Element>,
@@ -138,7 +137,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   const {
     para,
     index,
-    paragraphSelector,
     textValueEditor,
     handleKeyPress,
     DashboardContainerByValueRenderer,
@@ -356,17 +354,27 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   };
 
   const setStartTime = (time: string) => {
-    const newPara = props.para;
-    newPara.visStartTime = time;
+    const newPara = props.originalPara;
+    const { timeRange, ...others } = JSON.parse(newPara.input.inputText);
+    timeRange.from = time;
+    newPara.input.inputText = JSON.stringify({
+      ...others,
+      timeRange,
+    });
     props.setPara(newPara);
   };
   const setEndTime = (time: string) => {
-    const newPara = props.para;
-    newPara.visEndTime = time;
+    const newPara = props.originalPara;
+    const { timeRange, ...others } = JSON.parse(newPara.input.inputText);
+    timeRange.to = time;
+    newPara.input.inputText = JSON.stringify({
+      ...others,
+      timeRange,
+    });
     props.setPara(newPara);
   };
   const setIsOutputStale = (isStale: boolean) => {
-    const newPara = props.para;
+    const newPara = props.originalPara;
     newPara.isOutputStale = isStale;
     props.setPara(newPara);
   };
@@ -671,12 +679,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
           )}
         </EuiFlexGroup>
       )}
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
-      <div
-        key={index}
-        className={paraClass}
-        onClick={executeButtonDisabled ? undefined : () => paragraphSelector(index)}
-      >
+      <div key={index} className={paraClass}>
         {para.isInputExpanded && !para.isAnomalyVisualizationAnalysis && (
           <>
             <EuiSpacer size="s" />
