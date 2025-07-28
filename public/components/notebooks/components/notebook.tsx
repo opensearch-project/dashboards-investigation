@@ -737,10 +737,10 @@ export function NotebookComponent({
   // update view mode, scrolls to paragraph and expands input if scrollToIndex is given
   const updateView = (viewId: string, scrollToIndex?: number) => {
     configureViewParameter(viewId);
-    const newParas = [...parsedPara];
+    const newParas = [...paragraphs];
 
     newParas.map((para: ParaType, index: number) => {
-      newParas[index].isInputExpanded = viewId === 'input_only';
+      newParas[index].isInputExpanded = true;
     });
 
     if (scrollToIndex !== undefined) {
@@ -748,6 +748,7 @@ export function NotebookComponent({
       scrollToPara(scrollToIndex);
     }
     setSelectedViewId(viewId);
+    setParagraphs(newParas);
   };
 
   const setBreadcrumbs = (notePath: string) => {
@@ -881,7 +882,7 @@ export function NotebookComponent({
   };
 
   const setPara = (para: ParaType, index: number) => {
-    const newParas = [...parsedPara];
+    const newParas = [...paragraphs];
     newParas.splice(index, 1, para);
     setParagraphs(newParas);
   };
@@ -1161,6 +1162,7 @@ export function NotebookComponent({
                 <div ref={parsedPara[index].paraDivRef} key={`para_div_${para.uniqueId}`}>
                   <Paragraphs
                     para={para}
+                    originalPara={paragraphs[index]}
                     setPara={(pr: ParaType) => setPara(pr, index)}
                     dateModified={paragraphs[index]?.dateModified}
                     index={index}

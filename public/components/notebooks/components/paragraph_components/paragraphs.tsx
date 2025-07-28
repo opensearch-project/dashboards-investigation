@@ -85,6 +85,7 @@ import { MemorySelector } from './memory_selector';
  */
 interface ParagraphProps {
   para: ParaType;
+  originalPara: unknown;
   setPara: (para: ParaType) => void;
   dateModified: string;
   index: number;
@@ -363,7 +364,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
     props.setPara(newPara);
   };
   const setIsOutputStale = (isStale: boolean) => {
-    const newPara = props.para;
+    const newPara = props.originalPara;
     newPara.isOutputStale = isStale;
     props.setPara(newPara);
   };
