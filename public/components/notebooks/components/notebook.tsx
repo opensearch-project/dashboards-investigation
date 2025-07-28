@@ -120,7 +120,7 @@ export function NotebookComponent({
   const [dataSourceMDSId, setDataSourceMDSId] = useState<string | undefined | null>(null);
   const [dataSourceMDSLabel, setDataSourceMDSLabel] = useState<string | undefined | null>(null);
   const [context] = useState<NotebookContext | undefined>(undefined);
-  const { createParagraph, showParagraphRunning } = useParagraphs();
+  const { createParagraph, showParagraphRunning, deleteParagraph } = useParagraphs();
   const { loadNotebook: loadNotebookHook } = useNotebook();
   // Refs for task subscriptions
   const taskSubscriptions = useRef(new Map<string, Subscription>());
@@ -180,28 +180,12 @@ export function NotebookComponent({
 
   // Function for delete a Notebook button
   const deleteParagraphButton = (para: ParaType, index: number) => {
-    if (index !== -1) {
-      return http
-        .delete(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
-          query: {
-            noteId: openedNoteId,
-            paragraphId: para.uniqueId,
-          },
-        })
-        .then((_res) => {
-          setParagraphs((prevParagraphs) => {
-            const newParagraphs = [...prevParagraphs];
-            newParagraphs.splice(index, 1);
-            return newParagraphs;
-          });
-        })
-        .catch((err) => {
-          notifications.toasts.addDanger(
-            'Error deleting paragraph, please make sure you have the correct permission.'
-          );
-          console.error(err);
-        });
-    }
+    return deleteParagraph(para, index).catch((err) => {
+      notifications.toasts.addDanger(
+        'Error deleting paragraph, please make sure you have the correct permission.'
+      );
+      console.error(err);
+    });
   };
 
   const showDeleteParaModal = (para: ParaType, index: number) => {

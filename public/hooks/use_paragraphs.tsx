@@ -8,9 +8,12 @@ import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { ACTION_TYPES } from '../components/notebooks/reducers/notebook_reducer';
 import { ParagraphState, ParagraphStateValue } from '../state/paragraph_state';
+import { ParaType } from '../../common/types/notebooks';
 
 export const useParagraphs = () => {
   const context = useContext(NotebookReactContext);
+  const { http } = context;
+  const { id } = context.state.value;
   return {
     createParagraph: (index: number, newParaContent: string, inpType: string) => {
       const paragraphs = context.state.value.paragraphs.map((item) => item.value);
@@ -34,6 +37,26 @@ export const useParagraphs = () => {
               paragraphs: newParagraphs,
             },
           });
+        });
+    },
+    deleteParagraph: (para: ParaType, index: number) => {
+      if (index < 0) {
+        return Promise.reject('Please provide a valid paragraph index');
+      }
+
+      return http
+        .delete(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
+          query: {
+            noteId: id,
+            paragraphId: para.uniqueId,
+          },
+        })
+        .then((_res) => {
+          const currentParagraphs = context.state.value.paragraphs.map((value) => value.value);
+          const newParagraphs = [...currentParagraphs];
+          newParagraphs.splice(index, 1);
+          context.state.updateParagraphs(newParagraphs);
+          return _res;
         });
     },
     // Assigns Loading, Running & inQueue for paragraphs in current notebook
