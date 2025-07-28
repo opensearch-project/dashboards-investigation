@@ -14,23 +14,9 @@ import {
 } from '@elastic/eui';
 import autosize from 'autosize';
 import { useEffectOnce } from 'react-use';
+import { actionsMetadata } from 'common/constants/actions';
 import { ACTION_TYPES } from '../reducers/paragraphReducer';
 import { NotebookReactContext } from '../context_provider/context_provider';
-
-export interface ActionInputMetadata {
-  [key: string]: {
-    type: string;
-    description: string;
-    required?: boolean;
-  };
-}
-
-export interface ActionMetadata {
-  id: string;
-  title: string;
-  description: string;
-  input_metadata?: ActionInputMetadata;
-}
 
 interface InputPanelProps {
   onCreateParagraph: (paragraphInput: string, inputType: string) => Promise<void>;
@@ -54,53 +40,6 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, selec
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const context = useContext(NotebookReactContext);
-  const actionsMetadata: ActionMetadata[] = [
-    {
-      id: 'PPL',
-      title: 'PPL',
-      description:
-        'display PPL block: Piped Processing Language (PPL) is a query language that focuses on processing data in a sequential, step-by-step manner.',
-      input_metadata: {
-        ppl: {
-          type: 'string',
-          description: 'ppl query',
-          required: true,
-        },
-      },
-    },
-    {
-      id: 'DEEP_RESEARCH_AGENT',
-      title: 'PlanAndExecuteAgent',
-      description:
-        'display PlanAndExecuteAgent block: PlanAndExecuteAgent is capable of breaking down complex tasks into simple steps and re-evaluating the steps based on intermediate results.',
-      input_metadata: {
-        question: {
-          type: 'string',
-          description: 'user question',
-          required: true,
-        },
-      },
-    },
-    {
-      id: 'VISUALIZATION',
-      title: 'Visualization',
-      description:
-        'display visualization block: user can select existing visualization and display it in the block.',
-    },
-    {
-      id: 'MARKDOWN',
-      title: 'Markdown',
-      description:
-        'display markdown block: If the input follows markdown syntax, use the markdown editor to create formatted text.',
-      input_metadata: {
-        markdown_text: {
-          type: 'string',
-          description: 'markdown text',
-          required: true,
-        },
-      },
-    },
-  ];
 
   useEffectOnce(() => {
     if (textareaRef.current) {
