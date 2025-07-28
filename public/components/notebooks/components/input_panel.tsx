@@ -218,23 +218,23 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, selec
       switch (result.action) {
         case 'PPL':
           inputType = 'CODE';
-          paragraphInput = '%ppl\n' + result.input;
+          paragraphInput = '%ppl\n' + result.input || '';
           break;
         case 'MARKDOWN':
           inputType = 'CODE';
-          paragraphInput = '%md\n' + result.input;
+          paragraphInput = '%md\n' + result.input || '';
           break;
         case 'VISUALIZATION':
           inputType = 'VISUALIZATION';
-          paragraphInput = result.input;
+          paragraphInput = '';
           break;
         case 'DEEP_RESEARCH_AGENT':
           inputType = 'DEEP_RESEARCH';
-          paragraphInput = result.input;
+          paragraphInput = result.input || '';
           break;
         default:
           inputType = 'CODE';
-          paragraphInput = result.input;
+          paragraphInput = result.input || '';
       }
     }
 
@@ -309,8 +309,8 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, selec
           bottom: 10,
           width: 700,
           marginLeft: '50%',
-        transform: 'translateX(-50%)',
-        // marginTop: 'auto',
+          transform: 'translateX(-50%)',
+          // marginTop: 'auto',
         }}
       >
         <div>
