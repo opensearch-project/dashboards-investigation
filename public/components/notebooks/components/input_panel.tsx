@@ -13,7 +13,6 @@ import {
 } from '@elastic/eui';
 import autosize from 'autosize';
 import { useEffectOnce } from 'react-use';
-import { ACTION_TYPES } from '../reducers/paragraphReducer';
 import { NotebookReactContext } from '../context_provider/context_provider';
 
 interface InputPanelProps {
@@ -78,13 +77,6 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => 
     const selectedOption = options.find((option) => option.checked === 'on');
     if (selectedOption) {
       const paragraphType = selectedOption.key as string;
-      // Dispatch action to create new paragraph
-      context?.reducer?.dispatch({
-        actionType: ACTION_TYPES.CREATE_PARAGRAPH_REQUEST,
-        payload: {
-          paragraphType,
-        },
-      });
 
       // Determine paragraph type and input content
       let inputType = 'CODE';
@@ -114,12 +106,8 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => 
 
       await onCreateParagraph(paragraphInput, inputType);
 
-      // Dispatch action to create the paragraph successfully
-      context?.reducer?.dispatch({
-        actionType: ACTION_TYPES.CREATE_PARAGRAPH_SUCCESS,
-      });
-
       closePopover();
+      setInputValue('');
     }
   };
 

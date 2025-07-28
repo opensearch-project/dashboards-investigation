@@ -155,9 +155,10 @@ export function NotebookComponent({
       try {
         const newParsedPara = defaultParagraphParser(paragraphsProp || []);
         newParsedPara.forEach((para: ParaType) => {
-          para.isInputExpanded = selectedViewId === 'input_only';
+          para.isInputExpanded = true;
           para.paraRef = React.createRef();
           para.paraDivRef = React.createRef<HTMLDivElement>();
+          para.isSelected = true;
         });
         return newParsedPara;
       } catch (err) {
@@ -167,7 +168,7 @@ export function NotebookComponent({
         return [];
       }
     },
-    [notifications.toasts, selectedViewId]
+    [notifications.toasts]
   );
 
   const parsedPara = useMemo(() => parseParagraphs(paragraphs), [paragraphs, parseParagraphs]);
@@ -178,19 +179,20 @@ export function NotebookComponent({
 
   // Assigns Loading, Running & inQueue for paragraphs in current notebook
   const showParagraphRunning = (param: number | string) => {
-    const newParsedPara = parsedPara;
-    newParsedPara.map((_: ParaType, index: number) => {
+    const newParas = paragraphs;
+    newParas.forEach((_: ParaType, index: number) => {
       if (param === 'queue') {
-        parsedPara[index].inQueue = true;
-        parsedPara[index].isOutputHidden = true;
+        newParas[index].inQueue = true;
+        newParas[index].isOutputHidden = true;
       } else if (param === 'loading') {
-        parsedPara[index].isRunning = true;
-        parsedPara[index].isOutputHidden = true;
+        newParas[index].isRunning = true;
+        newParas[index].isOutputHidden = true;
       } else if (param === index) {
-        parsedPara[index].isRunning = true;
-        parsedPara[index].isOutputHidden = true;
+        newParas[index].isRunning = true;
+        newParas[index].isOutputHidden = true;
       }
     });
+    setParagraphs(newParas);
   };
 
   // Function for delete a Notebook button
@@ -665,14 +667,12 @@ export function NotebookComponent({
             return;
           }
         }
-        const legacyParsedParagraphData = parsedPara[index];
-        const newParagraphs = paragraphs;
+        const legacyParsedParagraphData = paragraphs[index];
+        const newParagraphs = [...paragraphs];
         newParagraphs[index] = res;
-        const newParsedPara = [...parsedPara];
-        newParsedPara[index] = parseParagraphs([res])[0];
 
         if (res.output[0]?.outputType === 'DEEP_RESEARCH') {
-          parsedPara[index].isRunning = true;
+          newParagraphs[index].isRunning = true;
           const legacyParsedParagraphOut = parseParagraphOut(legacyParsedParagraphData)[0];
           const legacyTaskId = legacyParsedParagraphOut?.task_id;
           if (legacyTaskId) {
@@ -718,8 +718,10 @@ export function NotebookComponent({
   // Handles text editor value and syncs with paragraph input
   const textValueEditor = (evt: React.ChangeEvent<HTMLTextAreaElement>, index: number) => {
     if (!(evt.key === 'Enter' && evt.shiftKey)) {
-      const newParsedPara = parsedPara;
-      newParsedPara[index].inp = evt.target.value;
+      const newParas = [...paragraphs];
+      newParas[index].input = newParas[index].input || {};
+      newParas[index].input.inputText = evt.target.value;
+      setParagraphs(newParas);
     }
   };
 
