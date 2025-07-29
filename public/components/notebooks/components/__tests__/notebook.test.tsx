@@ -106,7 +106,6 @@ describe('<Notebook /> spec', () => {
       getDefaultDataSourceId: jest.fn(),
       getDefaultDataSourceId$: jest.fn(() => new BehaviorSubject('')),
     } as unknown) as DataSourceManagementPluginSetup,
-    setActionMenu: jest.fn(),
     dataSourceEnabled: false,
     notifications,
     savedObjectsMDSClient: savedObjectsServiceMock.createStartContract(),

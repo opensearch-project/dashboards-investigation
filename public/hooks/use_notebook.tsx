@@ -4,6 +4,7 @@
  */
 
 import { useContext } from 'react';
+import { NotebookContext } from 'common/types/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { useParagraphs } from './use_paragraphs';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
@@ -43,6 +44,24 @@ export const useNotebook = () => {
       });
 
       return promise;
+    },
+    async updateNotebookContext(newContext: NotebookContext) {
+      const { id: openedNoteId } = context.state.value;
+      try {
+        const response = await http.put(`${NOTEBOOKS_API_PREFIX}/note/updateNotebookContext`, {
+          body: JSON.stringify({
+            notebookId: openedNoteId,
+            context: newContext,
+          }),
+        });
+
+        context.state.updateContext(newContext);
+
+        return response;
+      } catch (error) {
+        console.error('Error updating notebook context:', error);
+        throw error;
+      }
     },
   };
 };

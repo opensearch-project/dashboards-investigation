@@ -56,7 +56,6 @@ const getQueryOutputData = (queryObject: any) => {
 };
 
 const OutputBody = ({
-  index,
   http,
   typeOut,
   val,
@@ -64,8 +63,6 @@ const OutputBody = ({
   visInput,
   setVisInput,
   DashboardContainerByValueRenderer,
-  updateBubbleParagraph,
-  updateNotebookContext,
 }: {
   index: number;
   http: CoreStart['http'];
@@ -75,8 +72,6 @@ const OutputBody = ({
   visInput: DashboardContainerInput;
   setVisInput: (input: DashboardContainerInput) => void;
   DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
-  updateBubbleParagraph: (index: number, paraUniqueId: string, result: string) => Promise<any>;
-  updateNotebookContext: (newContext: any) => Promise<any>;
 }) => {
   /* Returns a component to render paragraph outputs using the para.typeOut property
    * Currently supports HTML, TABLE, IMG
@@ -185,15 +180,7 @@ const OutputBody = ({
       case 'DEEP_RESEARCH':
         return <DeepResearchContainer http={http} para={para} onTaskFinish={() => {}} />;
       case 'ANOMALY_VISUALIZATION_ANALYSIS':
-        return (
-          <BubbleUpContainer
-            index={index}
-            http={http}
-            para={para}
-            updateBubbleParagraph={updateBubbleParagraph}
-            updateNotebookContext={updateNotebookContext}
-          />
-        );
+        return <BubbleUpContainer />;
       default:
         return <pre>{val}</pre>;
     }
@@ -219,19 +206,8 @@ export const ParaOutput = (props: {
   visInput: DashboardContainerInput;
   setVisInput: (input: DashboardContainerInput) => void;
   DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
-  updateBubbleParagraph: (index: number, paraUniqueId: string, result: string) => Promise<any>;
-  updateNotebookContext: (newContext: any) => Promise<any>;
 }) => {
-  const {
-    index,
-    para,
-    http,
-    DashboardContainerByValueRenderer,
-    visInput,
-    setVisInput,
-    updateBubbleParagraph,
-    updateNotebookContext,
-  } = props;
+  const { index, para, http, DashboardContainerByValueRenderer, visInput, setVisInput } = props;
 
   return (
     !para.isRunning && (
@@ -248,8 +224,6 @@ export const ParaOutput = (props: {
               setVisInput={setVisInput}
               DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
               http={http}
-              updateBubbleParagraph={updateBubbleParagraph}
-              updateNotebookContext={updateNotebookContext}
             />
           );
         })}

@@ -40,7 +40,7 @@ import { useObservable } from 'react-use';
 import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { i18n } from '@osd/i18n';
-import { CoreStart, MountPoint, SavedObjectsStart } from '../../../../../../src/core/public';
+import { CoreStart, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
 import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
@@ -90,7 +90,6 @@ export interface NotebookProps {
   DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
   http: CoreStart['http'];
   dataSourceManagement: DataSourceManagementPluginSetup;
-  setActionMenu: (menuMount: MountPoint | undefined) => void;
   notifications: CoreStart['notifications'];
   dataSourceEnabled: boolean;
   savedObjectsMDSClient: SavedObjectsStart;
@@ -101,7 +100,6 @@ export function NotebookComponent({
   DashboardContainerByValueRenderer,
   http,
   dataSourceManagement,
-  setActionMenu,
   notifications,
   savedObjectsMDSClient,
   chrome,
@@ -109,7 +107,7 @@ export function NotebookComponent({
   const history = useHistory();
   const location = useLocation();
 
-  const [selectedViewId, setSelectedViewId] = useState('view_both');
+  const [selectedViewId] = useState('view_both');
   const [vizPrefix, _setVizPrefix] = useState('');
   const [isReportingPluginInstalled, setIsReportingPluginInstalled] = useState(false);
   const [isReportingActionsPopoverOpen, setIsReportingActionsPopoverOpen] = useState(false);
@@ -469,47 +467,6 @@ export function NotebookComponent({
     }, 0);
   };
 
-  const updateBubbleParagraph = async (index: number, paraUniqueId: string, result: string) => {
-    try {
-      const response = await http.put(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
-        body: JSON.stringify({
-          noteId: openedNoteId,
-          paragraphId: paraUniqueId,
-          paragraphOutput: [
-            {
-              outputType: 'ANOMALY_VISUALIZATION_ANALYSIS',
-              result,
-            },
-          ],
-        }),
-      });
-
-      const newParagraphs = paragraphs;
-      newParagraphs[index] = response;
-      setParagraphs(newParagraphs);
-      return response;
-    } catch (error) {
-      console.error('Failed to update bubble paragraph:', error);
-      throw error;
-    }
-  };
-
-  const updateNotebookContext = async (newContext: any) => {
-    try {
-      const response = await http.put(`${NOTEBOOKS_API_PREFIX}/note/updateNotebookContext`, {
-        body: JSON.stringify({
-          notebookId: openedNoteId,
-          context: newContext,
-        }),
-      });
-
-      return response;
-    } catch (error) {
-      console.error('Error updating notebook context:', error);
-      throw error;
-    }
-  };
-
   // FIXME
   // Move the method into PER agent paragraph
   const registerDeepResearchParagraphUpdater = ({
@@ -703,18 +660,6 @@ export function NotebookComponent({
     });
   };
 
-  // update view mode, scrolls to paragraph and expands input if scrollToIndex is given
-  const updateView = (viewId: string, scrollToIndex?: number) => {
-    configureViewParameter(viewId);
-    const newParas = [...paragraphs];
-
-    if (scrollToIndex !== undefined) {
-      scrollToPara(scrollToIndex);
-    }
-    setSelectedViewId(viewId);
-    setParagraphs(newParas);
-  };
-
   const setBreadcrumbs = (notePath: string) => {
     setNavBreadCrumbs(
       [],
@@ -877,11 +822,6 @@ export function NotebookComponent({
     const view = searchParams.view;
     if (!view) {
       configureViewParameter('view_both');
-    }
-    if (view === 'output_only') {
-      setSelectedViewId('output_only');
-    } else if (view === 'input_only') {
-      setSelectedViewId('input_only');
     }
     // This useEffect should not set loadNotebook as a dependency, because it will cause infinite re-render. The data flow of this component should be updated.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1136,7 +1076,6 @@ export function NotebookComponent({
                     deleteVizualization={deleteVizualization}
                     http={http}
                     selectedViewId={selectedViewId}
-                    setSelectedViewId={updateView}
                     deletePara={showDeleteParaModal}
                     runPara={updateRunParagraph}
                     clonePara={cloneParaButton}
@@ -1144,7 +1083,6 @@ export function NotebookComponent({
                     showQueryParagraphError={showQueryParagraphError}
                     queryParagraphErrorMessage={queryParagraphErrorMessage}
                     dataSourceManagement={dataSourceManagement}
-                    setActionMenu={setActionMenu}
                     notifications={notifications}
                     dataSourceEnabled={dataSourceMDSEnabled}
                     savedObjectsMDSClient={savedObjectsMDSClient}
@@ -1152,8 +1090,6 @@ export function NotebookComponent({
                     paradataSourceMDSId={parsedPara[index].dataSourceMDSId}
                     dataSourceMDSLabel={parsedPara[index].dataSourceMDSLabel}
                     paragraphs={parsedPara}
-                    updateBubbleParagraph={updateBubbleParagraph}
-                    updateNotebookContext={updateNotebookContext}
                   />
                 </div>
               ))

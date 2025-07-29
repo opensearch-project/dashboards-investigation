@@ -5,7 +5,7 @@
 
 import { I18nProvider } from '@osd/i18n/react';
 import React from 'react';
-import { CoreStart, MountPoint } from '../../../../src/core/public';
+import { CoreStart } from '../../../../src/core/public';
 import { DataSourceManagementPluginSetup } from '../../../../src/plugins/data_source_management/public';
 import { AppPluginStartDependencies } from '../types';
 import { Main as NotebooksHome } from './notebooks/components/main';
@@ -15,7 +15,6 @@ interface ObservabilityAppDeps {
   DepsStart: AppPluginStartDependencies;
   dataSourceEnabled: boolean;
   dataSourceManagement: DataSourceManagementPluginSetup;
-  setActionMenu: (menuMount: MountPoint | undefined) => void;
   savedObjectsMDSClient: CoreStart['savedObjects'];
 }
 
@@ -27,7 +26,6 @@ export const App = ({
   CoreStartProp,
   DepsStart,
   dataSourceManagement,
-  setActionMenu,
   dataSourceEnabled,
   savedObjectsMDSClient,
 }: ObservabilityAppDeps) => {
@@ -44,7 +42,6 @@ export const App = ({
         DashboardContainerByValueRenderer={DepsStart.dashboard.DashboardContainerByValueRenderer}
         dataSourceManagement={dataSourceManagement}
         dataSourceEnabled={dataSourceEnabled}
-        setActionMenu={setActionMenu}
         savedObjectsMDSClient={savedObjectsMDSClient}
       />
     </I18nProvider>

@@ -27,15 +27,13 @@ import { NotebookReactContext } from '../../context_provider/context_provider';
 import { generateAllFieldCharts } from './render_bubble_vega';
 import { BubbleUpModel } from './container_model';
 import { BubbleUpDataService } from './bubble_up_data_service';
-
-interface Props {
-  updateNotebookContext: (newContext: any) => Promise<any>;
-}
+import { useNotebook } from '../../../../hooks/use_notebook';
 
 const ITEMS_PER_PAGE = 3;
 
-export const BubbleUpContainer = ({ updateNotebookContext }: Props) => {
+export const BubbleUpContainer = () => {
   const context = useContext(NotebookReactContext);
+  const { updateNotebookContext } = useNotebook();
   const [activePage, setActivePage] = useState(0);
   const [specsLoading, setSpecsLoading] = useState(false);
   const [distributionLoading, setDistributionLoading] = useState(false);
