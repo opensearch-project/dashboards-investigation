@@ -41,7 +41,11 @@ import { ParagraphState, ParagraphStateValue } from '../../../../common/state/pa
 import { CoreStart, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
-import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
+import {
+  CREATE_NOTE_MESSAGE,
+  DEEP_RESEARCH_PARAGRAPH_TYPE,
+  NOTEBOOKS_API_PREFIX,
+} from '../../../../common/constants/notebooks';
 import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
 import {
   NotebookContext,
@@ -70,8 +74,6 @@ import { useParagraphs } from '../../../hooks/use_paragraphs';
 import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
 import { usePrecheck } from '../../../hooks/use_precheck';
-
-const ParagraphTypeDeepResearch = 'DEEP_RESEARCH';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -428,7 +430,7 @@ export function NotebookComponent({
       paragraphId: para.uniqueId,
       paragraphInput: para.inp,
       paragraphType: paraType || '',
-      dataSourceMDSId: dataSourceMDSId || '',
+      dataSourceMDSId: _dataSourceMDSId || '',
       dataSourceMDSLabel: dataSourceMDSLabel || '',
     };
     const route = isSavedObjectNotebook
@@ -943,7 +945,7 @@ export function NotebookComponent({
                           description="Use deep research to analytics question."
                           footer={
                             <EuiSmallButton
-                              onClick={() => createParagraph(0, '', ParagraphTypeDeepResearch)}
+                              onClick={() => createParagraph(0, '', DEEP_RESEARCH_PARAGRAPH_TYPE)}
                               style={{ marginBottom: 17 }}
                             >
                               Add deep research

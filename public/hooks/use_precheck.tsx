@@ -4,21 +4,25 @@
  */
 
 import { NotebookContext, ParagraphBackendType } from 'common/types/notebooks';
-import { useCallback } from 'react';
+import { useCallback, useContext, useRef } from 'react';
 import { combineLatest } from 'rxjs';
 import { ParagraphState } from 'common/state/paragraph_state';
 import {
   ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+  DEEP_RESEARCH_PARAGRAPH_TYPE,
   LOG_PATTERN_PARAGRAPH_TYPE,
 } from '../../common/constants/notebooks';
 import { useParagraphs } from './use_paragraphs';
+import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 
 export const usePrecheck = () => {
-  const { createParagraph } = useParagraphs();
+  const { createParagraph, runParagraph } = useParagraphs();
+  const deepResearchParaCreated = useRef(false);
+  const notebookContext = useContext(NotebookReactContext);
 
   return {
     start: useCallback(
-      async (res: { context?: NotebookContext; paragraphs: ParagraphBackendType[] }) => {
+      async (res: { context: NotebookContext; paragraphs: ParagraphBackendType[] }) => {
         let logPatternParaExists = false;
         let anomalyAnalysisParaExists = false;
 
@@ -85,13 +89,47 @@ export const usePrecheck = () => {
           const combinedObservable = combineLatest(
             paragraphStates.map((paragraphState) => paragraphState.getValue$())
           );
-          combinedObservable.subscribe(() => {
-            // TODO insert PER agent if all output get populated and unsubscribe
-            // subscription.unsubscribe();
+          const subscription = combinedObservable.subscribe(async (paragraphValues) => {
+            const anomalyAnalysisParagraph = paragraphValues.find(
+              (p) =>
+                p.input?.inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE &&
+                !p.uiState?.inQueue &&
+                !p.uiState?.isRunning
+            );
+            const logPatternPara = paragraphValues.find(
+              (p) =>
+                p.input?.inputType === LOG_PATTERN_PARAGRAPH_TYPE &&
+                !p.uiState?.inQueue &&
+                !p.uiState?.isRunning
+            );
+
+            const hasAnomalyResult =
+              anomalyAnalysisParagraph?.output?.[0]?.result &&
+              anomalyAnalysisParagraph.output[0].result !== '';
+            const hasLogPatternResult = logPatternPara?.output?.[0]?.result;
+
+            if (hasAnomalyResult && hasLogPatternResult && !deepResearchParaCreated.current) {
+              deepResearchParaCreated.current = true;
+
+              await createParagraph(
+                totalParagraphLength + 2,
+                "What's wrong with my application?",
+                DEEP_RESEARCH_PARAGRAPH_TYPE
+              );
+
+              await runParagraph(totalParagraphLength + 2);
+
+              // Force re-render to ensure UI updates
+              notebookContext.state.updateValue({
+                paragraphs: [...notebookContext.state.value.paragraphs],
+              });
+
+              subscription.unsubscribe();
+            }
           });
         }
       },
-      [createParagraph]
+      [createParagraph, runParagraph, notebookContext]
     ),
   };
 };
