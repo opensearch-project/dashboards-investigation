@@ -39,6 +39,7 @@ import { useContext } from 'react';
 import { useObservable } from 'react-use';
 import { useCallback } from 'react';
 import { useMemo } from 'react';
+import { i18n } from '@osd/i18n';
 import { CoreStart, MountPoint, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
@@ -972,6 +973,9 @@ export function NotebookComponent({
                 size="s"
                 onClick={showDeleteNotebookModal}
                 data-test-subj="notebook-delete-icon"
+                aria-label={i18n.translate('notebook.deleteButton.tooltip', {
+                  defaultMessage: 'Delete',
+                })}
               />
             </EuiToolTip>
           </EuiFlexItem>
@@ -987,6 +991,9 @@ export function NotebookComponent({
                 size="s"
                 onClick={showRenameModal}
                 data-test-subj="notebook-edit-icon"
+                aria-label={i18n.translate('notebook.editButton.tooltip', {
+                  defaultMessage: 'Edit name',
+                })}
               />
             </EuiToolTip>
           </EuiFlexItem>
@@ -1005,6 +1012,9 @@ export function NotebookComponent({
                 size="s"
                 onClick={showCloneModal}
                 data-test-subj="notebook-duplicate-icon"
+                aria-label={i18n.translate('notebook.duplicateButton.tooltip', {
+                  defaultMessage: 'Duplicate',
+                })}
               />
             </EuiToolTip>
           </EuiFlexItem>
@@ -1024,6 +1034,9 @@ export function NotebookComponent({
                 size="s"
                 onClick={showDeleteNotebookModal}
                 data-test-subj="notebook-delete-icon"
+                aria-label={i18n.translate('notebook.deleteButton.tooltip', {
+                  defaultMessage: 'Delete',
+                })}
               />
             </EuiToolTip>
           </EuiFlexItem>
