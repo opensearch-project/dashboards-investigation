@@ -92,6 +92,9 @@ describe('<NoteTable /> spec', () => {
       dateModified: '2023-01-02 12:00:00',
     }));
     const { getByTestId, getAllByText, ...utils } = await renderNoteTable({ notebooks });
+    await waitFor(() => {
+      expect(utils.container.querySelectorAll('.euiTableRow').length).toEqual(5);
+    });
     expect(utils.container.firstChild).toMatchSnapshot();
     fireEvent.click(utils.getByText('Add sample notebooks'));
     fireEvent.click(utils.getAllByLabelText('Select this row')[0]);
