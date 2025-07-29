@@ -66,6 +66,5 @@ export interface NotebookContext {
   filters?: Array<Record<string, any>>; // For phase 1, we only support DSL filter
   summary?: string;
   specs?: Array<Record<string, unknown>>;
-  updateSpecs?: (newSpecs: Array<Record<string, unknown>>) => void;
   PPLFilters?: string[];
 }

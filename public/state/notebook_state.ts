@@ -54,7 +54,4 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
       paragraphs: paragraphs.map((paragraph) => new ParagraphState(paragraph)),
     });
   }
-  getValue$() {
-    return super.getValue$();
-  }
 }

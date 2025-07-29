@@ -28,11 +28,17 @@ import { generateAllFieldCharts } from './render_bubble_vega';
 import { BubbleUpModel } from './container_model';
 import { BubbleUpDataService } from './bubble_up_data_service';
 import { useNotebook } from '../../../../hooks/use_notebook';
+import { useObservable } from 'react-use';
 
 const ITEMS_PER_PAGE = 3;
 
 export const BubbleUpContainer = () => {
   const context = useContext(NotebookReactContext);
+  const topContextValue = useObservable(
+    context.state.value.context.getValue$(),
+    context.state.value.context.value
+  );
+  const { specs, timeRange, timeField, index, dataSourceId, PPLFilters, filters } = topContextValue;
   const { updateNotebookContext } = useNotebook();
   const [activePage, setActivePage] = useState(0);
   const [specsLoading, setSpecsLoading] = useState(false);
@@ -133,31 +139,33 @@ export const BubbleUpContainer = () => {
 
   useEffect(() => {
     const loadSpecsData = async () => {
+      if (specsLoading || distributionLoading) {
+        return;
+      }
       setSpecsLoading(true);
       setDistributionLoading(true);
 
-      if (context?.specs && context.specs.length > 0) {
-        const specs = generateAllFieldCharts(context.specs);
-        setBubbleUpSpecs(specs);
+      if (specs && specs.length > 0) {
+        const tempSpecs = generateAllFieldCharts(specs);
+        setBubbleUpSpecs(tempSpecs);
         setSpecsLoading(false);
         setDistributionLoading(false);
-        return context.specs;
+        return specs;
       }
 
-      if (!context.timeRange || !context.timeField || !context.index) {
+      if (!timeRange || !timeField || !index) {
         console.error('Missing required context for data fetch');
         return;
       }
 
       try {
-        const { dataSourceId, index, timeRange, timeField, filters } = context;
         dataService.setConfig(
           dataSourceId,
           index,
           timeRange.from,
           timeRange.to,
           timeField,
-          context.PPLFilters
+          PPLFilters
         );
         const response = await dataService.fetchComparisonData({ selectionFilters: filters });
         setSpecsLoading(false);
@@ -168,10 +176,7 @@ export const BubbleUpContainer = () => {
         const specs = generateAllFieldCharts(summaryData);
 
         setBubbleUpSpecs(specs);
-        if (context.updateSpecs) {
-          context.updateSpecs(summaryData);
-        }
-        await updateNotebookContext({ ...context, specs: summaryData });
+        await updateNotebookContext({ specs: summaryData });
         setDistributionLoading(false);
       } catch (error) {
         console.error('Error fetching or processing data:', error);
@@ -181,13 +186,7 @@ export const BubbleUpContainer = () => {
     };
 
     loadSpecsData();
-  }, [context, dataService, updateNotebookContext]);
-
-  useEffect(() => {
-    if (!bubbleUpSpecs || bubbleUpSpecs.length === 0) {
-      return;
-    }
-  }, [bubbleUpSpecs]);
+  }, [dataService]);
 
   const { paginatedSpecs, totalPages } = useMemo(() => {
     if (!bubbleUpSpecs?.length) return { paginatedSpecs: [], totalPages: 0 };

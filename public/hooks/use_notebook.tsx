@@ -45,13 +45,16 @@ export const useNotebook = () => {
 
       return promise;
     },
-    async updateNotebookContext(newContext: NotebookContext) {
-      const { id: openedNoteId } = context.state.value;
+    async updateNotebookContext(newContext: Partial<NotebookContext>) {
+      const { id: openedNoteId, context: currentContext } = context.state.value;
       try {
         const response = await http.put(`${NOTEBOOKS_API_PREFIX}/note/updateNotebookContext`, {
           body: JSON.stringify({
             notebookId: openedNoteId,
-            context: newContext,
+            context: {
+              ...currentContext,
+              ...newContext,
+            },
           }),
         });
 

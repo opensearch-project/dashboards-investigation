@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useReducer, useState } from 'react';
-import { NotebookContext } from '../../../../common/types/notebooks';
+import React, { useReducer } from 'react';
 import { NotebookState } from '../../../state/notebook_state';
 import { TopContextState } from '../../../state/top_context_state';
 import { notebookReducer, Action } from '../reducers/notebook_reducer';
@@ -20,13 +19,11 @@ const defaultState = new NotebookState({
   path: '',
 });
 
-export const NotebookReactContext = React.createContext<
-  (NotebookContext | undefined) & {
-    state: NotebookState;
-    dispatch: React.Dispatch<Action>;
-    http: HttpStart;
-  }
->({
+export const NotebookReactContext = React.createContext<{
+  state: NotebookState;
+  dispatch: React.Dispatch<Action>;
+  http: HttpStart;
+}>({
   state: defaultState,
   dispatch: () => {},
   http: {} as HttpStart,
@@ -34,14 +31,10 @@ export const NotebookReactContext = React.createContext<
 
 export const NotebookContextProvider = (props: {
   children: React.ReactChild;
-  contextInput?: NotebookContext;
   notebookId: string;
   http: HttpStart;
   dataSourceEnabled: boolean;
 }) => {
-  const [specs, setSpecs] = useState<Array<Record<string, unknown>>>(
-    props.contextInput?.specs || []
-  );
   const [state, dispatch] = useReducer(
     notebookReducer,
     new NotebookState({
@@ -55,21 +48,9 @@ export const NotebookContextProvider = (props: {
     })
   );
 
-  useEffect(() => {
-    if (props.contextInput?.specs) {
-      setSpecs(props.contextInput.specs);
-    }
-  }, [props.contextInput?.specs]);
-
-  const updateSpecs = (newSpecs: Array<Record<string, unknown>>) => {
-    setSpecs(newSpecs);
-  };
   return (
     <NotebookReactContext.Provider
       value={{
-        ...props.contextInput,
-        updateSpecs,
-        specs,
         state,
         dispatch,
         http: props.http,

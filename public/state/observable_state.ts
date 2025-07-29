@@ -11,11 +11,12 @@ export class ObservableState<TValue = {}> {
   constructor(initialValue: TValue) {
     this.value$ = new BehaviorSubject<TValue>(initialValue);
   }
-  protected getValue$() {
-    return this.value$.pipe(map((item) => item));
-  }
   public get value() {
     return this.value$.getValue();
+  }
+
+  getValue$() {
+    return this.value$.pipe(map((item) => item));
   }
 
   updateValue(value: Partial<TValue>) {
