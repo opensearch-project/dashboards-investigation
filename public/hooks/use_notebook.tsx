@@ -5,6 +5,7 @@
 
 import { useContext, useCallback } from 'react';
 import { NotebookContext } from 'common/types/notebooks';
+import { ParagraphStateValue } from 'public/state/paragraph_state';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { useParagraphs } from './use_paragraphs';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
@@ -46,6 +47,12 @@ export const useNotebook = () => {
 
   return {
     loadNotebook,
+    setParagraphs: useCallback(
+      (paragraphs: ParagraphStateValue[]) => {
+        context.state.updateParagraphs(paragraphs);
+      },
+      [context]
+    ),
     async updateNotebookContext(newContext: Partial<NotebookContext>) {
       const { id: openedNoteId, context: currentContext } = context.state.value;
       try {

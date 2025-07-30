@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { distinctUntilChanged, map } from 'rxjs/operators';
 import { NotebookContext } from 'common/types/notebooks';
 import { ObservableState } from './observable_state';
 import { ParagraphState, ParagraphStateValue } from './paragraph_state';
@@ -31,14 +32,12 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
     this.value.context.updateValue(context);
     return this;
   }
-  getParagraph(paragraphId: string) {
-    return this.value.paragraphs.find((paragraph) => paragraph.value.paragraphId === paragraphId);
+  getParagraphState(paragraphId: string) {
+    return this.value.paragraphs.find((paragraph) => paragraph.value.id === paragraphId);
   }
   deleteParagraph(paragraphId: string) {
     const newParagraph = this.value.paragraphs;
-    const findIndex = newParagraph.findIndex(
-      (paragraph) => paragraph.value.paragraphId === paragraphId
-    );
+    const findIndex = newParagraph.findIndex((paragraph) => paragraph.value.id === paragraphId);
     if (findIndex > -1) {
       newParagraph.splice(findIndex, 1);
     }
@@ -53,5 +52,21 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
     this.updateValue({
       paragraphs: paragraphs.map((paragraph) => new ParagraphState(paragraph)),
     });
+  }
+  getParagraphStates$() {
+    return this.getValue$().pipe(
+      map((state) => state.paragraphs),
+      distinctUntilChanged((a, b) => {
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) {
+          if (a !== b) return false;
+        }
+        return true;
+      })
+    );
+  }
+  // this is used for get pure backend values that needs to be persist into backend
+  getParagraphsBackendValue() {
+    return this.value.paragraphs.map((paragraph) => paragraph.value);
   }
 }

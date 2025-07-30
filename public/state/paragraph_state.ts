@@ -3,25 +3,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ParagraphBackendType } from '../../common/types/notebooks';
 import { ObservableState } from './observable_state';
 
-export interface ParagraphStateValue<TInput = {}, TOutput = {}, TFullfilledOutput = {}> {
-  input?: Partial<TInput>;
-  output?: Partial<TOutput>; // output only has some meta data like message_id / task_id
+export interface ParagraphStateValue<TFullfilledOutput = {}> extends ParagraphBackendType {
   fullfilledOutput?: Partial<TFullfilledOutput>; // this is the fullfilled output, like PPL query result / PER agent response
-  paragraphId: string;
-  paragraphType: string; // mardown / sql / ppl / visualization / deep_search
-  viewMode: 'input_only' | 'output_only' | 'view_both';
-  inQueue?: boolean;
-  isRunning?: boolean;
+  uiState: {
+    viewMode: 'input_only' | 'output_only' | 'view_both';
+    inQueue?: boolean;
+    isRunning?: boolean;
+    isOutputStale?: boolean;
+  };
 }
 
-export class ParagraphState<
-  TInput = {},
-  TOutput = {},
-  TFullfilledOutput = {}
-> extends ObservableState<ParagraphStateValue<TInput, TOutput, TFullfilledOutput>> {
-  updateInput(input: Partial<TInput>) {
+export class ParagraphState<TFullfilledOutput = {}> extends ObservableState<
+  ParagraphStateValue<TFullfilledOutput>
+> {
+  getParagraphType() {
+    return this.value.input.inputType;
+  }
+  getBackgroundValue() {
+    const { input, output, id, dateModified, dateCreated } = this.value;
+    return {
+      input,
+      output,
+      id,
+      dateModified,
+      dateCreated,
+    };
+  }
+  updateInput(input: Partial<ParagraphStateValue['input']>) {
     this.updateValue({
       input: {
         ...this.value.input,
@@ -30,12 +41,14 @@ export class ParagraphState<
     });
     return this;
   }
-  updateOutput(output: Partial<TOutput>) {
+  updateOutput(output: Partial<Required<ParagraphStateValue>['output'][0]>) {
     this.updateValue({
-      output: {
-        ...this.value.output,
-        ...output,
-      },
+      output: [
+        {
+          ...(this.value.output?.[0] || {}),
+          ...output,
+        } as Required<ParagraphBackendType>['output'][0],
+      ],
     });
   }
   updateFullfilledOutput(fullfilledOutput: Partial<TFullfilledOutput>) {
@@ -43,6 +56,14 @@ export class ParagraphState<
       fullfilledOutput: {
         ...this.value.fullfilledOutput,
         ...fullfilledOutput,
+      },
+    });
+  }
+  updateUIState(uiState: Partial<ParagraphStateValue['uiState']>) {
+    this.updateValue({
+      uiState: {
+        ...this.value.uiState,
+        ...uiState,
       },
     });
   }
