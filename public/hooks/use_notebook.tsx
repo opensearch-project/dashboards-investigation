@@ -52,7 +52,7 @@ export const useNotebook = () => {
           body: JSON.stringify({
             notebookId: openedNoteId,
             context: {
-              ...currentContext,
+              ...currentContext.value,
               ...newContext,
             },
           }),
