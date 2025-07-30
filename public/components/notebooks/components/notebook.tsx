@@ -29,9 +29,8 @@ import {
 import { FormattedMessage } from '@osd/i18n/react';
 import CSS from 'csstype';
 import moment from 'moment';
-import queryString from 'query-string';
 import React, { useState, useEffect, useRef } from 'react';
-import { useHistory, useLocation } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import { Subscription, timer } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
@@ -105,7 +104,6 @@ export function NotebookComponent({
   chrome,
 }: NotebookProps) {
   const history = useHistory();
-  const location = useLocation();
 
   const [selectedViewId] = useState('view_both');
   const [vizPrefix, _setVizPrefix] = useState('');
@@ -408,14 +406,44 @@ export function NotebookComponent({
       });
   };
 
-  const addPara = (index: number, newParaContent: string, inpType: string) => {
-    return createParagraph(index, newParaContent, inpType).catch((err) => {
-      notifications.toasts.addDanger(
-        'Error adding paragraph, please make sure you have the correct permission.'
-      );
-      console.error(err);
-    });
-  };
+  // FIXME
+  // Move the method into PPL paragraph
+  const loadQueryResultsFromInput = useCallback(
+    async (paragraph: any, MDSId?: any) => {
+      const queryType =
+        paragraph.input.inputText.substring(0, 4) === '%sql' ? 'sqlquery' : 'pplquery';
+      const query = {
+        dataSourceMDSId: MDSId,
+      };
+      await http
+        .post(`/api/investigation/sql/${queryType}`, {
+          body: JSON.stringify(paragraph.output[0].result),
+          ...(dataSourceEnabled && { query }),
+        })
+        .then((response) => {
+          paragraph.output[0].result =
+            response.data.resp || JSON.stringify({ error: 'no response' });
+          return paragraph;
+        })
+        .catch((err) => {
+          notifications.toasts.addDanger('Error getting query output');
+          console.error(err);
+        });
+    },
+    [http, notifications.toasts, dataSourceEnabled]
+  );
+
+  const addPara = useCallback(
+    (index: number, newParaContent: string, inpType: string) => {
+      return createParagraph(index, newParaContent, inpType).catch((err) => {
+        notifications.toasts.addDanger(
+          'Error adding paragraph, please make sure you have the correct permission.'
+        );
+        console.error(err);
+      });
+    },
+    [createParagraph, notifications.toasts]
+  );
 
   // Function to clone a paragraph
   const cloneParaButton = (para: ParaType, index: number) => {
@@ -469,84 +497,89 @@ export function NotebookComponent({
 
   // FIXME
   // Move the method into PER agent paragraph
-  const registerDeepResearchParagraphUpdater = ({
-    taskId,
-    paraUniqueId,
-    agentId,
-    baseMemoryId,
-  }: {
-    taskId: string;
-    paraUniqueId: string;
-    agentId: string;
-    baseMemoryId?: string | undefined;
-  }) => {
-    const cleanTaskSubscription = () => {
-      taskSubscriptions.current.get(taskId)?.unsubscribe();
-      taskSubscriptions.current.delete(taskId);
-    };
-    taskSubscriptions.current.set(
+  const registerDeepResearchParagraphUpdater = useCallback(
+    ({
       taskId,
-      timer(0, 5000)
-        .pipe(
-          switchMap(() => {
-            const uniquePara = parsedPara.find((para) => para.uniqueId === paraUniqueId);
-            if (!uniquePara) {
-              return 'STOP';
-            }
-            return getMLCommonsTask({
-              http,
-              taskId,
-              dataSourceId: uniquePara.dataSourceMDSId,
-            });
-          })
-        )
-        .pipe(takeWhile((res) => res !== 'STOP' && !isStateCompletedOrFailed(res.state), true))
-        .subscribe({
-          next: (payload) => {
-            if (payload === 'STOP') {
-              cleanTaskSubscription();
-              return;
-            }
-            const currentParsedParaIndex = parsedPara.findIndex(
-              (para) => para.uniqueId === paraUniqueId
-            );
-            const result = JSON.stringify(
-              constructDeepResearchParagraphOut({
-                task: payload,
+      paraUniqueId,
+      agentId,
+      baseMemoryId,
+      parsedParaProps,
+    }: {
+      taskId: string;
+      paraUniqueId: string;
+      agentId: string;
+      baseMemoryId?: string | undefined;
+      parsedParaProps: ParaType[];
+    }) => {
+      const cleanTaskSubscription = () => {
+        taskSubscriptions.current.get(taskId)?.unsubscribe();
+        taskSubscriptions.current.delete(taskId);
+      };
+      taskSubscriptions.current.set(
+        taskId,
+        timer(0, 5000)
+          .pipe(
+            switchMap(() => {
+              const uniquePara = parsedParaProps.find((para) => para.uniqueId === paraUniqueId);
+              if (!uniquePara) {
+                return 'STOP';
+              }
+              return getMLCommonsTask({
+                http,
                 taskId,
-                agentId,
-                baseMemoryId,
-              })
-            );
-            if (
-              !isStateCompletedOrFailed(payload.state) &&
-              result === parsedPara[currentParsedParaIndex]?.out[0]
-            ) {
-              return;
-            }
-            if (isStateCompletedOrFailed(payload.state)) {
+                dataSourceId: uniquePara.dataSourceMDSId,
+              });
+            })
+          )
+          .pipe(takeWhile((res) => res !== 'STOP' && !isStateCompletedOrFailed(res.state), true))
+          .subscribe({
+            next: (payload) => {
+              if (payload === 'STOP') {
+                cleanTaskSubscription();
+                return;
+              }
+              const currentParsedParaIndex = parsedParaProps.findIndex(
+                (para) => para.uniqueId === paraUniqueId
+              );
+              const result = JSON.stringify(
+                constructDeepResearchParagraphOut({
+                  task: payload,
+                  taskId,
+                  agentId,
+                  baseMemoryId,
+                })
+              );
+              if (
+                !isStateCompletedOrFailed(payload.state) &&
+                result === parsedParaProps[currentParsedParaIndex]?.out[0]
+              ) {
+                return;
+              }
+              if (isStateCompletedOrFailed(payload.state)) {
+                cleanTaskSubscription();
+              }
+              http.put(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
+                body: JSON.stringify({
+                  noteId: openedNoteId,
+                  paragraphId: paraUniqueId,
+                  paragraphOutput: [
+                    {
+                      outputType: 'DEEP_RESEARCH',
+                      result,
+                    },
+                  ],
+                }),
+              });
+            },
+            error: (...args) => {
+              console.log('Failed to fetch task status', ...args);
               cleanTaskSubscription();
-            }
-            http.put(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
-              body: JSON.stringify({
-                noteId: openedNoteId,
-                paragraphId: paraUniqueId,
-                paragraphOutput: [
-                  {
-                    outputType: 'DEEP_RESEARCH',
-                    result,
-                  },
-                ],
-              }),
-            });
-          },
-          error: (...args) => {
-            console.log('Failed to fetch task status', ...args);
-            cleanTaskSubscription();
-          },
-        })
-    );
-  };
+            },
+          })
+      );
+    },
+    [http, openedNoteId]
+  );
 
   // Backend call to update and run contents of paragraph
   const updateRunParagraph = (
@@ -606,6 +639,7 @@ export function NotebookComponent({
             paraUniqueId: para.uniqueId,
             agentId: deepResearchAgentId ?? '',
             baseMemoryId: deepResearchBaseMemoryId,
+            parsedParaProps: parsedPara,
           });
         }
         setParagraphs(newParagraphs);
@@ -653,53 +687,26 @@ export function NotebookComponent({
     }
   };
 
-  const configureViewParameter = (id: string) => {
-    history.replace({
-      ...location,
-      search: `view=${id}`,
-    });
-  };
+  const setBreadcrumbs = useCallback(
+    (notePath: string) => {
+      setNavBreadCrumbs(
+        [],
+        [
+          {
+            text: 'Notebooks',
+            href: '#/',
+          },
+          {
+            text: notePath,
+            href: `#/${openedNoteId}`,
+          },
+        ]
+      );
+    },
+    [openedNoteId]
+  );
 
-  const setBreadcrumbs = (notePath: string) => {
-    setNavBreadCrumbs(
-      [],
-      [
-        {
-          text: 'Notebooks',
-          href: '#/',
-        },
-        {
-          text: notePath,
-          href: `#/${openedNoteId}`,
-        },
-      ]
-    );
-  };
-
-  // FIXME
-  // Move the method into PPL paragraph
-  const loadQueryResultsFromInput = async (paragraph: any, MDSId?: any) => {
-    const queryType =
-      paragraph.input.inputText.substring(0, 4) === '%sql' ? 'sqlquery' : 'pplquery';
-    const query = {
-      dataSourceMDSId: MDSId,
-    };
-    await http
-      .post(`/api/investigation/sql/${queryType}`, {
-        body: JSON.stringify(paragraph.output[0].result),
-        ...(dataSourceEnabled && { query }),
-      })
-      .then((response) => {
-        paragraph.output[0].result = response.data.resp || JSON.stringify({ error: 'no response' });
-        return paragraph;
-      })
-      .catch((err) => {
-        notifications.toasts.addDanger('Error getting query output');
-        console.error(err);
-      });
-  };
-
-  const loadNotebook = async () => {
+  const loadNotebook = useCallback(async () => {
     loadNotebookHook()
       .then(async (res) => {
         setBreadcrumbs(res.path);
@@ -753,6 +760,7 @@ export function NotebookComponent({
               agentId,
               paraUniqueId: paragraphId,
               baseMemoryId,
+              parsedParaProps: parseParagraphs(res.paragraphs),
             });
           }
         }
@@ -769,7 +777,17 @@ export function NotebookComponent({
         );
         console.error(err);
       });
-  };
+  }, [
+    loadNotebookHook,
+    setBreadcrumbs,
+    addPara,
+    notifications.toasts,
+    loadQueryResultsFromInput,
+    registerDeepResearchParagraphUpdater,
+    dataSourceEnabled,
+    isSavedObjectNotebook,
+    parseParagraphs,
+  ]);
 
   const handleSelectedDataSourceChange = (id: string | undefined, label: string | undefined) => {
     setDataSourceMDSId(id);
@@ -782,7 +800,7 @@ export function NotebookComponent({
     setParagraphs(newParas);
   };
 
-  const checkIfReportingPluginIsInstalled = () => {
+  const checkIfReportingPluginIsInstalled = useCallback(() => {
     fetch('../api/status', {
       headers: {
         'Content-Type': 'application/json',
@@ -812,20 +830,13 @@ export function NotebookComponent({
         notifications.toasts.addDanger('Error checking Reporting Plugin Installation status.');
         console.error(error);
       });
-  };
+  }, [notifications.toasts]);
 
   useEffect(() => {
     setBreadcrumbs('');
     loadNotebook();
     checkIfReportingPluginIsInstalled();
-    const searchParams = queryString.parse(location.search);
-    const view = searchParams.view;
-    if (!view) {
-      configureViewParameter('view_both');
-    }
-    // This useEffect should not set loadNotebook as a dependency, because it will cause infinite re-render. The data flow of this component should be updated.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search, location.pathname, openedNoteId, dataSourceEnabled]);
+  }, [setBreadcrumbs, loadNotebook, checkIfReportingPluginIsInstalled]);
 
   const reportingActionPanels: EuiContextMenuPanelDescriptor[] = [
     {
