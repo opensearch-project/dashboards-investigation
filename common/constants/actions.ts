@@ -22,26 +22,14 @@ export const actionsMetadata: ActionMetadata[] = [
   {
     id: 'PPL',
     title: 'PPL',
-    description:
-      'display PPL block: Piped Processing Language (PPL) is a query language that focuses on processing data in a sequential, step-by-step manner.',
+    description: `display PPL block: Piped Processing Language (PPL) is a query language that focuses on processing data in a step-by-step manner.
+      If input is natural language descriping what data it want to query, set the input as natural language, which will be transformed using Text to PPL agent(NOT YOUR JOB).
+      If input is ppl query, this block can directly execute it.`,
     input_metadata: {
-      ppl: {
+      userInput: {
         type: 'string',
-        description: 'ppl query',
-        required: true,
-      },
-    },
-  },
-  {
-    id: 'T2PPL',
-    title: 'Text to PPL',
-    description:
-      'display T2PPL block: User input what data they want to query, which will be tranformed into PPL query in this block',
-    input_metadata: {
-      input: {
-        type: 'string',
-        description: 'natural language input',
-        required: true,
+        description: 'ppl query or natural language, set it the same as user input',
+        required: false,
       },
     },
   },
@@ -63,6 +51,13 @@ export const actionsMetadata: ActionMetadata[] = [
     title: 'Visualization',
     description:
       'display visualization block: user can select existing visualization and display it in the block.',
+    input_metadata: {
+      search_word: {
+        type: 'string',
+        description: 'search_word is used to search existing visualization',
+        required: true,
+      },
+    },
   },
   {
     id: 'MARKDOWN',

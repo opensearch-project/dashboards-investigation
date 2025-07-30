@@ -39,7 +39,6 @@ import { useContext } from 'react';
 import { useObservable } from 'react-use';
 import { useCallback } from 'react';
 import { useMemo } from 'react';
-import { ActionMetadata } from '../../../../common/constants/actions';
 import { CoreStart, MountPoint, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
@@ -64,11 +63,7 @@ import {
   NotebookContextProvider,
   NotebookReactContext,
 } from '../context_provider/context_provider';
-import {
-  getMLCommonsTask,
-  executeMLCommonsAgent,
-  getMLCommonsConfig,
-} from '../../../utils/ml_commons_apis';
+import { getMLCommonsTask } from '../../../utils/ml_commons_apis';
 import { parseParagraphOut } from '../../../utils/paragraph';
 import { isStateCompletedOrFailed } from '../../../utils/task';
 import { constructDeepResearchParagraphOut } from '../../../../common/utils/paragraph';
@@ -134,22 +129,6 @@ export function NotebookComponent({
   const { createParagraph } = useParagraphs();
   // Refs for task subscriptions
   const taskSubscriptions = useRef(new Map<string, Subscription>());
-
-  const executeActionSelectionAgent = async (input: string, actionsMetadata: ActionMetadata[]) => {
-    const {
-      configuration: { agent_id: actionSelectionAgentId },
-    } = await getMLCommonsConfig({ http, configName: 'action-selection-agent' });
-    const result = await executeMLCommonsAgent({
-      http,
-      agentId: actionSelectionAgentId,
-      dataSourceId: dataSourceMDSId ?? undefined,
-      parameters: {
-        actions_metadata: actionsMetadata.map((acion) => JSON.stringify(acion)).join(','),
-        input_question: input,
-      },
-    });
-    return result;
-  };
 
   const notebookContext = useContext(NotebookReactContext);
   const notebookState = useObservable(
@@ -1291,9 +1270,8 @@ export function NotebookComponent({
         <EuiSpacer />
         <InputPanel
           onCreateParagraph={handleCreateParagraph}
-          selectAction={(input: string, actionsMetadata: ActionMetadata[]) =>
-            executeActionSelectionAgent(input, actionsMetadata)
-          }
+          http={http}
+          dataSourceId={dataSourceMDSId}
         />
       </EuiPage>
       {isModalVisible && modalLayout}

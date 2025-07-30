@@ -16,23 +16,19 @@ import autosize from 'autosize';
 import { useEffectOnce } from 'react-use';
 import { ActionMetadata, actionsMetadata } from '../../../../common/constants/actions';
 import { NotebookReactContext } from '../context_provider/context_provider';
+import { executeMLCommonsAgent, getMLCommonsConfig } from '../../../utils/ml_commons_apis';
 
 interface InputPanelProps {
   onCreateParagraph: (paragraphInput: string, inputType: string) => Promise<void>;
-  selectAction: (
-    input: string,
-    actionsMetadata: ActionMetadata[]
-  ) => Promise<{
-    inference_results: Array<{
-      output: Array<{
-        name: string;
-        result: string;
-      }>;
-    }>;
-  }>;
+  http: CoreStart['http'];
+  dataSourceId: string | undefined | null;
 }
 
-export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, selectAction }) => {
+export const InputPanel: React.FC<InputPanelProps> = ({
+  onCreateParagraph,
+  http,
+  dataSourceId,
+}) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const [inputValue, setInputValue] = useState('');
@@ -71,6 +67,33 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, selec
       'data-test-subj': 'paragraph-type-deep-research',
     },
   ];
+
+  const executeActionSelectionAgent = async (input: string, actions: ActionMetadata[]) => {
+    try {
+      const {
+        configuration: { agent_id: actionSelectionAgentId },
+      } = await getMLCommonsConfig({ http, configName: 'action-selection-agent' });
+
+      if (!actionSelectionAgentId) {
+        throw new Error('Failed to get actionSelectionAgentId');
+      }
+
+      const result = await executeMLCommonsAgent({
+        http,
+        agentId: actionSelectionAgentId,
+        dataSourceId: dataSourceId ?? undefined,
+        parameters: {
+          actions_metadata: actions.map((action) => JSON.stringify(action)).join(','),
+          input_question: input,
+        },
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error occured during executing action selection agent:', error);
+      throw error;
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
@@ -134,123 +157,126 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, selec
       return;
     }
 
-    const response = await selectAction(textareaRef.current.value, actionsMetadata);
-    const rawResult = response.inference_results[0].output[0].result;
-    const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
-    let inputType = 'DEEP_RESEARCH';
-    let paragraphInput = '';
-    if (jsonMatch) {
-      const result = JSON.parse(jsonMatch[0]);
-      console.log(result);
-      switch (result.action) {
-        case 'PPL':
-          inputType = 'CODE';
-          paragraphInput = '%ppl\n' + result.input || '';
-          break;
-        case 'MARKDOWN':
-          inputType = 'CODE';
-          paragraphInput = '%md\n' + result.input || '';
-          break;
-        case 'VISUALIZATION':
-          inputType = 'VISUALIZATION';
-          paragraphInput = '';
-          break;
-        case 'DEEP_RESEARCH_AGENT':
-          inputType = 'DEEP_RESEARCH';
-          paragraphInput = result.input || '';
-          break;
-        default:
-          inputType = 'CODE';
-          paragraphInput = result.input || '';
+    try {
+      const response = await executeActionSelectionAgent(
+        textareaRef.current.value,
+        actionsMetadata
+      );
+      const rawResult = response?.inference_results?.[0]?.output?.[0]?.result;
+      const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
+      let inputType = 'DEEP_RESEARCH';
+      let paragraphInput = '';
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]);
+        switch (result.action) {
+          case 'PPL':
+            inputType = 'CODE';
+            paragraphInput = '%ppl\n' + result.input || '';
+            break;
+          case 'MARKDOWN':
+            inputType = 'CODE';
+            paragraphInput = '%md\n' + result.input || '';
+            break;
+          case 'VISUALIZATION':
+            inputType = 'VISUALIZATION';
+            paragraphInput = '';
+            break;
+          case 'DEEP_RESEARCH_AGENT':
+            inputType = 'DEEP_RESEARCH';
+            paragraphInput = result.input || '';
+            break;
+          default:
+            inputType = 'CODE';
+            paragraphInput = result.input || '';
+        }
       }
+      await onCreateParagraph(paragraphInput, inputType);
+      setInputValue('');
+      textareaRef.current.style.height = '45px';
+    } catch (error) {
+      console.error('Error occured during submission', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    await onCreateParagraph(paragraphInput, inputType);
-    setIsLoading(false);
-
-    setInputValue('');
-    textareaRef.current.style.height = '45px';
   };
 
   return (
-    <>
-      <EuiInputPopover
-        input={
-          <div>
-            <EuiTextArea
-              inputRef={textareaRef}
-              // autoFocus
-              fullWidth
-              style={{
-                minHeight: 45,
-                maxHeight: 200,
-                borderRadius: 6,
-                backgroundColor: 'white',
-                paddingRight: 40,
-              }}
-              placeholder={'Type % to show paragraph options'}
-              value={inputValue}
-              onChange={handleInputChange}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  onSubmit();
-                }
-              }}
-              disabled={isLoading}
-              rows={1}
-              resize="none"
-              data-test-subj="notebook-paragraph-input-panel"
-            />
-            {isLoading ? (
-              <EuiLoadingSpinner
-                size="m"
-                style={{
-                  position: 'absolute',
-                  right: 10,
-                  top: '30%',
-                }}
-                data-test-subj="notebook-input-loading"
-              />
-            ) : (
-              <EuiIcon
-                type="rocket"
-                style={{
-                  position: 'absolute',
-                  right: 10,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                }}
-                onClick={onSubmit}
-                data-test-subj="notebook-input-icon"
-              />
-            )}
-          </div>
-        }
-        fullWidth
-        isOpen={isPopoverOpen}
-        closePopover={closePopover}
-        panelPaddingSize="none"
-        style={{
-          position: 'sticky',
-          bottom: 10,
-          width: 700,
-          marginLeft: '50%',
-          transform: 'translateX(-50%)',
-          // marginTop: 'auto',
-        }}
-      >
+    <EuiInputPopover
+      input={
         <div>
-          <EuiSelectable
-            options={paragraphOptions}
-            singleSelection="always"
-            onChange={handleParagraphSelection}
-            data-test-subj="paragraph-type-selector"
-          >
-            {(list) => <div>{list}</div>}
-          </EuiSelectable>
+          <EuiTextArea
+            inputRef={textareaRef}
+            // autoFocus
+            fullWidth
+            style={{
+              minHeight: 45,
+              maxHeight: 200,
+              borderRadius: 6,
+              backgroundColor: 'white',
+              paddingRight: 40,
+            }}
+            placeholder={'Type % to show paragraph options'}
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                onSubmit();
+              }
+            }}
+            disabled={isLoading}
+            rows={1}
+            resize="none"
+            data-test-subj="notebook-paragraph-input-panel"
+          />
+          {isLoading ? (
+            <EuiLoadingSpinner
+              size="m"
+              style={{
+                position: 'absolute',
+                right: 10,
+                top: '30%',
+              }}
+              data-test-subj="notebook-input-loading"
+            />
+          ) : (
+            <EuiIcon
+              type="rocket"
+              style={{
+                position: 'absolute',
+                right: 10,
+                top: '50%',
+                transform: 'translateY(-50%)',
+              }}
+              onClick={onSubmit}
+              data-test-subj="notebook-input-icon"
+            />
+          )}
         </div>
-      </EuiInputPopover>
-    </>
+      }
+      fullWidth
+      isOpen={isPopoverOpen}
+      closePopover={closePopover}
+      panelPaddingSize="none"
+      style={{
+        position: 'sticky',
+        bottom: 10,
+        width: 700,
+        marginLeft: '50%',
+        transform: 'translateX(-50%)',
+        // marginTop: 'auto',
+      }}
+    >
+      <div>
+        <EuiSelectable
+          options={paragraphOptions}
+          singleSelection="always"
+          onChange={handleParagraphSelection}
+          data-test-subj="paragraph-type-selector"
+        >
+          {(list) => <div>{list}</div>}
+        </EuiSelectable>
+      </div>
+    </EuiInputPopover>
   );
 };
