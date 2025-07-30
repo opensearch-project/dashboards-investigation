@@ -462,7 +462,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
     >
       {<ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />}
       {dataSourceEnabled && !para.isVizualisation && !para.isAnomalyVisualizationAnalysis && (
-        <EuiFlexGroup>
+        <EuiFlexGroup style={{ marginTop: 0 }}>
           <EuiFlexItem>
             <DataSourceSelector
               savedObjectsClient={savedObjectsMDSClient.client}

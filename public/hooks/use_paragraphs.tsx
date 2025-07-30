@@ -7,7 +7,6 @@ import { useContext, useCallback } from 'react';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { ParagraphState, ParagraphStateValue } from '../state/paragraph_state';
-import { ParaType } from '../../common/types/notebooks';
 import { getCoreStart } from '../services';
 
 export const useParagraphs = () => {
@@ -86,7 +85,7 @@ export const useParagraphs = () => {
 
   return {
     createParagraph,
-    deleteParagraph: (para: ParaType, index: number) => {
+    deleteParagraph: (index: number) => {
       if (index < 0) {
         return Promise.reject('Please provide a valid paragraph index');
       }

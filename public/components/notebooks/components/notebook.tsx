@@ -39,13 +39,17 @@ import { useObservable } from 'react-use';
 import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { i18n } from '@osd/i18n';
-import { ParagraphStateValue } from 'public/state/paragraph_state';
+import { ParagraphState, ParagraphStateValue } from '../../../state/paragraph_state';
 import { CoreStart, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
 import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
 import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
-import { NotebookContext, ParaType } from '../../../../common/types/notebooks';
+import {
+  NotebookContext,
+  ParagraphBackendType,
+  ParaType,
+} from '../../../../common/types/notebooks';
 import { setNavBreadCrumbs } from '../../../../common/utils/set_nav_bread_crumbs';
 import { HeaderControlledComponentsWrapper } from '../../../plugin_helpers/plugin_headerControl';
 import { GenerateReportLoadingModal } from './helpers/custom_modals/reporting_loading_modal';
@@ -164,12 +168,12 @@ export function NotebookComponent({
     setIsReportingLoadingModalOpen(show);
   };
 
-  const showDeleteParaModal = (para: ParaType, index: number) => {
+  const showDeleteParaModal = (index: number) => {
     setModalLayout(
       getDeleteModal(
         () => setIsModalVisible(false),
         () => {
-          deleteParagraph(para, index);
+          deleteParagraph(index);
           setIsModalVisible(false);
         },
         'Delete paragraph',
@@ -430,13 +434,11 @@ export function NotebookComponent({
       paraUniqueId,
       agentId,
       baseMemoryId,
-      parsedParaProps,
     }: {
       taskId: string;
       paraUniqueId: string;
       agentId: string;
       baseMemoryId?: string | undefined;
-      parsedParaProps: ParaType[];
     }) => {
       const cleanTaskSubscription = () => {
         taskSubscriptions.current.get(taskId)?.unsubscribe();
@@ -447,7 +449,8 @@ export function NotebookComponent({
         timer(0, 5000)
           .pipe(
             switchMap(() => {
-              const uniquePara = parsedParaProps.find((para) => para.uniqueId === paraUniqueId);
+              const paragraphsValue = notebookContext.state.getParagraphsValue();
+              const uniquePara = paragraphsValue.find((para) => para.id === paraUniqueId);
               if (!uniquePara) {
                 return 'STOP';
               }
@@ -461,12 +464,13 @@ export function NotebookComponent({
           .pipe(takeWhile((res) => res !== 'STOP' && !isStateCompletedOrFailed(res.state), true))
           .subscribe({
             next: (payload) => {
+              const paragraphsValue = notebookContext.state.getParagraphsValue();
               if (payload === 'STOP') {
                 cleanTaskSubscription();
                 return;
               }
-              const currentParsedParaIndex = parsedParaProps.findIndex(
-                (para) => para.uniqueId === paraUniqueId
+              const currentParsedParaIndex = paragraphsValue.findIndex(
+                (para) => para.id === paraUniqueId
               );
               const result = JSON.stringify(
                 constructDeepResearchParagraphOut({
@@ -478,7 +482,7 @@ export function NotebookComponent({
               );
               if (
                 !isStateCompletedOrFailed(payload.state) &&
-                result === parsedParaProps[currentParsedParaIndex]?.out[0]
+                result === JSON.stringify(paragraphs[currentParsedParaIndex].output?.[0])
               ) {
                 return;
               }
@@ -505,7 +509,7 @@ export function NotebookComponent({
           })
       );
     },
-    [http, openedNoteId]
+    [http, openedNoteId, notebookContext.state, paragraphs]
   );
 
   // Backend call to update and run contents of paragraph
@@ -537,25 +541,29 @@ export function NotebookComponent({
       ? `${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/update/run`
       : `${NOTEBOOKS_API_PREFIX}/paragraph/update/run/`;
     return http
-      .post(route, {
+      .post<ParagraphBackendType>(route, {
         body: JSON.stringify(paraUpdateObject),
       })
       .then(async (res) => {
-        if (res.output[0]?.outputType === 'QUERY') {
+        if (res.output?.[0]?.outputType === 'QUERY') {
           await loadQueryResultsFromInput(res, dataSourceMDSId);
-          const checkErrorJSON = JSON.parse(res.output[0].result);
+          const checkErrorJSON = JSON.parse(res.output?.[0].result);
           if (checkQueryOutputError(checkErrorJSON)) {
             return;
           }
         }
-        const legacyParsedParagraphData = paragraphs[index];
         const newParagraphs = [...paragraphs];
-        newParagraphs[index] = res;
+        const paragraphStateValue = new ParagraphState(res).value;
+        const outputPayload = paragraphStateValue.output?.[0];
+        newParagraphs[index] = paragraphStateValue;
 
-        if (res.output[0]?.outputType === 'DEEP_RESEARCH') {
+        if (
+          outputPayload?.outputType === 'DEEP_RESEARCH' &&
+          newParagraphs[index].uiState &&
+          typeof outputPayload.result !== 'string'
+        ) {
           newParagraphs[index].uiState.isRunning = true;
-          const legacyParsedParagraphOut = parseParagraphOut(legacyParsedParagraphData)[0];
-          const legacyTaskId = legacyParsedParagraphOut?.task_id;
+          const legacyTaskId = outputPayload.result.task_id as string;
           if (legacyTaskId) {
             taskSubscriptions.current.get(legacyTaskId)?.unsubscribe();
             taskSubscriptions.current.delete(legacyTaskId);
@@ -566,7 +574,6 @@ export function NotebookComponent({
             paraUniqueId: para.uniqueId,
             agentId: deepResearchAgentId ?? '',
             baseMemoryId: deepResearchBaseMemoryId,
-            parsedParaProps: parsedPara,
           });
         }
         setParagraphs(newParagraphs);
@@ -687,7 +694,6 @@ export function NotebookComponent({
               agentId,
               paraUniqueId: paragraphId,
               baseMemoryId,
-              parsedParaProps: parseParagraphs(res.paragraphs),
             });
           }
         }
@@ -713,7 +719,6 @@ export function NotebookComponent({
     registerDeepResearchParagraphUpdater,
     dataSourceEnabled,
     isSavedObjectNotebook,
-    parseParagraphs,
   ]);
 
   const handleSelectedDataSourceChange = (id: string | undefined, label: string | undefined) => {

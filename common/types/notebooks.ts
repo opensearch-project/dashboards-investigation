@@ -78,7 +78,7 @@ export interface ParagraphBackendType {
     {
       execution_time: string;
       outputType: string;
-      result: string | Record<string, unknown>;
+      result: string;
     }
   ]; // output only has some meta data like message_id / task_id
   id: string;

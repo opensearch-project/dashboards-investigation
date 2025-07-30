@@ -6,7 +6,15 @@
 import { ParagraphBackendType } from '../../common/types/notebooks';
 import { ObservableState } from './observable_state';
 
-export interface ParagraphStateValue<TFullfilledOutput = {}> extends ParagraphBackendType {
+export interface ParagraphStateValue<TFullfilledOutput = {}>
+  extends Omit<ParagraphBackendType, 'output'> {
+  output?: [
+    {
+      execution_time: string;
+      outputType: string;
+      result: string | Record<string, unknown>;
+    }
+  ];
   fullfilledOutput?: Partial<TFullfilledOutput>; // this is the fullfilled output, like PPL query result / PER agent response
   uiState?: Partial<{
     viewMode: 'input_only' | 'output_only' | 'view_both';

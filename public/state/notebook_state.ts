@@ -32,9 +32,6 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
     this.value.context.updateValue(context);
     return this;
   }
-  getParagraphState(paragraphId: string) {
-    return this.value.paragraphs.find((paragraph) => paragraph.value.id === paragraphId);
-  }
   deleteParagraph(paragraphId: string) {
     const newParagraph = this.value.paragraphs;
     const findIndex = newParagraph.findIndex((paragraph) => paragraph.value.id === paragraphId);
@@ -64,6 +61,9 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
         return true;
       })
     );
+  }
+  getParagraphsValue() {
+    return this.value.paragraphs.map((paragraph) => paragraph.value);
   }
   // this is used for get pure backend values that needs to be persist into backend
   getParagraphsBackendValue() {
