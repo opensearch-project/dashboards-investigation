@@ -45,14 +45,9 @@
   opacity: 0;
   position: absolute;
   top: 0;
-  width: 100%;
-  z-index: 0;
-  margin: 0;
-}
-
-.notebookHeaderActionMenuButton {
-  position: relative;
   z-index: 100;
+  margin: 0;
+  right: 0;
 }
 
 .notebooks-paragraph-dark .markdown-body {

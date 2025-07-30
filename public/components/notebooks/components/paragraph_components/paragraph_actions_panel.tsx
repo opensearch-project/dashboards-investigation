@@ -7,8 +7,6 @@ import React from 'react';
 import {
   EuiContextMenu,
   EuiContextMenuPanelDescriptor,
-  EuiFlexGroup,
-  EuiFlexItem,
   EuiPopover,
   EuiSmallButtonIcon,
 } from '@elastic/eui';
@@ -150,25 +148,21 @@ export const ParagraphActionPanel = (props: {
   ];
 
   return (
-    <EuiFlexGroup className="notebookHeaderActionMenu">
-      <EuiFlexItem grow />
-      <EuiFlexItem grow={false}>
-        <EuiPopover
-          panelPaddingSize="none"
-          button={
-            <EuiSmallButtonIcon
-              aria-label="Open paragraph menu"
-              iconType="boxesHorizontal"
-              onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-              className="notebookHeaderActionMenuButton"
-            />
-          }
-          isOpen={isPopoverOpen}
-          closePopover={() => setIsPopoverOpen(false)}
-        >
-          <EuiContextMenu initialPanelId={0} panels={panels} size="s" />
-        </EuiPopover>
-      </EuiFlexItem>
-    </EuiFlexGroup>
+    <div className="notebookHeaderActionMenu">
+      <EuiPopover
+        panelPaddingSize="none"
+        button={
+          <EuiSmallButtonIcon
+            aria-label="Open paragraph menu"
+            iconType="boxesHorizontal"
+            onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+          />
+        }
+        isOpen={isPopoverOpen}
+        closePopover={() => setIsPopoverOpen(false)}
+      >
+        <EuiContextMenu initialPanelId={0} panels={panels} size="s" />
+      </EuiPopover>
+    </div>
   );
 };
