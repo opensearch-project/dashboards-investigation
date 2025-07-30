@@ -46,7 +46,12 @@
   position: absolute;
   top: 0;
   width: 100%;
-  transition: cubic-bezier(1, 0, 0, 1);
+  z-index: 0;
+  margin: 0;
+}
+
+.notebookHeaderActionMenuButton {
+  position: relative;
   z-index: 100;
 }
 

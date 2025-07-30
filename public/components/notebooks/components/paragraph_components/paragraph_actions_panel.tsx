@@ -160,6 +160,7 @@ export const ParagraphActionPanel = (props: {
               aria-label="Open paragraph menu"
               iconType="boxesHorizontal"
               onClick={() => setIsPopoverOpen(!isPopoverOpen)}
+              className="notebookHeaderActionMenuButton"
             />
           }
           isOpen={isPopoverOpen}

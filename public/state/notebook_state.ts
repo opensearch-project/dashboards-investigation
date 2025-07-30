@@ -67,6 +67,6 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
   }
   // this is used for get pure backend values that needs to be persist into backend
   getParagraphsBackendValue() {
-    return this.value.paragraphs.map((paragraph) => paragraph.value);
+    return this.value.paragraphs.map((paragraph) => paragraph.getBackgroundValue());
   }
 }

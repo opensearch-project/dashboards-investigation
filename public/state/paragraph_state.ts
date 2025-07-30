@@ -19,6 +19,17 @@ export interface ParagraphStateValue<TFullfilledOutput = {}> extends ParagraphBa
 export class ParagraphState<TFullfilledOutput = {}> extends ObservableState<
   ParagraphStateValue<TFullfilledOutput>
 > {
+  protected formatValue(
+    value: ParagraphStateValue<TFullfilledOutput>
+  ): ParagraphStateValue<TFullfilledOutput> {
+    return {
+      ...value,
+      uiState: {
+        viewMode: 'view_both',
+        ...(value.uiState as Partial<ParagraphStateValue['uiState']>),
+      },
+    };
+  }
   getParagraphType() {
     return this.value.input.inputType;
   }
