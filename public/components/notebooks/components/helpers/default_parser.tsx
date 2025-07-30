@@ -89,8 +89,8 @@ export const defaultParagraphParser = (defaultBackendParagraphs: ParagraphStateV
 
       const tempPara: ParaType = {
         uniqueId: paraObject.id,
-        isRunning: paraObject.uiState.isRunning || false,
-        inQueue: paraObject.uiState.inQueue || false,
+        isRunning: paraObject.uiState?.isRunning || false,
+        inQueue: paraObject.uiState?.inQueue || false,
         showAddPara: false,
         isVizualisation: vizParams.isViz,
         isDeepResearch: paraObject.input.inputType.includes('DEEP_RESEARCH'),

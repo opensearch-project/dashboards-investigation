@@ -8,12 +8,12 @@ import { ObservableState } from './observable_state';
 
 export interface ParagraphStateValue<TFullfilledOutput = {}> extends ParagraphBackendType {
   fullfilledOutput?: Partial<TFullfilledOutput>; // this is the fullfilled output, like PPL query result / PER agent response
-  uiState: {
+  uiState?: Partial<{
     viewMode: 'input_only' | 'output_only' | 'view_both';
     inQueue?: boolean;
     isRunning?: boolean;
     isOutputStale?: boolean;
-  };
+  }>;
 }
 
 export class ParagraphState<TFullfilledOutput = {}> extends ObservableState<

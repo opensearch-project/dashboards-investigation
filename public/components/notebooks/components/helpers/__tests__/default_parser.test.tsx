@@ -44,6 +44,11 @@ describe('Testing default backend parser function with perfect schema', () => {
               execution_time: '0s',
             },
           ],
+          uiState: {
+            viewMode: 'view_both',
+          },
+          dateModified: '',
+          dateCreated: '',
         };
       })
     );

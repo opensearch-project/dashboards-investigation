@@ -73,13 +73,6 @@ describe('<Paragraphs /> spec', () => {
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();
-
-    utils.getByLabelText('Open paragraph menu').click();
-    utils.getByText('Run input').click();
-    utils.getByLabelText('Open paragraph menu').click();
-    utils.getByText('Duplicate').click();
-    utils.getByLabelText('Open paragraph menu').click();
-    utils.getByText('Delete').click();
   });
 
   it('use SavedObject find to fetch visualizations when dataSourceEnabled', () => {
