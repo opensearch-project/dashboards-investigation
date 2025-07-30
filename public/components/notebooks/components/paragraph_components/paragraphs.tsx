@@ -33,7 +33,6 @@ import React, {
 import { useCallback } from 'react';
 import {
   CoreStart,
-  MountPoint,
   SavedObjectsFindOptions,
   SavedObjectsStart,
 } from '../../../../../../../src/core/public';
@@ -102,7 +101,6 @@ interface ParagraphProps {
   deleteVizualization: (uniqueId: string) => void;
   http: CoreStart['http'];
   selectedViewId: string;
-  setSelectedViewId: (viewId: string, scrollToIndex?: number) => void;
   deletePara: (para: ParaType, index: number) => void;
   runPara: (
     para: ParaType,
@@ -118,7 +116,6 @@ interface ParagraphProps {
   showQueryParagraphError: boolean;
   queryParagraphErrorMessage: string;
   dataSourceManagement: DataSourceManagementPluginSetup;
-  setActionMenu: (menuMount: MountPoint | undefined) => void;
   notifications: CoreStart['notifications'];
   dataSourceEnabled: boolean;
   savedObjectsMDSClient: SavedObjectsStart;
@@ -129,8 +126,6 @@ interface ParagraphProps {
   paradataSourceMDSId: string;
   dataSourceMDSLabel: string;
   paragraphs: ParaType[];
-  updateBubbleParagraph: (index: number, paraUniqueId: string, result: string) => Promise<any>;
-  updateNotebookContext: (newContext: any) => Promise<any>;
 }
 
 export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
@@ -150,8 +145,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
     handleSelectedDataSourceChange,
     paradataSourceMDSId,
     dataSourceMDSLabel,
-    updateBubbleParagraph,
-    updateNotebookContext,
   } = props;
 
   const [visOptions, setVisOptions] = useState<EuiComboBoxOptionOption[]>([
@@ -389,8 +382,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
       visInput={visInput}
       setVisInput={setVisInput}
       DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
-      updateBubbleParagraph={updateBubbleParagraph}
-      updateNotebookContext={updateNotebookContext}
     />
   );
 
@@ -680,7 +671,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
         </EuiFlexGroup>
       )}
       <div key={index} className={paraClass}>
-        {para.isInputExpanded && !para.isAnomalyVisualizationAnalysis && (
+        {!para.isAnomalyVisualizationAnalysis && (
           <>
             <EuiSpacer size="s" />
             <EuiCompressedFormRow

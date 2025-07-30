@@ -23,7 +23,6 @@ describe('<ParaOutput /> spec', () => {
 
   it('renders markdown outputs', () => {
     const para = sampleParsedParagraghs1[0];
-    para.isSelected = true;
     const setVisInput = jest.fn();
     const utils = render(
       <ParaOutput
@@ -39,7 +38,6 @@ describe('<ParaOutput /> spec', () => {
 
   it('renders query outputs', () => {
     const para = sampleParsedParagraghs1[3];
-    para.isSelected = true;
     const setVisInput = jest.fn();
     const utils = render(
       <ParaOutput
@@ -56,7 +54,6 @@ describe('<ParaOutput /> spec', () => {
   it('renders query outputs with error', () => {
     const para = sampleParsedParagraghs1[3];
     para.out = ['{"error":"Invalid SQL query"}'];
-    para.isSelected = true;
     const setVisInput = jest.fn();
     const utils = render(
       <ParaOutput
@@ -72,7 +69,6 @@ describe('<ParaOutput /> spec', () => {
 
   it('renders dashboards visualization outputs', () => {
     const para = sampleParsedParagraghs1[2];
-    para.isSelected = true;
 
     uiSettingsService.get = jest.fn().mockReturnValue('YYYY-MMM-DD HH:mm:ss');
     const setVisInput = jest.fn();
@@ -93,7 +89,6 @@ describe('<ParaOutput /> spec', () => {
 
   it('renders observability visualization outputs', () => {
     const para = sampleObservabilityVizParagraph;
-    para.isSelected = true;
 
     uiSettingsService.get = jest.fn().mockReturnValue('YYYY-MMM-DD HH:mm:ss');
     const setVisInput = jest.fn();
@@ -114,7 +109,6 @@ describe('<ParaOutput /> spec', () => {
 
   it('renders other types of outputs', () => {
     const para = sampleParsedParagraghs1[0];
-    para.isSelected = true;
     para.typeOut = ['HTML', 'TABLE', 'IMG', 'UNKNOWN', undefined];
     para.out = ['', '', '', '', ''];
     const setVisInput = jest.fn();

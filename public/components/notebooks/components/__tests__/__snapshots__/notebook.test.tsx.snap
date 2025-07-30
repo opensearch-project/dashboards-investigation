@@ -33,6 +33,7 @@ exports[`<Notebook /> spec Renders the empty component 1`] = `
                   class="euiToolTipAnchor"
                 >
                   <button
+                    aria-label="Delete"
                     class="euiButtonIcon euiButtonIcon--danger euiButtonIcon--small"
                     data-test-subj="notebook-delete-icon"
                     type="button"
@@ -61,6 +62,7 @@ exports[`<Notebook /> spec Renders the empty component 1`] = `
                   class="euiToolTipAnchor"
                 >
                   <button
+                    aria-label="Edit name"
                     class="euiButtonIcon euiButtonIcon--primary euiButtonIcon--small"
                     data-test-subj="notebook-edit-icon"
                     type="button"
@@ -89,6 +91,7 @@ exports[`<Notebook /> spec Renders the empty component 1`] = `
                   class="euiToolTipAnchor"
                 >
                   <button
+                    aria-label="Duplicate"
                     class="euiButtonIcon euiButtonIcon--primary euiButtonIcon--small"
                     data-test-subj="notebook-duplicate-icon"
                     type="button"

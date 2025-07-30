@@ -48,10 +48,10 @@ export const InputPanel: React.FC<InputPanelProps> = ({
   });
 
   useEffect(() => {
-    if (!context?.reducer?.state.isLoading) {
+    if (!context?.state.isLoading) {
       setInputValue('');
     }
-  }, [context?.reducer?.state.isLoading]);
+  }, [context?.state.isLoading]);
 
   const paragraphOptions: EuiSelectableOption[] = [
     { label: 'PPL', key: 'PPL', 'data-test-subj': 'paragraph-type-ppl' },

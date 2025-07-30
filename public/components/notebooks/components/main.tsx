@@ -7,7 +7,7 @@ import React from 'react';
 // eslint-disable-next-line @osd/eslint/module_migration
 import { Route, Switch } from 'react-router';
 import { HashRouter } from 'react-router-dom';
-import { CoreStart, MountPoint, SavedObjectsStart } from '../../../../../../src/core/public';
+import { CoreStart, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
 import { NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
@@ -31,7 +31,6 @@ interface MainProps {
   notifications: CoreStart['notifications'];
   dataSourceEnabled: boolean;
   dataSourceManagement: DataSourceManagementPluginSetup;
-  setActionMenu: (menuMount: MountPoint | undefined) => void;
   savedObjectsMDSClient: SavedObjectsStart;
   chrome: CoreStart['chrome'];
 }
@@ -118,10 +117,10 @@ export class Main extends React.Component<MainProps, MainState> {
                     DashboardContainerByValueRenderer={this.props.DashboardContainerByValueRenderer}
                     http={this.props.http}
                     dataSourceManagement={this.props.dataSourceManagement}
-                    setActionMenu={this.props.setActionMenu}
                     notifications={this.props.notifications}
                     dataSourceEnabled={this.props.dataSourceEnabled}
                     savedObjectsMDSClient={this.props.savedObjectsMDSClient}
+                    chrome={this.props.chrome}
                   />
                 );
               }}

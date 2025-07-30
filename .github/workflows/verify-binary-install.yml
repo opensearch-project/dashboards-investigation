@@ -9,8 +9,6 @@ env:
 jobs:
   verify-binary-installation:
     name: Run binary installation
-    # skip build for now since https://github.com/opensearch-project/OpenSearch-Dashboards/commit/ae1adcb7c6f2fe86fc16984a59f064a3663cca61#commitcomment-162483426
-    if: false
     strategy:
       fail-fast: false
       matrix:

@@ -56,8 +56,6 @@ const getQueryOutputData = (queryObject: any) => {
 };
 
 const OutputBody = ({
-  index,
-  key,
   http,
   typeOut,
   val,
@@ -65,11 +63,8 @@ const OutputBody = ({
   visInput,
   setVisInput,
   DashboardContainerByValueRenderer,
-  updateBubbleParagraph,
-  updateNotebookContext,
 }: {
   index: number;
-  key: string;
   http: CoreStart['http'];
   typeOut: string;
   val: string;
@@ -77,8 +72,6 @@ const OutputBody = ({
   visInput: DashboardContainerInput;
   setVisInput: (input: DashboardContainerInput) => void;
   DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
-  updateBubbleParagraph: (index: number, paraUniqueId: string, result: string) => Promise<any>;
-  updateNotebookContext: (newContext: any) => Promise<any>;
 }) => {
   /* Returns a component to render paragraph outputs using the para.typeOut property
    * Currently supports HTML, TABLE, IMG
@@ -93,7 +86,7 @@ const OutputBody = ({
         const inputQuery = para.inp.substring(4, para.inp.length);
         const queryObject = JSON.parse(val);
         if (queryObject.hasOwnProperty('error')) {
-          return <EuiCodeBlock key={key}>{val}</EuiCodeBlock>;
+          return <EuiCodeBlock>{val}</EuiCodeBlock>;
         } else {
           const columns = createQueryColumns(queryObject.schema);
           const data = getQueryOutputData(queryObject);
@@ -104,7 +97,6 @@ const OutputBody = ({
               </EuiText>
               <EuiSpacer />
               <QueryDataGridMemo
-                key={key}
                 rowCount={queryObject.datarows.length}
                 queryColumns={columns}
                 dataValues={data}
@@ -115,7 +107,6 @@ const OutputBody = ({
       case 'MARKDOWN':
         return (
           <EuiText
-            key={key}
             className="wrapAll markdown-output-text"
             data-test-subj="markdownOutputText"
             size="s"
@@ -167,7 +158,6 @@ const OutputBody = ({
               {`${from} - ${to}`}
             </EuiText>
             <DashboardContainerByValueRenderer
-              key={key}
               input={{
                 ...visInput,
                 panels,
@@ -178,29 +168,21 @@ const OutputBody = ({
         );
       case 'HTML':
         return (
-          <EuiText key={key}>
+          <EuiText>
             {/* eslint-disable-next-line react/jsx-pascal-case */}
             <Media.HTML data={val} />
           </EuiText>
         );
       case 'TABLE':
-        return <pre key={key}>{val}</pre>;
+        return <pre>{val}</pre>;
       case 'IMG':
-        return <img alt="" src={'data:image/gif;base64,' + val} key={key} />;
+        return <img alt="" src={'data:image/gif;base64,' + val} />;
       case 'DEEP_RESEARCH':
         return <DeepResearchContainer http={http} para={para} onTaskFinish={() => {}} />;
       case 'ANOMALY_VISUALIZATION_ANALYSIS':
-        return (
-          <BubbleUpContainer
-            index={index}
-            http={http}
-            para={para}
-            updateBubbleParagraph={updateBubbleParagraph}
-            updateNotebookContext={updateNotebookContext}
-          />
-        );
+        return <BubbleUpContainer />;
       default:
-        return <pre key={key}>{val}</pre>;
+        return <pre>{val}</pre>;
     }
   } else {
     console.log('output not supported', typeOut);
@@ -224,22 +206,11 @@ export const ParaOutput = (props: {
   visInput: DashboardContainerInput;
   setVisInput: (input: DashboardContainerInput) => void;
   DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
-  updateBubbleParagraph: (index: number, paraUniqueId: string, result: string) => Promise<any>;
-  updateNotebookContext: (newContext: any) => Promise<any>;
 }) => {
-  const {
-    index,
-    para,
-    http,
-    DashboardContainerByValueRenderer,
-    visInput,
-    setVisInput,
-    updateBubbleParagraph,
-    updateNotebookContext,
-  } = props;
+  const { index, para, http, DashboardContainerByValueRenderer, visInput, setVisInput } = props;
 
   return (
-    !para.isOutputHidden && (
+    !para.isRunning && (
       <>
         {para.typeOut.map((typeOut: string, tIdx: number) => {
           return (
@@ -253,8 +224,6 @@ export const ParaOutput = (props: {
               setVisInput={setVisInput}
               DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
               http={http}
-              updateBubbleParagraph={updateBubbleParagraph}
-              updateNotebookContext={updateNotebookContext}
             />
           );
         })}

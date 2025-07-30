@@ -17,14 +17,12 @@ export const Observability = (
   dataSourceManagement: DataSourceManagementPluginSetup,
   savedObjectsMDSClient: CoreStart['savedObjects']
 ) => {
-  const { setHeaderActionMenu } = AppMountParametersProp;
   const { dataSource } = DepsStart;
   ReactDOM.render(
     <App
       CoreStartProp={CoreStartProp}
       DepsStart={DepsStart}
       dataSourceManagement={dataSourceManagement}
-      setActionMenu={setHeaderActionMenu}
       dataSourceEnabled={!!dataSource}
       savedObjectsMDSClient={savedObjectsMDSClient}
     />,

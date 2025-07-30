@@ -45,13 +45,11 @@ describe('<Paragraphs /> spec', () => {
     const addPara = jest.fn();
     const DashboardContainerByValueRenderer = jest.fn();
     const deleteVizualization = jest.fn();
-    const setSelectedViewId = jest.fn();
     const deletePara = jest.fn();
     const runPara = jest.fn();
     const clonePara = jest.fn();
     const movePara = jest.fn();
     const para = sampleParsedParagraghs1[0];
-    para.isInputExpanded = true;
     const utils = render(
       <Paragraphs
         ref={jest.fn()}
@@ -68,7 +66,6 @@ describe('<Paragraphs /> spec', () => {
         deleteVizualization={deleteVizualization}
         http={getOSDHttp()}
         selectedViewId="view_both"
-        setSelectedViewId={setSelectedViewId}
         deletePara={deletePara}
         runPara={runPara}
         clonePara={clonePara}
@@ -97,7 +94,6 @@ describe('<Paragraphs /> spec', () => {
     const addPara = jest.fn();
     const DashboardContainerByValueRenderer = jest.fn();
     const deleteVizualization = jest.fn();
-    const setSelectedViewId = jest.fn();
     const deletePara = jest.fn();
     const runPara = jest.fn();
     const clonePara = jest.fn();
@@ -106,15 +102,11 @@ describe('<Paragraphs /> spec', () => {
       uniqueId: 'paragraph_1a710988-ec19-4caa-83cc-38eb609427d1',
       isRunning: false,
       inQueue: false,
-      isSelected: false,
-      isInputHidden: false,
-      isOutputHidden: false,
       showAddPara: false,
       isVizualisation: true,
       vizObjectInput: '{}',
       id: 1,
       inp: '# Type your input here',
-      isInputExpanded: false,
       isOutputStale: false,
       paraDivRef: undefined,
       visEndTime: undefined,
@@ -125,7 +117,6 @@ describe('<Paragraphs /> spec', () => {
       typeOut: ['MARKDOWN'],
       out: ['# Type your input here'],
     };
-    para.isInputExpanded = true;
     const utils = render(
       <Paragraphs
         ref={jest.fn()}
@@ -142,7 +133,6 @@ describe('<Paragraphs /> spec', () => {
         deleteVizualization={deleteVizualization}
         http={getOSDHttp()}
         selectedViewId="view_both"
-        setSelectedViewId={setSelectedViewId}
         deletePara={deletePara}
         runPara={runPara}
         clonePara={clonePara}

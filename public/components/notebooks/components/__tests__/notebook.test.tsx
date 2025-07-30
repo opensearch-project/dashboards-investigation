@@ -20,9 +20,15 @@ import {
   notebookPutResponse,
   runCodeBlockResponse,
 } from '../../../../../test/notebooks_constants';
-import { Notebook } from '../notebook';
-import { notificationServiceMock } from '../../../../../../../src/core/public/mocks';
+import { Notebook, NotebookProps } from '../notebook';
+import {
+  chromeServiceMock,
+  notificationServiceMock,
+  savedObjectsServiceMock,
+} from '../../../../../../../src/core/public/mocks';
 import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
+import { BehaviorSubject } from 'rxjs';
+import { DataSourceManagementPluginSetup } from '../../../../../../../src/plugins/data_source_management/public';
 
 jest.mock('../../../../../../../src/plugins/embeddable/public', () => ({
   ViewMode: {
@@ -78,23 +84,36 @@ describe('<Notebook /> spec', () => {
   history.replace = jest.fn();
   history.push = jest.fn();
   const notifications = notificationServiceMock.createStartContract();
+  const defaultProps: NotebookProps = {
+    openedNoteId: '458e1320-3f05-11ef-bd29-e58626f102c0',
+    DashboardContainerByValueRenderer: jest.fn(),
+    http: httpClient,
+    chrome: chromeServiceMock.createStartContract(),
+    dataSourceManagement: ({
+      ui: {
+        DataSourceSelector: () => <div />,
+        getDataSourceMenu: jest.fn(),
+      },
+      registerAuthenticationMethod: jest.fn(),
+      dataSourceSelection: {
+        selectedDataSource$: new BehaviorSubject(new Map()),
+        removedComponentIds: [],
+        selectDataSource: jest.fn(),
+        remove: jest.fn(),
+        getSelectionValue: jest.fn(),
+        getSelection$: () => new BehaviorSubject(new Map()),
+      },
+      getDefaultDataSourceId: jest.fn(),
+      getDefaultDataSourceId$: jest.fn(() => new BehaviorSubject('')),
+    } as unknown) as DataSourceManagementPluginSetup,
+    dataSourceEnabled: false,
+    notifications,
+    savedObjectsMDSClient: savedObjectsServiceMock.createStartContract(),
+  };
 
   it('Renders the empty component', async () => {
     httpClient.get = jest.fn(() => Promise.resolve((emptyNotebook as unknown) as HttpResponse));
-    const utils = render(
-      <Notebook
-        openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        dataSourceManagement={{
-          ui: { DataSourceSelector: () => <div /> },
-          getDataSourceMenu: () => jest.fn(),
-        }}
-        setActionMenu={jest.fn()}
-        dataSourceEnabled={false}
-        notifications={notifications}
-      />
-    );
+    const utils = render(<Notebook {...defaultProps} />);
     await waitFor(() => {
       expect(utils.getByText('sample-notebook-1')).toBeInTheDocument();
     });
@@ -110,20 +129,7 @@ describe('<Notebook /> spec', () => {
         return Promise.resolve((addCodeBlockResponse as unknown) as HttpResponse);
       } else return Promise.resolve((runCodeBlockResponse as unknown) as HttpResponse);
     });
-    const utils = render(
-      <Notebook
-        openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        dataSourceManagement={{
-          ui: { DataSourceSelector: () => <div /> },
-          getDataSourceMenu: () => jest.fn(),
-        }}
-        setActionMenu={jest.fn()}
-        dataSourceEnabled={false}
-        notifications={notifications}
-      />
-    );
+    const utils = render(<Notebook {...defaultProps} />);
     await waitFor(() => {
       expect(utils.getByText('sample-notebook-1')).toBeInTheDocument();
     });
@@ -146,20 +152,7 @@ describe('<Notebook /> spec', () => {
         return Promise.resolve((addCodeBlockResponse as unknown) as HttpResponse);
       } else return Promise.resolve((runCodeBlockResponse as unknown) as HttpResponse);
     });
-    const utils = render(
-      <Notebook
-        openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        dataSourceManagement={{
-          ui: { DataSourceSelector: () => <div /> },
-          getDataSourceMenu: () => jest.fn(),
-        }}
-        setActionMenu={jest.fn()}
-        dataSourceEnabled={false}
-        notifications={notifications}
-      />
-    );
+    const utils = render(<Notebook {...defaultProps} />);
     await waitFor(() => {
       expect(utils.getByText('sample-notebook-1')).toBeInTheDocument();
     });
@@ -178,11 +171,11 @@ describe('<Notebook /> spec', () => {
       });
     });
 
-    await act(() => {
+    act(() => {
       // wait sometime to rerender
     });
 
-    await act(() => {
+    act(() => {
       fireEvent.click(utils.getByText('Run'));
     });
 
@@ -202,20 +195,7 @@ describe('<Notebook /> spec', () => {
       return Promise.resolve((addCodeBlockResponse as unknown) as HttpResponse);
     });
 
-    const utils = render(
-      <Notebook
-        openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        dataSourceManagement={{
-          ui: { DataSourceSelector: () => <div /> },
-          getDataSourceMenu: () => jest.fn(),
-        }}
-        setActionMenu={jest.fn()}
-        dataSourceEnabled={false}
-        notifications={notifications}
-      />
-    );
+    const utils = render(<Notebook {...defaultProps} />);
     await waitFor(() => {
       expect(utils.getByText('sample-notebook-1')).toBeInTheDocument();
     });
@@ -259,20 +239,7 @@ describe('<Notebook /> spec', () => {
       return Promise.resolve((addCodeBlockResponse as unknown) as HttpResponse);
     });
 
-    const utils = render(
-      <Notebook
-        openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        dataSourceManagement={{
-          ui: { DataSourceSelector: () => <div /> },
-          getDataSourceMenu: () => jest.fn(),
-        }}
-        setActionMenu={jest.fn()}
-        dataSourceEnabled={false}
-        notifications={notifications}
-      />
-    );
+    const utils = render(<Notebook {...defaultProps} />);
     await waitFor(() => {
       expect(utils.getByText('sample-notebook-1')).toBeInTheDocument();
     });
@@ -311,20 +278,7 @@ describe('<Notebook /> spec', () => {
       return Promise.resolve((addCodeBlockResponse as unknown) as HttpResponse);
     });
 
-    const utils = render(
-      <Notebook
-        openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        dataSourceManagement={{
-          ui: { DataSourceSelector: () => <div /> },
-          getDataSourceMenu: () => jest.fn(),
-        }}
-        setActionMenu={jest.fn()}
-        dataSourceEnabled={false}
-        notifications={notifications}
-      />
-    );
+    const utils = render(<Notebook {...defaultProps} />);
     await waitFor(() => {
       expect(utils.getByText('sample-notebook-1')).toBeInTheDocument();
     });
@@ -355,20 +309,7 @@ describe('<Notebook /> spec', () => {
   it('Checks notebook reporting action presence', async () => {
     httpClient.get = jest.fn(() => Promise.resolve((emptyNotebook as unknown) as HttpResponse));
 
-    const utils = render(
-      <Notebook
-        openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        dataSourceManagement={{
-          ui: { DataSourceSelector: () => <div /> },
-          getDataSourceMenu: () => jest.fn(),
-        }}
-        setActionMenu={jest.fn()}
-        dataSourceEnabled={false}
-        notifications={notifications}
-      />
-    );
+    const utils = render(<Notebook {...defaultProps} />);
     await waitFor(() => {
       expect(utils.getByText('sample-notebook-1')).toBeInTheDocument();
     });
@@ -380,20 +321,7 @@ describe('<Notebook /> spec', () => {
   it('Checks notebook reporting action absence', async () => {
     httpClient.get = jest.fn(() => Promise.resolve((emptyNotebook as unknown) as HttpResponse));
 
-    const utils = render(
-      <Notebook
-        openedNoteId="458e1320-3f05-11ef-bd29-e58626f102c0"
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        dataSourceManagement={{
-          ui: { DataSourceSelector: () => <div /> },
-          getDataSourceMenu: () => jest.fn(),
-        }}
-        setActionMenu={jest.fn()}
-        dataSourceEnabled={true}
-        notifications={notifications}
-      />
-    );
+    const utils = render(<Notebook {...defaultProps} dataSourceEnabled />);
     await waitFor(() => {
       expect(utils.getByText('sample-notebook-1')).toBeInTheDocument();
     });
@@ -412,20 +340,7 @@ describe('<Notebook /> spec', () => {
     httpClient.get = jest.fn(() =>
       Promise.resolve((migrateBlockNotebook as unknown) as HttpResponse)
     );
-    const utils = render(
-      <Notebook
-        openedNoteId="mock-id"
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        dataSourceManagement={{
-          ui: { DataSourceSelector: () => <div /> },
-          getDataSourceMenu: () => jest.fn(),
-        }}
-        setActionMenu={jest.fn()}
-        dataSourceEnabled={false}
-        notifications={notifications}
-      />
-    );
+    const utils = render(<Notebook {...defaultProps} openedNoteId="mock-id" />);
     await waitFor(() => {
       expect(
         utils.getByText('Upgrade this notebook to take full advantage of the latest features')
@@ -459,20 +374,7 @@ describe('<Notebook /> spec', () => {
       return Promise.resolve((addCodeBlockResponse as unknown) as HttpResponse);
     });
 
-    const utils = render(
-      <Notebook
-        openedNoteId="mock-id"
-        DashboardContainerByValueRenderer={jest.fn()}
-        http={httpClient}
-        dataSourceManagement={{
-          ui: { DataSourceSelector: () => <div /> },
-          getDataSourceMenu: () => jest.fn(),
-        }}
-        setActionMenu={jest.fn()}
-        dataSourceEnabled={false}
-        notifications={notifications}
-      />
-    );
+    const utils = render(<Notebook {...defaultProps} openedNoteId="mock-id" />);
     await waitFor(() => {
       expect(utils.getByText('sample-notebook-1')).toBeInTheDocument();
     });

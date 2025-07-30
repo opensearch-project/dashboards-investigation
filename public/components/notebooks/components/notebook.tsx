@@ -29,9 +29,8 @@ import {
 import { FormattedMessage } from '@osd/i18n/react';
 import CSS from 'csstype';
 import moment from 'moment';
-import queryString from 'query-string';
 import React, { useState, useEffect, useRef } from 'react';
-import { useHistory, useLocation } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 import { Subscription, timer } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
@@ -39,7 +38,8 @@ import { useContext } from 'react';
 import { useObservable } from 'react-use';
 import { useCallback } from 'react';
 import { useMemo } from 'react';
-import { CoreStart, MountPoint, SavedObjectsStart } from '../../../../../../src/core/public';
+import { i18n } from '@osd/i18n';
+import { CoreStart, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
 import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
@@ -47,11 +47,9 @@ import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
 import { NotebookContext, ParaType } from '../../../../common/types/notebooks';
 import { setNavBreadCrumbs } from '../../../../common/utils/set_nav_bread_crumbs';
 import { HeaderControlledComponentsWrapper } from '../../../plugin_helpers/plugin_headerControl';
-import { coreRefs } from '../../../framework/core_refs';
 import { GenerateReportLoadingModal } from './helpers/custom_modals/reporting_loading_modal';
 import { defaultParagraphParser } from './helpers/default_parser';
 import { DeleteNotebookModal, getCustomModal, getDeleteModal } from './helpers/modal_containers';
-import { isValidUUID } from './helpers/notebooks_parser';
 import {
   contextMenuCreateReportDefinition,
   contextMenuViewReports,
@@ -70,10 +68,10 @@ import { constructDeepResearchParagraphOut } from '../../../../common/utils/para
 import { InputPanel } from './input_panel';
 import { ACTION_TYPES } from '../reducers/notebook_reducer';
 import { useParagraphs } from '../../../hooks/use_paragraphs';
+import { isValidUUID } from './helpers/notebooks_parser';
+import { useNotebook } from '../../../hooks/use_notebook';
 
 const ParagraphTypeDeepResearch = 'DEEP_RESEARCH';
-
-const newNavigation = coreRefs.chrome?.navGroup.getNavGroupEnabled();
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -91,29 +89,24 @@ export interface NotebookProps {
   DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
   http: CoreStart['http'];
   dataSourceManagement: DataSourceManagementPluginSetup;
-  setActionMenu: (menuMount: MountPoint | undefined) => void;
   notifications: CoreStart['notifications'];
   dataSourceEnabled: boolean;
   savedObjectsMDSClient: SavedObjectsStart;
+  chrome: CoreStart['chrome'];
 }
 
 export function NotebookComponent({
   DashboardContainerByValueRenderer,
   http,
   dataSourceManagement,
-  setActionMenu,
   notifications,
-  dataSourceEnabled,
   savedObjectsMDSClient,
+  chrome,
 }: NotebookProps) {
   const history = useHistory();
-  const location = useLocation();
 
-  const [selectedViewId, setSelectedViewId] = useState('view_both');
-  const [path, setPath] = useState('');
-  const [dateCreated, setDateCreated] = useState('');
+  const [selectedViewId] = useState('view_both');
   const [vizPrefix, _setVizPrefix] = useState('');
-  const [notebookLoading, setNotebookLoading] = useState(true);
   const [isReportingPluginInstalled, setIsReportingPluginInstalled] = useState(false);
   const [isReportingActionsPopoverOpen, setIsReportingActionsPopoverOpen] = useState(false);
   const [isReportingLoadingModalOpen, setIsReportingLoadingModalOpen] = useState(false);
@@ -121,32 +114,36 @@ export function NotebookComponent({
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
   const [showQueryParagraphError, setShowQueryParagraphError] = useState(false);
   const [queryParagraphErrorMessage, setQueryParagraphErrorMessage] = useState('');
-  const [savedObjectNotebook, setSavedObjectNotebook] = useState(true);
   const [dataSourceMDSId, setDataSourceMDSId] = useState<string | undefined | null>(null);
   const [dataSourceMDSLabel, setDataSourceMDSLabel] = useState<string | undefined | null>(null);
-  const [dataSourceMDSEnabled, setDataSourceMDSEnabled] = useState(false);
-  const [context, setContext] = useState<NotebookContext | undefined>(undefined);
-  const { createParagraph } = useParagraphs();
+  const [context] = useState<NotebookContext | undefined>(undefined);
+  const { createParagraph, showParagraphRunning, deleteParagraph } = useParagraphs();
+  const { loadNotebook: loadNotebookHook } = useNotebook();
   // Refs for task subscriptions
   const taskSubscriptions = useRef(new Map<string, Subscription>());
+  const newNavigation = chrome.navGroup.getNavGroupEnabled();
 
   const notebookContext = useContext(NotebookReactContext);
-  const notebookState = useObservable(
-    notebookContext.reducer.state.getValue$(),
-    notebookContext.reducer.state.value
-  );
-  const openedNoteId = notebookState?.id;
-  const paragraphs = notebookState?.paragraphs.map((item) => item.value);
+  const {
+    dataSourceEnabled,
+    id: openedNoteId,
+    paragraphs: paragraphsStates,
+    path,
+    dateCreated,
+    isLoading,
+  } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
+  const isSavedObjectNotebook = isValidUUID(openedNoteId);
+  const paragraphs = paragraphsStates.map((item) => item.value);
   const setParagraphs = useCallback(
     (newParagraphs) => {
-      notebookContext.reducer.dispatch({
+      notebookContext.dispatch({
         actionType: ACTION_TYPES.UPDATE_PARAGRAPHS,
         payload: {
           paragraphs: newParagraphs,
         },
       });
     },
-    [notebookContext.reducer]
+    [notebookContext]
   );
 
   // parse paragraphs based on backend
@@ -155,9 +152,7 @@ export function NotebookComponent({
       try {
         const newParsedPara = defaultParagraphParser(paragraphsProp || []);
         newParsedPara.forEach((para: ParaType) => {
-          para.isInputExpanded = true;
           para.paraDivRef = React.createRef<HTMLDivElement>();
-          para.isSelected = true;
         });
         return newParsedPara;
       } catch (err) {
@@ -171,53 +166,23 @@ export function NotebookComponent({
   );
 
   const parsedPara = useMemo(() => parseParagraphs(paragraphs), [paragraphs, parseParagraphs]);
+  const dataSourceMDSEnabled = useMemo(() => dataSourceEnabled && isSavedObjectNotebook, [
+    dataSourceEnabled,
+    isSavedObjectNotebook,
+  ]);
 
   const toggleReportingLoadingModal = (show: boolean) => {
     setIsReportingLoadingModalOpen(show);
   };
 
-  // Assigns Loading, Running & inQueue for paragraphs in current notebook
-  const showParagraphRunning = (param: number | string) => {
-    const newParas = paragraphs;
-    newParas.forEach((_: ParaType, index: number) => {
-      if (param === 'queue') {
-        newParas[index].inQueue = true;
-        newParas[index].isOutputHidden = true;
-      } else if (param === 'loading') {
-        newParas[index].isRunning = true;
-        newParas[index].isOutputHidden = true;
-      } else if (param === index) {
-        newParas[index].isRunning = true;
-        newParas[index].isOutputHidden = true;
-      }
-    });
-    setParagraphs(newParas);
-  };
-
   // Function for delete a Notebook button
   const deleteParagraphButton = (para: ParaType, index: number) => {
-    if (index !== -1) {
-      return http
-        .delete(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
-          query: {
-            noteId: openedNoteId,
-            paragraphId: para.uniqueId,
-          },
-        })
-        .then((_res) => {
-          setParagraphs((prevParagraphs) => {
-            const newParagraphs = [...prevParagraphs];
-            newParagraphs.splice(index, 1);
-            return newParagraphs;
-          });
-        })
-        .catch((err) => {
-          notifications.toasts.addDanger(
-            'Error deleting paragraph, please make sure you have the correct permission.'
-          );
-          console.error(err);
-        });
-    }
+    return deleteParagraph(para, index).catch((err) => {
+      notifications.toasts.addDanger(
+        'Error deleting paragraph, please make sure you have the correct permission.'
+      );
+      console.error(err);
+    });
   };
 
   const showDeleteParaModal = (para: ParaType, index: number) => {
@@ -391,8 +356,7 @@ export function NotebookComponent({
 
   // Delete a single notebook
   const deleteSingleNotebook = async (notebookId: string, toastMessage?: string) => {
-    const isValid = isValidUUID(notebookId);
-    const route = isValid
+    const route = isSavedObjectNotebook
       ? `${NOTEBOOKS_API_PREFIX}/note/savedNotebook/${notebookId}`
       : `${NOTEBOOKS_API_PREFIX}/note/${notebookId}`;
 
@@ -442,14 +406,44 @@ export function NotebookComponent({
       });
   };
 
-  const addPara = (index: number, newParaContent: string, inpType: string) => {
-    return createParagraph(index, newParaContent, inpType).catch((err) => {
-      notifications.toasts.addDanger(
-        'Error adding paragraph, please make sure you have the correct permission.'
-      );
-      console.error(err);
-    });
-  };
+  // FIXME
+  // Move the method into PPL paragraph
+  const loadQueryResultsFromInput = useCallback(
+    async (paragraph: any, MDSId?: any) => {
+      const queryType =
+        paragraph.input.inputText.substring(0, 4) === '%sql' ? 'sqlquery' : 'pplquery';
+      const query = {
+        dataSourceMDSId: MDSId,
+      };
+      await http
+        .post(`/api/investigation/sql/${queryType}`, {
+          body: JSON.stringify(paragraph.output[0].result),
+          ...(dataSourceEnabled && { query }),
+        })
+        .then((response) => {
+          paragraph.output[0].result =
+            response.data.resp || JSON.stringify({ error: 'no response' });
+          return paragraph;
+        })
+        .catch((err) => {
+          notifications.toasts.addDanger('Error getting query output');
+          console.error(err);
+        });
+    },
+    [http, notifications.toasts, dataSourceEnabled]
+  );
+
+  const addPara = useCallback(
+    (index: number, newParaContent: string, inpType: string) => {
+      return createParagraph(index, newParaContent, inpType).catch((err) => {
+        notifications.toasts.addDanger(
+          'Error adding paragraph, please make sure you have the correct permission.'
+        );
+        console.error(err);
+      });
+    },
+    [createParagraph, notifications.toasts]
+  );
 
   // Function to clone a paragraph
   const cloneParaButton = (para: ParaType, index: number) => {
@@ -501,125 +495,91 @@ export function NotebookComponent({
     }, 0);
   };
 
-  const updateBubbleParagraph = async (index: number, paraUniqueId: string, result: string) => {
-    try {
-      const response = await http.put(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
-        body: JSON.stringify({
-          noteId: openedNoteId,
-          paragraphId: paraUniqueId,
-          paragraphOutput: [
-            {
-              outputType: 'ANOMALY_VISUALIZATION_ANALYSIS',
-              result,
-            },
-          ],
-        }),
-      });
-
-      const newParagraphs = paragraphs;
-      newParagraphs[index] = response;
-      setParagraphs(newParagraphs);
-      return response;
-    } catch (error) {
-      console.error('Failed to update bubble paragraph:', error);
-      throw error;
-    }
-  };
-
-  const updateNotebookContext = async (newContext: any) => {
-    try {
-      const response = await http.put(`${NOTEBOOKS_API_PREFIX}/note/updateNotebookContext`, {
-        body: JSON.stringify({
-          notebookId: openedNoteId,
-          context: newContext,
-        }),
-      });
-
-      return response;
-    } catch (error) {
-      console.error('Error updating notebook context:', error);
-      throw error;
-    }
-  };
-
-  const registerDeepResearchParagraphUpdater = ({
-    taskId,
-    paraUniqueId,
-    agentId,
-    baseMemoryId,
-  }: {
-    taskId: string;
-    paraUniqueId: string;
-    agentId: string;
-    baseMemoryId?: string | undefined;
-  }) => {
-    const cleanTaskSubscription = () => {
-      taskSubscriptions.current.get(taskId)?.unsubscribe();
-      taskSubscriptions.current.delete(taskId);
-    };
-    taskSubscriptions.current.set(
+  // FIXME
+  // Move the method into PER agent paragraph
+  const registerDeepResearchParagraphUpdater = useCallback(
+    ({
       taskId,
-      timer(0, 5000)
-        .pipe(
-          switchMap(() => {
-            const uniquePara = parsedPara.find((para) => para.uniqueId === paraUniqueId);
-            if (!uniquePara) {
-              return 'STOP';
-            }
-            return getMLCommonsTask({
-              http,
-              taskId,
-              dataSourceId: uniquePara.dataSourceMDSId,
-            });
-          })
-        )
-        .pipe(takeWhile((res) => res !== 'STOP' && !isStateCompletedOrFailed(res.state), true))
-        .subscribe({
-          next: (payload) => {
-            if (payload === 'STOP') {
-              cleanTaskSubscription();
-              return;
-            }
-            const currentParsedParaIndex = parsedPara.findIndex(
-              (para) => para.uniqueId === paraUniqueId
-            );
-            const result = JSON.stringify(
-              constructDeepResearchParagraphOut({
-                task: payload,
+      paraUniqueId,
+      agentId,
+      baseMemoryId,
+      parsedParaProps,
+    }: {
+      taskId: string;
+      paraUniqueId: string;
+      agentId: string;
+      baseMemoryId?: string | undefined;
+      parsedParaProps: ParaType[];
+    }) => {
+      const cleanTaskSubscription = () => {
+        taskSubscriptions.current.get(taskId)?.unsubscribe();
+        taskSubscriptions.current.delete(taskId);
+      };
+      taskSubscriptions.current.set(
+        taskId,
+        timer(0, 5000)
+          .pipe(
+            switchMap(() => {
+              const uniquePara = parsedParaProps.find((para) => para.uniqueId === paraUniqueId);
+              if (!uniquePara) {
+                return 'STOP';
+              }
+              return getMLCommonsTask({
+                http,
                 taskId,
-                agentId,
-                baseMemoryId,
-              })
-            );
-            if (
-              !isStateCompletedOrFailed(payload.state) &&
-              result === parsedPara[currentParsedParaIndex]?.out[0]
-            ) {
-              return;
-            }
-            if (isStateCompletedOrFailed(payload.state)) {
+                dataSourceId: uniquePara.dataSourceMDSId,
+              });
+            })
+          )
+          .pipe(takeWhile((res) => res !== 'STOP' && !isStateCompletedOrFailed(res.state), true))
+          .subscribe({
+            next: (payload) => {
+              if (payload === 'STOP') {
+                cleanTaskSubscription();
+                return;
+              }
+              const currentParsedParaIndex = parsedParaProps.findIndex(
+                (para) => para.uniqueId === paraUniqueId
+              );
+              const result = JSON.stringify(
+                constructDeepResearchParagraphOut({
+                  task: payload,
+                  taskId,
+                  agentId,
+                  baseMemoryId,
+                })
+              );
+              if (
+                !isStateCompletedOrFailed(payload.state) &&
+                result === parsedParaProps[currentParsedParaIndex]?.out[0]
+              ) {
+                return;
+              }
+              if (isStateCompletedOrFailed(payload.state)) {
+                cleanTaskSubscription();
+              }
+              http.put(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
+                body: JSON.stringify({
+                  noteId: openedNoteId,
+                  paragraphId: paraUniqueId,
+                  paragraphOutput: [
+                    {
+                      outputType: 'DEEP_RESEARCH',
+                      result,
+                    },
+                  ],
+                }),
+              });
+            },
+            error: (...args) => {
+              console.log('Failed to fetch task status', ...args);
               cleanTaskSubscription();
-            }
-            http.put(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
-              body: JSON.stringify({
-                noteId: openedNoteId,
-                paragraphId: paraUniqueId,
-                paragraphOutput: [
-                  {
-                    outputType: 'DEEP_RESEARCH',
-                    result,
-                  },
-                ],
-              }),
-            });
-          },
-          error: (...args) => {
-            console.log('Failed to fetch task status', ...args);
-            cleanTaskSubscription();
-          },
-        })
-    );
-  };
+            },
+          })
+      );
+    },
+    [http, openedNoteId]
+  );
 
   // Backend call to update and run contents of paragraph
   const updateRunParagraph = (
@@ -646,8 +606,7 @@ export function NotebookComponent({
       deepResearchAgentId,
       deepResearchBaseMemoryId,
     };
-    const isValid = isValidUUID(openedNoteId);
-    const route = isValid
+    const route = isSavedObjectNotebook
       ? `${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/update/run`
       : `${NOTEBOOKS_API_PREFIX}/paragraph/update/run/`;
     return http
@@ -680,6 +639,7 @@ export function NotebookComponent({
             paraUniqueId: para.uniqueId,
             agentId: deepResearchAgentId ?? '',
             baseMemoryId: deepResearchBaseMemoryId,
+            parsedParaProps: parsedPara,
           });
         }
         setParagraphs(newParagraphs);
@@ -727,78 +687,27 @@ export function NotebookComponent({
     }
   };
 
-  const configureViewParameter = (id: string) => {
-    history.replace({
-      ...location,
-      search: `view=${id}`,
-    });
-  };
+  const setBreadcrumbs = useCallback(
+    (notePath: string) => {
+      setNavBreadCrumbs(
+        [],
+        [
+          {
+            text: 'Notebooks',
+            href: '#/',
+          },
+          {
+            text: notePath,
+            href: `#/${openedNoteId}`,
+          },
+        ]
+      );
+    },
+    [openedNoteId]
+  );
 
-  // update view mode, scrolls to paragraph and expands input if scrollToIndex is given
-  const updateView = (viewId: string, scrollToIndex?: number) => {
-    configureViewParameter(viewId);
-    const newParas = [...paragraphs];
-
-    newParas.map((para: ParaType, index: number) => {
-      newParas[index].isInputExpanded = true;
-    });
-
-    if (scrollToIndex !== undefined) {
-      newParas[scrollToIndex].isInputExpanded = true;
-      scrollToPara(scrollToIndex);
-    }
-    setSelectedViewId(viewId);
-    setParagraphs(newParas);
-  };
-
-  const setBreadcrumbs = (notePath: string) => {
-    setNavBreadCrumbs(
-      [],
-      [
-        {
-          text: 'Notebooks',
-          href: '#/',
-        },
-        {
-          text: notePath,
-          href: `#/${openedNoteId}`,
-        },
-      ]
-    );
-  };
-
-  const loadQueryResultsFromInput = async (paragraph: any, MDSId?: any) => {
-    const queryType =
-      paragraph.input.inputText.substring(0, 4) === '%sql' ? 'sqlquery' : 'pplquery';
-    const query = {
-      dataSourceMDSId: MDSId,
-    };
-    await http
-      .post(`/api/investigation/sql/${queryType}`, {
-        body: JSON.stringify(paragraph.output[0].result),
-        ...(dataSourceEnabled && { query }),
-      })
-      .then((response) => {
-        paragraph.output[0].result = response.data.resp || JSON.stringify({ error: 'no response' });
-        return paragraph;
-      })
-      .catch((err) => {
-        notifications.toasts.addDanger('Error getting query output');
-        console.error(err);
-      });
-  };
-
-  const loadNotebook = async () => {
-    showParagraphRunning('queue');
-    const isValid = isValidUUID(openedNoteId);
-    setSavedObjectNotebook(isValid);
-    setDataSourceMDSEnabled(isValid && dataSourceEnabled);
-    const route = isValid
-      ? `${NOTEBOOKS_API_PREFIX}/note/savedNotebook/${openedNoteId}`
-      : `${NOTEBOOKS_API_PREFIX}/note/${openedNoteId}`;
-    setNotebookLoading(true);
-    http
-      .get(route)
+  const loadNotebook = useCallback(async () => {
+    loadNotebookHook()
       .then(async (res) => {
         setBreadcrumbs(res.path);
         let index = 0;
@@ -824,7 +733,7 @@ export function NotebookComponent({
             );
           } else if (
             res.paragraphs[index].output[0]?.outputType === 'QUERY' &&
-            !savedObjectNotebook
+            !isSavedObjectNotebook
           ) {
             await loadQueryResultsFromInput(res.paragraphs[index]);
           } else if (res.paragraphs[index].output[0]?.outputType === 'QUERY') {
@@ -851,13 +760,10 @@ export function NotebookComponent({
               agentId,
               paraUniqueId: paragraphId,
               baseMemoryId,
+              parsedParaProps: parseParagraphs(res.paragraphs),
             });
           }
         }
-        setParagraphs(res.paragraphs);
-        setDateCreated(res.dateCreated);
-        setContext(res.context);
-        setPath(res.path);
         if (!res.paragraphs.length) {
           const resContext = res.context;
           if (resContext?.filters && resContext?.timeRange && resContext?.index) {
@@ -870,11 +776,18 @@ export function NotebookComponent({
           'Error fetching notebooks, please make sure you have the correct permission.'
         );
         console.error(err);
-      })
-      .finally(() => {
-        setNotebookLoading(false);
       });
-  };
+  }, [
+    loadNotebookHook,
+    setBreadcrumbs,
+    addPara,
+    notifications.toasts,
+    loadQueryResultsFromInput,
+    registerDeepResearchParagraphUpdater,
+    dataSourceEnabled,
+    isSavedObjectNotebook,
+    parseParagraphs,
+  ]);
 
   const handleSelectedDataSourceChange = (id: string | undefined, label: string | undefined) => {
     setDataSourceMDSId(id);
@@ -887,7 +800,7 @@ export function NotebookComponent({
     setParagraphs(newParas);
   };
 
-  const checkIfReportingPluginIsInstalled = () => {
+  const checkIfReportingPluginIsInstalled = useCallback(() => {
     fetch('../api/status', {
       headers: {
         'Content-Type': 'application/json',
@@ -917,25 +830,13 @@ export function NotebookComponent({
         notifications.toasts.addDanger('Error checking Reporting Plugin Installation status.');
         console.error(error);
       });
-  };
+  }, [notifications.toasts]);
 
   useEffect(() => {
     setBreadcrumbs('');
     loadNotebook();
     checkIfReportingPluginIsInstalled();
-    const searchParams = queryString.parse(location.search);
-    const view = searchParams.view;
-    if (!view) {
-      configureViewParameter('view_both');
-    }
-    if (view === 'output_only') {
-      setSelectedViewId('output_only');
-    } else if (view === 'input_only') {
-      setSelectedViewId('input_only');
-    }
-    // This useEffect should not set loadNotebook as a dependency, because it will cause infinite re-render. The data flow of this component should be updated.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search, location.pathname, openedNoteId, dataSourceEnabled]);
+  }, [setBreadcrumbs, loadNotebook, checkIfReportingPluginIsInstalled]);
 
   const reportingActionPanels: EuiContextMenuPanelDescriptor[] = [
     {
@@ -1008,7 +909,7 @@ export function NotebookComponent({
 
   const noteActionIcons = (
     <EuiFlexGroup gutterSize="s">
-      {savedObjectNotebook ? (
+      {isSavedObjectNotebook ? (
         <>
           <EuiFlexItem grow={false}>
             <EuiToolTip
@@ -1023,6 +924,9 @@ export function NotebookComponent({
                 size="s"
                 onClick={showDeleteNotebookModal}
                 data-test-subj="notebook-delete-icon"
+                aria-label={i18n.translate('notebook.deleteButton.tooltip', {
+                  defaultMessage: 'Delete',
+                })}
               />
             </EuiToolTip>
           </EuiFlexItem>
@@ -1038,6 +942,9 @@ export function NotebookComponent({
                 size="s"
                 onClick={showRenameModal}
                 data-test-subj="notebook-edit-icon"
+                aria-label={i18n.translate('notebook.editButton.tooltip', {
+                  defaultMessage: 'Edit name',
+                })}
               />
             </EuiToolTip>
           </EuiFlexItem>
@@ -1056,6 +963,9 @@ export function NotebookComponent({
                 size="s"
                 onClick={showCloneModal}
                 data-test-subj="notebook-duplicate-icon"
+                aria-label={i18n.translate('notebook.duplicateButton.tooltip', {
+                  defaultMessage: 'Duplicate',
+                })}
               />
             </EuiToolTip>
           </EuiFlexItem>
@@ -1075,6 +985,9 @@ export function NotebookComponent({
                 size="s"
                 onClick={showDeleteNotebookModal}
                 data-test-subj="notebook-delete-icon"
+                aria-label={i18n.translate('notebook.deleteButton.tooltip', {
+                  defaultMessage: 'Delete',
+                })}
               />
             </EuiToolTip>
           </EuiFlexItem>
@@ -1088,7 +1001,7 @@ export function NotebookComponent({
     await addPara(paragraphs.length, paragraphInput, inputType);
   };
 
-  const reportingTopButton = !savedObjectNotebook ? (
+  const reportingTopButton = !isSavedObjectNotebook ? (
     <EuiFlexItem grow={false}>
       <EuiSmallButton
         fill
@@ -1137,7 +1050,7 @@ export function NotebookComponent({
       <EuiPage direction="column">
         <EuiPageBody>
           {notebookHeader}
-          {!savedObjectNotebook && (
+          {!isSavedObjectNotebook && (
             <EuiFlexItem>
               <EuiCallOut color="primary" iconType="iInCircle">
                 Upgrade this notebook to take full advantage of the latest features
@@ -1152,12 +1065,12 @@ export function NotebookComponent({
             </EuiFlexItem>
           )}
           <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
-            {notebookLoading ? (
+            {isLoading ? (
               <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
             ) : null}
             {/* Temporarily determine whether to display the context panel based on datasource id */}
             {context?.dataSourceId && <ContextPanel addPara={addPara} />}
-            {notebookLoading ? null : parsedPara.length > 0 ? (
+            {isLoading ? null : parsedPara.length > 0 ? (
               parsedPara.map((para: ParaType, index: number) => (
                 <div ref={parsedPara[index].paraDivRef} key={`para_div_${para.uniqueId}`}>
                   <Paragraphs
@@ -1174,7 +1087,6 @@ export function NotebookComponent({
                     deleteVizualization={deleteVizualization}
                     http={http}
                     selectedViewId={selectedViewId}
-                    setSelectedViewId={updateView}
                     deletePara={showDeleteParaModal}
                     runPara={updateRunParagraph}
                     clonePara={cloneParaButton}
@@ -1182,7 +1094,6 @@ export function NotebookComponent({
                     showQueryParagraphError={showQueryParagraphError}
                     queryParagraphErrorMessage={queryParagraphErrorMessage}
                     dataSourceManagement={dataSourceManagement}
-                    setActionMenu={setActionMenu}
                     notifications={notifications}
                     dataSourceEnabled={dataSourceMDSEnabled}
                     savedObjectsMDSClient={savedObjectsMDSClient}
@@ -1190,8 +1101,6 @@ export function NotebookComponent({
                     paradataSourceMDSId={parsedPara[index].dataSourceMDSId}
                     dataSourceMDSLabel={parsedPara[index].dataSourceMDSLabel}
                     paragraphs={parsedPara}
-                    updateBubbleParagraph={updateBubbleParagraph}
-                    updateNotebookContext={updateNotebookContext}
                   />
                 </div>
               ))
@@ -1208,7 +1117,7 @@ export function NotebookComponent({
                     </EuiText>
                   </EuiText>
                   <EuiSpacer size="xl" />
-                  {savedObjectNotebook && (
+                  {isSavedObjectNotebook && (
                     <EuiFlexGroup justifyContent="spaceEvenly">
                       <EuiFlexItem grow={2} />
                       <EuiFlexItem grow={3}>
@@ -1281,7 +1190,11 @@ export function NotebookComponent({
 
 export const Notebook = (props: NotebookProps) => {
   return (
-    <NotebookContextProvider notebookId={props.openedNoteId} http={props.http}>
+    <NotebookContextProvider
+      notebookId={props.openedNoteId}
+      http={props.http}
+      dataSourceEnabled={props.dataSourceEnabled}
+    >
       <NotebookComponent {...props} />
     </NotebookContextProvider>
   );

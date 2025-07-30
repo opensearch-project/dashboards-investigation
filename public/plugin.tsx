@@ -86,7 +86,7 @@ export class InvestigationPlugin
           }
     );
 
-    const getNotebook = async (props: Pick<NotebookProps, 'openedNoteId' | 'setActionMenu'>) => {
+    const getNotebook = async (props: Pick<NotebookProps, 'openedNoteId'>) => {
       const [coreStart, depsStart] = await core.getStartServices();
       return (
         <Notebook

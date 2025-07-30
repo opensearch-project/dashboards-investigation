@@ -58,12 +58,10 @@ jobs:
                                cd plugins/dashboards-investigation &&
                                yarn osd bootstrap --single-version=loose && yarn test --coverage --maxWorkers=100%"
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v1
+      - uses: actions/upload-artifact@v4
         with:
-          flags: dashboards-investigation
-          directory: ./OpenSearch-Dashboards/plugins/dashboards-investigation
-          token: ${{ secrets.CODECOV_TOKEN }}
+          name: coverage-report-linux
+          path: ./OpenSearch-Dashboards/plugins/dashboards-investigation/coverage
 
       # - name: Build Artifact
       #   run: |
@@ -148,3 +146,21 @@ jobs:
       #   with:
       #     name: dashboards-investigation-${{ matrix.os }}
       #     path: ./OpenSearch-Dashboards/plugins/dashboards-investigation/build
+  tests-codecov:
+    needs: build-linux
+    runs-on: ubuntu-latest
+    steps:
+      # uploader needs to scan the git tree to assemble a list of files
+      - name: Checkout dashboards-observability plugin
+        uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage-report-linux
+          path: ./coverage
+      - name: Upload Coverage Report
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage
+          fail_ci_if_error: true
+          verbose: true

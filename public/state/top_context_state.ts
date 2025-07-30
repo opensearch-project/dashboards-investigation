@@ -6,8 +6,4 @@
 import { NotebookContext } from 'common/types/notebooks';
 import { ObservableState } from './observable_state';
 
-export class TopContextState extends ObservableState<NotebookContext> {
-  public updateValue(value: Partial<NotebookContext>) {
-    return super.updateValue(value);
-  }
-}
+export class TopContextState extends ObservableState<NotebookContext> {}

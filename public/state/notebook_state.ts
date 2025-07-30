@@ -12,6 +12,10 @@ interface NotebookStateValue {
   paragraphs: ParagraphState[];
   id: string;
   context: TopContextState;
+  dataSourceEnabled: boolean;
+  dateCreated: string;
+  isLoading: boolean;
+  path: string;
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {
@@ -49,8 +53,5 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
     this.updateValue({
       paragraphs: paragraphs.map((paragraph) => new ParagraphState(paragraph)),
     });
-  }
-  getValue$() {
-    return super.getValue$();
   }
 }
