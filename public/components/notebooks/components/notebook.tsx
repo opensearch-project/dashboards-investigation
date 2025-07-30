@@ -482,7 +482,7 @@ export function NotebookComponent({
               );
               if (
                 !isStateCompletedOrFailed(payload.state) &&
-                result === JSON.stringify(paragraphs[currentParsedParaIndex].output?.[0])
+                result === JSON.stringify(paragraphsValue[currentParsedParaIndex].output?.[0])
               ) {
                 return;
               }
@@ -509,7 +509,7 @@ export function NotebookComponent({
           })
       );
     },
-    [http, openedNoteId, notebookContext.state, paragraphs]
+    [http, openedNoteId, notebookContext.state]
   );
 
   // Backend call to update and run contents of paragraph
