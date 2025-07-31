@@ -62,7 +62,7 @@ export const updateParagraphText = (
   } else {
     // Replace variables with values. eg: ${context.a[0].b.c} -> value
     const replacedVariablesInput = removedPrefixInput.replace(/\$\{([^}]+)\}/g, (match, path) => {
-      // Remove 'context.' prefix if it exists
+      // Currently we only support to retrieve value from context. So remove 'context.' prefix if it exists
       const cleanPath = path.startsWith('context.') ? path.substring(8) : path;
       const value = getNestedValue(context, cleanPath);
       // Handle null values - return "null" string instead of keeping placeholder
