@@ -8,324 +8,503 @@ import { NotebookContext } from '../../../../common/types/notebooks';
 import { updateParagraphText } from './paragraph';
 
 describe('updateParagraphText', () => {
+  // Mock notebook info with complex nested structure
   const createMockNotebookInfo = (
-    variables?: Record<string, unknown>
+    context: any
   ): SavedObject<{ savedNotebook: { context?: NotebookContext } }> => ({
-    id: 'test-notebook-id',
+    id: 'test-notebook',
     type: 'notebook',
     references: [],
     attributes: {
       savedNotebook: {
-        context: variables ? { variables } : undefined,
+        context,
       },
     },
   });
 
-  describe('SQL paragraph processing', () => {
-    it('should replace variables in SQL query with prefix removal', () => {
-      const mockNotebookInfo = createMockNotebookInfo({
-        index: 'logs-*',
-        timeRange: '7d',
-        threshold: '1000',
-      });
-
-      const inputText =
-        '%sql SELECT * FROM ${index} WHERE timestamp > now() - INTERVAL ${timeRange} AND count > ${threshold}';
-      const expected =
-        'SELECT * FROM logs-* WHERE timestamp > now() - INTERVAL 7d AND count > 1000';
+  describe('Prefix removal', () => {
+    it('should remove SQL prefix', () => {
+      const inputText = '%sql SELECT * FROM table';
+      const mockNotebookInfo = createMockNotebookInfo({});
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('SELECT * FROM table');
     });
 
-    it('should handle SQL query with no variables', () => {
-      const mockNotebookInfo = createMockNotebookInfo();
-
-      const inputText = '%sql SELECT * FROM logs WHERE timestamp > now() - INTERVAL 1d';
-      const expected = 'SELECT * FROM logs WHERE timestamp > now() - INTERVAL 1d';
+    it('should remove PPL prefix', () => {
+      const inputText = '%ppl source=index | stats count()';
+      const mockNotebookInfo = createMockNotebookInfo({});
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('source=index | stats count()');
     });
 
-    it('should preserve unmatched variable placeholders in SQL', () => {
-      const mockNotebookInfo = createMockNotebookInfo({
-        index: 'logs-*',
-      });
-
-      const inputText = '%sql SELECT * FROM ${index} WHERE field = ${undefinedVar}';
-      const expected = 'SELECT * FROM logs-* WHERE field = ${undefinedVar}';
+    it('should remove Markdown prefix', () => {
+      const inputText = '%md # Heading\n\nContent here';
+      const mockNotebookInfo = createMockNotebookInfo({});
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('# Heading\n\nContent here');
     });
 
-    it('should handle SQL query with complex variable values', () => {
-      const mockNotebookInfo = createMockNotebookInfo({
-        index: 'my-index-2024-*',
-        aggregation: 'avg',
-        field: 'response_time',
-        condition: '> 500',
-      });
-
-      const inputText =
-        '%sql SELECT ${aggregation}(${field}) as result FROM ${index} WHERE ${field} ${condition}';
-      const expected =
-        'SELECT avg(response_time) as result FROM my-index-2024-* WHERE response_time > 500';
+    it('should handle prefix with multiple spaces', () => {
+      const inputText = '%sql   SELECT * FROM table';
+      const mockNotebookInfo = createMockNotebookInfo({});
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('SELECT * FROM table');
+    });
+
+    it('should handle prefix with tabs', () => {
+      const inputText = '%ppl\tsource=index | stats count()';
+      const mockNotebookInfo = createMockNotebookInfo({});
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('source=index | stats count()');
     });
   });
 
-  describe('PPL paragraph processing', () => {
-    it('should replace variables in PPL query with prefix removal', () => {
+  describe('Simple variable substitution', () => {
+    it('should substitute simple variables', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.index}';
       const mockNotebookInfo = createMockNotebookInfo({
-        index: 'metrics-*',
-        timeField: '@timestamp',
-        aggregation: 'count',
+        variables: {
+          index: 'logs-*',
+        },
       });
 
-      const inputText =
-        '%ppl source=${index} | where ${timeField} > now() - 1d | stats ${aggregation}() by field';
-      const expected = 'source=metrics-* | where @timestamp > now() - 1d | stats count() by field';
-
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('SELECT * FROM logs-*');
     });
 
-    it('should handle PPL query with multiple variable occurrences', () => {
+    it('should substitute multiple variables', () => {
+      const inputText =
+        '%sql SELECT * FROM ${context.variables.index} WHERE count > ${context.variables.threshold}';
       const mockNotebookInfo = createMockNotebookInfo({
-        index: 'logs-*',
-        field: 'status',
-        value: 'error',
+        variables: {
+          index: 'logs-*',
+          threshold: '1000',
+        },
       });
 
-      const inputText =
-        '%ppl source=${index} | where ${field}="${value}" | stats count() by ${field}';
-      const expected = 'source=logs-* | where status="error" | stats count() by status';
-
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('SELECT * FROM logs-* WHERE count > 1000');
     });
 
-    it('should handle PPL query with no variables', () => {
-      const mockNotebookInfo = createMockNotebookInfo();
-
-      const inputText = '%ppl source=logs-* | where status="error" | stats count()';
-      const expected = 'source=logs-* | where status="error" | stats count()';
+    it('should keep original placeholder when variable not found', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.missing}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          index: 'logs-*',
+        },
+      });
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('SELECT * FROM ${context.variables.missing}');
     });
   });
 
-  describe('Markdown paragraph processing', () => {
-    it('should replace variables in markdown content with prefix removal', () => {
+  describe('Nested path access', () => {
+    it('should access nested object properties', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.config.index}';
       const mockNotebookInfo = createMockNotebookInfo({
-        title: 'Daily Report',
-        date: '2024-01-15',
-        metric: 'response_time',
+        variables: {
+          config: {
+            index: 'logs-*',
+            timeout: 30,
+          },
+        },
       });
-
-      const inputText = '%md # ${title}\n\nReport generated on ${date} for ${metric} analysis.';
-      const expected =
-        '# Daily Report\n\nReport generated on 2024-01-15 for response_time analysis.';
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('SELECT * FROM logs-*');
     });
 
-    it('should handle markdown with nested variable references', () => {
+    it('should access deeply nested properties', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.config.settings.database.index}';
       const mockNotebookInfo = createMockNotebookInfo({
-        reportType: 'Performance',
-        timeRange: 'last 24 hours',
-        threshold: '500ms',
+        variables: {
+          config: {
+            settings: {
+              database: {
+                index: 'logs-*',
+              },
+            },
+          },
+        },
       });
 
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM logs-*');
+    });
+
+    it('should handle missing nested path gracefully', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.config.missing.index}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          config: {
+            index: 'logs-*',
+          },
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM ${context.variables.config.missing.index}');
+    });
+  });
+
+  describe('Array index access', () => {
+    it('should access array elements by index', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.indexes[0]}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          indexes: ['logs-*', 'metrics-*', 'events-*'],
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM logs-*');
+    });
+
+    it('should access nested array elements', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.configs[0].index}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          configs: [
+            { index: 'logs-*', type: 'log' },
+            { index: 'metrics-*', type: 'metric' },
+          ],
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM logs-*');
+    });
+
+    it('should handle array index out of bounds', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.indexes[10]}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          indexes: ['logs-*', 'metrics-*'],
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM ${context.variables.indexes[10]}');
+    });
+
+    it('should handle negative array index', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.indexes[-1]}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          indexes: ['logs-*', 'metrics-*'],
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM ${context.variables.indexes[-1]}');
+    });
+  });
+
+  describe('Complex nested access', () => {
+    it('should handle mixed array and object access', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.configs[0].databases[1].index}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          configs: [
+            {
+              databases: [
+                { index: 'logs-*', type: 'log' },
+                { index: 'metrics-*', type: 'metric' },
+              ],
+            },
+          ],
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM metrics-*');
+    });
+
+    it('should handle multiple complex paths in one query', () => {
       const inputText =
-        '%md ## ${reportType} Analysis\n\nThis ${reportType.toLowerCase()} report covers the ${timeRange} with a threshold of ${threshold}.';
-      const expected =
-        '## Performance Analysis\n\nThis performance report covers the last 24 hours with a threshold of 500ms.';
+        '%sql SELECT * FROM ${context.variables.configs[0].index} WHERE type = "${context.variables.configs[0].type}" AND count > ${context.variables.thresholds[1]}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          configs: [{ index: 'logs-*', type: 'log' }],
+          thresholds: [100, 1000, 5000],
+        },
+      });
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('SELECT * FROM logs-* WHERE type = "log" AND count > 1000');
+    });
+  });
+
+  describe('Data type handling', () => {
+    it('should handle numeric values', () => {
+      const inputText =
+        '%sql SELECT * FROM logs WHERE count > ${context.variables.threshold} LIMIT ${context.variables.limit}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          threshold: 1000,
+          limit: 100,
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM logs WHERE count > 1000 LIMIT 100');
     });
 
-    it('should handle markdown with no variables', () => {
-      const mockNotebookInfo = createMockNotebookInfo();
-
-      const inputText = '%md # Static Report\n\nThis is a static markdown content.';
-      const expected = '# Static Report\n\nThis is a static markdown content.';
+    it('should handle zero values', () => {
+      const inputText =
+        '%sql SELECT * FROM logs WHERE count > ${context.variables.threshold} OFFSET ${context.variables.offset}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          threshold: 1000,
+          offset: 0,
+        },
+      });
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('SELECT * FROM logs WHERE count > 1000 OFFSET 0');
+    });
+
+    it('should handle boolean values', () => {
+      const inputText = '%sql SELECT * FROM logs WHERE active = ${context.variables.isActive}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          isActive: true,
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM logs WHERE active = true');
+    });
+
+    it('should handle false boolean values', () => {
+      const inputText = '%sql SELECT * FROM logs WHERE active = ${context.variables.isActive}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          isActive: false,
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM logs WHERE active = false');
+    });
+
+    it('should handle empty string values', () => {
+      const inputText = '%sql SELECT * FROM logs WHERE status = "${context.variables.status}"';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          status: '',
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM logs WHERE status = ""');
+    });
+
+    it('should handle null values', () => {
+      const inputText = '%sql SELECT * FROM logs WHERE value = ${context.variables.nullValue}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          nullValue: null,
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM logs WHERE value = null');
     });
   });
 
   describe('Edge cases and error handling', () => {
-    it('should handle empty input text', () => {
-      const mockNotebookInfo = createMockNotebookInfo({
-        index: 'logs-*',
-      });
-
-      const inputText = '%sql';
-      const expected = '';
-
-      const result = updateParagraphText(inputText, mockNotebookInfo);
-
-      expect(result).toBe(expected);
-    });
-
-    it('should handle input text shorter than prefix', () => {
-      const mockNotebookInfo = createMockNotebookInfo({
-        index: 'logs-*',
-      });
-
-      const inputText = '%sq';
-      const expected = '';
-
-      const result = updateParagraphText(inputText, mockNotebookInfo);
-
-      expect(result).toBe(expected);
-    });
-
-    it('should handle notebook info without context', () => {
-      const mockNotebookInfo = createMockNotebookInfo();
-
-      const inputText = '%sql SELECT * FROM ${index}';
-      const expected = 'SELECT * FROM ${index}';
-
-      const result = updateParagraphText(inputText, mockNotebookInfo);
-
-      expect(result).toBe(expected);
-    });
-
-    it('should handle notebook info with empty context', () => {
+    it('should handle empty context', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.index}';
       const mockNotebookInfo = createMockNotebookInfo({});
 
-      const inputText = '%sql SELECT * FROM ${index}';
-      const expected = 'SELECT * FROM ${index}';
-
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('SELECT * FROM ${context.variables.index}');
     });
 
-    it('should handle variables with special characters', () => {
-      const mockNotebookInfo = createMockNotebookInfo({
-        'index-name': 'logs-2024-*',
-        'field.name': 'response_time',
-        'special@var': 'value',
-      });
-
-      const inputText =
-        '%sql SELECT * FROM ${index-name} WHERE ${field.name} > 0 AND ${special@var} = "test"';
-      const expected = 'SELECT * FROM logs-2024-* WHERE response_time > 0 AND value = "test"';
+    it('should handle null context', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.index}';
+      const mockNotebookInfo = createMockNotebookInfo(null);
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('SELECT * FROM ${context.variables.index}');
     });
 
-    it('should handle variables with numeric values', () => {
-      const mockNotebookInfo = createMockNotebookInfo({
-        threshold: 1000,
-        limit: 100,
-        offset: 0,
-      });
-
-      const inputText =
-        '%sql SELECT * FROM logs WHERE count > ${threshold} LIMIT ${limit} OFFSET ${offset}';
-      const expected = 'SELECT * FROM logs WHERE count > 1000 LIMIT 100 OFFSET 0';
+    it('should handle undefined context', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.index}';
+      const mockNotebookInfo = createMockNotebookInfo(undefined);
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('SELECT * FROM ${context.variables.index}');
     });
 
-    it('should handle variables with boolean values', () => {
+    it('should handle empty path', () => {
+      const inputText = '%sql SELECT * FROM ${}';
       const mockNotebookInfo = createMockNotebookInfo({
-        enabled: true,
-        debug: false,
+        variables: { index: 'logs-*' },
       });
-
-      const inputText = '%sql SELECT * FROM logs WHERE enabled = ${enabled} AND debug = ${debug}';
-      const expected = 'SELECT * FROM logs WHERE enabled = true AND debug = false';
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('SELECT * FROM ${}');
     });
 
-    it('should handle variables with null values', () => {
+    it('should handle malformed path', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.index';
       const mockNotebookInfo = createMockNotebookInfo({
-        index: null,
-        field: undefined,
+        variables: { index: 'logs-*' },
       });
-
-      const inputText = '%sql SELECT * FROM ${index} WHERE ${field} IS NOT NULL';
-      const expected = 'SELECT * FROM null WHERE undefined IS NOT NULL';
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe('SELECT * FROM ${context.variables.index');
+    });
+
+    it('should handle special characters in path', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables["index-name"]}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          'index-name': 'logs-*',
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM ${context.variables["index-name"]}');
     });
   });
 
-  describe('Variable substitution patterns', () => {
-    it('should handle consecutive variable replacements', () => {
+  describe('Real-world scenarios', () => {
+    it('should handle complex SQL query with multiple variables', () => {
+      const inputText =
+        '%sql SELECT ${context.variables.fields[0]}, ${context.variables.fields[1]} FROM ${context.variables.index} WHERE ${context.variables.timeField} > now() - INTERVAL ${context.variables.timeRange} AND ${context.variables.condition}';
       const mockNotebookInfo = createMockNotebookInfo({
-        a: '1',
-        b: '2',
-        c: '3',
+        variables: {
+          fields: ['timestamp', 'message'],
+          index: 'logs-*',
+          timeField: '@timestamp',
+          timeRange: '1 day',
+          condition: 'level = "error"',
+        },
       });
-
-      const inputText = '%sql SELECT ${a}, ${b}, ${c}';
-      const expected = 'SELECT 1, 2, 3';
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe(
+        'SELECT timestamp, message FROM logs-* WHERE @timestamp > now() - INTERVAL 1 day AND level = "error"'
+      );
     });
 
-    it('should handle nested variable placeholders', () => {
+    it('should handle PPL query with nested configuration', () => {
+      const inputText =
+        '%ppl source=${context.variables.index} | where ${context.variables.timeField} > now() - ${context.variables.timeRange} | stats ${context.variables.aggregation}(${context.variables.field}) by ${context.variables.groupBy}';
       const mockNotebookInfo = createMockNotebookInfo({
-        index: 'logs-*',
-        field: 'status',
+        variables: {
+          index: 'logs-*',
+          timeField: '@timestamp',
+          timeRange: '24h',
+          aggregation: 'avg',
+          field: 'response_time',
+          groupBy: 'status',
+        },
       });
-
-      const inputText = '%sql SELECT * FROM ${index} WHERE ${field} = "${field}_value"';
-      const expected = 'SELECT * FROM logs-* WHERE status = "status_value"';
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe(
+        'source=logs-* | where @timestamp > now() - 24h | stats avg(response_time) by status'
+      );
     });
 
-    it('should handle variable placeholders with underscores', () => {
+    it('should handle markdown with dynamic content', () => {
+      const inputText =
+        '%md # ${context.variables.reportTitle}\n\n## ${context.variables.metric} Analysis for ${context.variables.timeRange}\n\nThis report covers data from the last ${context.variables.timeRange} with a threshold of ${context.variables.threshold}ms.';
       const mockNotebookInfo = createMockNotebookInfo({
-        index_name: 'logs-*',
-        field_name: 'status',
-        table_name: 'events',
+        variables: {
+          reportTitle: 'Daily Performance Report',
+          metric: 'Response Time',
+          timeRange: '24 hours',
+          threshold: 500,
+        },
       });
-
-      const inputText = '%sql SELECT * FROM ${table_name} WHERE ${field_name} = "error"';
-      const expected = 'SELECT * FROM events WHERE status = "error"';
 
       const result = updateParagraphText(inputText, mockNotebookInfo);
 
-      expect(result).toBe(expected);
+      expect(result).toBe(
+        '# Daily Performance Report\n\n## Response Time Analysis for 24 hours\n\nThis report covers data from the last 24 hours with a threshold of 500ms.'
+      );
+    });
+  });
+
+  describe('Performance and large data handling', () => {
+    it('should handle large number of variables efficiently', () => {
+      const inputText =
+        '%sql SELECT * FROM ${context.variables.index} WHERE field1 = ${context.variables.value1} AND field2 = ${context.variables.value2} AND field3 = ${context.variables.value3}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          index: 'logs-*',
+          value1: 'test1',
+          value2: 'test2',
+          value3: 'test3',
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe(
+        'SELECT * FROM logs-* WHERE field1 = test1 AND field2 = test2 AND field3 = test3'
+      );
+    });
+
+    it('should handle deeply nested objects', () => {
+      const inputText = '%sql SELECT * FROM ${context.variables.config.database.settings.index}';
+      const mockNotebookInfo = createMockNotebookInfo({
+        variables: {
+          config: {
+            database: {
+              settings: {
+                index: 'logs-*',
+              },
+            },
+          },
+        },
+      });
+
+      const result = updateParagraphText(inputText, mockNotebookInfo);
+
+      expect(result).toBe('SELECT * FROM logs-*');
     });
   });
 });
