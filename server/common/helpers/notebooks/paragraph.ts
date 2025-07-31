@@ -12,7 +12,6 @@ export const updateParagraphText = (
   // Remove prefix. eg: %ppl
   const removedPrefixInput = inputText.substring(4, inputText.length);
   const variables = notebookInfo?.attributes?.savedNotebook?.context?.variables;
-  console.log('context', notebookInfo?.attributes?.savedNotebook?.context, 'variables', variables);
 
   if (!variables) {
     return removedPrefixInput;
