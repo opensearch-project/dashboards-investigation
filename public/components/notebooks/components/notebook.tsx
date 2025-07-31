@@ -580,7 +580,7 @@ export function NotebookComponent({
       })
       .catch((err) => {
         console.log(err);
-        if (err.body.statusCode === 413)
+        if (err?.body?.statusCode === 413)
           notifications.toasts.addDanger(`Error running paragraph: ${err.body.message}`);
         else
           notifications.toasts.addDanger(
