@@ -20,3 +20,6 @@ export const [getDataSourceManagementSetup, setDataSourceManagementSetup] = crea
   | { enabled: false; dataSourceManagement: undefined }
 >('DataSourceManagementSetup');
 export const [getClient, setClient] = createGetterSetter<CoreStart['http']>('http');
+
+// Export services
+export { LogPatternService } from './requests/log_pattern';

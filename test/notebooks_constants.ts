@@ -156,6 +156,7 @@ export const sampleParsedParagraghs1 = [
     dataSourceMDSLabel: undefined,
     isAnomalyVisualizationAnalysis: false,
     isDeepResearch: false,
+    isLogPattern: false,
   },
   {
     uniqueId: 'paragraph_c3107b15-da7d-4836-aef4-0996abbc8ab2',
@@ -179,6 +180,7 @@ export const sampleParsedParagraghs1 = [
     dataSourceMDSLabel: undefined,
     isAnomalyVisualizationAnalysis: false,
     isDeepResearch: false,
+    isLogPattern: false,
   },
   {
     uniqueId: 'paragraph_6d3237a9-6486-4f93-aa25-0a1c838faabd',
@@ -204,6 +206,7 @@ export const sampleParsedParagraghs1 = [
     dataSourceMDSLabel: undefined,
     isAnomalyVisualizationAnalysis: false,
     isDeepResearch: false,
+    isLogPattern: false,
   },
   {
     uniqueId: 'paragraph_f1b2db55-8704-4822-a8ff-6445fe1fa10c',
@@ -229,6 +232,7 @@ export const sampleParsedParagraghs1 = [
     dataSourceMDSLabel: undefined,
     isAnomalyVisualizationAnalysis: false,
     isDeepResearch: false,
+    isLogPattern: false,
   },
 ];
 
@@ -329,6 +333,7 @@ export const sampleParsedParagraghs2 = [
     dataSourceMDSLabel: undefined,
     isAnomalyVisualizationAnalysis: false,
     isDeepResearch: false,
+    isLogPattern: false,
   },
   {
     uniqueId: 'paragraph_c3107b15-da7d-4836-aef4-0996abbc8ab2',
@@ -352,6 +357,7 @@ export const sampleParsedParagraghs2 = [
     dataSourceMDSLabel: undefined,
     isAnomalyVisualizationAnalysis: false,
     isDeepResearch: false,
+    isLogPattern: false,
   },
   {
     uniqueId: 'paragraph_6d3237a9-6486-4f93-aa25-0a1c838faabd',
@@ -377,6 +383,7 @@ export const sampleParsedParagraghs2 = [
     dataSourceMDSLabel: undefined,
     isAnomalyVisualizationAnalysis: false,
     isDeepResearch: false,
+    isLogPattern: false,
   },
 ];
 

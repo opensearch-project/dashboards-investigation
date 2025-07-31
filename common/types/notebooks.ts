@@ -33,6 +33,7 @@ export interface ParaType {
   isVizualisation: boolean;
   isDeepResearch: boolean;
   isAnomalyVisualizationAnalysis: boolean;
+  isLogPattern: boolean;
   vizObjectInput: string;
   id: number;
   inp: string;

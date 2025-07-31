@@ -9,6 +9,7 @@ import { registerNoteRoute } from './notebooks/noteRouter';
 import { registerParaRoute } from './notebooks/paraRouter';
 import { registerSqlRoute } from './notebooks/sqlRouter';
 import { registerVizRoute } from './notebooks/vizRouter';
+import { registerLogPatternRoute } from './notebooks/logPatternRouter';
 
 export function setupRoutes({
   router,
@@ -25,6 +26,7 @@ export function setupRoutes({
   registerParaRoute(router);
   registerNoteRoute(router);
   registerVizRoute(router, dataSourceEnabled);
+  registerLogPatternRoute(router);
 
   const queryService = new QueryService(client, logger);
   registerSqlRoute(router, queryService, dataSourceEnabled);

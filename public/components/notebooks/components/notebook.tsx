@@ -40,11 +40,17 @@ import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { i18n } from '@osd/i18n';
 import { ParagraphState, ParagraphStateValue } from '../../../state/paragraph_state';
+import { ParagraphState, ParagraphStateValue } from '../../../state/paragraph_state';
 import { CoreStart, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
 import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
 import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
+import {
+  NotebookContext,
+  ParagraphBackendType,
+  ParaType,
+} from '../../../../common/types/notebooks';
 import {
   NotebookContext,
   ParagraphBackendType,
@@ -645,6 +651,8 @@ export function NotebookComponent({
       .then(async (res) => {
         setBreadcrumbs(res.path);
         let index = 0;
+        let logPatternParaExists = false;
+        let bubbleUpParaExists = false;
         for (index = 0; index < res.paragraphs.length; ++index) {
           // if the paragraph is a query, load the query output
           if (
@@ -695,12 +703,23 @@ export function NotebookComponent({
               paraUniqueId: paragraphId,
               baseMemoryId,
             });
+          } else if (res.paragraphs[index].input.inputType === 'LOG_PATTERN') {
+            logPatternParaExists = true;
+          } else if (res.paragraphs[index].input.inputType === 'ANOMALY_VISUALIZATION_ANALYSIS') {
+            bubbleUpParaExists = true;
           }
         }
-        if (!res.paragraphs.length) {
+        setParagraphs(res.paragraphs);
+        if (!bubbleUpParaExists) {
           const resContext = res.context;
           if (resContext?.filters && resContext?.timeRange && resContext?.index) {
-            createParagraph(0, '', 'ANOMALY_VISUALIZATION_ANALYSIS');
+            await createParagraph(0, '', 'ANOMALY_VISUALIZATION_ANALYSIS');
+          }
+        }
+        if (!logPatternParaExists) {
+          const resContext = res.context as NotebookContext;
+          if (resContext?.timeRange && resContext?.index && resContext?.timeField) {
+            await createParagraph(1, '', 'LOG_PATTERN');
           }
         }
       })
@@ -717,6 +736,7 @@ export function NotebookComponent({
     notifications.toasts,
     loadQueryResultsFromInput,
     registerDeepResearchParagraphUpdater,
+    setParagraphs,
     dataSourceEnabled,
     isSavedObjectNotebook,
   ]);

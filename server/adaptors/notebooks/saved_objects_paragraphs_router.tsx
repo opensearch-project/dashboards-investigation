@@ -33,6 +33,9 @@ export function createNotebook(paragraphInput: string, inputType: string) {
     if (inputType === 'ANOMALY_VISUALIZATION_ANALYSIS') {
       paragraphType = inputType;
     }
+    if (inputType === 'LOG_PATTERN') {
+      paragraphType = inputType;
+    }
     const inputObject = {
       inputType: paragraphType,
       inputText: paragraphInput,
@@ -261,6 +264,15 @@ export async function runParagraph(
           updatedParagraph.output = [
             {
               outputType: 'OBSERVABILITY_VISUALIZATION',
+              result: '',
+              execution_time: `${(now() - startTime).toFixed(3)} ms`,
+            },
+          ];
+        } else if (paragraphs[index].input.inputType === 'LOG_PATTERN') {
+          updatedParagraph.dateModified = new Date().toISOString();
+          updatedParagraph.output = [
+            {
+              outputType: 'LOG_PATTERN',
               result: '',
               execution_time: `${(now() - startTime).toFixed(3)} ms`,
             },

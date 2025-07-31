@@ -18,6 +18,7 @@ import { uiSettingsService } from '../../../../../common/utils';
 import { DeepResearchContainer } from '../../../../components/custom_panels/panel_modules/deep_research_container';
 import { QueryDataGridMemo } from './para_query_grid';
 import { BubbleUpContainer } from '../bubbleup/bubble_up_container';
+import { LogPatternContainer } from './log_pattern_container';
 import { DashboardPanelState } from '../../../../../../../src/plugins/dashboard/public/application';
 import { EmbeddableInput } from '../../../../../../../src/plugins/embeddable/public';
 
@@ -181,6 +182,8 @@ const OutputBody = ({
         return <DeepResearchContainer http={http} para={para} onTaskFinish={() => {}} />;
       case 'ANOMALY_VISUALIZATION_ANALYSIS':
         return <BubbleUpContainer />;
+      case 'LOG_PATTERN':
+        return <LogPatternContainer http={http} para={para} />;
       default:
         return <pre>{val}</pre>;
     }

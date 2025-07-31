@@ -77,6 +77,7 @@ describe('Testing default backend parser function with perfect schema', () => {
         dataSourceMDSLabel: undefined,
         isAnomalyVisualizationAnalysis: false,
         isDeepResearch: false,
+        isLogPattern: false,
       };
     });
     expect(parsedPara).toEqual(expected);
@@ -95,5 +96,33 @@ describe('Testing default backend parser function with wrong schema', () => {
     expect(() => {
       const _parsedParagraphs3 = defaultParagraphParser(sampleNotebook5.paragraphs);
     }).toThrow(Error);
+  });
+});
+
+// LogPattern type test
+describe('Testing LogPattern type parsing', () => {
+  it('correctly identifies LogPattern paragraphs', () => {
+    const logPatternParagraph = {
+      id: 'log-pattern-1',
+      input: {
+        inputText: '{"patterns": [{"pattern": "ERROR", "count": 42}]}',
+        inputType: 'LOG_PATTERN',
+      },
+      output: [
+        {
+          result:
+            '{"patterns": [{"pattern": "ERROR", "count": 42}, {"pattern": "WARN", "count": 15}]}',
+          outputType: 'LOG_PATTERN',
+          execution_time: '0s',
+        },
+      ],
+      dateCreated: '2023-01-01T00:00:00.000Z',
+      dateModified: '2023-01-01T00:00:00.000Z',
+    };
+
+    const parsed = defaultParagraphParser([logPatternParagraph]);
+    expect(parsed[0].isLogPattern).toBe(true);
+    expect(parsed[0].typeOut).toEqual(['LOG_PATTERN']);
+    expect(parsed[0].out[0]).toContain('ERROR');
   });
 });

@@ -97,6 +97,7 @@ export const defaultParagraphParser = (defaultBackendParagraphs: ParagraphStateV
         isAnomalyVisualizationAnalysis: paraObject.input.inputType.includes(
           'ANOMALY_VISUALIZATION_ANALYSIS'
         ),
+        isLogPattern: paraObject.input.inputType === 'LOG_PATTERN',
         vizObjectInput: vizParams.VizObject,
         id: index + 1,
         inp: paraObject.input.inputText || '',

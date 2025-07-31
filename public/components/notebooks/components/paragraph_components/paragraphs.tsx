@@ -173,7 +173,8 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   const isOutputAvailable =
     (para.out.length > 0 && para.out[0] !== '') ||
     (para.isVizualisation && para.typeOut.length > 0 && visInput !== undefined) ||
-    para.isAnomalyVisualizationAnalysis;
+    para.isAnomalyVisualizationAnalysis ||
+    para.isLogPattern;
 
   useImperativeHandle(ref, () => ({
     runParagraph() {
@@ -363,7 +364,10 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   };
 
   // do not show output if it is a visualization paragraph and visInput is not loaded yet
-  const paraOutput = (!para.isVizualisation || visInput || para.isAnomalyVisualizationAnalysis) && (
+  const paraOutput = (!para.isVizualisation ||
+    visInput ||
+    para.isAnomalyVisualizationAnalysis ||
+    para.isLogPattern) && (
     <ParaOutput
       index={index}
       http={http}
@@ -461,45 +465,48 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
       hasBorder={false}
     >
       {<ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />}
-      {dataSourceEnabled && !para.isVizualisation && !para.isAnomalyVisualizationAnalysis && (
-        <EuiFlexGroup style={{ marginTop: 0 }}>
-          <EuiFlexItem>
-            <DataSourceSelector
-              savedObjectsClient={savedObjectsMDSClient.client}
-              notifications={notifications}
-              onSelectedDataSource={onSelectedDataSource}
-              disabled={false}
-              fullWidth={false}
-              removePrepend={false}
-              defaultOption={
-                paradataSourceMDSId !== undefined ? [{ id: paradataSourceMDSId }] : undefined
-              }
-              dataSourceFilter={dataSourceFilterFn}
-            />
-          </EuiFlexItem>
-          {para.isDeepResearch && (
-            <>
-              <EuiFlexItem>
-                <MemorySelector
-                  value={deepResearchBaseMemoryId}
-                  onChange={setDeepResearchBaseMemoryId}
-                  memoryIds={memoryIds}
-                />
-              </EuiFlexItem>
-              <EuiFlexItem>
-                <AgentsSelector
-                  http={http}
-                  value={deepResearchAgentId}
-                  dataSourceMDSId={dataSourceMDSId}
-                  onChange={setDeepResearchAgentId}
-                />
-              </EuiFlexItem>
-            </>
-          )}
-        </EuiFlexGroup>
-      )}
+      {dataSourceEnabled &&
+        !para.isVizualisation &&
+        !para.isAnomalyVisualizationAnalysis &&
+        !para.isLogPattern && (
+          <EuiFlexGroup style={{ marginTop: 0 }}>
+            <EuiFlexItem>
+              <DataSourceSelector
+                savedObjectsClient={savedObjectsMDSClient.client}
+                notifications={notifications}
+                onSelectedDataSource={onSelectedDataSource}
+                disabled={false}
+                fullWidth={false}
+                removePrepend={false}
+                defaultOption={
+                  paradataSourceMDSId !== undefined ? [{ id: paradataSourceMDSId }] : undefined
+                }
+                dataSourceFilter={dataSourceFilterFn}
+              />
+            </EuiFlexItem>
+            {para.isDeepResearch && (
+              <>
+                <EuiFlexItem>
+                  <MemorySelector
+                    value={deepResearchBaseMemoryId}
+                    onChange={setDeepResearchBaseMemoryId}
+                    memoryIds={memoryIds}
+                  />
+                </EuiFlexItem>
+                <EuiFlexItem>
+                  <AgentsSelector
+                    http={http}
+                    value={deepResearchAgentId}
+                    dataSourceMDSId={dataSourceMDSId}
+                    onChange={setDeepResearchAgentId}
+                  />
+                </EuiFlexItem>
+              </>
+            )}
+          </EuiFlexGroup>
+        )}
       <div key={index} className={paraClass}>
-        {!para.isAnomalyVisualizationAnalysis && (
+        {!para.isAnomalyVisualizationAnalysis && !para.isLogPattern && (
           <>
             <EuiSpacer size="s" />
             <EuiCompressedFormRow
