@@ -5,7 +5,7 @@
 
 import now from 'performance-now';
 import { v4 as uuid } from 'uuid';
-import { SavedObjectsClientContract } from '../../../../../src/core/server/types';
+import { SavedObjectsClientContract, SavedObject } from '../../../../../src/core/server/types';
 import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved_object_attributes';
 import {
   DefaultOutput,
@@ -14,6 +14,8 @@ import {
 import { formatNotRecognized, inputIsQuery } from '../../common/helpers/notebooks/query_helpers';
 import { OpenSearchClient } from '../../../../../src/core/server';
 import { constructDeepResearchParagraphOut } from '../../../common/utils/paragraph';
+import { updateParagraphText } from '../../common/helpers/notebooks/paragraph';
+import { NotebookContext } from '../../../common/types/notebooks';
 
 export function createNotebook(paragraphInput: string, inputType: string) {
   try {
@@ -170,9 +172,9 @@ export async function updateRunFetchParagraph(
     }
   }
   try {
-    const notebookinfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
+    const notebookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
     const updatedInputParagraphs = updateParagraphs(
-      notebookinfo.attributes.savedNotebook.paragraphs,
+      notebookInfo.attributes.savedNotebook.paragraphs,
       params.paragraphId,
       params.paragraphInput,
       params.paragraphType,
@@ -185,7 +187,8 @@ export async function updateRunFetchParagraph(
       transport,
       deepResearchAgentId,
       params.deepResearchContext,
-      params.deepResearchBaseMemoryId
+      params.deepResearchBaseMemoryId,
+      notebookInfo
     );
 
     const updateNotebook = {
@@ -215,7 +218,8 @@ export async function runParagraph(
   transport: OpenSearchClient['transport'],
   deepResearchAgentId: string | undefined,
   deepResearchContext: string | undefined,
-  deepResearchBaseMemoryId: string | undefined
+  deepResearchBaseMemoryId: string | undefined,
+  notebookinfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>
 ) {
   try {
     const updatedParagraphs = [];
@@ -229,10 +233,7 @@ export async function runParagraph(
           updatedParagraph.output = [
             {
               outputType: 'QUERY',
-              result: paragraphs[index].input.inputText.substring(
-                4,
-                paragraphs[index].input.inputText.length
-              ),
+              result: updateParagraphText(paragraphs[index].input.inputText, notebookinfo),
               execution_time: `${(now() - startTime).toFixed(3)} ms`,
             },
           ];
@@ -240,10 +241,7 @@ export async function runParagraph(
           updatedParagraph.output = [
             {
               outputType: 'MARKDOWN',
-              result: paragraphs[index].input.inputText.substring(
-                4,
-                paragraphs[index].input.inputText.length
-              ),
+              result: updateParagraphText(paragraphs[index].input.inputText, notebookinfo),
               execution_time: `${(now() - startTime).toFixed(3)} ms`,
             },
           ];

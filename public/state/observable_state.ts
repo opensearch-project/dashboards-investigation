@@ -9,10 +9,14 @@ import { map } from 'rxjs/operators';
 export class ObservableState<TValue = {}> {
   private value$: BehaviorSubject<TValue>;
   constructor(initialValue: TValue) {
-    this.value$ = new BehaviorSubject<TValue>(initialValue);
+    this.value$ = new BehaviorSubject<TValue>(this.formatValue(initialValue));
   }
   public get value() {
     return this.value$.getValue();
+  }
+
+  protected formatValue(value: TValue): TValue {
+    return value;
   }
 
   getValue$() {

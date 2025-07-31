@@ -3,15 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ParagraphStateValue } from 'public/state/paragraph_state';
 import { ParaType } from '../../../../../common/types/notebooks';
 
 // Get the type of output and result in a default notebook paragraph
 // Param: Default Backend Paragraph
-const parseOutput = (paraObject: any) => {
+const parseOutput = (paraObject: ParagraphStateValue) => {
   try {
-    const outputType = [];
-    const result = [];
-    paraObject.output.map((output: { outputType: string; result: string }) => {
+    const outputType: string[] = [];
+    const result: Array<Required<ParagraphStateValue>['output'][0]['result']> = [];
+    paraObject.output?.map((output) => {
       outputType.push(output.outputType);
       result.push(output.result);
     });
@@ -78,18 +79,18 @@ const parseVisualization = (paraObject: any) => {
 
 // Placeholder for default parser
 // Param: Default Backend Paragraph
-export const defaultParagraphParser = (defaultBackendParagraphs: any) => {
+export const defaultParagraphParser = (defaultBackendParagraphs: ParagraphStateValue[]) => {
   const parsedPara: ParaType[] = [];
   try {
-    defaultBackendParagraphs.map((paraObject: any, index: number) => {
+    defaultBackendParagraphs.map((paraObject, index: number) => {
       const codeLanguage = parseInputType(paraObject);
       const vizParams = parseVisualization(paraObject);
       const message = parseOutput(paraObject);
 
       const tempPara: ParaType = {
         uniqueId: paraObject.id,
-        isRunning: paraObject.isRunning || false,
-        inQueue: paraObject.inQueue || false,
+        isRunning: paraObject.uiState?.isRunning || false,
+        inQueue: paraObject.uiState?.inQueue || false,
         showAddPara: false,
         isVizualisation: vizParams.isViz,
         isDeepResearch: paraObject.input.inputType.includes('DEEP_RESEARCH'),
@@ -109,7 +110,6 @@ export const defaultParagraphParser = (defaultBackendParagraphs: any) => {
         visEndTime: vizParams.visEndTime,
         visSavedObjId: vizParams.visSavedObjId,
         dataSourceMDSId: paraObject.dataSourceMDSId,
-        dataSourceMDSLabel: paraObject.dataSourceMDSLabel,
       };
       parsedPara.push(tempPara);
     });

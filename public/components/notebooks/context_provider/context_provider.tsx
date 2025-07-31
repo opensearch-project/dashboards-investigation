@@ -3,10 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useReducer } from 'react';
+import React, { useRef } from 'react';
 import { NotebookState } from '../../../state/notebook_state';
 import { TopContextState } from '../../../state/top_context_state';
-import { notebookReducer, Action } from '../reducers/notebook_reducer';
 import { HttpStart } from '../../../../../../src/core/public';
 
 const defaultState = new NotebookState({
@@ -21,11 +20,9 @@ const defaultState = new NotebookState({
 
 export const NotebookReactContext = React.createContext<{
   state: NotebookState;
-  dispatch: React.Dispatch<Action>;
   http: HttpStart;
 }>({
   state: defaultState,
-  dispatch: () => {},
   http: {} as HttpStart,
 });
 
@@ -35,8 +32,7 @@ export const NotebookContextProvider = (props: {
   http: HttpStart;
   dataSourceEnabled: boolean;
 }) => {
-  const [state, dispatch] = useReducer(
-    notebookReducer,
+  const stateRef = useRef(
     new NotebookState({
       paragraphs: [],
       id: props.notebookId,
@@ -51,8 +47,7 @@ export const NotebookContextProvider = (props: {
   return (
     <NotebookReactContext.Provider
       value={{
-        state,
-        dispatch,
+        state: stateRef.current,
         http: props.http,
       }}
     >

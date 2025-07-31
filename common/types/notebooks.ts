@@ -67,4 +67,23 @@ export interface NotebookContext {
   summary?: string;
   specs?: Array<Record<string, unknown>>;
   PPLFilters?: string[];
+  variables?: Record<string, unknown>;
+}
+
+export interface ParagraphBackendType {
+  input: {
+    inputText: string;
+    inputType: string;
+  };
+  output?: [
+    {
+      execution_time: string;
+      outputType: string;
+      result: string;
+    }
+  ]; // output only has some meta data like message_id / task_id
+  id: string;
+  dateModified: string;
+  dateCreated: string;
+  dataSourceMDSId?: string;
 }

@@ -6,16 +6,12 @@
 import {
   EuiComboBoxOptionOption,
   EuiCompressedFormRow,
-  EuiContextMenu,
-  EuiContextMenuPanelDescriptor,
   EuiFlexGroup,
   EuiFlexItem,
   EuiIcon,
   EuiLink,
   EuiPanel,
-  EuiPopover,
   EuiSmallButton,
-  EuiSmallButtonIcon,
   EuiSpacer,
   EuiText,
   EuiToolTip,
@@ -58,37 +54,33 @@ import { ParaInput } from './para_input';
 import { ParaOutput } from './para_output';
 import { AgentsSelector } from './agents_selector';
 import { MemorySelector } from './memory_selector';
+import { DataSourceSelectorProps } from '../../../../../../../src/plugins/data_source_management/public/components/data_source_selector/data_source_selector';
+import { ParagraphActionPanel } from './paragraph_actions_panel';
+import { ParagraphStateValue } from '../../../../state/paragraph_state';
 
 /*
  * "Paragraphs" component is used to render cells of the notebook open and "add para div" between paragraphs
  *
  * Props taken in as params are:
  * para - parsed paragraph from notebook
- * dateModified - last modified time of paragraph
  * index - index of paragraph in the notebook
  * textValueEditor - function for handling input in textarea
  * handleKeyPress - function for handling key press like "Shift-key+Enter" to run paragraph
- * addPara - function to add a new para onclick - "Add Para" Div
  * DashboardContainerByValueRenderer - Dashboard container renderer for visualization
  * deleteVizualization - function to delete a para
  * http object - for making API requests
  * selectedViewId - selected view: view_both, input_only, output_only
- * deletePara - function to delete the selected para
  * runPara - function to run the selected para
- * clonePara - function to clone the selected para
  * clearPara - function to clear output of all the paras
- * movePara - function to move a paragraph at an index to another index
  *
  * Cell component of nteract used as a container for paragraphs in notebook UI.
  * https://components.nteract.io/#cell
  */
 interface ParagraphProps {
   para: ParaType;
-  originalPara: unknown;
-  setPara: (para: ParaType) => void;
-  dateModified: string;
+  originalPara: ParagraphStateValue;
+  setPara: (para: ParagraphStateValue) => void;
   index: number;
-  paraCount: number;
   textValueEditor: (evt: React.ChangeEvent<HTMLTextAreaElement>, index: number) => void;
   handleKeyPress: (
     evt: React.KeyboardEvent<Element>,
@@ -96,12 +88,11 @@ interface ParagraphProps {
     index: number,
     dataSourceMDSID: string
   ) => void;
-  addPara: (index: number, newParaContent: string, inputType: string) => void;
   DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
   deleteVizualization: (uniqueId: string) => void;
   http: CoreStart['http'];
   selectedViewId: string;
-  deletePara: (para: ParaType, index: number) => void;
+  deletePara: (index: number) => void;
   runPara: (
     para: ParaType,
     index: number,
@@ -111,8 +102,6 @@ interface ParagraphProps {
     deepResearchAgentId?: string,
     deepResearchBaseMemoryId?: string
   ) => void;
-  clonePara: (para: ParaType, index: number) => void;
-  movePara: (index: number, targetIndex: number) => void;
   showQueryParagraphError: boolean;
   queryParagraphErrorMessage: string;
   dataSourceManagement: DataSourceManagementPluginSetup;
@@ -126,6 +115,7 @@ interface ParagraphProps {
   paradataSourceMDSId: string;
   dataSourceMDSLabel: string;
   paragraphs: ParaType[];
+  scrollToPara: (idx: number) => void;
 }
 
 export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
@@ -144,14 +134,14 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
     savedObjectsMDSClient,
     handleSelectedDataSourceChange,
     paradataSourceMDSId,
-    dataSourceMDSLabel,
+    scrollToPara,
+    deletePara,
   } = props;
 
   const [visOptions, setVisOptions] = useState<EuiComboBoxOptionOption[]>([
     { label: 'Dashboards Visualizations', options: [] },
     { label: 'Observability Visualizations', options: [] },
   ]); // options for loading saved visualizations
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const [runParaError, setRunParaError] = useState(false);
   const [selectedVisOption, setSelectedVisOption] = useState<EuiComboBoxOptionOption[]>([]);
   const [visInput, setVisInput] = useState(undefined);
@@ -368,7 +358,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   };
   const setIsOutputStale = (isStale: boolean) => {
     const newPara = props.originalPara;
-    newPara.isOutputStale = isStale;
+    newPara.uiState.isOutputStale = isStale;
     props.setPara(newPara);
   };
 
@@ -389,155 +379,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   if (props.selectedViewId === 'output_only') {
     return paraOutput;
   }
-
-  const renderParaHeader = (type: string, idx: number) => {
-    const panels: EuiContextMenuPanelDescriptor[] = [
-      {
-        id: 0,
-        title: 'Paragraph actions',
-        items: [
-          {
-            name: 'Insert paragraph above',
-            panel: 1,
-          },
-          {
-            name: 'Insert paragraph below',
-            panel: 2,
-          },
-          {
-            name: 'Run input',
-            onClick: () => {
-              setIsPopoverOpen(false);
-              onRunPara();
-            },
-          },
-          {
-            name: 'Move up',
-            disabled: idx === 0,
-            onClick: () => {
-              setIsPopoverOpen(false);
-              props.movePara(idx, idx - 1);
-            },
-          },
-          {
-            name: 'Move to top',
-            disabled: idx === 0,
-            onClick: () => {
-              setIsPopoverOpen(false);
-              props.movePara(idx, 0);
-            },
-          },
-          {
-            name: 'Move down',
-            disabled: idx === props.paraCount - 1,
-            onClick: () => {
-              setIsPopoverOpen(false);
-              props.movePara(idx, idx + 1);
-            },
-          },
-          {
-            name: 'Move to bottom',
-            disabled: idx === props.paraCount - 1,
-            onClick: () => {
-              setIsPopoverOpen(false);
-              props.movePara(idx, props.paraCount - 1);
-            },
-          },
-          {
-            name: 'Duplicate',
-            onClick: () => {
-              setIsPopoverOpen(false);
-              props.clonePara(para, idx + 1);
-            },
-            'data-test-subj': 'duplicateParagraphBtn',
-          },
-          {
-            name: 'Delete',
-            onClick: () => {
-              setIsPopoverOpen(false);
-              props.deletePara(para, idx);
-            },
-          },
-        ],
-      },
-      {
-        id: 1,
-        title: 'Insert paragraph above',
-        items: [
-          {
-            name: 'Code block',
-            onClick: () => {
-              setIsPopoverOpen(false);
-              props.addPara(idx, '', 'CODE');
-            },
-          },
-          {
-            name: 'Visualization',
-            onClick: () => {
-              setIsPopoverOpen(false);
-              props.addPara(idx, '', 'VISUALIZATION');
-            },
-          },
-          {
-            name: 'Deep Research',
-            onClick: () => {
-              setIsPopoverOpen(false);
-              props.addPara(idx, '', 'DEEP_RESEARCH');
-            },
-          },
-        ],
-      },
-      {
-        id: 2,
-        title: 'Insert paragraph below',
-        items: [
-          {
-            name: 'Code block',
-            onClick: () => {
-              setIsPopoverOpen(false);
-              props.addPara(idx + 1, '', 'CODE');
-            },
-          },
-          {
-            name: 'Visualization',
-            onClick: () => {
-              setIsPopoverOpen(false);
-              props.addPara(idx + 1, '', 'VISUALIZATION');
-            },
-          },
-          {
-            name: 'Deep Research',
-            onClick: () => {
-              setIsPopoverOpen(false);
-              props.addPara(idx + 1, '', 'DEEP_RESEARCH');
-            },
-          },
-        ],
-      },
-    ];
-
-    return (
-      <EuiFlexGroup className="notebookHeaderActionMenu">
-        <EuiFlexItem grow />
-        <EuiFlexItem grow={false}>
-          <EuiPopover
-            panelPaddingSize="none"
-            button={
-              <EuiSmallButtonIcon
-                aria-label="Open paragraph menu"
-                iconType="boxesHorizontal"
-                onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-              />
-            }
-            isOpen={isPopoverOpen}
-            closePopover={() => setIsPopoverOpen(false)}
-          >
-            <EuiContextMenu initialPanelId={0} panels={panels} size="s" />
-          </EuiPopover>
-        </EuiFlexItem>
-      </EuiFlexGroup>
-    );
-  };
 
   const sqlIcon = (
     <>
@@ -581,7 +422,9 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   const paraClass = `notebooks-paragraph notebooks-paragraph-${
     uiSettingsService.get('theme:darkMode') ? 'dark' : 'light'
   }`;
-  let DataSourceSelector;
+  const DataSourceSelector: React.ComponentType<DataSourceSelectorProps> = dataSourceEnabled
+    ? (dataSourceManagement.ui.DataSourceSelector as React.ComponentType<DataSourceSelectorProps>)
+    : () => <></>;
   const onSelectedDataSource = (e) => {
     const dataConnectionId = e[0] ? e[0].id : undefined;
     const dataConnectionLabel = e[0] ? e[0].label : undefined;
@@ -595,10 +438,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
     setDataSourceMDSId(dataConnectionId);
     handleSelectedDataSourceChange(dataConnectionId, dataConnectionLabel);
   };
-
-  if (dataSourceEnabled) {
-    DataSourceSelector = dataSourceManagement.ui.DataSourceSelector;
-  }
 
   const executeButtonDisabled =
     para.isDeepResearch &&
@@ -621,18 +460,9 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
       paddingSize="none"
       hasBorder={false}
     >
-      {renderParaHeader(
-        para.isAnomalyVisualizationAnalysis
-          ? 'Anomaly Visualization Analysis'
-          : para.isDeepResearch
-          ? `Deep Research${deepResearchMemoryId ? ` (Memory ID: ${deepResearchMemoryId})` : ''}`
-          : !para.isVizualisation
-          ? 'Code block'
-          : 'Visualization',
-        index
-      )}
+      {<ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />}
       {dataSourceEnabled && !para.isVizualisation && !para.isAnomalyVisualizationAnalysis && (
-        <EuiFlexGroup>
+        <EuiFlexGroup style={{ marginTop: 0 }}>
           <EuiFlexItem>
             <DataSourceSelector
               savedObjectsClient={savedObjectsMDSClient.client}
@@ -642,9 +472,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
               fullWidth={false}
               removePrepend={false}
               defaultOption={
-                paradataSourceMDSId !== undefined && [
-                  { id: paradataSourceMDSId, label: dataSourceMDSLabel },
-                ]
+                paradataSourceMDSId !== undefined ? [{ id: paradataSourceMDSId }] : undefined
               }
               dataSourceFilter={dataSourceFilterFn}
             />

@@ -39,12 +39,17 @@ import { useObservable } from 'react-use';
 import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { i18n } from '@osd/i18n';
+import { ParagraphState, ParagraphStateValue } from '../../../state/paragraph_state';
 import { CoreStart, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
 import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
 import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
-import { NotebookContext, ParaType } from '../../../../common/types/notebooks';
+import {
+  NotebookContext,
+  ParagraphBackendType,
+  ParaType,
+} from '../../../../common/types/notebooks';
 import { setNavBreadCrumbs } from '../../../../common/utils/set_nav_bread_crumbs';
 import { HeaderControlledComponentsWrapper } from '../../../plugin_helpers/plugin_headerControl';
 import { GenerateReportLoadingModal } from './helpers/custom_modals/reporting_loading_modal';
@@ -66,7 +71,6 @@ import { parseParagraphOut } from '../../../utils/paragraph';
 import { isStateCompletedOrFailed } from '../../../utils/task';
 import { constructDeepResearchParagraphOut } from '../../../../common/utils/paragraph';
 import { InputPanel } from './input_panel';
-import { ACTION_TYPES } from '../reducers/notebook_reducer';
 import { useParagraphs } from '../../../hooks/use_paragraphs';
 import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
@@ -118,7 +122,7 @@ export function NotebookComponent({
   const [dataSourceMDSLabel, setDataSourceMDSLabel] = useState<string | undefined | null>(null);
   const [context] = useState<NotebookContext | undefined>(undefined);
   const { createParagraph, showParagraphRunning, deleteParagraph } = useParagraphs();
-  const { loadNotebook: loadNotebookHook } = useNotebook();
+  const { loadNotebook: loadNotebookHook, setParagraphs } = useNotebook();
   // Refs for task subscriptions
   const taskSubscriptions = useRef(new Map<string, Subscription>());
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
@@ -134,17 +138,6 @@ export function NotebookComponent({
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const isSavedObjectNotebook = isValidUUID(openedNoteId);
   const paragraphs = paragraphsStates.map((item) => item.value);
-  const setParagraphs = useCallback(
-    (newParagraphs) => {
-      notebookContext.dispatch({
-        actionType: ACTION_TYPES.UPDATE_PARAGRAPHS,
-        payload: {
-          paragraphs: newParagraphs,
-        },
-      });
-    },
-    [notebookContext]
-  );
 
   // parse paragraphs based on backend
   const parseParagraphs = useCallback(
@@ -175,22 +168,12 @@ export function NotebookComponent({
     setIsReportingLoadingModalOpen(show);
   };
 
-  // Function for delete a Notebook button
-  const deleteParagraphButton = (para: ParaType, index: number) => {
-    return deleteParagraph(para, index).catch((err) => {
-      notifications.toasts.addDanger(
-        'Error deleting paragraph, please make sure you have the correct permission.'
-      );
-      console.error(err);
-    });
-  };
-
-  const showDeleteParaModal = (para: ParaType, index: number) => {
+  const showDeleteParaModal = (index: number) => {
     setModalLayout(
       getDeleteModal(
         () => setIsModalVisible(false),
         () => {
-          deleteParagraphButton(para, index);
+          deleteParagraph(index);
           setIsModalVisible(false);
         },
         'Delete paragraph',
@@ -433,58 +416,6 @@ export function NotebookComponent({
     [http, notifications.toasts, dataSourceEnabled]
   );
 
-  const addPara = useCallback(
-    (index: number, newParaContent: string, inpType: string) => {
-      return createParagraph(index, newParaContent, inpType).catch((err) => {
-        notifications.toasts.addDanger(
-          'Error adding paragraph, please make sure you have the correct permission.'
-        );
-        console.error(err);
-      });
-    },
-    [createParagraph, notifications.toasts]
-  );
-
-  // Function to clone a paragraph
-  const cloneParaButton = (para: ParaType, index: number) => {
-    let inputType = 'CODE';
-    if (para.typeOut[0] === 'VISUALIZATION') {
-      inputType = 'VISUALIZATION';
-    }
-    if (para.typeOut[0] === 'OBSERVABILITY_VISUALIZATION') {
-      inputType = 'OBSERVABILITY_VISUALIZATION';
-    }
-    if (index !== -1) {
-      return addPara(index, para.inp, inputType);
-    }
-  };
-
-  // Function to move a paragraph
-  const movePara = (index: number, targetIndex: number) => {
-    const newParagraphs = [...paragraphs];
-    newParagraphs.splice(targetIndex, 0, newParagraphs.splice(index, 1)[0]);
-
-    const moveParaObj = {
-      noteId: openedNoteId,
-      paragraphs: newParagraphs,
-    };
-
-    return http
-      .post(`${NOTEBOOKS_API_PREFIX}/savedNotebook/set_paragraphs`, {
-        body: JSON.stringify(moveParaObj),
-      })
-      .then((_res) => {
-        setParagraphs(newParagraphs);
-      })
-      .then((_res) => scrollToPara(targetIndex))
-      .catch((err) => {
-        notifications.toasts.addDanger(
-          'Error moving paragraphs, please make sure you have the correct permission.'
-        );
-        console.error(err);
-      });
-  };
-
   const scrollToPara = (index: number) => {
     setTimeout(() => {
       window.scrollTo({
@@ -503,13 +434,11 @@ export function NotebookComponent({
       paraUniqueId,
       agentId,
       baseMemoryId,
-      parsedParaProps,
     }: {
       taskId: string;
       paraUniqueId: string;
       agentId: string;
       baseMemoryId?: string | undefined;
-      parsedParaProps: ParaType[];
     }) => {
       const cleanTaskSubscription = () => {
         taskSubscriptions.current.get(taskId)?.unsubscribe();
@@ -520,7 +449,8 @@ export function NotebookComponent({
         timer(0, 5000)
           .pipe(
             switchMap(() => {
-              const uniquePara = parsedParaProps.find((para) => para.uniqueId === paraUniqueId);
+              const paragraphsValue = notebookContext.state.getParagraphsValue();
+              const uniquePara = paragraphsValue.find((para) => para.id === paraUniqueId);
               if (!uniquePara) {
                 return 'STOP';
               }
@@ -534,12 +464,13 @@ export function NotebookComponent({
           .pipe(takeWhile((res) => res !== 'STOP' && !isStateCompletedOrFailed(res.state), true))
           .subscribe({
             next: (payload) => {
+              const paragraphsValue = notebookContext.state.getParagraphsValue();
               if (payload === 'STOP') {
                 cleanTaskSubscription();
                 return;
               }
-              const currentParsedParaIndex = parsedParaProps.findIndex(
-                (para) => para.uniqueId === paraUniqueId
+              const currentParsedParaIndex = paragraphsValue.findIndex(
+                (para) => para.id === paraUniqueId
               );
               const result = JSON.stringify(
                 constructDeepResearchParagraphOut({
@@ -551,7 +482,7 @@ export function NotebookComponent({
               );
               if (
                 !isStateCompletedOrFailed(payload.state) &&
-                result === parsedParaProps[currentParsedParaIndex]?.out[0]
+                result === JSON.stringify(paragraphsValue[currentParsedParaIndex].output?.[0])
               ) {
                 return;
               }
@@ -578,7 +509,7 @@ export function NotebookComponent({
           })
       );
     },
-    [http, openedNoteId]
+    [http, openedNoteId, notebookContext.state]
   );
 
   // Backend call to update and run contents of paragraph
@@ -610,25 +541,29 @@ export function NotebookComponent({
       ? `${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/update/run`
       : `${NOTEBOOKS_API_PREFIX}/paragraph/update/run/`;
     return http
-      .post(route, {
+      .post<ParagraphBackendType>(route, {
         body: JSON.stringify(paraUpdateObject),
       })
       .then(async (res) => {
-        if (res.output[0]?.outputType === 'QUERY') {
+        if (res.output?.[0]?.outputType === 'QUERY') {
           await loadQueryResultsFromInput(res, dataSourceMDSId);
-          const checkErrorJSON = JSON.parse(res.output[0].result);
+          const checkErrorJSON = JSON.parse(res.output?.[0].result);
           if (checkQueryOutputError(checkErrorJSON)) {
             return;
           }
         }
-        const legacyParsedParagraphData = paragraphs[index];
         const newParagraphs = [...paragraphs];
-        newParagraphs[index] = res;
+        const paragraphStateValue = new ParagraphState(res).value;
+        const outputPayload = paragraphStateValue.output?.[0];
+        newParagraphs[index] = paragraphStateValue;
 
-        if (res.output[0]?.outputType === 'DEEP_RESEARCH') {
-          newParagraphs[index].isRunning = true;
-          const legacyParsedParagraphOut = parseParagraphOut(legacyParsedParagraphData)[0];
-          const legacyTaskId = legacyParsedParagraphOut?.task_id;
+        if (
+          outputPayload?.outputType === 'DEEP_RESEARCH' &&
+          newParagraphs[index].uiState &&
+          typeof outputPayload.result !== 'string'
+        ) {
+          newParagraphs[index].uiState.isRunning = true;
+          const legacyTaskId = outputPayload.result.task_id as string;
           if (legacyTaskId) {
             taskSubscriptions.current.get(legacyTaskId)?.unsubscribe();
             taskSubscriptions.current.delete(legacyTaskId);
@@ -639,14 +574,13 @@ export function NotebookComponent({
             paraUniqueId: para.uniqueId,
             agentId: deepResearchAgentId ?? '',
             baseMemoryId: deepResearchBaseMemoryId,
-            parsedParaProps: parsedPara,
           });
         }
         setParagraphs(newParagraphs);
       })
       .catch((err) => {
         console.log(err);
-        if (err.body.statusCode === 413)
+        if (err?.body?.statusCode === 413)
           notifications.toasts.addDanger(`Error running paragraph: ${err.body.message}`);
         else
           notifications.toasts.addDanger(
@@ -760,14 +694,14 @@ export function NotebookComponent({
               agentId,
               paraUniqueId: paragraphId,
               baseMemoryId,
-              parsedParaProps: parseParagraphs(res.paragraphs),
             });
           }
         }
+        notebookContext.state.updateParagraphs(res.paragraphs);
         if (!res.paragraphs.length) {
           const resContext = res.context;
           if (resContext?.filters && resContext?.timeRange && resContext?.index) {
-            addPara(0, '', 'ANOMALY_VISUALIZATION_ANALYSIS');
+            createParagraph(0, '', 'ANOMALY_VISUALIZATION_ANALYSIS');
           }
         }
       })
@@ -780,13 +714,13 @@ export function NotebookComponent({
   }, [
     loadNotebookHook,
     setBreadcrumbs,
-    addPara,
+    createParagraph,
     notifications.toasts,
     loadQueryResultsFromInput,
     registerDeepResearchParagraphUpdater,
     dataSourceEnabled,
     isSavedObjectNotebook,
-    parseParagraphs,
+    notebookContext.state,
   ]);
 
   const handleSelectedDataSourceChange = (id: string | undefined, label: string | undefined) => {
@@ -794,7 +728,7 @@ export function NotebookComponent({
     setDataSourceMDSLabel(label);
   };
 
-  const setPara = (para: ParaType, index: number) => {
+  const setPara = (para: ParagraphStateValue, index: number) => {
     const newParas = [...paragraphs];
     newParas.splice(index, 1, para);
     setParagraphs(newParas);
@@ -998,7 +932,7 @@ export function NotebookComponent({
 
   const handleCreateParagraph = async (paragraphInput: string, inputType: string) => {
     // Add paragraph at the end
-    await addPara(paragraphs.length, paragraphInput, inputType);
+    await createParagraph(paragraphs.length, paragraphInput, inputType);
   };
 
   const reportingTopButton = !isSavedObjectNotebook ? (
@@ -1069,28 +1003,24 @@ export function NotebookComponent({
               <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
             ) : null}
             {/* Temporarily determine whether to display the context panel based on datasource id */}
-            {context?.dataSourceId && <ContextPanel addPara={addPara} />}
+            {context?.dataSourceId && <ContextPanel addPara={createParagraph} />}
             {isLoading ? null : parsedPara.length > 0 ? (
               parsedPara.map((para: ParaType, index: number) => (
                 <div ref={parsedPara[index].paraDivRef} key={`para_div_${para.uniqueId}`}>
                   <Paragraphs
                     para={para}
                     originalPara={paragraphs[index]}
-                    setPara={(pr: ParaType) => setPara(pr, index)}
-                    dateModified={paragraphs[index]?.dateModified}
+                    setPara={(pr: ParagraphStateValue) => setPara(pr, index)}
                     index={index}
                     paraCount={parsedPara.length}
                     textValueEditor={textValueEditor}
                     handleKeyPress={handleKeyPress}
-                    addPara={addPara}
                     DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
                     deleteVizualization={deleteVizualization}
                     http={http}
                     selectedViewId={selectedViewId}
                     deletePara={showDeleteParaModal}
                     runPara={updateRunParagraph}
-                    clonePara={cloneParaButton}
-                    movePara={movePara}
                     showQueryParagraphError={showQueryParagraphError}
                     queryParagraphErrorMessage={queryParagraphErrorMessage}
                     dataSourceManagement={dataSourceManagement}
@@ -1101,6 +1031,7 @@ export function NotebookComponent({
                     paradataSourceMDSId={parsedPara[index].dataSourceMDSId}
                     dataSourceMDSLabel={parsedPara[index].dataSourceMDSLabel}
                     paragraphs={parsedPara}
+                    scrollToPara={scrollToPara}
                   />
                 </div>
               ))
@@ -1128,7 +1059,7 @@ export function NotebookComponent({
                           footer={
                             <EuiSmallButton
                               data-test-subj="emptyNotebookAddCodeBlockBtn"
-                              onClick={() => addPara(0, '', 'CODE')}
+                              onClick={() => createParagraph(0, '', 'CODE')}
                               style={{ marginBottom: 17 }}
                             >
                               Add code block
@@ -1143,7 +1074,7 @@ export function NotebookComponent({
                           description="Import OpenSearch Dashboards or Observability visualizations to the notes."
                           footer={
                             <EuiSmallButton
-                              onClick={() => addPara(0, '', 'VISUALIZATION')}
+                              onClick={() => createParagraph(0, '', 'VISUALIZATION')}
                               style={{ marginBottom: 17 }}
                             >
                               Add visualization
@@ -1158,7 +1089,7 @@ export function NotebookComponent({
                           description="Use deep research to analytics question."
                           footer={
                             <EuiSmallButton
-                              onClick={() => addPara(0, '', ParagraphTypeDeepResearch)}
+                              onClick={() => createParagraph(0, '', ParagraphTypeDeepResearch)}
                               style={{ marginBottom: 17 }}
                             >
                               Add deep research

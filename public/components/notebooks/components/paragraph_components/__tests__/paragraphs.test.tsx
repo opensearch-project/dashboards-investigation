@@ -47,8 +47,6 @@ describe('<Paragraphs /> spec', () => {
     const deleteVizualization = jest.fn();
     const deletePara = jest.fn();
     const runPara = jest.fn();
-    const clonePara = jest.fn();
-    const movePara = jest.fn();
     const para = sampleParsedParagraghs1[0];
     const utils = render(
       <Paragraphs
@@ -68,8 +66,6 @@ describe('<Paragraphs /> spec', () => {
         selectedViewId="view_both"
         deletePara={deletePara}
         runPara={runPara}
-        clonePara={clonePara}
-        movePara={movePara}
         showQueryParagraphError={false}
         queryParagraphErrorMessage="error-message"
         dataSourceEnabled={false}
@@ -77,13 +73,6 @@ describe('<Paragraphs /> spec', () => {
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();
-
-    utils.getByLabelText('Open paragraph menu').click();
-    utils.getByText('Run input').click();
-    utils.getByLabelText('Open paragraph menu').click();
-    utils.getByText('Duplicate').click();
-    utils.getByLabelText('Open paragraph menu').click();
-    utils.getByText('Delete').click();
   });
 
   it('use SavedObject find to fetch visualizations when dataSourceEnabled', () => {
@@ -96,8 +85,6 @@ describe('<Paragraphs /> spec', () => {
     const deleteVizualization = jest.fn();
     const deletePara = jest.fn();
     const runPara = jest.fn();
-    const clonePara = jest.fn();
-    const movePara = jest.fn();
     const para = {
       uniqueId: 'paragraph_1a710988-ec19-4caa-83cc-38eb609427d1',
       isRunning: false,
@@ -135,8 +122,6 @@ describe('<Paragraphs /> spec', () => {
         selectedViewId="view_both"
         deletePara={deletePara}
         runPara={runPara}
-        clonePara={clonePara}
-        movePara={movePara}
         showQueryParagraphError={false}
         queryParagraphErrorMessage="error-message"
         dataSourceEnabled={true}
