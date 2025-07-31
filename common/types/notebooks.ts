@@ -67,6 +67,7 @@ export interface NotebookContext {
   summary?: string;
   specs?: Array<Record<string, unknown>>;
   PPLFilters?: string[];
+  variables?: Record<string, unknown>;
 }
 
 export interface ParagraphBackendType {
