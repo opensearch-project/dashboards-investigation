@@ -8,6 +8,7 @@ import MarkdownRender from '@nteract/markdown';
 import { Media } from '@nteract/outputs';
 import moment from 'moment';
 import React from 'react';
+import { LOG_PATTERN_PARAGRAPH_TYPE } from '../../../../../common/constants/notebooks';
 import { CoreStart } from '../../../../../../../src/core/public';
 import {
   DashboardContainerInput,
@@ -182,7 +183,7 @@ const OutputBody = ({
         return <DeepResearchContainer http={http} para={para} onTaskFinish={() => {}} />;
       case 'ANOMALY_VISUALIZATION_ANALYSIS':
         return <BubbleUpContainer />;
-      case 'LOG_PATTERN':
+      case LOG_PATTERN_PARAGRAPH_TYPE:
         return <LogPatternContainer http={http} para={para} />;
       default:
         return <pre>{val}</pre>;

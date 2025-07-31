@@ -123,11 +123,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
   };
 
   useEffect(() => {
-    // log all dependent variables that trigger this effect
-    console.log('LogPatternContainer re-rendered due to:');
-    console.log('memoizedParaOut:', memoizedParaOut);
-    console.log('memoizedContextValues:', memoizedContextValues);
-
     // Parse the result from the paragraph output if available
     if (memoizedParaOut) {
       try {
@@ -138,7 +133,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
         }
       } catch (err) {
         setError('Failed to parse log pattern results');
-        console.error('Error parsing log pattern results:', err);
         return;
       }
     }
@@ -219,7 +213,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
       apiRequests.forEach(async (request) => {
         try {
           const analysisResult = await logPatternService.analyzeLogPatterns(request.params);
-          console.log(`Analysis result for ${request.name}:`, analysisResult);
 
           // Update result progressively as each request completes
           setResult((prevResult) => {
@@ -240,7 +233,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
                 newResult.BASE = analysisResult.BASE;
               }
             }
-            console.log('result::::::', newResult);
             return newResult;
           });
 
@@ -265,7 +257,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
 
           setHasData(true);
         } catch (err) {
-          console.error(`Error in ${request.name}:`, err);
           if (err.response.status === 404) {
             setError('Log sequence/pattern analysis agent not found');
             return;

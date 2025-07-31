@@ -4,6 +4,7 @@
  */
 
 import { ParagraphStateValue } from 'public/state/paragraph_state';
+import { LOG_PATTERN_PARAGRAPH_TYPE } from '../../../../../common/constants/notebooks';
 import { ParaType } from '../../../../../common/types/notebooks';
 
 // Get the type of output and result in a default notebook paragraph
@@ -97,7 +98,7 @@ export const defaultParagraphParser = (defaultBackendParagraphs: ParagraphStateV
         isAnomalyVisualizationAnalysis: paraObject.input.inputType.includes(
           'ANOMALY_VISUALIZATION_ANALYSIS'
         ),
-        isLogPattern: paraObject.input.inputType === 'LOG_PATTERN',
+        isLogPattern: paraObject.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE,
         vizObjectInput: vizParams.VizObject,
         id: index + 1,
         inp: paraObject.input.inputText || '',
