@@ -27,7 +27,6 @@ export const useNotebook = () => {
     });
 
     const promise = http.get(route).then(async (res) => {
-      context.state.updateParagraphs(res.paragraphs);
       context.state.updateValue({
         dateCreated: res.dateCreated,
         path: res.path,

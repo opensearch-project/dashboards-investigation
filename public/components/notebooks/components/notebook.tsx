@@ -697,6 +697,7 @@ export function NotebookComponent({
             });
           }
         }
+        notebookContext.state.updateParagraphs(res.paragraphs);
         if (!res.paragraphs.length) {
           const resContext = res.context;
           if (resContext?.filters && resContext?.timeRange && resContext?.index) {
@@ -719,6 +720,7 @@ export function NotebookComponent({
     registerDeepResearchParagraphUpdater,
     dataSourceEnabled,
     isSavedObjectNotebook,
+    notebookContext.state,
   ]);
 
   const handleSelectedDataSourceChange = (id: string | undefined, label: string | undefined) => {
