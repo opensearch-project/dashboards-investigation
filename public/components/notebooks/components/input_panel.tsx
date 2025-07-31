@@ -83,8 +83,8 @@ export const InputPanel: React.FC<InputPanelProps> = ({
         agentId: actionSelectionAgentId,
         dataSourceId: dataSourceId ?? undefined,
         parameters: {
-          actions_metadata: actions.map((action) => JSON.stringify(action)).join(','),
-          input_question: input,
+          actionsMetaData: actions.map((action) => JSON.stringify(action)).join(','),
+          input,
         },
       });
 
@@ -162,8 +162,8 @@ export const InputPanel: React.FC<InputPanelProps> = ({
         textareaRef.current.value,
         actionsMetadata
       );
-      const rawResult = response?.inference_results?.[0]?.output?.[0]?.result;
-      const jsonMatch = rawResult.match(/\{[\s\S]*\}/);
+      const rawResult = JSON.parse(response?.inference_results?.[0]?.output?.[0]?.result);
+      const jsonMatch = rawResult?.content?.[0]?.text?.match(/\{[\s\S]*\}/);
       let inputType = 'DEEP_RESEARCH';
       let paragraphInput = '';
       if (jsonMatch) {
@@ -171,11 +171,11 @@ export const InputPanel: React.FC<InputPanelProps> = ({
         switch (result.action) {
           case 'PPL':
             inputType = 'CODE';
-            paragraphInput = '%ppl\n' + result.input || '';
+            paragraphInput = '%ppl\n' + result.input?.inputQuery || '';
             break;
           case 'MARKDOWN':
             inputType = 'CODE';
-            paragraphInput = '%md\n' + result.input || '';
+            paragraphInput = '%md\n' + result.input?.markdownText || '';
             break;
           case 'VISUALIZATION':
             inputType = 'VISUALIZATION';
@@ -183,11 +183,11 @@ export const InputPanel: React.FC<InputPanelProps> = ({
             break;
           case 'DEEP_RESEARCH_AGENT':
             inputType = 'DEEP_RESEARCH';
-            paragraphInput = result.input || '';
+            paragraphInput = result.input?.question || '';
             break;
           default:
             inputType = 'CODE';
-            paragraphInput = result.input || '';
+            paragraphInput = textareaRef.current.value;
         }
       }
       await onCreateParagraph(paragraphInput, inputType);
