@@ -40,17 +40,11 @@ import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { i18n } from '@osd/i18n';
 import { ParagraphState, ParagraphStateValue } from '../../../state/paragraph_state';
-import { ParagraphState, ParagraphStateValue } from '../../../state/paragraph_state';
 import { CoreStart, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
 import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
 import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
-import {
-  NotebookContext,
-  ParagraphBackendType,
-  ParaType,
-} from '../../../../common/types/notebooks';
 import {
   NotebookContext,
   ParagraphBackendType,
