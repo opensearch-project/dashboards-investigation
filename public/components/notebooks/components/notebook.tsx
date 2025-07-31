@@ -707,7 +707,6 @@ export function NotebookComponent({
             bubbleUpParaExists = true;
           }
         }
-        setParagraphs(res.paragraphs);
         if (!bubbleUpParaExists) {
           const resContext = res.context;
           if (resContext?.filters && resContext?.timeRange && resContext?.index) {
@@ -734,7 +733,6 @@ export function NotebookComponent({
     notifications.toasts,
     loadQueryResultsFromInput,
     registerDeepResearchParagraphUpdater,
-    setParagraphs,
     dataSourceEnabled,
     isSavedObjectNotebook,
   ]);
