@@ -584,7 +584,7 @@ export function NotebookComponent({
       })
       .catch((err) => {
         console.log(err);
-        if (err.body.statusCode === 413)
+        if (err?.body?.statusCode === 413)
           notifications.toasts.addDanger(`Error running paragraph: ${err.body.message}`);
         else
           notifications.toasts.addDanger(
@@ -707,6 +707,8 @@ export function NotebookComponent({
             bubbleUpParaExists = true;
           }
         }
+
+        notebookContext.state.updateParagraphs(res.paragraphs);
         if (!bubbleUpParaExists) {
           const resContext = res.context;
           if (resContext?.filters && resContext?.timeRange && resContext?.index) {
@@ -735,6 +737,7 @@ export function NotebookComponent({
     registerDeepResearchParagraphUpdater,
     dataSourceEnabled,
     isSavedObjectNotebook,
+    notebookContext.state,
   ]);
 
   const handleSelectedDataSourceChange = (id: string | undefined, label: string | undefined) => {
