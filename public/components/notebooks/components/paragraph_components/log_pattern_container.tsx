@@ -288,10 +288,15 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
   }, [memoizedContextValues, memoizedParaOut, http]);
 
   useEffect(() => {
-    if (loadingStatus.completedRequests === loadingStatus.totalRequests) {
-      // save result to saved object
+    if (
+      loadingStatus.completedRequests === loadingStatus.totalRequests &&
+      loadingStatus.completedRequests > 0 &&
+      hasData
+    ) {
+      // TODO save result to saved object
+      para.out = [JSON.stringify(result)];
     }
-  }, [loadingStatus.completedRequests, loadingStatus.totalRequests]);
+  }, [loadingStatus.completedRequests, loadingStatus.totalRequests, para, result, hasData]);
 
   // Loading status rendering UI - now shows parallel progress
   const renderLoadingStatus = () => {
