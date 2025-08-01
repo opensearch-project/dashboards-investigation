@@ -6,15 +6,8 @@
 import { ParagraphBackendType } from '../../common/types/notebooks';
 import { ObservableState } from './observable_state';
 
-export interface ParagraphStateValue<TFullfilledOutput = {}>
-  extends Omit<ParagraphBackendType, 'output'> {
-  output?: [
-    {
-      execution_time: string;
-      outputType: string;
-      result: string | Record<string, unknown>;
-    }
-  ];
+export interface ParagraphStateValue<TOutputResult = string, TFullfilledOutput = {}>
+  extends ParagraphBackendType<TOutputResult> {
   fullfilledOutput?: Partial<TFullfilledOutput>; // this is the fullfilled output, like PPL query result / PER agent response
   uiState?: Partial<{
     viewMode: 'input_only' | 'output_only' | 'view_both';
@@ -24,12 +17,12 @@ export interface ParagraphStateValue<TFullfilledOutput = {}>
   }>;
 }
 
-export class ParagraphState<TFullfilledOutput = {}> extends ObservableState<
-  ParagraphStateValue<TFullfilledOutput>
+export class ParagraphState<TOutputResult = string, TFullfilledOutput = {}> extends ObservableState<
+  ParagraphStateValue<TOutputResult, TFullfilledOutput>
 > {
   protected formatValue(
-    value: ParagraphStateValue<TFullfilledOutput>
-  ): ParagraphStateValue<TFullfilledOutput> {
+    value: ParagraphStateValue<TOutputResult, TFullfilledOutput>
+  ): ParagraphStateValue<TOutputResult, TFullfilledOutput> {
     return {
       ...value,
       uiState: {
@@ -60,14 +53,30 @@ export class ParagraphState<TFullfilledOutput = {}> extends ObservableState<
     });
     return this;
   }
-  updateOutput(output: Partial<Required<ParagraphStateValue>['output'][0]>) {
+  updateOutput(
+    output: Partial<Required<ParagraphStateValue<TOutputResult, TFullfilledOutput>>['output'][0]>
+  ) {
     this.updateValue({
       output: [
         {
           ...(this.value.output?.[0] || {}),
           ...output,
-        } as Required<ParagraphBackendType>['output'][0],
+        } as Required<ParagraphStateValue<TOutputResult, TFullfilledOutput>>['output'][0],
       ],
+    });
+  }
+  updateOutputResult(outputResult: TOutputResult) {
+    if (typeof outputResult === 'string') {
+      this.updateOutput({
+        result: outputResult,
+      });
+    }
+
+    this.updateOutput({
+      result: {
+        ...this.value.output?.[0].result,
+        ...outputResult,
+      },
     });
   }
   updateFullfilledOutput(fullfilledOutput: Partial<TFullfilledOutput>) {
@@ -85,5 +94,8 @@ export class ParagraphState<TFullfilledOutput = {}> extends ObservableState<
         ...uiState,
       },
     });
+  }
+  getOutput() {
+    return this.value.output?.[0];
   }
 }

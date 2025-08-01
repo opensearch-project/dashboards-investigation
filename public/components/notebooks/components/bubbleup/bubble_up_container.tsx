@@ -27,23 +27,35 @@ import { NotebookReactContext } from '../../context_provider/context_provider';
 import { generateAllFieldCharts } from './render_bubble_vega';
 import { BubbleUpModel } from './container_model';
 import { BubbleUpDataService } from './bubble_up_data_service';
-import { useNotebook } from '../../../../hooks/use_notebook';
 import { useObservable } from 'react-use';
+import { useParagraphs } from '../../../../hooks/use_paragraphs';
 
 const ITEMS_PER_PAGE = 3;
 
-export const BubbleUpContainer = () => {
+export const BubbleUpContainer = ({ idx }: { idx: number }) => {
   const context = useContext(NotebookReactContext);
   const topContextValue = useObservable(
     context.state.value.context.getValue$(),
     context.state.value.context.value
   );
-  const { specs, timeRange, timeField, index, dataSourceId, PPLFilters, filters } = topContextValue;
-  const { updateNotebookContext } = useNotebook();
+  const paragraphState = context.state.getParagraph<{
+    fieldComparison: Record<string, unknown>[];
+  }>({
+    index: idx,
+  });
+  const { fieldComparison } = paragraphState?.getOutput()?.result || {};
+  const { timeRange, timeField, index, dataSourceId, PPLFilters, filters } = topContextValue;
+  const { saveParagraph } = useParagraphs();
   const [activePage, setActivePage] = useState(0);
   const [specsLoading, setSpecsLoading] = useState(false);
   const [distributionLoading, setDistributionLoading] = useState(false);
-  const [bubbleUpSpecs, setBubbleUpSpecs] = useState<Array<Record<string, unknown>>>([]);
+  const bubbleUpSpecs = useMemo(() => {
+    if (fieldComparison) {
+      return generateAllFieldCharts(fieldComparison);
+    }
+
+    return [];
+  }, [fieldComparison]);
   const [, setDisSummary] = useState<Array<Record<string, unknown>>>([]);
   const [summary] = useState<string>();
   const [selectedField, setSelectedField] = useState<string | null>(null);
@@ -145,12 +157,10 @@ export const BubbleUpContainer = () => {
       setSpecsLoading(true);
       setDistributionLoading(true);
 
-      if (specs && specs.length > 0) {
-        const tempSpecs = generateAllFieldCharts(specs);
-        setBubbleUpSpecs(tempSpecs);
+      if (paragraphState && fieldComparison && fieldComparison.length > 0) {
         setSpecsLoading(false);
         setDistributionLoading(false);
-        return specs;
+        return;
       }
 
       if (!timeRange || !timeField || !index) {
@@ -171,12 +181,15 @@ export const BubbleUpContainer = () => {
         setSpecsLoading(false);
         const discoverFields = await dataService.discoverFields(response);
         const difference = await dataService.analyzeDifferences(response, discoverFields);
-        const summaryData = dataService.formatComparisonSummary(difference);
-        setDisSummary(summaryData);
-        const specs = generateAllFieldCharts(summaryData);
-
-        setBubbleUpSpecs(specs);
-        await updateNotebookContext({ specs: summaryData });
+        const fieldComparison = dataService.formatComparisonSummary(difference);
+        if (paragraphState) {
+          paragraphState.updateOutputResult({
+            fieldComparison,
+          });
+          await saveParagraph({
+            paragraphState,
+          });
+        }
         setDistributionLoading(false);
       } catch (error) {
         console.error('Error fetching or processing data:', error);
@@ -186,7 +199,7 @@ export const BubbleUpContainer = () => {
     };
 
     loadSpecsData();
-  }, [dataService]);
+  }, [dataService, fieldComparison, paragraphState, specsLoading]);
 
   const { paginatedSpecs, totalPages } = useMemo(() => {
     if (!bubbleUpSpecs?.length) return { paginatedSpecs: [], totalPages: 0 };
@@ -249,13 +262,6 @@ export const BubbleUpContainer = () => {
       <EuiSpacer size="m" />
       <EuiFlexGroup>
         {paginatedSpecs.map((spec, index) => {
-          // const uniqueKey = selectedField
-          //   ? `${selectedField}-${index}`
-          //   : `${activePage * ITEMS_PER_PAGE + index}`;
-          // const uniqueId = selectedField
-          //   ? `text2viz-${selectedField}-${index}`
-          //   : `text2viz-${activePage * ITEMS_PER_PAGE + index}`;
-
           const uniqueKey = `${activePage * ITEMS_PER_PAGE + index}`;
           const uniqueId = `text2viz-${activePage * ITEMS_PER_PAGE + index}`;
 

@@ -18,6 +18,14 @@ import { HttpSetup } from '../../../../../../../src/core/public';
 const longTextFields = ['message', 'body'];
 const DEFAULT_PPL_QUERY_DATE_FORMAT = 'YYYY-MM-DD HH:mm:ss';
 
+export type SummaryData = Array<{
+  field: string;
+  divergence: number;
+  topChanges: Array<{
+    value: string;
+  }>;
+}>;
+
 export class BubbleUpDataService {
   private readonly search: ISearchStart;
   private readonly data: DataPublicPluginStart;
@@ -216,16 +224,9 @@ export class BubbleUpDataService {
       baselineDist: Record<string, number>;
     }>,
     maxResults: number = 30
-  ): Array<{
-    field: string;
-    divergence: number;
-    topChanges: Array<{
-      value: string;
-    }>;
-  }> {
+  ): SummaryData {
     // Only take the first N significant differences
     const topDifferences = differences.filter((diff) => diff.divergence > 0).slice(0, maxResults);
-    console.log('topDifferences', topDifferences);
 
     return topDifferences.map((diff) => {
       const { field, divergence, selectionDist, baselineDist } = diff;

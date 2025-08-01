@@ -71,7 +71,7 @@ export interface NotebookContext {
   variables?: Record<string, unknown>;
 }
 
-export interface ParagraphBackendType {
+export interface ParagraphBackendType<TOutputResult = string> {
   input: {
     inputText: string;
     inputType: string;
@@ -80,7 +80,7 @@ export interface ParagraphBackendType {
     {
       execution_time: string;
       outputType: string;
-      result: string;
+      result: TOutputResult;
     }
   ]; // output only has some meta data like message_id / task_id
   id: string;

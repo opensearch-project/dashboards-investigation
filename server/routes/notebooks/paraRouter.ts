@@ -173,7 +173,12 @@ export function registerParaRoute(router: IRouter) {
             schema.arrayOf(
               schema.object({
                 outputType: schema.string(),
-                result: schema.string(),
+                result: schema.oneOf([
+                  schema.string(),
+                  schema.object({
+                    fieldComparison: schema.arrayOf(schema.any()),
+                  }),
+                ]),
               })
             )
           ),

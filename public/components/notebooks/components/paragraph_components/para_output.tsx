@@ -58,6 +58,7 @@ const getQueryOutputData = (queryObject: any) => {
 };
 
 const OutputBody = ({
+  index,
   http,
   typeOut,
   val,
@@ -182,7 +183,7 @@ const OutputBody = ({
       case 'DEEP_RESEARCH':
         return <DeepResearchContainer http={http} para={para} onTaskFinish={() => {}} />;
       case 'ANOMALY_VISUALIZATION_ANALYSIS':
-        return <BubbleUpContainer />;
+        return <BubbleUpContainer idx={index} />;
       case LOG_PATTERN_PARAGRAPH_TYPE:
         return <LogPatternContainer http={http} para={para} />;
       default:

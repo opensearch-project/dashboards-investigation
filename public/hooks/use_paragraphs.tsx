@@ -4,6 +4,7 @@
  */
 
 import { useContext, useCallback } from 'react';
+import { ParagraphBackendType } from 'common/types/notebooks';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { ParagraphState, ParagraphStateValue } from '../state/paragraph_state';
@@ -138,5 +139,28 @@ export const useParagraphs = () => {
     ),
     moveParagraph,
     cloneParagraph,
+    saveParagraph<T>(props: { paragraphState: ParagraphState<T> }) {
+      const { id: paragraphId, input, output } = props.paragraphState.value;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const outputPayload = output?.map(({ execution_time: executionTime, ...others }) => others);
+      return context.http
+        .put<ParagraphBackendType<T>>(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
+          body: JSON.stringify({
+            noteId: context.state.value.id,
+            paragraphId,
+            paragraphInput: input.inputText,
+            paragraphOutput: outputPayload,
+          }),
+        })
+        .then((res) => {
+          props.paragraphState.updateValue(res);
+        })
+        .catch((err) => {
+          getCoreStart().notifications.toasts.addDanger(
+            'Error updating paragraph, please make sure you have the correct permission.'
+          );
+          console.error(err);
+        });
+    },
   };
 };

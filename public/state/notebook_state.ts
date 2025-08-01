@@ -10,7 +10,7 @@ import { ParagraphState, ParagraphStateValue } from './paragraph_state';
 import { TopContextState } from './top_context_state';
 
 interface NotebookStateValue {
-  paragraphs: ParagraphState[];
+  paragraphs: Array<ParagraphState<unknown>>;
   id: string;
   context: TopContextState;
   dataSourceEnabled: boolean;
@@ -20,7 +20,7 @@ interface NotebookStateValue {
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {
-  createParagraph(paragraphIndex: number, paragraph: ParagraphState) {
+  createParagraph(paragraphIndex: number, paragraph: ParagraphState<unknown>) {
     const newParagraph = this.value.paragraphs;
     newParagraph.splice(paragraphIndex, 0, paragraph);
     this.updateValue({
@@ -45,9 +45,9 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
 
     return this;
   }
-  updateParagraphs(paragraphs: ParagraphStateValue[]) {
+  updateParagraphs(paragraphs: Array<ParagraphStateValue<unknown>>) {
     this.updateValue({
-      paragraphs: paragraphs.map((paragraph) => new ParagraphState(paragraph)),
+      paragraphs: paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
     });
   }
   getParagraphStates$() {
@@ -68,5 +68,24 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
   // this is used for get pure backend values that needs to be persist into backend
   getParagraphsBackendValue() {
     return this.value.paragraphs.map((paragraph) => paragraph.getBackgroundValue());
+  }
+  getParagraph<ParagraphOutput = string>(props: {
+    id?: string;
+    index?: number;
+  }): ParagraphState<ParagraphOutput> | undefined {
+    if (!props.hasOwnProperty('index') && !props.id) {
+      console.error('Index or paragraph id is required to get paragraph state');
+      return;
+    }
+
+    if (props.id) {
+      return this.value.paragraphs.find((paragraph) => paragraph.value.id === props.id) as
+        | ParagraphState<ParagraphOutput>
+        | undefined;
+    }
+
+    if (typeof props.index === 'number' && props.index > -1) {
+      return this.value.paragraphs[props.index] as ParagraphState<ParagraphOutput> | undefined;
+    }
   }
 }
