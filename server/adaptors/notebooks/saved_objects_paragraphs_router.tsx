@@ -158,7 +158,6 @@ export async function updateRunFetchParagraph(
     dataSourceMDSLabel: string | undefined;
     deepResearchAgentId?: string | undefined;
     deepResearchContext?: string | undefined;
-    deepResearchBaseMemoryId?: string | undefined;
   },
   opensearchNotebooksClient: SavedObjectsClientContract,
   transport: OpenSearchClient['transport']
@@ -191,14 +190,36 @@ export async function updateRunFetchParagraph(
       transport,
       deepResearchAgentId,
       params.deepResearchContext,
-      params.deepResearchBaseMemoryId,
       notebookInfo
     );
 
-    const updateNotebook = {
+    const updateNotebook: {
+      paragraphs: DefaultParagraph[];
+      dateModified: string;
+      context?: NotebookContext;
+    } = {
       paragraphs: updatedOutputParagraphs,
       dateModified: new Date().toISOString(),
     };
+    const context = notebookInfo.attributes.savedNotebook?.context;
+    if (context?.goal && !context?.memoryId) {
+      const targetParagraph = updatedOutputParagraphs.find(({ id }) => id === params.paragraphId);
+      if (targetParagraph?.output[0].outputType === 'DEEP_RESEARCH') {
+        let result;
+        try {
+          result = JSON.parse(targetParagraph?.output[0].result);
+        } catch (error) {
+          // Todo: add error handling here
+          console.error('Failed to parse output result', error);
+        }
+        if (result.memory_id) {
+          updateNotebook.context = {
+            ...context,
+            memoryId: result.memory_id,
+          };
+        }
+      }
+    }
     await opensearchNotebooksClient.update(NOTEBOOK_SAVED_OBJECT, params.noteId, {
       savedNotebook: updateNotebook,
     });
@@ -222,7 +243,6 @@ export async function runParagraph(
   transport: OpenSearchClient['transport'],
   deepResearchAgentId: string | undefined,
   deepResearchContext: string | undefined,
-  deepResearchBaseMemoryId: string | undefined,
   notebookinfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>
 ) {
   try {
@@ -281,6 +301,7 @@ export async function runParagraph(
             throw new Error('No deep research agent id configured.');
           }
           updatedParagraph.dateModified = new Date().toISOString();
+          const baseMemoryId = notebookinfo.attributes.savedNotebook.context?.memoryId;
           const { body } = await transport.request({
             method: 'POST',
             path: `/_plugins/_ml/agents/${deepResearchAgentId}/_execute`,
@@ -290,7 +311,7 @@ export async function runParagraph(
                 question: `${paragraphs[index].input.inputText}${
                   deepResearchContext ? `, Context: ${deepResearchContext}` : ''
                 }`,
-                memory_id: deepResearchBaseMemoryId,
+                memory_id: baseMemoryId,
               },
             },
           });
@@ -304,7 +325,6 @@ export async function runParagraph(
                   parentInteractionId: body.response?.parent_interaction_id,
                   agentId: deepResearchAgentId,
                   state: body.status,
-                  baseMemoryId: deepResearchBaseMemoryId,
                 })
               ),
               execution_time: `${(now() - startTime).toFixed(3)} ms`,

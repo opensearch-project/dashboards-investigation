@@ -14,7 +14,6 @@ import {
   EuiSmallButton,
   EuiSpacer,
   EuiText,
-  EuiToolTip,
   htmlIdGenerator,
 } from '@elastic/eui';
 import filter from 'lodash/filter';
@@ -53,7 +52,6 @@ import { parseParagraphOut } from '../../../../utils/paragraph';
 import { ParaInput } from './para_input';
 import { ParaOutput } from './para_output';
 import { AgentsSelector } from './agents_selector';
-import { MemorySelector } from './memory_selector';
 import { DataSourceSelectorProps } from '../../../../../../../src/plugins/data_source_management/public/components/data_source_selector/data_source_selector';
 import { ParagraphActionPanel } from './paragraph_actions_panel';
 import { ParagraphStateValue } from '../../../../state/paragraph_state';
@@ -99,8 +97,7 @@ interface ParagraphProps {
     vizObjectInput?: string,
     paraType?: string,
     dataSourceMDSId?: string,
-    deepResearchAgentId?: string,
-    deepResearchBaseMemoryId?: string
+    deepResearchAgentId?: string
   ) => void;
   showQueryParagraphError: boolean;
   queryParagraphErrorMessage: string;
@@ -148,26 +145,10 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   const [visType, setVisType] = useState('');
   const [dataSourceMDSId, setDataSourceMDSId] = useState('');
   const shouldSkipAgentIdResetRef = useRef(true);
-  const memoryIds = useMemo(
-    () =>
-      new Array(
-        ...new Set(
-          props.paragraphs
-            .filter((paragraph) => paragraph.isDeepResearch)
-            .map((paragraph) => parseParagraphOut(paragraph)[0]?.memory_id)
-            .filter((memoryId) => !!memoryId)
-        )
-      ),
-    [props.paragraphs]
-  );
   const parsedParagraphOut = useMemo(() => parseParagraphOut(para), [para]);
   const [deepResearchAgentId, setDeepResearchAgentId] = useState<string | undefined>(
     parsedParagraphOut[0]?.agent_id
   );
-  const [deepResearchBaseMemoryId, setDeepResearchBaseMemoryId] = useState<string | undefined>(
-    parsedParagraphOut[0]?.base_memory_id
-  );
-  const deepResearchMemoryId = parsedParagraphOut[0]?.memory_id;
 
   // output is available if it's not cleared and vis paragraph has a selected visualization
   const isOutputAvailable =
@@ -332,8 +313,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
       newVisObjectInput,
       visType,
       dataSourceMDSId,
-      deepResearchAgentId,
-      deepResearchBaseMemoryId
+      deepResearchAgentId
     );
   };
 
@@ -443,17 +423,9 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
     handleSelectedDataSourceChange(dataConnectionId, dataConnectionLabel);
   };
 
-  const executeButtonDisabled =
-    para.isDeepResearch &&
-    !!deepResearchBaseMemoryId &&
-    deepResearchMemoryId === deepResearchBaseMemoryId;
   const executeButton = (
-    <EuiSmallButton
-      data-test-subj={`runRefreshBtn-${index}`}
-      onClick={() => onRunPara()}
-      disabled={executeButtonDisabled}
-    >
-      {isOutputAvailable && (!para.isDeepResearch || !deepResearchBaseMemoryId) ? 'Refresh' : 'Run'}
+    <EuiSmallButton data-test-subj={`runRefreshBtn-${index}`} onClick={() => onRunPara()}>
+      {isOutputAvailable ? 'Refresh' : 'Run'}
     </EuiSmallButton>
   );
 
@@ -486,13 +458,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
             </EuiFlexItem>
             {para.isDeepResearch && (
               <>
-                <EuiFlexItem>
-                  <MemorySelector
-                    value={deepResearchBaseMemoryId}
-                    onChange={setDeepResearchBaseMemoryId}
-                    memoryIds={memoryIds}
-                  />
-                </EuiFlexItem>
                 <EuiFlexItem>
                   <AgentsSelector
                     http={http}
@@ -543,15 +508,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
             )}
             <EuiSpacer size="m" />
             <EuiFlexGroup alignItems="center" gutterSize="s">
-              <EuiFlexItem grow={false}>
-                {executeButtonDisabled ? (
-                  <EuiToolTip content="Insert a new deep research paragraph to execute base selected memory">
-                    {executeButton}
-                  </EuiToolTip>
-                ) : (
-                  executeButton
-                )}
-              </EuiFlexItem>
+              <EuiFlexItem grow={false}>{executeButton}</EuiFlexItem>
             </EuiFlexGroup>
             <EuiSpacer size="m" />
           </>

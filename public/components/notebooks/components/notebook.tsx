@@ -437,12 +437,10 @@ export function NotebookComponent({
       taskId,
       paraUniqueId,
       agentId,
-      baseMemoryId,
     }: {
       taskId: string;
       paraUniqueId: string;
       agentId: string;
-      baseMemoryId?: string | undefined;
     }) => {
       const cleanTaskSubscription = () => {
         taskSubscriptions.current.get(taskId)?.unsubscribe();
@@ -481,7 +479,6 @@ export function NotebookComponent({
                   task: payload,
                   taskId,
                   agentId,
-                  baseMemoryId,
                 })
               );
               if (
@@ -523,8 +520,7 @@ export function NotebookComponent({
     vizObjectInput?: string,
     paraType?: string,
     _dataSourceMDSId?: string,
-    deepResearchAgentId?: string,
-    deepResearchBaseMemoryId?: string
+    deepResearchAgentId?: string
   ) => {
     showParagraphRunning(index);
     if (vizObjectInput) {
@@ -539,7 +535,6 @@ export function NotebookComponent({
       dataSourceMDSId: dataSourceMDSId || '',
       dataSourceMDSLabel: dataSourceMDSLabel || '',
       deepResearchAgentId,
-      deepResearchBaseMemoryId,
     };
     const route = isSavedObjectNotebook
       ? `${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/update/run`
@@ -577,7 +572,6 @@ export function NotebookComponent({
             taskId,
             paraUniqueId: para.uniqueId,
             agentId: deepResearchAgentId ?? '',
-            baseMemoryId: deepResearchBaseMemoryId,
           });
         }
         setParagraphs(newParagraphs);
@@ -683,12 +677,7 @@ export function NotebookComponent({
             if (!currentResult) {
               continue;
             }
-            const {
-              task_id: taskId,
-              agent_id: agentId,
-              state,
-              base_memory_id: baseMemoryId,
-            } = JSON.parse(currentResult);
+            const { task_id: taskId, agent_id: agentId, state } = JSON.parse(currentResult);
             const paragraphId = res.paragraphs[index].id;
 
             if (isStateCompletedOrFailed(state)) {
@@ -699,7 +688,6 @@ export function NotebookComponent({
               taskId,
               agentId,
               paraUniqueId: paragraphId,
-              baseMemoryId,
             });
           } else if (res.paragraphs[index].input.inputType === LOG_PATTERN_PARAGRAPH_TYPE) {
             logPatternParaExists = true;
