@@ -181,14 +181,17 @@ export const getMLCommonsConfig = ({
   http,
   signal,
   configName,
+  dataSourceId,
 }: {
   http: CoreStart['http'];
   signal?: AbortSignal;
   configName: string;
+  dataSourceId?: string;
 }) =>
   callApiWithProxy({
     http,
     method: 'GET',
     path: OPENSEARCH_ML_COMMONS_API.singleConfig.replace('{configName}', configName),
     signal,
+    dataSourceId,
   });

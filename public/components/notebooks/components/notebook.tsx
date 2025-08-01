@@ -1125,7 +1125,11 @@ export function NotebookComponent({
           </EuiPageContent>
         </EuiPageBody>
         <EuiSpacer />
-        <InputPanel onCreateParagraph={handleCreateParagraph} />
+        <InputPanel
+          onCreateParagraph={handleCreateParagraph}
+          http={http}
+          dataSourceId={dataSourceMDSId}
+        />
       </EuiPage>
       {isModalVisible && modalLayout}
     </>

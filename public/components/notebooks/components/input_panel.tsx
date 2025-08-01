@@ -10,16 +10,27 @@ import {
   EuiSelectableOption,
   EuiInputPopover,
   EuiIcon,
+  EuiLoadingSpinner,
 } from '@elastic/eui';
 import autosize from 'autosize';
 import { useEffectOnce } from 'react-use';
+import { ActionMetadata, actionsMetadata } from '../../../../common/constants/actions';
 import { NotebookReactContext } from '../context_provider/context_provider';
+import { executeMLCommonsAgent, getMLCommonsConfig } from '../../../utils/ml_commons_apis';
 
 interface InputPanelProps {
   onCreateParagraph: (paragraphInput: string, inputType: string) => Promise<void>;
+  http: CoreStart['http'];
+  dataSourceId: string | undefined | null;
 }
 
-export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => {
+export const InputPanel: React.FC<InputPanelProps> = ({
+  onCreateParagraph,
+  http,
+  dataSourceId,
+}) => {
+  const [isLoading, setIsLoading] = useState(false);
+
   const [inputValue, setInputValue] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -56,6 +67,33 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => 
       'data-test-subj': 'paragraph-type-deep-research',
     },
   ];
+
+  const executeActionSelectionAgent = async (input: string, actions: ActionMetadata[]) => {
+    try {
+      const {
+        configuration: { agent_id: actionSelectionAgentId },
+      } = await getMLCommonsConfig({ http, configName: 'action-selection-agent' });
+
+      if (!actionSelectionAgentId) {
+        throw new Error('Failed to get actionSelectionAgentId');
+      }
+
+      const result = await executeMLCommonsAgent({
+        http,
+        agentId: actionSelectionAgentId,
+        dataSourceId: dataSourceId ?? undefined,
+        parameters: {
+          actionsMetaData: actions.map((action) => JSON.stringify(action)).join(','),
+          input,
+        },
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error occured during executing action selection agent:', error);
+      throw error;
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
@@ -113,12 +151,53 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => 
 
   // TODO: Submit use's question
   const onSubmit = async () => {
+    setIsLoading(true);
+
     if (!textareaRef.current || !textareaRef.current.value.trim()) {
       return;
     }
 
-    textareaRef.current.value = '';
-    textareaRef.current.style.height = '45px';
+    try {
+      const response = await executeActionSelectionAgent(
+        textareaRef.current.value,
+        actionsMetadata
+      );
+      const rawResult = JSON.parse(response?.inference_results?.[0]?.output?.[0]?.result);
+      const jsonMatch = rawResult?.content?.[0]?.text?.match(/\{[\s\S]*\}/);
+      let inputType = 'DEEP_RESEARCH';
+      let paragraphInput = '';
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]);
+        switch (result.action) {
+          case 'PPL':
+            inputType = 'CODE';
+            paragraphInput = '%ppl\n' + result.input?.inputQuery || '';
+            break;
+          case 'MARKDOWN':
+            inputType = 'CODE';
+            paragraphInput = '%md\n' + result.input?.markdownText || '';
+            break;
+          case 'VISUALIZATION':
+            inputType = 'VISUALIZATION';
+            paragraphInput = '';
+            break;
+          case 'DEEP_RESEARCH_AGENT':
+            inputType = 'DEEP_RESEARCH';
+            paragraphInput = result.input?.question || '';
+            break;
+          default:
+            inputType = 'CODE';
+            paragraphInput = textareaRef.current.value;
+        }
+      }
+      await onCreateParagraph(paragraphInput, inputType);
+      setInputValue('');
+      textareaRef.current.style.height = '45px';
+    } catch (error) {
+      console.error('Error occured during submission', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -145,21 +224,34 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => 
                 onSubmit();
               }
             }}
+            disabled={isLoading}
             rows={1}
             resize="none"
             data-test-subj="notebook-paragraph-input-panel"
           />
-          <EuiIcon
-            type="rocket"
-            style={{
-              position: 'absolute',
-              right: 10,
-              top: '50%',
-              transform: 'translateY(-50%)',
-            }}
-            onClick={onSubmit}
-            data-test-subj="notebook-input-icon"
-          />
+          {isLoading ? (
+            <EuiLoadingSpinner
+              size="m"
+              style={{
+                position: 'absolute',
+                right: 10,
+                top: '30%',
+              }}
+              data-test-subj="notebook-input-loading"
+            />
+          ) : (
+            <EuiIcon
+              type="rocket"
+              style={{
+                position: 'absolute',
+                right: 10,
+                top: '50%',
+                transform: 'translateY(-50%)',
+              }}
+              onClick={onSubmit}
+              data-test-subj="notebook-input-icon"
+            />
+          )}
         </div>
       }
       fullWidth
