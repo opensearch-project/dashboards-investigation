@@ -10,7 +10,6 @@ export const constructDeepResearchParagraphOut = ({
   taskId,
   parentInteractionId,
   state,
-  baseMemoryId,
 }: {
   task?: any;
   agentId?: string;
@@ -18,7 +17,6 @@ export const constructDeepResearchParagraphOut = ({
   taskId: string;
   parentInteractionId?: string;
   state?: string;
-  baseMemoryId?: string;
 }) => {
   const inferenceResult = task?.response?.inference_results?.[0];
   const executorMemoryId =
@@ -37,7 +35,6 @@ export const constructDeepResearchParagraphOut = ({
   return {
     agent_id: agentId,
     memory_id: memoryId || task?.response.memory_id,
-    base_memory_id: baseMemoryId,
     task_id: taskId,
     state: state ?? task?.state,
     executor_memory_id: executorMemoryId,
