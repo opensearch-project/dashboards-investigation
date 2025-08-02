@@ -139,8 +139,20 @@ export const useParagraphs = () => {
     ),
     moveParagraph,
     cloneParagraph,
-    saveParagraph<T>(props: { paragraphState: ParagraphState<T> }) {
-      const { id: paragraphId, input, output } = props.paragraphState.value;
+    saveParagraph<T>(props: { paragraphStateValue: ParagraphStateValue<T> }) {
+      const findUpdateParagraphState = context.state.value.paragraphs.find(
+        (paragraph) => paragraph.value.id === paragraphId
+      );
+      if (!findUpdateParagraphState) {
+        return getCoreStart().notifications.toasts.addDanger(
+          'The paragraph you want to save can not be found'
+        );
+      }
+
+      findUpdateParagraphState.updateUIState({
+        isRunning: true,
+      });
+      const { id: paragraphId, input, output } = props.paragraphStateValue;
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const outputPayload = output?.map(({ execution_time: executionTime, ...others }) => others);
       return context.http
@@ -153,13 +165,20 @@ export const useParagraphs = () => {
           }),
         })
         .then((res) => {
-          props.paragraphState.updateValue(res);
+          if (findUpdateParagraphState) {
+            findUpdateParagraphState.updateValue(res);
+          }
         })
         .catch((err) => {
           getCoreStart().notifications.toasts.addDanger(
             'Error updating paragraph, please make sure you have the correct permission.'
           );
           console.error(err);
+        })
+        .finally(() => {
+          findUpdateParagraphState.updateUIState({
+            isRunning: false,
+          });
         });
     },
   };

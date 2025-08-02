@@ -29,21 +29,24 @@ import { BubbleUpModel } from './container_model';
 import { BubbleUpDataService } from './bubble_up_data_service';
 import { useObservable } from 'react-use';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
+import { Observable } from 'rxjs';
+import { ParagraphState, ParagraphStateValue } from '../../../../state/paragraph_state';
 
 const ITEMS_PER_PAGE = 3;
 
-export const BubbleUpContainer = ({ idx }: { idx: number }) => {
+export interface BubbleOutputResult {
+  fieldComparison: Record<string, unknown>[];
+}
+
+export const BubbleUpContainer = ({ paragraph$ }: { paragraph$: Observable<ParagraphStateValue<BubbleOutputResult>> }) => {
   const context = useContext(NotebookReactContext);
   const topContextValue = useObservable(
     context.state.value.context.getValue$(),
     context.state.value.context.value
   );
-  const paragraphState = context.state.getParagraph<{
-    fieldComparison: Record<string, unknown>[];
-  }>({
-    index: idx,
-  });
-  const { fieldComparison } = paragraphState?.getOutput()?.result || {};
+  const paragraph = useObservable(paragraph$);
+  const { result } = ParagraphState.getOutput(paragraph)! || {};
+  const { fieldComparison } = result! || {};
   const { timeRange, timeField, index, dataSourceId, PPLFilters, filters } = topContextValue;
   const { saveParagraph } = useParagraphs();
   const [activePage, setActivePage] = useState(0);
@@ -56,7 +59,6 @@ export const BubbleUpContainer = ({ idx }: { idx: number }) => {
 
     return [];
   }, [fieldComparison]);
-  const [, setDisSummary] = useState<Array<Record<string, unknown>>>([]);
   const [summary] = useState<string>();
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [showModel, setShowModel] = useState(false);
@@ -157,7 +159,7 @@ export const BubbleUpContainer = ({ idx }: { idx: number }) => {
       setSpecsLoading(true);
       setDistributionLoading(true);
 
-      if (paragraphState && fieldComparison && fieldComparison.length > 0) {
+      if (fieldComparison && fieldComparison.length > 0) {
         setSpecsLoading(false);
         setDistributionLoading(false);
         return;
@@ -182,12 +184,11 @@ export const BubbleUpContainer = ({ idx }: { idx: number }) => {
         const discoverFields = await dataService.discoverFields(response);
         const difference = await dataService.analyzeDifferences(response, discoverFields);
         const fieldComparison = dataService.formatComparisonSummary(difference);
-        if (paragraphState) {
-          paragraphState.updateOutputResult({
-            fieldComparison,
-          });
+        if (paragraph) {
           await saveParagraph({
-            paragraphState,
+            paragraphStateValue: ParagraphState.updateOutputResult(paragraph, {
+              fieldComparison
+            })  
           });
         }
         setDistributionLoading(false);
@@ -199,7 +200,7 @@ export const BubbleUpContainer = ({ idx }: { idx: number }) => {
     };
 
     loadSpecsData();
-  }, [dataService, fieldComparison, paragraphState, specsLoading]);
+  }, [dataService, fieldComparison, specsLoading]);
 
   const { paginatedSpecs, totalPages } = useMemo(() => {
     if (!bubbleUpSpecs?.length) return { paginatedSpecs: [], totalPages: 0 };

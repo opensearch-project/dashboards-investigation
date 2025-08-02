@@ -20,6 +20,22 @@ export interface ParagraphStateValue<TOutputResult = string, TFullfilledOutput =
 export class ParagraphState<TOutputResult = string, TFullfilledOutput = {}> extends ObservableState<
   ParagraphStateValue<TOutputResult, TFullfilledOutput>
 > {
+  static getOutput<T>(value?: ParagraphStateValue<T>) {
+    if (!value) {
+      return undefined;
+    }
+
+    return value.output?.[0];
+  }
+  static updateOutputResult<T>(value: ParagraphStateValue<T>, newResult: T) {
+    if (value.output?.[0]) {
+      value.output[0].result = {
+        ...value.output[0].result,
+        ...newResult,
+      };
+    }
+    return value;
+  }
   protected formatValue(
     value: ParagraphStateValue<TOutputResult, TFullfilledOutput>
   ): ParagraphStateValue<TOutputResult, TFullfilledOutput> {
@@ -94,8 +110,5 @@ export class ParagraphState<TOutputResult = string, TFullfilledOutput = {}> exte
         ...uiState,
       },
     });
-  }
-  getOutput() {
-    return this.value.output?.[0];
   }
 }

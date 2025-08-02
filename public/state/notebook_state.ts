@@ -69,23 +69,4 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
   getParagraphsBackendValue() {
     return this.value.paragraphs.map((paragraph) => paragraph.getBackgroundValue());
   }
-  getParagraph<ParagraphOutput = string>(props: {
-    id?: string;
-    index?: number;
-  }): ParagraphState<ParagraphOutput> | undefined {
-    if (!props.hasOwnProperty('index') && !props.id) {
-      console.error('Index or paragraph id is required to get paragraph state');
-      return;
-    }
-
-    if (props.id) {
-      return this.value.paragraphs.find((paragraph) => paragraph.value.id === props.id) as
-        | ParagraphState<ParagraphOutput>
-        | undefined;
-    }
-
-    if (typeof props.index === 'number' && props.index > -1) {
-      return this.value.paragraphs[props.index] as ParagraphState<ParagraphOutput> | undefined;
-    }
-  }
 }
