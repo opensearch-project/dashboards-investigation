@@ -10,7 +10,7 @@ import { ParagraphState, ParagraphStateValue } from './paragraph_state';
 import { TopContextState } from './top_context_state';
 
 interface NotebookStateValue {
-  paragraphs: ParagraphState[];
+  paragraphs: Array<ParagraphState<unknown>>;
   id: string;
   context: TopContextState;
   dataSourceEnabled: boolean;
@@ -20,7 +20,7 @@ interface NotebookStateValue {
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {
-  createParagraph(paragraphIndex: number, paragraph: ParagraphState) {
+  createParagraph(paragraphIndex: number, paragraph: ParagraphState<unknown>) {
     const newParagraph = this.value.paragraphs;
     newParagraph.splice(paragraphIndex, 0, paragraph);
     this.updateValue({
@@ -45,9 +45,9 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
 
     return this;
   }
-  updateParagraphs(paragraphs: ParagraphStateValue[]) {
+  updateParagraphs(paragraphs: Array<ParagraphStateValue<unknown>>) {
     this.updateValue({
-      paragraphs: paragraphs.map((paragraph) => new ParagraphState(paragraph)),
+      paragraphs: paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
     });
   }
   getParagraphStates$() {

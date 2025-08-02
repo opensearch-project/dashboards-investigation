@@ -56,7 +56,7 @@ import { AgentsSelector } from './agents_selector';
 import { MemorySelector } from './memory_selector';
 import { DataSourceSelectorProps } from '../../../../../../../src/plugins/data_source_management/public/components/data_source_selector/data_source_selector';
 import { ParagraphActionPanel } from './paragraph_actions_panel';
-import { ParagraphStateValue } from '../../../../state/paragraph_state';
+import { ParagraphStateValue } from '../../../../../common/state/paragraph_state';
 
 /*
  * "Paragraphs" component is used to render cells of the notebook open and "add para div" between paragraphs

@@ -9,7 +9,8 @@ import {
   IRouter,
   ResponseError,
 } from '../../../../../src/core/server';
-import { QueryService } from '../../services/queryService';
+import { QueryService } from '../../services/query_service';
+import { getOpenSearchClientTransport } from '../utils';
 
 export function registerSqlRoute(
   server: IRouter,
@@ -31,7 +32,13 @@ export function registerSqlRoute(
       request,
       response
     ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
-      const retVal = await service.describeSQLQuery(context, request);
+      const retVal = await service.describeSQLQuery(
+        await getOpenSearchClientTransport({
+          context,
+          dataSourceId: request.query.dataSourceMDSId,
+        }),
+        request.body
+      );
       return response.ok({
         body: retVal,
       });
@@ -53,7 +60,13 @@ export function registerSqlRoute(
       request,
       response
     ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
-      const retVal = await service.describePPLQuery(context, request);
+      const retVal = await service.describePPLQuery(
+        await getOpenSearchClientTransport({
+          context,
+          dataSourceId: request.query.dataSourceMDSId,
+        }),
+        request.body
+      );
       return response.ok({
         body: retVal,
       });

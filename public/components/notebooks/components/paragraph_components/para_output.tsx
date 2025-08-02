@@ -8,13 +8,23 @@ import MarkdownRender from '@nteract/markdown';
 import { Media } from '@nteract/outputs';
 import moment from 'moment';
 import React from 'react';
-import { LOG_PATTERN_PARAGRAPH_TYPE } from '../../../../../common/constants/notebooks';
+import { useContext } from 'react';
+import { Observable } from 'rxjs';
+import { ParagraphStateValue } from 'common/state/paragraph_state';
+import { LogPatternAnalysisResult } from 'common/types/log_pattern';
+import {
+  ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+  LOG_PATTERN_PARAGRAPH_TYPE,
+} from '../../../../../common/constants/notebooks';
 import { CoreStart } from '../../../../../../../src/core/public';
 import {
   DashboardContainerInput,
   DashboardStart,
 } from '../../../../../../../src/plugins/dashboard/public';
-import { ParaType } from '../../../../../common/types/notebooks';
+import {
+  AnomalyVisualizationAnalysisOutputResult,
+  ParaType,
+} from '../../../../../common/types/notebooks';
 import { uiSettingsService } from '../../../../../common/utils';
 import { DeepResearchContainer } from '../../../../components/custom_panels/panel_modules/deep_research_container';
 import { QueryDataGridMemo } from './para_query_grid';
@@ -22,6 +32,7 @@ import { BubbleUpContainer } from '../bubbleup/bubble_up_container';
 import { LogPatternContainer } from './log_pattern_container';
 import { DashboardPanelState } from '../../../../../../../src/plugins/dashboard/public/application';
 import { EmbeddableInput } from '../../../../../../../src/plugins/embeddable/public';
+import { NotebookReactContext } from '../../context_provider/context_provider';
 
 const createQueryColumns = (jsonColumns: any[]) => {
   let index = 0;
@@ -58,6 +69,7 @@ const getQueryOutputData = (queryObject: any) => {
 };
 
 const OutputBody = ({
+  index,
   http,
   typeOut,
   val,
@@ -79,6 +91,11 @@ const OutputBody = ({
    * Currently supports HTML, TABLE, IMG
    * TODO: add table rendering
    */
+  const context = useContext(NotebookReactContext);
+
+  const paragraph$: Observable<ParagraphStateValue<any>> = context.state.value.paragraphs[
+    index
+  ].getValue$();
 
   const dateFormat = uiSettingsService.get('dateFormat');
 
@@ -180,11 +197,25 @@ const OutputBody = ({
       case 'IMG':
         return <img alt="" src={'data:image/gif;base64,' + val} />;
       case 'DEEP_RESEARCH':
-        return <DeepResearchContainer http={http} para={para} onTaskFinish={() => {}} />;
-      case 'ANOMALY_VISUALIZATION_ANALYSIS':
-        return <BubbleUpContainer />;
+        return <DeepResearchContainer http={http} para={para} paragraph$={paragraph$} />;
+      case ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE:
+        return (
+          <BubbleUpContainer
+            paragraph$={
+              paragraph$ as Observable<
+                ParagraphStateValue<AnomalyVisualizationAnalysisOutputResult>
+              >
+            }
+          />
+        );
       case LOG_PATTERN_PARAGRAPH_TYPE:
-        return <LogPatternContainer http={http} para={para} />;
+        return (
+          <LogPatternContainer
+            http={http}
+            para={para}
+            paragraph$={paragraph$ as Observable<ParagraphStateValue<LogPatternAnalysisResult>>}
+          />
+        );
       default:
         return <pre>{val}</pre>;
     }

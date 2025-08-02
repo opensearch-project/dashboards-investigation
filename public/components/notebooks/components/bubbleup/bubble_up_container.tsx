@@ -22,29 +22,40 @@ import { EuiStepHorizontalProps } from '@elastic/eui/src/components/steps/step_h
 import { getEmbeddable } from '../../../../services';
 import { BubbleUpInput } from './embeddable/types';
 import { EmbeddableRenderer } from '../../../../../../../src/plugins/embeddable/public';
-import './bubble_up_viz.scss';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { generateAllFieldCharts } from './render_bubble_vega';
 import { BubbleUpModel } from './container_model';
 import { BubbleUpDataService } from './bubble_up_data_service';
-import { useNotebook } from '../../../../hooks/use_notebook';
 import { useObservable } from 'react-use';
+import { useParagraphs } from '../../../../hooks/use_paragraphs';
+import { Observable } from 'rxjs';
+import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
+import { AnomalyVisualizationAnalysisOutputResult } from 'common/types/notebooks';
+import './bubble_up_viz.scss';
 
 const ITEMS_PER_PAGE = 3;
 
-export const BubbleUpContainer = () => {
+export const BubbleUpContainer = ({ paragraph$ }: { paragraph$: Observable<ParagraphStateValue<AnomalyVisualizationAnalysisOutputResult>> }) => {
   const context = useContext(NotebookReactContext);
   const topContextValue = useObservable(
     context.state.value.context.getValue$(),
     context.state.value.context.value
   );
-  const { specs, timeRange, timeField, index, dataSourceId, PPLFilters, filters } = topContextValue;
-  const { updateNotebookContext } = useNotebook();
+  const paragraph = useObservable(paragraph$);
+  const { result } = ParagraphState.getOutput(paragraph)! || {};
+  const { fieldComparison } = result! || {};
+  const { timeRange, timeField, index, dataSourceId, PPLFilters, filters } = topContextValue;
+  const { saveParagraph } = useParagraphs();
   const [activePage, setActivePage] = useState(0);
   const [specsLoading, setSpecsLoading] = useState(false);
   const [distributionLoading, setDistributionLoading] = useState(false);
-  const [bubbleUpSpecs, setBubbleUpSpecs] = useState<Array<Record<string, unknown>>>([]);
-  const [, setDisSummary] = useState<Array<Record<string, unknown>>>([]);
+  const bubbleUpSpecs = useMemo(() => {
+    if (fieldComparison) {
+      return generateAllFieldCharts(fieldComparison);
+    }
+
+    return [];
+  }, [fieldComparison]);
   const [summary] = useState<string>();
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [showModel, setShowModel] = useState(false);
@@ -139,18 +150,16 @@ export const BubbleUpContainer = () => {
 
   useEffect(() => {
     const loadSpecsData = async () => {
-      if (specsLoading || distributionLoading) {
+      if (specsLoading || distributionLoading || !paragraph) {
         return;
       }
       setSpecsLoading(true);
       setDistributionLoading(true);
 
-      if (specs && specs.length > 0) {
-        const tempSpecs = generateAllFieldCharts(specs);
-        setBubbleUpSpecs(tempSpecs);
+      if (fieldComparison && fieldComparison.length > 0) {
         setSpecsLoading(false);
         setDistributionLoading(false);
-        return specs;
+        return;
       }
 
       if (!timeRange || !timeField || !index) {
@@ -171,12 +180,14 @@ export const BubbleUpContainer = () => {
         setSpecsLoading(false);
         const discoverFields = await dataService.discoverFields(response);
         const difference = await dataService.analyzeDifferences(response, discoverFields);
-        const summaryData = dataService.formatComparisonSummary(difference);
-        setDisSummary(summaryData);
-        const specs = generateAllFieldCharts(summaryData);
-
-        setBubbleUpSpecs(specs);
-        await updateNotebookContext({ specs: summaryData });
+        const fieldComparison = dataService.formatComparisonSummary(difference);
+        if (paragraph) {
+          await saveParagraph({
+            paragraphStateValue: ParagraphState.updateOutputResult(paragraph, {
+              fieldComparison
+            })  
+          });
+        }
         setDistributionLoading(false);
       } catch (error) {
         console.error('Error fetching or processing data:', error);
@@ -186,7 +197,7 @@ export const BubbleUpContainer = () => {
     };
 
     loadSpecsData();
-  }, [dataService]);
+  }, [dataService, fieldComparison, specsLoading, paragraph]);
 
   const { paginatedSpecs, totalPages } = useMemo(() => {
     if (!bubbleUpSpecs?.length) return { paginatedSpecs: [], totalPages: 0 };
@@ -249,13 +260,6 @@ export const BubbleUpContainer = () => {
       <EuiSpacer size="m" />
       <EuiFlexGroup>
         {paginatedSpecs.map((spec, index) => {
-          // const uniqueKey = selectedField
-          //   ? `${selectedField}-${index}`
-          //   : `${activePage * ITEMS_PER_PAGE + index}`;
-          // const uniqueId = selectedField
-          //   ? `text2viz-${selectedField}-${index}`
-          //   : `text2viz-${activePage * ITEMS_PER_PAGE + index}`;
-
           const uniqueKey = `${activePage * ITEMS_PER_PAGE + index}`;
           const uniqueId = `text2viz-${activePage * ITEMS_PER_PAGE + index}`;
 

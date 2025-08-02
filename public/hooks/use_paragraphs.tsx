@@ -4,9 +4,10 @@
  */
 
 import { useContext, useCallback } from 'react';
+import { ParagraphBackendType } from 'common/types/notebooks';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
-import { ParagraphState, ParagraphStateValue } from '../state/paragraph_state';
+import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import { getCoreStart } from '../services';
 
 export const useParagraphs = () => {
@@ -83,6 +84,52 @@ export const useParagraphs = () => {
     }
   };
 
+  const saveParagraph = useCallback(
+    function <T>(props: { paragraphStateValue: ParagraphStateValue<T> }) {
+      const { id: paragraphId, input, output } = props.paragraphStateValue;
+      const findUpdateParagraphState = context.state.value.paragraphs.find(
+        (paragraph) => paragraph.value.id === paragraphId
+      );
+      if (!findUpdateParagraphState) {
+        return getCoreStart().notifications.toasts.addDanger(
+          'The paragraph you want to save can not be found'
+        );
+      }
+
+      findUpdateParagraphState.updateUIState({
+        isRunning: true,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const outputPayload = output?.map(({ execution_time: executionTime, ...others }) => others);
+      return context.http
+        .put<ParagraphBackendType<T>>(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
+          body: JSON.stringify({
+            noteId: context.state.value.id,
+            paragraphId,
+            paragraphInput: input.inputText,
+            paragraphOutput: outputPayload,
+          }),
+        })
+        .then((res) => {
+          if (findUpdateParagraphState) {
+            findUpdateParagraphState.updateValue(res);
+          }
+        })
+        .catch((err) => {
+          getCoreStart().notifications.toasts.addDanger(
+            'Error updating paragraph, please make sure you have the correct permission.'
+          );
+          console.error(err);
+        })
+        .finally(() => {
+          findUpdateParagraphState.updateUIState({
+            isRunning: false,
+          });
+        });
+    },
+    [context.http, context.state.value.id, context.state.value.paragraphs]
+  );
+
   return {
     createParagraph,
     deleteParagraph: (index: number) => {
@@ -138,5 +185,6 @@ export const useParagraphs = () => {
     ),
     moveParagraph,
     cloneParagraph,
+    saveParagraph,
   };
 };

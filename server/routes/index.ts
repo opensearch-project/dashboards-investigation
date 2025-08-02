@@ -3,24 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ILegacyClusterClient, IRouter, Logger } from '../../../../src/core/server';
-import { QueryService } from '../services/queryService';
+import { IRouter } from '../../../../src/core/server';
 import { registerNoteRoute } from './notebooks/noteRouter';
 import { registerParaRoute } from './notebooks/paraRouter';
 import { registerSqlRoute } from './notebooks/sqlRouter';
 import { registerVizRoute } from './notebooks/vizRouter';
 import { registerLogPatternRoute } from './notebooks/logPatternRouter';
+import { getQueryService } from '../services/get_set';
 
 export function setupRoutes({
   router,
-  client,
   dataSourceEnabled,
-  logger,
 }: {
   router: IRouter;
-  client: ILegacyClusterClient;
   dataSourceEnabled: boolean;
-  logger: Logger;
 }) {
   // notebooks routes
   registerParaRoute(router);
@@ -28,6 +24,5 @@ export function setupRoutes({
   registerVizRoute(router, dataSourceEnabled);
   registerLogPatternRoute(router);
 
-  const queryService = new QueryService(client, logger);
-  registerSqlRoute(router, queryService, dataSourceEnabled);
+  registerSqlRoute(router, getQueryService(), dataSourceEnabled);
 }

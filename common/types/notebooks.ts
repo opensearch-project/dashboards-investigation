@@ -66,12 +66,11 @@ export interface NotebookContext {
   source?: NoteBookSource;
   filters?: Array<Record<string, any>>; // For phase 1, we only support DSL filter
   summary?: string;
-  specs?: Array<Record<string, unknown>>;
   PPLFilters?: string[];
   variables?: Record<string, unknown>;
 }
 
-export interface ParagraphBackendType {
+export interface ParagraphBackendType<TOutputResult = string> {
   input: {
     inputText: string;
     inputType: string;
@@ -80,11 +79,15 @@ export interface ParagraphBackendType {
     {
       execution_time: string;
       outputType: string;
-      result: string;
+      result: TOutputResult;
     }
   ]; // output only has some meta data like message_id / task_id
   id: string;
   dateModified: string;
   dateCreated: string;
   dataSourceMDSId?: string;
+}
+
+export interface AnomalyVisualizationAnalysisOutputResult {
+  fieldComparison: Array<Record<string, unknown>>;
 }

@@ -4,8 +4,8 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MarkdownRender from '@nteract/markdown';
-import { EuiButton, EuiLoadingContent, EuiText, EuiAccordion, EuiSpacer } from '@elastic/eui';
-import { interval } from 'rxjs';
+import { EuiButton, EuiLoadingContent, EuiText, EuiAccordion, EuiSpacer, EuiModal, EuiModalHeader, EuiModalBody } from '@elastic/eui';
+import { interval, Observable } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
 import { CoreStart } from '../../../../../../../src/core/public';
@@ -15,19 +15,23 @@ import { getAllMessagesByMemoryId, getAllTracesByMessageId, isMarkdownText } fro
 import { MessageTraceModal } from './message_trace_modal';
 import { parseParagraphOut } from '../../../../utils/paragraph';
 import { isStateCompletedOrFailed } from '../../../../utils/task';
+import { ParagraphStateValue } from 'common/state/paragraph_state';
+import { useObservable } from 'react-use';
 
 interface Props {
   http: CoreStart['http'];
   para: ParaType;
+  paragraph$: Observable<ParagraphStateValue>
 }
 
-export const DeepResearchContainer = ({ para, http }: Props) => {
+export const DeepResearchContainer = ({ para, http, paragraph$ }: Props) => {
   const [traces, setTraces] = useState([]);
   const parsedParagraphOut = useMemo(() => parseParagraphOut(para)[0], [para]);
   const [isLoading, setIsLoading] = useState(isStateCompletedOrFailed(parsedParagraphOut.state));
   const [tracesVisible, setTracesVisible] = useState(!isStateCompletedOrFailed(parseParagraphOut));
   const [executorMessages, setExecutorMessages] = useState([]);
   const [loadingSteps, setLoadingSteps] = useState(false);
+  const [showContextModal, setShowContextModal] = useState(false);
   const [traceModalData, setTraceModalData] = useState<{
     messageId: string;
     refresh: boolean;
@@ -37,6 +41,7 @@ export const DeepResearchContainer = ({ para, http }: Props) => {
   parsedParagraphOutRef.current = parsedParagraphOut;
   const dataSourceIdRef = useRef(para.dataSourceMDSId);
   dataSourceIdRef.current = para.dataSourceMDSId;
+  const paragraph = useObservable(paragraph$);
 
   const finalMessage = useMemo(() => {
     if (!parsedParagraphOut) {
@@ -178,6 +183,7 @@ export const DeepResearchContainer = ({ para, http }: Props) => {
           <EuiSpacer />
         </>
       )}
+      {paragraph?.output && <EuiButton onClick={() => setShowContextModal(true)}>Show context</EuiButton>}
       {isLoading ? (
         <EuiLoadingContent />
       ) : (
@@ -236,6 +242,16 @@ export const DeepResearchContainer = ({ para, http }: Props) => {
           dataSourceId={para.dataSourceMDSId}
         />
       )}
+      {
+        showContextModal && (
+          <EuiModal onClose={() => setShowContextModal(false)}>
+            <EuiModalHeader>Context</EuiModalHeader>
+            <EuiModalBody>
+              {paragraph?.input.PERAgentContext || 'No context'}
+            </EuiModalBody>
+          </EuiModal>
+        )
+      }
     </div>
   );
 };

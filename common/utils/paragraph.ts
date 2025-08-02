@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ParagraphBackendType } from 'common/types/notebooks';
+
 export const constructDeepResearchParagraphOut = ({
   task,
   agentId,
@@ -46,4 +48,18 @@ export const constructDeepResearchParagraphOut = ({
     ...(executorMemoryId !== undefined ? { executor_memory_id: executorMemoryId } : {}),
     ...(textResponse !== undefined ? { text_response: textResponse } : {}),
   };
+};
+
+export const extractCodeBlockType = (content: string) => {
+  const regexp = /^%(\w+)\s+/;
+  return content.match(regexp)?.[1] || '';
+};
+
+export const getInputType = (paragraph: ParagraphBackendType) => {
+  const inputType = paragraph.input.inputType;
+  if (inputType === 'MARKDOWN') {
+    return extractCodeBlockType(paragraph.input.inputText);
+  }
+
+  return inputType;
 };
