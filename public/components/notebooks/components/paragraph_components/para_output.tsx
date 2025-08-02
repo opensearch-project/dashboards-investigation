@@ -92,6 +92,8 @@ const OutputBody = ({
    */
   const context = useContext(NotebookReactContext);
 
+  const paragraph$: Observable<ParagraphStateValue<any>> = context.state.value.paragraphs[index].getValue$();
+
   const dateFormat = uiSettingsService.get('dateFormat');
 
   if (typeOut !== undefined) {
@@ -192,12 +194,12 @@ const OutputBody = ({
       case 'IMG':
         return <img alt="" src={'data:image/gif;base64,' + val} />;
       case 'DEEP_RESEARCH':
-        return <DeepResearchContainer http={http} para={para} onTaskFinish={() => {}} />;
+        return <DeepResearchContainer http={http} para={para} onTaskFinish={() => {}} paragraph$={paragraph$} />;
       case ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE:
         return (
           <BubbleUpContainer
             paragraph$={
-              context.state.value.paragraphs[index].getValue$() as Observable<
+              paragraph$ as Observable<
                 ParagraphStateValue<AnomalyVisualizationAnalysisOutputResult>
               >
             }

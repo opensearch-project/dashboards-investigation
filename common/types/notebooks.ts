@@ -66,7 +66,6 @@ export interface NotebookContext {
   source?: NoteBookSource;
   filters?: Array<Record<string, any>>; // For phase 1, we only support DSL filter
   summary?: string;
-  specs?: Array<Record<string, unknown>>;
   PPLFilters?: string[];
   variables?: Record<string, unknown>;
 }

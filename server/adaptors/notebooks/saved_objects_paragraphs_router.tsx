@@ -344,6 +344,7 @@ export async function runParagraph(
               execution_time: `${(now() - startTime).toFixed(3)} ms`,
             },
           ];
+          updatedParagraph.input.PERAgentContext = contextContent;
         } else if (formatNotRecognized(paragraphs[index].input.inputText)) {
           updatedParagraph.output = [
             {
