@@ -19,6 +19,7 @@ import moment from 'moment';
 import { useObservable } from 'react-use';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { getCoreStart, getDataSourceManagementSetup } from '../../../services';
+import { ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE } from '../../../../common/constants/notebooks';
 
 interface AddButtonProps {
   addPara: (index: number, newParaContent: string, inputType: string) => Promise<void>;
@@ -37,7 +38,7 @@ export const ContextPanel = ({ addPara }: AddButtonProps) => {
   const fetchBubbleData = useCallback(async () => {
     setIsLoading(true);
     try {
-      await addPara(0, '', 'ANOMALY_VISUALIZATION_ANALYSIS');
+      await addPara(0, '', ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE);
     } catch (error) {
       console.log(error);
     }

@@ -3,8 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ParagraphStateValue } from 'public/state/paragraph_state';
-import { LOG_PATTERN_PARAGRAPH_TYPE } from '../../../../../common/constants/notebooks';
+import { ParagraphStateValue } from 'common/state/paragraph_state';
+import {
+  ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+  LOG_PATTERN_PARAGRAPH_TYPE,
+} from '../../../../../common/constants/notebooks';
 import { ParaType } from '../../../../../common/types/notebooks';
 
 // Get the type of output and result in a default notebook paragraph
@@ -96,7 +99,7 @@ export const defaultParagraphParser = (defaultBackendParagraphs: ParagraphStateV
         isVizualisation: vizParams.isViz,
         isDeepResearch: paraObject.input.inputType.includes('DEEP_RESEARCH'),
         isAnomalyVisualizationAnalysis: paraObject.input.inputType.includes(
-          'ANOMALY_VISUALIZATION_ANALYSIS'
+          ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE
         ),
         isLogPattern: paraObject.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE,
         vizObjectInput: vizParams.VizObject,

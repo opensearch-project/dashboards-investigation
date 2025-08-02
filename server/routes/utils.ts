@@ -17,7 +17,7 @@ export const getOpenSearchClientTransport = async ({
     };
   };
   dataSourceId?: string;
-}) => {
+}): Promise<OpenSearchClient['transport']> => {
   if (dataSourceId && context.dataSource) {
     return (await context.dataSource.opensearch.getClient(dataSourceId)).transport;
   }

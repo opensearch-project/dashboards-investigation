@@ -4,8 +4,8 @@
  */
 
 import React, { useRef } from 'react';
-import { NotebookState } from '../../../state/notebook_state';
-import { TopContextState } from '../../../state/top_context_state';
+import { NotebookState } from '../../../../common/state/notebook_state';
+import { TopContextState } from '../../../../common/state/top_context_state';
 import { HttpStart } from '../../../../../../src/core/public';
 
 const defaultState = new NotebookState({

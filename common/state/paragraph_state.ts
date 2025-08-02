@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ParagraphBackendType } from '../../common/types/notebooks';
+import { ParagraphBackendType } from '../types/notebooks';
 import { ObservableState } from './observable_state';
 
 export interface ParagraphStateValue<TOutputResult = string, TFullfilledOutput = {}>

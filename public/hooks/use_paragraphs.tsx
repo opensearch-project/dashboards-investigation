@@ -7,7 +7,7 @@ import { useContext, useCallback } from 'react';
 import { ParagraphBackendType } from 'common/types/notebooks';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
-import { ParagraphState, ParagraphStateValue } from '../state/paragraph_state';
+import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import { getCoreStart } from '../services';
 
 export const useParagraphs = () => {

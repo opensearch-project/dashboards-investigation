@@ -88,3 +88,7 @@ export interface ParagraphBackendType<TOutputResult = string> {
   dateCreated: string;
   dataSourceMDSId?: string;
 }
+
+export interface AnomalyVisualizationAnalysisOutputResult {
+  fieldComparison: Array<Record<string, unknown>>;
+}

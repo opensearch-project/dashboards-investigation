@@ -5,7 +5,10 @@
 
 import now from 'performance-now';
 import { v4 as uuid } from 'uuid';
-import { LOG_PATTERN_PARAGRAPH_TYPE } from '../../../common/constants/notebooks';
+import {
+  ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+  LOG_PATTERN_PARAGRAPH_TYPE,
+} from '../../../common/constants/notebooks';
 import { SavedObjectsClientContract, SavedObject } from '../../../../../src/core/server/types';
 import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved_object_attributes';
 import {
@@ -13,10 +16,12 @@ import {
   DefaultParagraph,
 } from '../../common/helpers/notebooks/default_notebook_schema';
 import { formatNotRecognized, inputIsQuery } from '../../common/helpers/notebooks/query_helpers';
-import { OpenSearchClient } from '../../../../../src/core/server';
-import { constructDeepResearchParagraphOut } from '../../../common/utils/paragraph';
+import { RequestHandlerContext } from '../../../../../src/core/server';
+import { constructDeepResearchParagraphOut, getInputType } from '../../../common/utils/paragraph';
 import { updateParagraphText } from '../../common/helpers/notebooks/paragraph';
-import { NotebookContext } from '../../../common/types/notebooks';
+import { NotebookContext, ParagraphBackendType } from '../../../common/types/notebooks';
+import { getOpenSearchClientTransport } from '../../routes/utils';
+import { getParagraphServiceSetup } from '../../services/get_set';
 
 export function createNotebook(paragraphInput: string, inputType: string) {
   try {
@@ -33,7 +38,7 @@ export function createNotebook(paragraphInput: string, inputType: string) {
     if (inputType === 'DEEP_RESEARCH') {
       paragraphType = inputType;
     }
-    if (inputType === 'ANOMALY_VISUALIZATION_ANALYSIS') {
+    if (inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE) {
       paragraphType = inputType;
     }
     if (inputType === LOG_PATTERN_PARAGRAPH_TYPE) {
@@ -161,8 +166,12 @@ export async function updateRunFetchParagraph(
     deepResearchBaseMemoryId?: string | undefined;
   },
   opensearchNotebooksClient: SavedObjectsClientContract,
-  transport: OpenSearchClient['transport']
+  context: RequestHandlerContext
 ) {
+  const transport = await getOpenSearchClientTransport({
+    context,
+    dataSourceId: params.dataSourceMDSId,
+  });
   let deepResearchAgentId = params.deepResearchAgentId;
   if (!deepResearchAgentId) {
     try {
@@ -188,7 +197,7 @@ export async function updateRunFetchParagraph(
     const updatedOutputParagraphs = await runParagraph(
       updatedInputParagraphs,
       params.paragraphId,
-      transport,
+      context,
       deepResearchAgentId,
       params.deepResearchContext,
       params.deepResearchBaseMemoryId,
@@ -217,9 +226,9 @@ export async function updateRunFetchParagraph(
 }
 
 export async function runParagraph(
-  paragraphs: DefaultParagraph[],
+  paragraphs: ParagraphBackendType[],
   paragraphId: string,
-  transport: OpenSearchClient['transport'],
+  context: RequestHandlerContext,
   deepResearchAgentId: string | undefined,
   deepResearchContext: string | undefined,
   deepResearchBaseMemoryId: string | undefined,
@@ -281,7 +290,31 @@ export async function runParagraph(
             throw new Error('No deep research agent id configured.');
           }
           updatedParagraph.dateModified = new Date().toISOString();
-          const { body } = await transport.request({
+          const allContext = await Promise.all(
+            paragraphs.slice(0, index).map(async (paragraph) => {
+              const transport = await getOpenSearchClientTransport({
+                context,
+                dataSourceId: paragraph.dataSourceMDSId,
+              });
+              const paragraphRegistry = getParagraphServiceSetup().getParagraphRegistry(
+                getInputType(paragraph)
+              );
+              if (!paragraphRegistry) {
+                return '';
+              }
+
+              return await paragraphRegistry.getContext({
+                transport,
+                paragraph,
+              });
+            })
+          );
+          const contextContent = allContext.filter((item) => item).join('\n');
+          const currentParagraphTransport = await getOpenSearchClientTransport({
+            context,
+            dataSourceId: paragraphs[index].dataSourceMDSId,
+          });
+          const { body } = await currentParagraphTransport.request({
             method: 'POST',
             path: `/_plugins/_ml/agents/${deepResearchAgentId}/_execute`,
             querystring: 'async=true',
@@ -290,6 +323,7 @@ export async function runParagraph(
                 question: `${paragraphs[index].input.inputText}${
                   deepResearchContext ? `, Context: ${deepResearchContext}` : ''
                 }`,
+                system_prompt: contextContent,
                 memory_id: deepResearchBaseMemoryId,
               },
             },

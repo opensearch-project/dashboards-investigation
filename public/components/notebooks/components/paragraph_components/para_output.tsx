@@ -10,18 +10,24 @@ import moment from 'moment';
 import React from 'react';
 import { useContext } from 'react';
 import { Observable } from 'rxjs';
-import { ParagraphStateValue } from 'public/state/paragraph_state';
-import { LOG_PATTERN_PARAGRAPH_TYPE } from '../../../../../common/constants/notebooks';
+import { ParagraphStateValue } from 'common/state/paragraph_state';
+import {
+  ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+  LOG_PATTERN_PARAGRAPH_TYPE,
+} from '../../../../../common/constants/notebooks';
 import { CoreStart } from '../../../../../../../src/core/public';
 import {
   DashboardContainerInput,
   DashboardStart,
 } from '../../../../../../../src/plugins/dashboard/public';
-import { ParaType } from '../../../../../common/types/notebooks';
+import {
+  AnomalyVisualizationAnalysisOutputResult,
+  ParaType,
+} from '../../../../../common/types/notebooks';
 import { uiSettingsService } from '../../../../../common/utils';
 import { DeepResearchContainer } from '../../../../components/custom_panels/panel_modules/deep_research_container';
 import { QueryDataGridMemo } from './para_query_grid';
-import { BubbleOutputResult, BubbleUpContainer } from '../bubbleup/bubble_up_container';
+import { BubbleUpContainer } from '../bubbleup/bubble_up_container';
 import { LogPatternContainer } from './log_pattern_container';
 import { DashboardPanelState } from '../../../../../../../src/plugins/dashboard/public/application';
 import { EmbeddableInput } from '../../../../../../../src/plugins/embeddable/public';
@@ -187,12 +193,12 @@ const OutputBody = ({
         return <img alt="" src={'data:image/gif;base64,' + val} />;
       case 'DEEP_RESEARCH':
         return <DeepResearchContainer http={http} para={para} onTaskFinish={() => {}} />;
-      case 'ANOMALY_VISUALIZATION_ANALYSIS':
+      case ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE:
         return (
           <BubbleUpContainer
             paragraph$={
               context.state.value.paragraphs[index].getValue$() as Observable<
-                ParagraphStateValue<BubbleOutputResult>
+                ParagraphStateValue<AnomalyVisualizationAnalysisOutputResult>
               >
             }
           />
