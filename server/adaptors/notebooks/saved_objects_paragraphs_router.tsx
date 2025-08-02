@@ -20,7 +20,7 @@ import { RequestHandlerContext } from '../../../../../src/core/server';
 import { constructDeepResearchParagraphOut, getInputType } from '../../../common/utils/paragraph';
 import { updateParagraphText } from '../../common/helpers/notebooks/paragraph';
 import { NotebookContext, ParagraphBackendType } from '../../../common/types/notebooks';
-import { getOpenSearchClientTransport } from '../../routes/utils';
+import { getNotebookTopLevelContextPrompt, getOpenSearchClientTransport } from '../../routes/utils';
 import { getParagraphServiceSetup } from '../../services/get_set';
 
 export function createNotebook(paragraphInput: string, inputType: string) {
@@ -309,7 +309,9 @@ export async function runParagraph(
               });
             })
           );
-          const contextContent = allContext.filter((item) => item).join('\n');
+          const contextContent = [getNotebookTopLevelContextPrompt(notebookinfo), ...allContext]
+            .filter((item) => item)
+            .join('\n');
           const currentParagraphTransport = await getOpenSearchClientTransport({
             context,
             dataSourceId: paragraphs[index].dataSourceMDSId,

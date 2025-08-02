@@ -26,25 +26,19 @@ import {
 } from '@elastic/eui';
 import moment from 'moment';
 import { useObservable } from 'react-use';
+import { LogPattern, LogPatternAnalysisResult, LogSequenceEntry } from 'common/types/log_pattern';
+import { Observable } from 'rxjs';
 import { ParaType } from '../../../../../common/types/notebooks';
-import {
-  LogPattern,
-  LogPatternService,
-  LogSequenceEntry,
-} from '../../../../services/requests/log_pattern';
+import { LogPatternService } from '../../../../services/requests/log_pattern';
 import { CoreStart } from '../../../../../../../src/core/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
+import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
+import { useParagraphs } from '../../../../hooks/use_paragraphs';
 
 interface LogPatternContainerProps {
   para: ParaType;
   http: CoreStart['http'];
-}
-
-interface CombinedResult {
-  logInsights: LogPattern[];
-  patternMapDifference: LogPattern[];
-  EXCEPTIONAL: { [key: string]: string }; // Map of hash -> sequence
-  BASE: { [key: string]: string }; // Map of hash -> sequence
+  paragraph$: Observable<ParagraphStateValue<LogPatternAnalysisResult>>;
 }
 
 interface LoadingStatus {
@@ -56,7 +50,11 @@ interface LoadingStatus {
   progress: number;
 }
 
-export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, http }) => {
+export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
+  para,
+  http,
+  paragraph$,
+}) => {
   const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({
     isLoading: false,
     completedRequests: 0,
@@ -66,12 +64,14 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
     progress: 0,
   });
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<CombinedResult>({
+  const paragraph = useObservable(paragraph$);
+  const [result, setResult] = useState<LogPatternAnalysisResult>({
     logInsights: [],
     patternMapDifference: [],
     EXCEPTIONAL: {},
     BASE: {},
   });
+  const { saveParagraph } = useParagraphs();
   const [hasData, setHasData] = useState<boolean>(false);
   const [openPopovers, setOpenPopovers] = useState<{ [key: string]: boolean }>({});
   const notebookReactContext = useContext(NotebookReactContext);
@@ -97,8 +97,8 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
 
   // Memoize para.out to prevent array reference changes
   const memoizedParaOut = useMemo(() => {
-    return para.out && para.out.length > 0 ? para.out[0] : null;
-  }, [para.out]);
+    return paragraph?.output?.[0].result;
+  }, [paragraph]);
 
   const togglePopover = (id: string) => {
     setOpenPopovers((prev) => ({
@@ -127,7 +127,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
     if (memoizedParaOut) {
       try {
         if (memoizedParaOut) {
-          setResult(JSON.parse(memoizedParaOut));
+          setResult(memoizedParaOut);
           setHasData(true);
           return;
         }
@@ -161,7 +161,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
           indexName: memoizedContextValues.index,
           dataSourceMDSId: memoizedContextValues.dataSourceId,
         },
-        resultKey: 'logInsights' as keyof CombinedResult,
+        resultKey: 'logInsights' as keyof LogPatternAnalysisResult,
       },
       {
         name: 'Pattern Difference Analysis',
@@ -175,7 +175,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
           indexName: memoizedContextValues.index,
           dataSourceMDSId: memoizedContextValues.dataSourceId,
         },
-        resultKey: 'patternMapDifference' as keyof CombinedResult,
+        resultKey: 'patternMapDifference' as keyof LogPatternAnalysisResult,
       },
       {
         name: 'Log Sequence Analysis',
@@ -190,7 +190,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
           indexName: memoizedContextValues.index,
           dataSourceMDSId: memoizedContextValues.dataSourceId,
         },
-        resultKey: 'EXCEPTIONAL' as keyof CombinedResult,
+        resultKey: 'EXCEPTIONAL' as keyof LogPatternAnalysisResult,
       },
     ];
 
@@ -291,12 +291,24 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
     if (
       loadingStatus.completedRequests === loadingStatus.totalRequests &&
       loadingStatus.completedRequests > 0 &&
-      hasData
+      hasData &&
+      !ParagraphState.getOutput(paragraph)?.result.logInsights
     ) {
-      // TODO save result to saved object
-      para.out = [JSON.stringify(result)];
+      if (paragraph) {
+        saveParagraph({
+          paragraphStateValue: ParagraphState.updateOutputResult(paragraph, result),
+        });
+      }
     }
-  }, [loadingStatus.completedRequests, loadingStatus.totalRequests, para, result, hasData]);
+  }, [
+    loadingStatus.completedRequests,
+    loadingStatus.totalRequests,
+    para,
+    result,
+    hasData,
+    paragraph,
+    saveParagraph,
+  ]);
 
   // Loading status rendering UI - now shows parallel progress
   const renderLoadingStatus = () => {

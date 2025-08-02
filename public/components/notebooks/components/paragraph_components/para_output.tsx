@@ -11,6 +11,7 @@ import React from 'react';
 import { useContext } from 'react';
 import { Observable } from 'rxjs';
 import { ParagraphStateValue } from 'common/state/paragraph_state';
+import { LogPatternAnalysisResult } from 'common/types/log_pattern';
 import {
   ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
   LOG_PATTERN_PARAGRAPH_TYPE,
@@ -92,7 +93,9 @@ const OutputBody = ({
    */
   const context = useContext(NotebookReactContext);
 
-  const paragraph$: Observable<ParagraphStateValue<any>> = context.state.value.paragraphs[index].getValue$();
+  const paragraph$: Observable<ParagraphStateValue<any>> = context.state.value.paragraphs[
+    index
+  ].getValue$();
 
   const dateFormat = uiSettingsService.get('dateFormat');
 
@@ -194,7 +197,7 @@ const OutputBody = ({
       case 'IMG':
         return <img alt="" src={'data:image/gif;base64,' + val} />;
       case 'DEEP_RESEARCH':
-        return <DeepResearchContainer http={http} para={para} onTaskFinish={() => {}} paragraph$={paragraph$} />;
+        return <DeepResearchContainer http={http} para={para} paragraph$={paragraph$} />;
       case ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE:
         return (
           <BubbleUpContainer
@@ -206,7 +209,13 @@ const OutputBody = ({
           />
         );
       case LOG_PATTERN_PARAGRAPH_TYPE:
-        return <LogPatternContainer http={http} para={para} />;
+        return (
+          <LogPatternContainer
+            http={http}
+            para={para}
+            paragraph$={paragraph$ as Observable<ParagraphStateValue<LogPatternAnalysisResult>>}
+          />
+        );
       default:
         return <pre>{val}</pre>;
     }

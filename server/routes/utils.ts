@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { OpenSearchClient, RequestHandlerContext } from '../../../../src/core/server';
+import { NotebookContext } from 'common/types/notebooks';
+import { OpenSearchClient, RequestHandlerContext, SavedObject } from '../../../../src/core/server';
 
 export const getOpenSearchClientTransport = async ({
   context,
@@ -22,4 +23,35 @@ export const getOpenSearchClientTransport = async ({
     return (await context.dataSource.opensearch.getClient(dataSourceId)).transport;
   }
   return context.core.opensearch.client.asCurrentUser.transport;
+};
+
+export const getNotebookTopLevelContextPrompt = (
+  notebookInfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>
+) => {
+  const { index, timeField, timeRange, filters, variables, summary } =
+    notebookInfo.attributes.savedNotebook.context! || {};
+  if (!index && !timeField && !timeRange && !filters && !variables && !summary) {
+    return '';
+  }
+
+  return `
+    You are an AI assistant helping with root cause analysis based on log data. I'm investigating an issue in a system and need your analytical expertise.
+
+    ## Context Information
+    ${summary ? `**Investigation Summary**: ${summary}` : ''}
+    ${index ? `**Data Source**: ${index}` : ''}
+    ${timeField ? `**Time Field**: ${timeField}` : ''}
+    ${timeRange ? `**Time Period**: From ${timeRange?.from} to ${timeRange.to}` : ''}
+    ${filters ? `**Applied Filters**: ${JSON.stringify(filters, null, 2)}` : ''}
+    ${variables ? `**Variables**: ${JSON.stringify(variables, null, 2)}` : ''}
+
+    ## Request
+    Based on the information above, please help me analyze the following:
+    1. What potential root causes could explain the observed behavior?
+    2. What patterns or anomalies should I look for in the data?
+    3. What additional data or metrics might be useful to collect?
+    4. What are the next steps you recommend for this investigation?
+
+    Please provide your analysis, focusing on technical insights that could help resolve this issue.
+  `;
 };

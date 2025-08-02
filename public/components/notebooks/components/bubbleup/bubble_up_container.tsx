@@ -150,7 +150,7 @@ export const BubbleUpContainer = ({ paragraph$ }: { paragraph$: Observable<Parag
 
   useEffect(() => {
     const loadSpecsData = async () => {
-      if (specsLoading || distributionLoading) {
+      if (specsLoading || distributionLoading || !paragraph) {
         return;
       }
       setSpecsLoading(true);
@@ -197,7 +197,7 @@ export const BubbleUpContainer = ({ paragraph$ }: { paragraph$: Observable<Parag
     };
 
     loadSpecsData();
-  }, [dataService, fieldComparison, specsLoading]);
+  }, [dataService, fieldComparison, specsLoading, paragraph]);
 
   const { paginatedSpecs, totalPages } = useMemo(() => {
     if (!bubbleUpSpecs?.length) return { paginatedSpecs: [], totalPages: 0 };
