@@ -4,10 +4,22 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MarkdownRender from '@nteract/markdown';
-import { EuiButton, EuiLoadingContent, EuiText, EuiAccordion, EuiSpacer, EuiModal, EuiModalHeader, EuiModalBody } from '@elastic/eui';
+import {
+  EuiButton,
+  EuiLoadingContent,
+  EuiText,
+  EuiAccordion,
+  EuiSpacer,
+  EuiModal,
+  EuiModalHeader,
+  EuiModalBody,
+  EuiMarkdownFormat,
+} from '@elastic/eui';
 import { interval, Observable } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 
+import { ParagraphStateValue } from 'common/state/paragraph_state';
+import { useObservable } from 'react-use';
 import { CoreStart } from '../../../../../../../src/core/public';
 import { ParaType } from '../../../../../common/types/notebooks';
 
@@ -15,13 +27,11 @@ import { getAllMessagesByMemoryId, getAllTracesByMessageId, isMarkdownText } fro
 import { MessageTraceModal } from './message_trace_modal';
 import { parseParagraphOut } from '../../../../utils/paragraph';
 import { isStateCompletedOrFailed } from '../../../../utils/task';
-import { ParagraphStateValue } from 'common/state/paragraph_state';
-import { useObservable } from 'react-use';
 
 interface Props {
   http: CoreStart['http'];
   para: ParaType;
-  paragraph$: Observable<ParagraphStateValue>
+  paragraph$: Observable<ParagraphStateValue>;
 }
 
 export const DeepResearchContainer = ({ para, http, paragraph$ }: Props) => {
@@ -110,7 +120,7 @@ export const DeepResearchContainer = ({ para, http, paragraph$ }: Props) => {
       subscription.unsubscribe();
       abortController.abort('DeepResearchContainer unmount.');
     };
-  }, [parsedParagraphOut.state, http]);
+  }, [parsedParagraphOut, http]);
 
   const renderTraces = () => {
     return (
@@ -183,7 +193,9 @@ export const DeepResearchContainer = ({ para, http, paragraph$ }: Props) => {
           <EuiSpacer />
         </>
       )}
-      {paragraph?.output && <EuiButton onClick={() => setShowContextModal(true)}>Show context</EuiButton>}
+      {paragraph?.output && (
+        <EuiButton onClick={() => setShowContextModal(true)}>Show context</EuiButton>
+      )}
       {isLoading ? (
         <EuiLoadingContent />
       ) : (
@@ -242,16 +254,16 @@ export const DeepResearchContainer = ({ para, http, paragraph$ }: Props) => {
           dataSourceId={para.dataSourceMDSId}
         />
       )}
-      {
-        showContextModal && (
-          <EuiModal onClose={() => setShowContextModal(false)}>
-            <EuiModalHeader>Context</EuiModalHeader>
-            <EuiModalBody>
+      {showContextModal && (
+        <EuiModal onClose={() => setShowContextModal(false)}>
+          <EuiModalHeader>Context</EuiModalHeader>
+          <EuiModalBody>
+            <EuiMarkdownFormat>
               {paragraph?.input.PERAgentContext || 'No context'}
-            </EuiModalBody>
-          </EuiModal>
-        )
-      }
+            </EuiMarkdownFormat>
+          </EuiModalBody>
+        </EuiModal>
+      )}
     </div>
   );
 };

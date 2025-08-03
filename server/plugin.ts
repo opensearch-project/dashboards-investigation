@@ -5,6 +5,7 @@
 
 import {
   ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+  LOG_PATTERN_PARAGRAPH_TYPE,
   PPL_PARAGRAPH_TYPE,
 } from '../common/constants/notebooks';
 import {
@@ -26,6 +27,7 @@ import { AnomalyVisualizationAnalysisParagraph } from './paragraphs/anomaly_visu
 import { setClusterClient, setParagraphServiceSetup, setQueryService } from './services/get_set';
 import { QueryService } from './services/query_service';
 import { PPLParagraph } from './paragraphs/ppl';
+import { LogPatternParagraph } from './paragraphs/log_sequence';
 
 export interface ObservabilityPluginSetupDependencies {
   dataSourceManagement: ReturnType<DataSourceManagementPlugin['setup']>;
@@ -76,6 +78,7 @@ export class ObservabilityPlugin
       AnomalyVisualizationAnalysisParagraph
     );
     paragraphServiceSetup.register(PPL_PARAGRAPH_TYPE, PPLParagraph);
+    paragraphServiceSetup.register(LOG_PATTERN_PARAGRAPH_TYPE, LogPatternParagraph);
 
     // Register server side APIs
     setupRoutes({

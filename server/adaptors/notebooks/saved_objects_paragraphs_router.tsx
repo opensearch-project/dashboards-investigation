@@ -7,7 +7,9 @@ import now from 'performance-now';
 import { v4 as uuid } from 'uuid';
 import {
   ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+  EXECUTOR_SYSTEM_PROMPT,
   LOG_PATTERN_PARAGRAPH_TYPE,
+  PLANNER_SYSTEM_PROMPT,
 } from '../../../common/constants/notebooks';
 import { SavedObjectsClientContract, SavedObject } from '../../../../../src/core/server/types';
 import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved_object_attributes';
@@ -311,12 +313,13 @@ export async function runParagraph(
           );
           const contextContent = [getNotebookTopLevelContextPrompt(notebookinfo), ...allContext]
             .filter((item) => item)
+            .map((item, stepIndex) => `Step ${stepIndex + 1}: ${item}`)
             .join('\n');
           const currentParagraphTransport = await getOpenSearchClientTransport({
             context,
             dataSourceId: paragraphs[index].dataSourceMDSId,
           });
-          const { body } = await currentParagraphTransport.request({
+          const payload = {
             method: 'POST',
             path: `/_plugins/_ml/agents/${deepResearchAgentId}/_execute`,
             querystring: 'async=true',
@@ -325,11 +328,13 @@ export async function runParagraph(
                 question: `${paragraphs[index].input.inputText}${
                   deepResearchContext ? `, Context: ${deepResearchContext}` : ''
                 }`,
-                system_prompt: contextContent,
+                system_prompt: `${PLANNER_SYSTEM_PROMPT} \n You have currently executed the following steps: \n ${contextContent}`,
+                executor_system_prompt: `${EXECUTOR_SYSTEM_PROMPT} \n You have currently executed the following steps: \n ${contextContent}`,
                 memory_id: deepResearchBaseMemoryId,
               },
             },
-          });
+          };
+          const { body } = await currentParagraphTransport.request(payload);
           updatedParagraph.output = [
             {
               outputType: 'DEEP_RESEARCH',
@@ -346,6 +351,7 @@ export async function runParagraph(
               execution_time: `${(now() - startTime).toFixed(3)} ms`,
             },
           ];
+          updatedParagraph.input.PERAgentInput = payload;
           updatedParagraph.input.PERAgentContext = contextContent;
         } else if (formatNotRecognized(paragraphs[index].input.inputText)) {
           updatedParagraph.output = [
