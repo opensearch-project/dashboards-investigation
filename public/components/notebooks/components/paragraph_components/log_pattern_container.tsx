@@ -205,7 +205,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
       isLoading: true,
       completedRequests: 0,
       totalRequests: apiRequests.length,
-      currentlyRunning: apiRequests.map((req) => req.name),
+      currentlyRunning: [], // Will be updated as each request starts
       completedSteps: [],
       progress: 0,
     });
@@ -215,8 +215,14 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
     const fetchLogPatternAnalysis = async () => {
       const logPatternService = new LogPatternService(http);
 
-      // Start all requests in parallel
-      apiRequests.forEach(async (request) => {
+      // Run requests sequentially
+      for (const request of apiRequests) {
+        // Update loading status to show current request
+        setLoadingStatus((prevStatus) => ({
+          ...prevStatus,
+          currentlyRunning: [request.name],
+        }));
+
         try {
           const analysisResult = await logPatternService.analyzeLogPatterns(request.params);
 
@@ -245,16 +251,13 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
           // Update loading status
           setLoadingStatus((prevStatus) => {
             const completedRequests = prevStatus.completedRequests + 1;
-            const newCurrentlyRunning = prevStatus.currentlyRunning.filter(
-              (name) => name !== request.name
-            );
             const newCompletedSteps = [...prevStatus.completedSteps, request.name];
             const progress = Math.round((completedRequests / apiRequests.length) * 100);
 
             return {
               ...prevStatus,
               completedRequests,
-              currentlyRunning: newCurrentlyRunning,
+              currentlyRunning: [],
               completedSteps: newCompletedSteps,
               progress,
               isLoading: completedRequests < apiRequests.length,
@@ -271,23 +274,20 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
           // Update loading status even for failed requests
           setLoadingStatus((prevStatus) => {
             const completedRequests = prevStatus.completedRequests + 1;
-            const newCurrentlyRunning = prevStatus.currentlyRunning.filter(
-              (name) => name !== request.name
-            );
             const newCompletedSteps = [...prevStatus.completedSteps, `${request.name} (failed)`];
             const progress = Math.round((completedRequests / apiRequests.length) * 100);
 
             return {
               ...prevStatus,
               completedRequests,
-              currentlyRunning: newCurrentlyRunning,
+              currentlyRunning: [],
               completedSteps: newCompletedSteps,
               progress,
               isLoading: completedRequests < apiRequests.length,
             };
           });
         }
-      });
+      }
     };
 
     fetchLogPatternAnalysis();
