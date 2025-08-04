@@ -3,52 +3,44 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useRef } from 'react';
-import { NotebookState } from '../../../../common/state/notebook_state';
+import React from 'react';
+import { NotebookState, NotebookStateValue } from '../../../../common/state/notebook_state';
 import { TopContextState } from '../../../../common/state/top_context_state';
 import { HttpStart } from '../../../../../../src/core/public';
+import { getCoreStart } from '../../../services';
 
-const defaultState = new NotebookState({
-  paragraphs: [],
-  id: '',
-  context: new TopContextState({}),
-  dataSourceEnabled: false,
-  dateCreated: '',
-  isLoading: false,
-  path: '',
-});
+export interface NotebookContextProviderProps {
+  children: React.ReactChild;
+  state: NotebookState;
+}
+
+export const getDefaultState = (props?: Partial<NotebookStateValue>) => {
+  return new NotebookState({
+    paragraphs: [],
+    id: '',
+    context: new TopContextState({}),
+    dataSourceEnabled: false,
+    dateCreated: '',
+    isLoading: false,
+    path: '',
+    ...props,
+  });
+};
 
 export const NotebookReactContext = React.createContext<{
   state: NotebookState;
   http: HttpStart;
 }>({
-  state: defaultState,
+  state: getDefaultState(),
   http: {} as HttpStart,
 });
 
-export const NotebookContextProvider = (props: {
-  children: React.ReactChild;
-  notebookId: string;
-  http: HttpStart;
-  dataSourceEnabled: boolean;
-}) => {
-  const stateRef = useRef(
-    new NotebookState({
-      paragraphs: [],
-      id: props.notebookId,
-      context: new TopContextState({}),
-      dataSourceEnabled: props.dataSourceEnabled,
-      isLoading: true,
-      dateCreated: '',
-      path: '',
-    })
-  );
-
+export const NotebookContextProvider = (props: NotebookContextProviderProps) => {
   return (
     <NotebookReactContext.Provider
       value={{
-        state: stateRef.current,
-        http: props.http,
+        state: props.state,
+        http: getCoreStart().http,
       }}
     >
       {props.children}

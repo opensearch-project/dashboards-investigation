@@ -76,7 +76,7 @@ import { ParagraphStateValue } from '../../../../../common/state/paragraph_state
  * Cell component of nteract used as a container for paragraphs in notebook UI.
  * https://components.nteract.io/#cell
  */
-interface ParagraphProps {
+export interface ParagraphProps {
   para: ParaType;
   originalPara: ParagraphStateValue;
   setPara: (para: ParagraphStateValue) => void;

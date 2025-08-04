@@ -70,6 +70,7 @@ import { ContextPanel } from './context_panel';
 import {
   NotebookContextProvider,
   NotebookReactContext,
+  getDefaultState,
 } from '../context_provider/context_provider';
 import { getMLCommonsTask } from '../../../utils/ml_commons_apis';
 import { parseParagraphOut } from '../../../utils/paragraph';
@@ -1140,12 +1141,14 @@ export function NotebookComponent({
 }
 
 export const Notebook = (props: NotebookProps) => {
+  const stateRef = useRef(
+    getDefaultState({
+      id: props.openedNoteId,
+      dataSourceEnabled: props.dataSourceEnabled,
+    })
+  );
   return (
-    <NotebookContextProvider
-      notebookId={props.openedNoteId}
-      http={props.http}
-      dataSourceEnabled={props.dataSourceEnabled}
-    >
+    <NotebookContextProvider state={stateRef.current}>
       <NotebookComponent {...props} />
     </NotebookContextProvider>
   );

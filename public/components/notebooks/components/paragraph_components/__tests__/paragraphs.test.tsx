@@ -9,7 +9,9 @@ import Adapter from 'enzyme-adapter-react-16';
 import React from 'react';
 import { getOSDHttp } from '../../../../../../common/utils';
 import { sampleParsedParagraghs1 } from '../../../../../../test/notebooks_constants';
-import { Paragraphs } from '../paragraphs';
+import { ParagraphProps, Paragraphs } from '../paragraphs';
+import { ParagraphStateValue } from '../../../../../../common/state/paragraph_state';
+import { MockContextProvider } from '../../../context_provider/context_provider.mock';
 
 jest.mock('../../../../../../../../src/plugins/embeddable/public', () => ({
   ViewMode: {
@@ -34,6 +36,18 @@ jest.mock('../../../../../framework/core_refs', () => ({
   },
 }));
 
+const ContextAwareParagraphs = (
+  props: ParagraphProps & {
+    paragraphValues: ParagraphStateValue[];
+  }
+) => {
+  return (
+    <MockContextProvider paragraphValues={props.paragraphValues}>
+      <Paragraphs {...props} />
+    </MockContextProvider>
+  );
+};
+
 describe('<Paragraphs /> spec', () => {
   configure({ adapter: new Adapter() });
 
@@ -49,7 +63,7 @@ describe('<Paragraphs /> spec', () => {
     const runPara = jest.fn();
     const para = sampleParsedParagraghs1[0];
     const utils = render(
-      <Paragraphs
+      <ContextAwareParagraphs
         ref={jest.fn()}
         para={para}
         setPara={setPara}
@@ -70,6 +84,7 @@ describe('<Paragraphs /> spec', () => {
         queryParagraphErrorMessage="error-message"
         dataSourceEnabled={false}
         paragraphs={[]}
+        paragraphValues={sampleParsedParagraghs1}
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();
@@ -105,7 +120,7 @@ describe('<Paragraphs /> spec', () => {
       out: ['# Type your input here'],
     };
     const utils = render(
-      <Paragraphs
+      <ContextAwareParagraphs
         ref={jest.fn()}
         para={para}
         setPara={setPara}
@@ -127,6 +142,7 @@ describe('<Paragraphs /> spec', () => {
         dataSourceEnabled={true}
         dataSourceManagement={{ ui: { DataSourceSelector: <></> } }}
         paragraphs={[]}
+        paragraphValues={[para]}
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();

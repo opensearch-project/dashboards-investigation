@@ -12,11 +12,25 @@ import {
   sampleObservabilityVizParagraph,
   sampleParsedParagraghs1,
 } from '../../../../../../test/notebooks_constants';
-import { ParaOutput } from '../para_output';
+import { ParaOutput, ParaOutputProps } from '../para_output';
+import { ParagraphStateValue } from 'common/state/paragraph_state';
+import { MockContextProvider } from '../../../context_provider/context_provider.mock';
 
 jest.mock('../../bubbleup/bubble_up_container', () => ({
   BubbleUpContainer: () => <div />,
 }));
+
+const ContextAwareParaOutput = (
+  props: ParaOutputProps & {
+    paragraphValues: ParagraphStateValue[];
+  }
+) => {
+  return (
+    <MockContextProvider paragraphValues={props.paragraphValues}>
+      <ParaOutput {...props} />
+    </MockContextProvider>
+  );
+};
 
 describe('<ParaOutput /> spec', () => {
   configure({ adapter: new Adapter() });
@@ -25,12 +39,14 @@ describe('<ParaOutput /> spec', () => {
     const para = sampleParsedParagraghs1[0];
     const setVisInput = jest.fn();
     const utils = render(
-      <ParaOutput
+      <ContextAwareParaOutput
         key={para.uniqueId}
         para={para}
         visInput={jest.fn()}
         setVisInput={setVisInput}
         DashboardContainerByValueRenderer={jest.fn()}
+        paragraphValues={[para]}
+        index={0}
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();
@@ -40,12 +56,14 @@ describe('<ParaOutput /> spec', () => {
     const para = sampleParsedParagraghs1[3];
     const setVisInput = jest.fn();
     const utils = render(
-      <ParaOutput
+      <ContextAwareParaOutput
         key={para.uniqueId}
         para={para}
         visInput={jest.fn()}
         setVisInput={setVisInput}
         DashboardContainerByValueRenderer={jest.fn()}
+        paragraphValues={[para]}
+        index={0}
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();
@@ -56,12 +74,14 @@ describe('<ParaOutput /> spec', () => {
     para.out = ['{"error":"Invalid SQL query"}'];
     const setVisInput = jest.fn();
     const utils = render(
-      <ParaOutput
+      <ContextAwareParaOutput
         key={para.uniqueId}
         para={para}
         visInput={jest.fn()}
         setVisInput={setVisInput}
         DashboardContainerByValueRenderer={jest.fn()}
+        paragraphValues={[para]}
+        index={0}
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();
@@ -73,7 +93,7 @@ describe('<ParaOutput /> spec', () => {
     uiSettingsService.get = jest.fn().mockReturnValue('YYYY-MMM-DD HH:mm:ss');
     const setVisInput = jest.fn();
     const utils = render(
-      <ParaOutput
+      <ContextAwareParaOutput
         key={para.uniqueId}
         para={para}
         visInput={{
@@ -81,6 +101,8 @@ describe('<ParaOutput /> spec', () => {
         }}
         setVisInput={setVisInput}
         DashboardContainerByValueRenderer={() => null}
+        paragraphValues={[para]}
+        index={0}
       />
     );
     expect(utils.container.textContent).toMatch('2020-Jul-21 18:37:44 - 2020-Aug-20 18:37:44');
@@ -93,7 +115,7 @@ describe('<ParaOutput /> spec', () => {
     uiSettingsService.get = jest.fn().mockReturnValue('YYYY-MMM-DD HH:mm:ss');
     const setVisInput = jest.fn();
     const utils = render(
-      <ParaOutput
+      <ContextAwareParaOutput
         key={para.uniqueId}
         para={para}
         visInput={{
@@ -101,6 +123,8 @@ describe('<ParaOutput /> spec', () => {
         }}
         setVisInput={setVisInput}
         DashboardContainerByValueRenderer={() => null}
+        paragraphValues={[para]}
+        index={0}
       />
     );
     expect(utils.container.textContent).toMatch('2020-Jul-21 18:37:44 - 2020-Aug-20 18:37:44');
@@ -113,12 +137,14 @@ describe('<ParaOutput /> spec', () => {
     para.out = ['', '', '', '', ''];
     const setVisInput = jest.fn();
     const utils = render(
-      <ParaOutput
+      <ContextAwareParaOutput
         key={para.uniqueId}
         para={para}
         visInput={jest.fn()}
         setVisInput={setVisInput}
         DashboardContainerByValueRenderer={jest.fn()}
+        paragraphValues={[para]}
+        index={0}
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();

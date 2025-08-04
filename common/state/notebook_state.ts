@@ -9,7 +9,7 @@ import { ObservableState } from './observable_state';
 import { ParagraphState, ParagraphStateValue } from './paragraph_state';
 import { TopContextState } from './top_context_state';
 
-interface NotebookStateValue {
+export interface NotebookStateValue {
   paragraphs: Array<ParagraphState<unknown>>;
   id: string;
   context: TopContextState;

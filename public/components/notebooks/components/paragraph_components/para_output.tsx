@@ -234,14 +234,16 @@ const OutputBody = ({
  * Outputs component of nteract used as a container for notebook UI.
  * https://components.nteract.io/#outputs
  */
-export const ParaOutput = (props: {
+export interface ParaOutputProps {
   index: number;
   http: CoreStart['http'];
   para: ParaType;
   visInput: DashboardContainerInput;
   setVisInput: (input: DashboardContainerInput) => void;
   DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
-}) => {
+}
+
+export const ParaOutput = (props: ParaOutputProps) => {
   const { index, para, http, DashboardContainerByValueRenderer, visInput, setVisInput } = props;
 
   return (
