@@ -67,8 +67,7 @@ export const usePrecheck = () => {
           const combinedObservable = combineLatest(
             paragraphStates.map((paragraphState) => paragraphState.getValue$())
           );
-          combinedObservable.subscribe((paragraphStateValues) => {
-            console.log('paragraphStateValues', paragraphStateValues);
+          combinedObservable.subscribe(() => {
             // TODO insert PER agent if all output get populated and unsubscribe
             // subscription.unsubscribe();
           });
