@@ -32,10 +32,12 @@ export class BubbleUpDataService {
   private baseCount: number;
   private selectCount: number;
   private logPatternField: string = '';
-  private dataSourceId: string | undefined = '';
+  private dataSourceId: string = '';
   private index: string = '';
-  private startTime: number = NaN;
-  private endTime: number = NaN;
+  private selectionFrom: number = NaN;
+  private selectionTo: number = NaN;
+  private baselineFrom: number = NaN;
+  private baselineTo: number = NaN;
   private timeField: string = '';
   private numberFields: string[] = [];
   private pplFilter: string[] = [];
@@ -48,17 +50,21 @@ export class BubbleUpDataService {
   }
 
   public setConfig(
-    dataSourceId: string | undefined,
+    dataSourceId: string,
     index: string,
-    startTime: number,
-    endTime: number,
+    selectionFrom: number,
+    selectionTo: number,
+    baselineFrom: number,
+    baselineTo: number,
     timeField: string,
     pplFilter?: string[]
   ) {
     this.dataSourceId = dataSourceId;
     this.index = index;
-    this.startTime = startTime;
-    this.endTime = endTime || +new Date();
+    this.selectionFrom = selectionFrom;
+    this.selectionTo = selectionTo;
+    this.baselineFrom = baselineFrom;
+    this.baselineTo = baselineTo;
     this.timeField = timeField;
     this.pplFilter = pplFilter || [];
   }
@@ -71,13 +77,15 @@ export class BubbleUpDataService {
     baseline: Array<Record<string, any>>;
   }> {
     const { size = 1000, selectionFilters } = props;
-    const durationMs = this.endTime - this.startTime;
-    const baselineEndTime = new Date(this.startTime);
-    const baselineStartTime = new Date(this.startTime - durationMs);
 
     const [selectionData, baselineData] = await Promise.all([
-      this.fetchIndexData(baselineEndTime, new Date(this.endTime), size, selectionFilters),
-      this.fetchIndexData(baselineStartTime, baselineEndTime, size),
+      this.fetchIndexData(
+        new Date(this.selectionFrom),
+        new Date(this.selectionTo),
+        size,
+        selectionFilters
+      ),
+      this.fetchIndexData(new Date(this.baselineFrom), new Date(this.baselineTo), size),
     ]);
 
     this.baseCount = baselineData.length;
@@ -118,11 +126,13 @@ export class BubbleUpDataService {
       })
       .map((field) => field.name);
 
-    const normalizedFields = keywordFields.map((keywordField) => {
-      return keywordField.endsWith('.keyword')
-        ? keywordField.replace('.keyword', '')
-        : keywordField;
-    });
+    const normalizedFields = Array.from(
+      new Set(
+        keywordFields.map((keywordField) =>
+          keywordField.endsWith('.keyword') ? keywordField.replace('.keyword', '') : keywordField
+        )
+      )
+    );
 
     normalizedFields.forEach((field) => {
       fieldValueSets[field] = new Set();
@@ -139,11 +149,11 @@ export class BubbleUpDataService {
     });
     this.numberFields = numberFields;
 
-    const patternField = this.getLogPatternField(
-      getFlattenedObject(data.selection[0]),
-      normalizedFields
-    );
-    console.log('patternField', patternField);
+    // const patternField = this.getLogPatternField(
+    //   getFlattenedObject(data.selection[0] || data.baseline[0]),
+    //   normalizedFields
+    // );
+    // console.log('patternField', patternField);
 
     const usefulFields = normalizedFields.filter((field) => {
       const cardinality = fieldValueSets[field]?.size || 0;
@@ -154,9 +164,9 @@ export class BubbleUpDataService {
         return true;
       }
       // Retain log pattern field
-      if (patternField === field) {
-        return true;
-      }
+      // if (patternField === field) {
+      //   return true;
+      // }
       return cardinality <= maxCardinality && cardinality > 0;
     });
 
@@ -489,13 +499,9 @@ export class BubbleUpDataService {
   }
 
   private async getLogPattern() {
-    const timeRage = this.endTime - this.startTime;
-
-    const selectionEndTime = moment.utc(this.endTime).format(DEFAULT_PPL_QUERY_DATE_FORMAT);
-    const baselineEndTime = moment.utc(this.startTime).format(DEFAULT_PPL_QUERY_DATE_FORMAT);
-    const baselineStartTime = moment
-      .utc(this.startTime - timeRage)
-      .format(DEFAULT_PPL_QUERY_DATE_FORMAT);
+    const selectionEndTime = moment.utc(this.selectionTo).format(DEFAULT_PPL_QUERY_DATE_FORMAT);
+    const baselineEndTime = moment.utc(this.baselineTo).format(DEFAULT_PPL_QUERY_DATE_FORMAT);
+    const baselineStartTime = moment.utc(this.baselineFrom).format(DEFAULT_PPL_QUERY_DATE_FORMAT);
 
     const basePPL = `source=${this.index}`;
 

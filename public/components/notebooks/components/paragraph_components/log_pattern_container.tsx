@@ -88,8 +88,10 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
       timeField: context.timeField,
       timeRange: context.timeRange
         ? {
-            from: context.timeRange.from,
-            to: context.timeRange.to,
+            selectionFrom: context.timeRange.selectionFrom,
+            selectionTo: context.timeRange.selectionTo,
+            baselineFrom: context.timeRange.baselineFrom,
+            baselineTo: context.timeRange.baselineTo,
           }
         : null,
     };
@@ -146,16 +148,20 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
       return;
     }
 
-    const { from, to } = memoizedContextValues.timeRange;
-    const duration = moment.duration(moment(to).diff(moment(from)));
+    const {
+      selectionFrom,
+      selectionTo,
+      baselineFrom,
+      baselineTo,
+    } = memoizedContextValues.timeRange;
 
     // Define all API requests
     const apiRequests = [
       {
         name: 'Log Insights Analysis',
         params: {
-          selectionStartTime: moment(from).toISOString(),
-          selectionEndTime: moment(to).toISOString(),
+          selectionStartTime: moment(selectionFrom).toISOString(),
+          selectionEndTime: moment(selectionTo).toISOString(),
           timeField: memoizedContextValues.timeField,
           logMessageField: 'body',
           indexName: memoizedContextValues.index,
@@ -166,10 +172,10 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
       {
         name: 'Pattern Difference Analysis',
         params: {
-          baselineStartTime: moment(from).subtract(duration).toISOString(),
-          baselineEndTime: moment(from).toISOString(),
-          selectionStartTime: moment(from).toISOString(),
-          selectionEndTime: moment(to).toISOString(),
+          baselineStartTime: moment(baselineFrom).toISOString(),
+          baselineEndTime: moment(baselineTo).toISOString(),
+          selectionStartTime: moment(selectionFrom).toISOString(),
+          selectionEndTime: moment(selectionTo).toISOString(),
           timeField: memoizedContextValues.timeField,
           logMessageField: 'body',
           indexName: memoizedContextValues.index,
@@ -180,10 +186,10 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
       {
         name: 'Log Sequence Analysis',
         params: {
-          baselineStartTime: moment(from).subtract(duration).toISOString(),
-          baselineEndTime: moment(from).toISOString(),
-          selectionStartTime: moment(from).toISOString(),
-          selectionEndTime: moment(to).toISOString(),
+          baselineStartTime: moment(baselineFrom).toISOString(),
+          baselineEndTime: moment(baselineTo).toISOString(),
+          selectionStartTime: moment(selectionFrom).toISOString(),
+          selectionEndTime: moment(selectionTo).toISOString(),
           timeField: memoizedContextValues.timeField,
           traceIdField: 'traceId',
           logMessageField: 'body',
@@ -600,8 +606,8 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
                     🔍
                   </span>
                   <strong>Investigation Period:</strong>{' '}
-                  {moment(context.timeRange.from).format('MMM DD, YYYY HH:mm')} to{' '}
-                  {moment(context.timeRange.to).format('MMM DD, YYYY HH:mm')}
+                  {moment(context.timeRange.selectionFrom).format('MMM DD, YYYY HH:mm')} to{' '}
+                  {moment(context.timeRange.selectionTo).format('MMM DD, YYYY HH:mm')}
                   <span style={{ marginLeft: '8px', fontStyle: 'italic' }}>
                     (the time range you want to investigate)
                   </span>
@@ -614,14 +620,8 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
                   📊
                 </span>{' '}
                 <strong>Baseline Period:</strong>{' '}
-                {moment(context.timeRange.from)
-                  .subtract(
-                    moment.duration(
-                      moment(context.timeRange.to).diff(moment(context.timeRange.from))
-                    )
-                  )
-                  .format('MMM DD, YYYY HH:mm')}{' '}
-                to {moment(context.timeRange.from).format('MMM DD, YYYY HH:mm')}
+                {moment(context.timeRange.baselineFrom).format('MMM DD, YYYY HH:mm')} to{' '}
+                {moment(context.timeRange.baselineTo).format('MMM DD, YYYY HH:mm')}
                 <span style={{ marginLeft: '8px', fontStyle: 'italic' }}>
                   (normal period for comparison to identify anomalies)
                 </span>

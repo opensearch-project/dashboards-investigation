@@ -60,8 +60,10 @@ export interface NotebookContext {
   timeField?: string;
   index?: string;
   timeRange?: {
-    from: number;
-    to: number;
+    selectionFrom: number;
+    selectionTo: number;
+    baselineFrom: number;
+    baselineTo: number;
   };
   source?: NoteBookSource;
   filters?: Array<Record<string, any>>; // For phase 1, we only support DSL filter

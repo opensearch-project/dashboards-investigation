@@ -92,7 +92,7 @@ export const ContextPanel = ({ addPara }: AddButtonProps) => {
               readOnly={true}
               startDateControl={
                 <EuiDatePicker
-                  selected={moment(timeRange?.from)}
+                  selected={moment(timeRange?.selectionFrom)}
                   onChange={() => {}}
                   aria-label="Start date"
                   showTimeSelect
@@ -100,7 +100,7 @@ export const ContextPanel = ({ addPara }: AddButtonProps) => {
               }
               endDateControl={
                 <EuiDatePicker
-                  selected={moment(timeRange?.to)}
+                  selected={moment(timeRange?.selectionTo)}
                   onChange={() => {}}
                   aria-label="End date"
                   showTimeSelect
