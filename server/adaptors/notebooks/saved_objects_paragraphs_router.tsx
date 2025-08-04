@@ -9,7 +9,6 @@ import {
   ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
   EXECUTOR_SYSTEM_PROMPT,
   LOG_PATTERN_PARAGRAPH_TYPE,
-  PLANNER_SYSTEM_PROMPT,
 } from '../../../common/constants/notebooks';
 import { SavedObjectsClientContract, SavedObject } from '../../../../../src/core/server/types';
 import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved_object_attributes';
@@ -313,7 +312,7 @@ export async function runParagraph(
           );
           const contextContent = [getNotebookTopLevelContextPrompt(notebookinfo), ...allContext]
             .filter((item) => item)
-            .map((item, stepIndex) => `Step ${stepIndex + 1}: ${item}`)
+            .map((item) => item)
             .join('\n');
           const currentParagraphTransport = await getOpenSearchClientTransport({
             context,
@@ -328,7 +327,13 @@ export async function runParagraph(
                 question: `${paragraphs[index].input.inputText}${
                   deepResearchContext ? `, Context: ${deepResearchContext}` : ''
                 }`,
-                system_prompt: `${PLANNER_SYSTEM_PROMPT} \n You have currently executed the following steps: \n ${contextContent}`,
+                planner_prompt_template:
+                  '${parameters.planner_prompt} \n Objective: ${parameters.user_prompt} \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n${parameters.plan_execute_reflect_response_format}',
+                planner_with_history_template:
+                  '${parameters.planner_prompt} \n Objective: ${parameters.user_prompt} \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n You have currently executed the following steps: \n[${parameters.completed_steps}] \n\n ${parameters.plan_execute_reflect_response_format}',
+                reflect_prompt_template:
+                  '${parameters.planner_prompt} \n Objective: ${parameters.user_prompt} \n\n Original plan:\n[${parameters.steps}] \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n You have currently executed the following steps: \n[${parameters.completed_steps}] \n\n ${parameters.reflect_prompt} \n\n ${parameters.plan_execute_reflect_response_format}',
+                context: contextContent,
                 executor_system_prompt: `${EXECUTOR_SYSTEM_PROMPT} \n You have currently executed the following steps: \n ${contextContent}`,
                 memory_id: deepResearchBaseMemoryId,
               },
@@ -351,6 +356,8 @@ export async function runParagraph(
               execution_time: `${(now() - startTime).toFixed(3)} ms`,
             },
           ];
+
+          // FIXME: this is used for debug
           updatedParagraph.input.PERAgentInput = payload;
           updatedParagraph.input.PERAgentContext = contextContent;
         } else if (formatNotRecognized(paragraphs[index].input.inputText)) {

@@ -14,6 +14,7 @@ import {
   EuiModalHeader,
   EuiModalBody,
   EuiMarkdownFormat,
+  EuiTabbedContent,
 } from '@elastic/eui';
 import { interval, Observable } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
@@ -194,7 +195,9 @@ export const DeepResearchContainer = ({ para, http, paragraph$ }: Props) => {
         </>
       )}
       {paragraph?.output && (
-        <EuiButton onClick={() => setShowContextModal(true)}>Show context</EuiButton>
+        <EuiButton style={{ marginRight: '10px' }} onClick={() => setShowContextModal(true)}>
+          Show agent request details
+        </EuiButton>
       )}
       {isLoading ? (
         <EuiLoadingContent />
@@ -254,13 +257,47 @@ export const DeepResearchContainer = ({ para, http, paragraph$ }: Props) => {
           dataSourceId={para.dataSourceMDSId}
         />
       )}
+      {/* FIXME this is used for debug */}
       {showContextModal && (
         <EuiModal onClose={() => setShowContextModal(false)}>
           <EuiModalHeader>Context</EuiModalHeader>
           <EuiModalBody>
-            <EuiMarkdownFormat>
-              {paragraph?.input.PERAgentContext || 'No context'}
-            </EuiMarkdownFormat>
+            <EuiTabbedContent
+              tabs={[
+                {
+                  id: 'agentInput',
+                  name: 'Agent input',
+                  content: (
+                    <>
+                      <EuiMarkdownFormat>
+                        {`\`\`\`json
+${JSON.stringify(
+  {
+    ...paragraph?.input.PERAgentInput,
+    body: JSON.parse(paragraph?.input.PERAgentInput.body),
+  },
+  null,
+  2
+)}
+                      \`\`\`
+                      `}
+                      </EuiMarkdownFormat>
+                    </>
+                  ),
+                },
+                {
+                  id: 'agentContext',
+                  name: 'Agent context',
+                  content: (
+                    <>
+                      <EuiMarkdownFormat>
+                        {paragraph?.input.PERAgentContext || 'No context'}
+                      </EuiMarkdownFormat>
+                    </>
+                  ),
+                },
+              ]}
+            />
           </EuiModalBody>
         </EuiModal>
       )}

@@ -11,9 +11,8 @@ export const LogPatternParagraph: ParagraphRegistryItem<LogPatternAnalysisResult
     const { logInsights, patternMapDifference, EXCEPTIONAL, BASE } =
       paragraph.output?.[0].result! || {};
     return `
-      ## Log Pattern Analysis Results
-
-      This step analyzed log patterns using clustering algorithms to identify recurring patterns and anomalies.
+      Step: This step analyzed log patterns using clustering algorithms to identify recurring patterns and anomalies.
+      Step result: 
 
       ### Pattern Summary
       - Total patterns: ${logInsights.length}

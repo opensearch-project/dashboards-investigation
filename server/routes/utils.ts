@@ -35,6 +35,8 @@ export const getNotebookTopLevelContextPrompt = (
   }
 
   return `
+    Step: Top level context for investigation.
+    Step Result: 
     You are an AI assistant helping with root cause analysis based on log data. I'm investigating an issue in a system and need your analytical expertise.
 
     ## Context Information
