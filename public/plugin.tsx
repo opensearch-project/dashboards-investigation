@@ -96,6 +96,7 @@ export class InvestigationPlugin
           DashboardContainerByValueRenderer={depsStart.dashboard.DashboardContainerByValueRenderer}
           notifications={coreStart.notifications}
           savedObjectsMDSClient={coreStart.savedObjects}
+          chrome={coreStart.chrome}
           {...props}
         />
       );

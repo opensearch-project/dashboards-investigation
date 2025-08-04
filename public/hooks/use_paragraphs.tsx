@@ -33,6 +33,7 @@ export const useParagraphs = () => {
           const newParagraphs = [...paragraphs];
           newParagraphs.splice(index, 0, res);
           context.state.updateParagraphs(newParagraphs);
+          return context.state.value.paragraphs[index];
         })
         .catch((err) => {
           getCoreStart().notifications.toasts.addDanger(

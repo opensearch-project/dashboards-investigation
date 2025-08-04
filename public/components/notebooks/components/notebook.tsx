@@ -41,12 +41,7 @@ import { ParagraphState, ParagraphStateValue } from '../../../../common/state/pa
 import { CoreStart, SavedObjectsStart } from '../../../../../../src/core/public';
 import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
 import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
-import {
-  ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
-  CREATE_NOTE_MESSAGE,
-  LOG_PATTERN_PARAGRAPH_TYPE,
-  NOTEBOOKS_API_PREFIX,
-} from '../../../../common/constants/notebooks';
+import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
 import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
 import {
   NotebookContext,
@@ -74,6 +69,7 @@ import { InputPanel } from './input_panel';
 import { useParagraphs } from '../../../hooks/use_paragraphs';
 import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
+import { usePrecheck } from '../../../hooks/use_precheck';
 
 const ParagraphTypeDeepResearch = 'DEEP_RESEARCH';
 
@@ -123,6 +119,7 @@ export function NotebookComponent({
   const [context] = useState<NotebookContext | undefined>(undefined);
   const { createParagraph, showParagraphRunning, deleteParagraph } = useParagraphs();
   const { loadNotebook: loadNotebookHook, setParagraphs } = useNotebook();
+  const { start } = usePrecheck();
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
 
   const notebookContext = useContext(NotebookReactContext);
@@ -536,8 +533,6 @@ export function NotebookComponent({
       .then(async (res) => {
         setBreadcrumbs(res.path);
         let index = 0;
-        let logPatternParaExists = false;
-        let bubbleUpParaExists = false;
         for (index = 0; index < res.paragraphs.length; ++index) {
           // if the paragraph is a query, load the query output
           if (
@@ -565,28 +560,14 @@ export function NotebookComponent({
             await loadQueryResultsFromInput(res.paragraphs[index]);
           } else if (res.paragraphs[index].output[0]?.outputType === 'QUERY') {
             await loadQueryResultsFromInput(res.paragraphs[index], '');
-          } else if (res.paragraphs[index].input.inputType === LOG_PATTERN_PARAGRAPH_TYPE) {
-            logPatternParaExists = true;
-          } else if (
-            res.paragraphs[index].input.inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE
-          ) {
-            bubbleUpParaExists = true;
           }
         }
 
         notebookContext.state.updateParagraphs(res.paragraphs);
-        if (!bubbleUpParaExists) {
-          const resContext = res.context;
-          if (resContext?.filters && resContext?.timeRange && resContext?.index) {
-            await createParagraph(0, '', ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE);
-          }
-        }
-        if (!logPatternParaExists) {
-          const resContext = res.context as NotebookContext;
-          if (resContext?.timeRange && resContext?.index && resContext?.timeField) {
-            await createParagraph(1, '', LOG_PATTERN_PARAGRAPH_TYPE);
-          }
-        }
+        await start({
+          context: res.context,
+          paragraphs: res.paragraphs,
+        });
       })
       .catch((err) => {
         notifications.toasts.addDanger(
@@ -597,12 +578,12 @@ export function NotebookComponent({
   }, [
     loadNotebookHook,
     setBreadcrumbs,
-    createParagraph,
     notifications.toasts,
     loadQueryResultsFromInput,
     dataSourceEnabled,
     isSavedObjectNotebook,
     notebookContext.state,
+    start,
   ]);
 
   const handleSelectedDataSourceChange = (id: string | undefined, label: string | undefined) => {
