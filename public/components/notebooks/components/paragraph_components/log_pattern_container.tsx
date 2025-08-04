@@ -390,7 +390,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
   const logInsightsColumns: Array<EuiTableFieldDataColumnType<LogPattern>> = [
     {
       field: 'pattern',
-      name: 'Pattern',
+      name: 'Log template',
       render: (pattern: string) => (
         <EuiCodeBlock language="text" fontSize="s" paddingSize="s" transparentBackground>
           {pattern}
@@ -456,7 +456,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
   const patternDiffColumns: Array<EuiTableFieldDataColumnType<LogPattern>> = [
     {
       field: 'pattern',
-      name: 'Pattern',
+      name: 'Log template',
       render: (pattern: string) => (
         <EuiCodeBlock language="text" fontSize="s" paddingSize="s" transparentBackground>
           {pattern}
@@ -466,10 +466,11 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
     },
     {
       field: 'selection',
-      name: 'Selection',
-      render: (count: number) => {
-        const color = count > 0 ? 'danger' : count < 0 ? 'success' : 'hollow';
-        const icon = count > 0 ? 'sortUp' : count < 0 ? 'sortDown' : 'minus';
+      name: 'Selection percent',
+      render: (count: number, record: LogPattern) => {
+        const base = record.base || 0;
+        const color = count > base ? 'danger' : 'success';
+        const icon = count > base ? 'sortUp' : 'sortDown';
         return (
           <EuiFlexGroup alignItems="center" gutterSize="xs">
             <EuiFlexItem grow={false}>
@@ -485,7 +486,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
     },
     {
       field: 'base',
-      name: 'Baseline',
+      name: 'Baseline percent',
       render: (count: number) => {
         return (
           <EuiFlexGroup alignItems="center" gutterSize="xs">
