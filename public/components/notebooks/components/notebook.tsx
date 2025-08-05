@@ -118,7 +118,7 @@ export function NotebookComponent({
   const [dataSourceMDSLabel, setDataSourceMDSLabel] = useState<string | undefined | null>(null);
   const [context] = useState<NotebookContext | undefined>(undefined);
   const { createParagraph, showParagraphRunning, deleteParagraph } = useParagraphs();
-  const { loadNotebook: loadNotebookHook, setParagraphs } = useNotebook();
+  const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start } = usePrecheck();
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
 
@@ -369,21 +369,6 @@ export function NotebookComponent({
     setIsModalVisible(true);
   };
 
-  // Function for delete Visualization from notebook
-  const deleteVizualization = (uniqueId: string) => {
-    http
-      .delete(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/` + openedNoteId + '/' + uniqueId)
-      .then((res) => {
-        setParagraphs(res.paragraphs);
-      })
-      .catch((err) => {
-        notifications.toasts.addDanger(
-          'Error deleting visualization, please make sure you have the correct permission.'
-        );
-        console.error(err);
-      });
-  };
-
   // FIXME
   // Move the method into PPL paragraph
   const loadQueryResultsFromInput = useCallback(
@@ -464,7 +449,9 @@ export function NotebookComponent({
         const newParagraphs = [...paragraphs];
         const paragraphStateValue = new ParagraphState(res).value;
         newParagraphs[index] = paragraphStateValue;
-        setParagraphs(newParagraphs);
+        notebookContext.state.updateValue({
+          paragraphs: newParagraphs.map((paragraph) => new ParagraphState(paragraph)),
+        });
       })
       .catch((err) => {
         console.log(err);
@@ -498,7 +485,9 @@ export function NotebookComponent({
       const newParas = [...paragraphs];
       newParas[index].input = newParas[index].input || {};
       newParas[index].input.inputText = evt.target.value;
-      setParagraphs(newParas);
+      notebookContext.state.updateValue({
+        paragraphs: newParas.map((paragraph) => new ParagraphState(paragraph)),
+      });
     }
   };
 
@@ -536,7 +525,7 @@ export function NotebookComponent({
         for (index = 0; index < res.paragraphs.length; ++index) {
           // if the paragraph is a query, load the query output
           if (
-            res.paragraphs[index].output[0]?.outputType === 'QUERY' &&
+            ParagraphState.getOutput(res.paragraphs[index])?.outputType === 'QUERY' &&
             dataSourceEnabled &&
             res.paragraphs[index].dataSourceMDSId
           ) {
@@ -545,25 +534,28 @@ export function NotebookComponent({
               res.paragraphs[index].dataSourceMDSId
             );
           } else if (
-            res.paragraphs[index].output[0]?.outputType === 'QUERY' &&
+            ParagraphState.getOutput(res.paragraphs[index])?.outputType === 'QUERY' &&
             !dataSourceEnabled &&
             res.paragraphs[index].dataSourceMDSId
           ) {
-            res.paragraphs[index].output[0] = [];
+            (res.paragraphs[index].output as Required<
+              ParagraphBackendType
+            >['output'])[0] = ([] as unknown) as Required<ParagraphBackendType>['output'][0];
             notifications.toasts.addDanger(
-              `Data source ${res.paragraphs[index].dataSourceMDSLabel} is not available. Please configure your dataSources`
+              `Data source is not available. Please configure your dataSources`
             );
           } else if (
-            res.paragraphs[index].output[0]?.outputType === 'QUERY' &&
+            ParagraphState.getOutput(res.paragraphs[index])?.outputType === 'QUERY' &&
             !isSavedObjectNotebook
           ) {
             await loadQueryResultsFromInput(res.paragraphs[index]);
-          } else if (res.paragraphs[index].output[0]?.outputType === 'QUERY') {
+          } else if (ParagraphState.getOutput(res.paragraphs[index])?.outputType === 'QUERY') {
             await loadQueryResultsFromInput(res.paragraphs[index], '');
           }
         }
-
-        notebookContext.state.updateParagraphs(res.paragraphs);
+        notebookContext.state.updateValue({
+          paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
+        });
         await start({
           context: res.context,
           paragraphs: res.paragraphs,
@@ -594,7 +586,9 @@ export function NotebookComponent({
   const setPara = (para: ParagraphStateValue, index: number) => {
     const newParas = [...paragraphs];
     newParas.splice(index, 1, para);
-    setParagraphs(newParas);
+    notebookContext.state.updateValue({
+      paragraphs: newParas.map((paragraph) => new ParagraphState(paragraph)),
+    });
   };
 
   const checkIfReportingPluginIsInstalled = useCallback(() => {
@@ -879,7 +873,6 @@ export function NotebookComponent({
                     textValueEditor={textValueEditor}
                     handleKeyPress={handleKeyPress}
                     DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
-                    deleteVizualization={deleteVizualization}
                     http={http}
                     selectedViewId={selectedViewId}
                     deletePara={showDeleteParaModal}

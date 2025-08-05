@@ -6,7 +6,7 @@
 import { distinctUntilChanged, map } from 'rxjs/operators';
 import { NotebookContext } from 'common/types/notebooks';
 import { ObservableState } from './observable_state';
-import { ParagraphState, ParagraphStateValue } from './paragraph_state';
+import { ParagraphState } from './paragraph_state';
 import { TopContextState } from './top_context_state';
 
 export interface NotebookStateValue {
@@ -44,11 +44,6 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
     });
 
     return this;
-  }
-  updateParagraphs(paragraphs: Array<ParagraphStateValue<unknown>>) {
-    this.updateValue({
-      paragraphs: paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
-    });
   }
   getParagraphStates$() {
     return this.getValue$().pipe(

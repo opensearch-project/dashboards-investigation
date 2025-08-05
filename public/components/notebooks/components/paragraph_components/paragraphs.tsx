@@ -67,7 +67,6 @@ import { ParagraphStateValue } from '../../../../../common/state/paragraph_state
  * textValueEditor - function for handling input in textarea
  * handleKeyPress - function for handling key press like "Shift-key+Enter" to run paragraph
  * DashboardContainerByValueRenderer - Dashboard container renderer for visualization
- * deleteVizualization - function to delete a para
  * http object - for making API requests
  * selectedViewId - selected view: view_both, input_only, output_only
  * runPara - function to run the selected para
@@ -89,7 +88,6 @@ export interface ParagraphProps {
     dataSourceMDSID: string
   ) => void;
   DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
-  deleteVizualization: (uniqueId: string) => void;
   http: CoreStart['http'];
   selectedViewId: string;
   deletePara: (index: number) => void;

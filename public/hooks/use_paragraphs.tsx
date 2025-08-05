@@ -17,7 +17,6 @@ export const useParagraphs = () => {
 
   const createParagraph = useCallback(
     (index: number, newParaContent: string, inpType: string) => {
-      const paragraphs = context.state.value.paragraphs.map((item) => item.value);
       const addParaObj = {
         noteId: context.state.value.id,
         paragraphIndex: index,
@@ -30,9 +29,11 @@ export const useParagraphs = () => {
           body: JSON.stringify(addParaObj),
         })
         .then((res) => {
-          const newParagraphs = [...paragraphs];
-          newParagraphs.splice(index, 0, res);
-          context.state.updateParagraphs(newParagraphs);
+          const newParagraphs = [...context.state.value.paragraphs];
+          newParagraphs.splice(index, 0, new ParagraphState(res));
+          context.state.updateValue({
+            paragraphs: newParagraphs,
+          });
           return context.state.value.paragraphs[index];
         })
         .catch((err) => {
@@ -60,7 +61,11 @@ export const useParagraphs = () => {
         body: JSON.stringify(moveParaObj),
       })
       .then((_res) => {
-        context.state.updateParagraphs(newParagraphs);
+        const paragraphStates = [...context.state.value.paragraphs];
+        paragraphStates.splice(targetIndex, 0, paragraphStates.splice(index, 1)[0]);
+        context.state.updateValue({
+          paragraphs: paragraphStates,
+        });
       })
       .catch((err) => {
         getCoreStart().notifications.toasts.addDanger(
@@ -147,10 +152,11 @@ export const useParagraphs = () => {
           },
         })
         .then((_res) => {
-          const currentParagraphs = context.state.value.paragraphs.map((value) => value.value);
-          const newParagraphs = [...currentParagraphs];
+          const newParagraphs = [...context.state.value.paragraphs];
           newParagraphs.splice(index, 1);
-          context.state.updateParagraphs(newParagraphs);
+          context.state.updateValue({
+            paragraphs: newParagraphs,
+          });
           return _res;
         })
         .catch((err) => {

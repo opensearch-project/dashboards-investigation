@@ -18,7 +18,7 @@ export const usePrecheck = () => {
 
   return {
     start: useCallback(
-      async (res: { context: NotebookContext; paragraphs: ParagraphBackendType[] }) => {
+      async (res: { context?: NotebookContext; paragraphs: ParagraphBackendType[] }) => {
         let logPatternParaExists = false;
         let anomalyAnalysisParaExists = false;
 

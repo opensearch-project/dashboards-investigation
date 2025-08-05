@@ -90,6 +90,15 @@ export interface ParagraphBackendType<TOutputResult = string> {
   dataSourceMDSId?: string;
 }
 
+export interface NotebookBackendType {
+  name: string;
+  dateCreated: string;
+  dateModified: string;
+  paragraphs: ParagraphBackendType[];
+  context?: NotebookContext;
+  path: string;
+}
+
 export interface AnomalyVisualizationAnalysisOutputResult {
   fieldComparison: Array<Record<string, unknown>>;
 }
