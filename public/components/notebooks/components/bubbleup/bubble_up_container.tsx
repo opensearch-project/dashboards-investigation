@@ -111,7 +111,7 @@ export const BubbleUpContainer = ({
     };
   }, [bubbleUpSpecs, activePage]);
 
-  if (!context || !timeRange || !timeField || !index || !dataSourceId) {
+  if (!context || !timeRange || !timeField || !index) {
     return null;
   }
 

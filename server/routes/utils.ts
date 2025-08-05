@@ -43,7 +43,11 @@ export const getNotebookTopLevelContextPrompt = (
     ${summary ? `**Investigation Summary**: ${summary}` : ''}
     ${index ? `**Relevant Index name**: ${index}` : ''}
     ${timeField ? `**Time Field**: ${timeField}` : ''}
-    ${timeRange ? `**Time Period**: From ${timeRange?.from} to ${timeRange.to}` : ''}
+    ${
+      timeRange
+        ? `**Time Period**: From ${timeRange?.selectionFrom} to ${timeRange.selectionTo}`
+        : ''
+    }
     ${filters ? `**Applied Filters**: ${JSON.stringify(filters, null, 2)}` : ''}
     ${variables ? `**Variables**: ${JSON.stringify(variables, null, 2)}` : ''}
 

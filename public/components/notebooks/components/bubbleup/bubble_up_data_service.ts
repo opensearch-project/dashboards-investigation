@@ -32,7 +32,7 @@ export class BubbleUpDataService {
   private baseCount: number;
   private selectCount: number;
   private logPatternField: string = '';
-  private dataSourceId: string = '';
+  private dataSourceId: string | undefined;
   private index: string = '';
   private selectionFrom: number = NaN;
   private selectionTo: number = NaN;
@@ -50,7 +50,7 @@ export class BubbleUpDataService {
   }
 
   public setConfig(
-    dataSourceId: string,
+    dataSourceId: string | undefined,
     index: string,
     selectionFrom: number,
     selectionTo: number,
@@ -560,7 +560,7 @@ export async function searchQuery(
   httpClient: HttpSetup,
   path: string,
   method: string,
-  dataSourceId: string,
+  dataSourceId: string | undefined,
   query: string
 ) {
   return await httpClient.post(`/api/console/proxy`, {
