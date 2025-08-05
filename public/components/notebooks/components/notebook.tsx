@@ -523,9 +523,10 @@ export function NotebookComponent({
         setBreadcrumbs(res.path);
         let index = 0;
         for (index = 0; index < res.paragraphs.length; ++index) {
+          const outputType = ParagraphState.getOutput(res.paragraphs[index])?.outputType;
           // if the paragraph is a query, load the query output
           if (
-            ParagraphState.getOutput(res.paragraphs[index])?.outputType === 'QUERY' &&
+            outputType === 'QUERY' &&
             dataSourceEnabled &&
             res.paragraphs[index].dataSourceMDSId
           ) {
@@ -534,7 +535,7 @@ export function NotebookComponent({
               res.paragraphs[index].dataSourceMDSId
             );
           } else if (
-            ParagraphState.getOutput(res.paragraphs[index])?.outputType === 'QUERY' &&
+            outputType === 'QUERY' &&
             !dataSourceEnabled &&
             res.paragraphs[index].dataSourceMDSId
           ) {
@@ -544,12 +545,9 @@ export function NotebookComponent({
             notifications.toasts.addDanger(
               `Data source is not available. Please configure your dataSources`
             );
-          } else if (
-            ParagraphState.getOutput(res.paragraphs[index])?.outputType === 'QUERY' &&
-            !isSavedObjectNotebook
-          ) {
+          } else if (outputType === 'QUERY' && !isSavedObjectNotebook) {
             await loadQueryResultsFromInput(res.paragraphs[index]);
-          } else if (ParagraphState.getOutput(res.paragraphs[index])?.outputType === 'QUERY') {
+          } else if (outputType === 'QUERY') {
             await loadQueryResultsFromInput(res.paragraphs[index], '');
           }
         }
