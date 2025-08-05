@@ -38,10 +38,22 @@ export const usePrecheck = () => {
 
         if (!anomalyAnalysisParaExists) {
           const resContext = res.context;
-          if (resContext?.filters && resContext?.timeRange && resContext?.index) {
+          if (
+            resContext?.filters &&
+            resContext?.timeRange &&
+            resContext?.index &&
+            resContext?.timeField
+          ) {
+            const newParaContent = JSON.stringify({
+              index: resContext.index,
+              timeField: resContext.timeField,
+              dataSourceId: resContext?.dataSourceId,
+              timeRange: resContext.timeRange,
+              filters: resContext.filters,
+            });
             const anomalyAnalysisParagraphResult = await createParagraph(
               totalParagraphLength,
-              '',
+              newParaContent || '',
               ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE
             );
             if (anomalyAnalysisParagraphResult) {

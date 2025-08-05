@@ -88,15 +88,8 @@ export const BubbleUpContainer = ({
     };
 
     loadSpecsData();
-  }, [
-    dataService,
-    paragraph,
-    distributionLoading,
-    fieldComparison,
-    filters,
-    saveParagraph,
-    specsLoading,
-  ]);
+    // eslint-disable-next-line
+  }, [dataService, fieldComparison, paragraph]);
 
   const { paginatedSpecs, totalPages } = useMemo(() => {
     if (!bubbleUpSpecs?.length) {
