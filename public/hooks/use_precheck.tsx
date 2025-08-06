@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { IndexInsights, NotebookContext, ParagraphBackendType } from 'common/types/notebooks';
+import { NotebookContext, ParagraphBackendType } from 'common/types/notebooks';
 import { useCallback } from 'react';
 import { combineLatest } from 'rxjs';
 import { ParagraphState } from 'common/state/paragraph_state';
@@ -12,30 +12,9 @@ import {
   LOG_PATTERN_PARAGRAPH_TYPE,
 } from '../../common/constants/notebooks';
 import { useParagraphs } from './use_paragraphs';
-import { useNotebook } from './use_notebook';
-
-const indexInsightRequestMock = (): Promise<IndexInsights> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        index_insights: [
-          {
-            index_name: 'demo',
-            content:
-              '{"is_log_index": true, "log_message_field": "body", "trace_id_field": "traceId"}',
-            status: 'generating',
-            task_type: 'INDEX_DESCRIPTION',
-            last_updated_time: 1753671175376,
-          },
-        ],
-      });
-    }, 3000);
-  });
-};
 
 export const usePrecheck = () => {
   const { createParagraph } = useParagraphs();
-  const { updateNotebookContext } = useNotebook();
 
   return {
     start: useCallback(
@@ -85,10 +64,11 @@ export const usePrecheck = () => {
         if (!logPatternParaExists) {
           const resContext = res.context as NotebookContext;
           if (resContext?.timeRange && resContext?.index && resContext?.timeField) {
-            const indexInsightResponse = await indexInsightRequestMock();
-            const content = JSON.parse(indexInsightResponse.index_insights[0].content);
-            await updateNotebookContext({ variables: content });
-            if (content.is_log_index && content.log_message_field && content.trace_id_field) {
+            if (
+              resContext?.indexInsight?.is_log_index &&
+              resContext?.indexInsight?.log_message_field &&
+              resContext?.indexInsight?.trace_id_field
+            ) {
               const logPatternResult = await createParagraph(
                 totalParagraphLength + 1,
                 '',
@@ -111,7 +91,7 @@ export const usePrecheck = () => {
           });
         }
       },
-      [createParagraph, updateNotebookContext]
+      [createParagraph]
     ),
   };
 };

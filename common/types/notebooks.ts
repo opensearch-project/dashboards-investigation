@@ -71,6 +71,7 @@ export interface NotebookContext {
   PPLFilters?: string[];
   variables?: Record<string, unknown>;
   memoryId?: string;
+  indexInsight?: IndexInsightContent;
 }
 
 export interface ParagraphBackendType<TOutputResult = string> {

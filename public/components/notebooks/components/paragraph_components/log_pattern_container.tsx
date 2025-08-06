@@ -94,7 +94,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
             baselineTo: context.timeRange.baselineTo,
           }
         : null,
-      variables: context.variables,
+      indexInsight: context.indexInsight,
     };
   }, [context]);
 
@@ -164,7 +164,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
           selectionStartTime: moment(selectionFrom).toISOString(),
           selectionEndTime: moment(selectionTo).toISOString(),
           timeField: memoizedContextValues.timeField,
-          logMessageField: memoizedContextValues?.variables?.log_message_field,
+          logMessageField: memoizedContextValues?.indexInsight?.log_message_field,
           indexName: memoizedContextValues.index,
           dataSourceMDSId: memoizedContextValues.dataSourceId,
         },
@@ -178,7 +178,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
           selectionStartTime: moment(selectionFrom).toISOString(),
           selectionEndTime: moment(selectionTo).toISOString(),
           timeField: memoizedContextValues.timeField,
-          logMessageField: memoizedContextValues?.variables?.log_message_field,
+          logMessageField: memoizedContextValues?.indexInsight?.log_message_field,
           indexName: memoizedContextValues.index,
           dataSourceMDSId: memoizedContextValues.dataSourceId,
         },
@@ -192,8 +192,8 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
           selectionStartTime: moment(selectionFrom).toISOString(),
           selectionEndTime: moment(selectionTo).toISOString(),
           timeField: memoizedContextValues.timeField,
-          traceIdField: memoizedContextValues?.variables?.trace_id_field,
-          logMessageField: memoizedContextValues?.variables?.log_message_field,
+          traceIdField: memoizedContextValues?.indexInsight?.trace_id_field,
+          logMessageField: memoizedContextValues?.indexInsight?.log_message_field,
           indexName: memoizedContextValues.index,
           dataSourceMDSId: memoizedContextValues.dataSourceId,
         },
