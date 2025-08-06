@@ -462,10 +462,14 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
                     onChange={async (value) => {
                       setDeepResearchAgentId(value);
                       // FIXME move to deep research paragraph
+                      const outputResult = parsedParagraphOut[0];
                       await saveParagraph({
                         paragraphStateValue: ParagraphState.updateOutputResult(
                           paragraph.value,
-                          JSON.stringify({ agent_id: value })
+                          JSON.stringify({
+                            ...outputResult,
+                            agent_id: value,
+                          })
                         ),
                       });
                     }}

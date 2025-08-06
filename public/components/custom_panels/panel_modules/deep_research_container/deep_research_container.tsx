@@ -246,7 +246,7 @@ export const DeepResearchContainer = ({ para, http, paragraph$ }: Props) => {
           Show agent request details
         </EuiButton>
       )}
-      {!taskLoaded || !taskFinished ? (
+      {taskId && (!taskLoaded || !taskFinished) ? (
         <EuiLoadingContent />
       ) : (
         <EuiButton
