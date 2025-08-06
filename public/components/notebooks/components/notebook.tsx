@@ -117,7 +117,7 @@ export function NotebookComponent({
   const [dataSourceMDSId, setDataSourceMDSId] = useState<string | undefined | null>(null);
   const [dataSourceMDSLabel, setDataSourceMDSLabel] = useState<string | undefined | null>(null);
   const [context] = useState<NotebookContext | undefined>(undefined);
-  const { createParagraph, showParagraphRunning, deleteParagraph } = useParagraphs();
+  const { createParagraph, showParagraphRunning, deleteParagraph, runParagraph } = useParagraphs();
   const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start } = usePrecheck();
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
@@ -412,9 +412,12 @@ export function NotebookComponent({
     index: number,
     vizObjectInput?: string,
     paraType?: string,
-    _dataSourceMDSId?: string,
-    deepResearchAgentId?: string
+    _dataSourceMDSId?: string
   ) => {
+    if (paragraphs[index].input.inputType === 'DEEP_RESEARCH') {
+      runParagraph(index);
+      return;
+    }
     showParagraphRunning(index);
     if (vizObjectInput) {
       para.inp = vizPrefix + vizObjectInput; // "%sh check"
@@ -427,7 +430,6 @@ export function NotebookComponent({
       paragraphType: paraType || '',
       dataSourceMDSId: dataSourceMDSId || '',
       dataSourceMDSLabel: dataSourceMDSLabel || '',
-      deepResearchAgentId,
     };
     const route = isSavedObjectNotebook
       ? `${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/update/run`

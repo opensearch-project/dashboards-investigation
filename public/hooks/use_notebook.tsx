@@ -96,6 +96,7 @@ export const useNotebook = () => {
       context.state.updateValue({
         dateCreated: res.dateCreated,
         path: res.path,
+        vizPrefix: res.vizPrefix || '',
       });
       if (res.context) context.state.updateContext(res.context);
 

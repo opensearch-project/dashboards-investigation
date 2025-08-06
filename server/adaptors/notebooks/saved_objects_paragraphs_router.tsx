@@ -167,27 +167,10 @@ export async function updateRunFetchParagraph(
     paragraphType: string;
     dataSourceMDSId: string | undefined;
     dataSourceMDSLabel: string | undefined;
-    deepResearchAgentId?: string | undefined;
   },
   opensearchNotebooksClient: SavedObjectsClientContract,
   context: RequestHandlerContext
 ) {
-  const transport = await getOpenSearchClientTransport({
-    context,
-    dataSourceId: params.dataSourceMDSId,
-  });
-  let deepResearchAgentId = params.deepResearchAgentId;
-  if (!deepResearchAgentId) {
-    try {
-      const { body } = await transport.request({
-        method: 'GET',
-        path: '/_plugins/_ml/config/os_deep_research',
-      });
-      deepResearchAgentId = body.configuration.agent_id;
-    } catch (error) {
-      // Add error catch here..
-    }
-  }
   try {
     const notebookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
     const updatedInputParagraphs = updateParagraphs(
@@ -202,7 +185,6 @@ export async function updateRunFetchParagraph(
       updatedInputParagraphs,
       params.paragraphId,
       context,
-      deepResearchAgentId,
       notebookInfo
     );
 
@@ -249,7 +231,6 @@ export async function runParagraph(
   paragraphs: Array<ParagraphBackendType<string | { taskId: string; memoryId?: string }>>,
   paragraphId: string,
   context: RequestHandlerContext,
-  deepResearchAgentId: string | undefined,
   notebookinfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>
 ) {
   try {
@@ -304,7 +285,30 @@ export async function runParagraph(
             },
           ];
         } else if (paragraphs[index].input.inputType === 'DEEP_RESEARCH') {
-          if (!deepResearchAgentId) {
+          let output: { agent_id: string } = { agent_id: '' };
+          try {
+            output = JSON.parse((updatedParagraph.output?.[0].result || '') as string);
+          } catch (e) {
+            // do nothing
+          }
+
+          if (!output.agent_id) {
+            try {
+              const osDeepResearchAgentTransport = await getOpenSearchClientTransport({
+                context,
+                dataSourceId: updatedParagraph.dataSourceMDSId,
+              });
+              const { body } = await osDeepResearchAgentTransport.request({
+                method: 'GET',
+                path: '/_plugins/_ml/config/os_deep_research',
+              });
+              output.agent_id = body.configuration.agent_id;
+            } catch (error) {
+              // Add error catch here..
+            }
+          }
+
+          if (!output.agent_id) {
             throw new Error('No deep research agent id configured.');
           }
           updatedParagraph.dateModified = new Date().toISOString();
@@ -338,7 +342,7 @@ export async function runParagraph(
           const baseMemoryId = notebookinfo.attributes.savedNotebook.context?.memoryId;
           const payload = {
             method: 'POST',
-            path: `/_plugins/_ml/agents/${deepResearchAgentId}/_execute`,
+            path: `/_plugins/_ml/agents/${output.agent_id}/_execute`,
             querystring: 'async=true',
             body: {
               parameters: {

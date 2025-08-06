@@ -9,6 +9,7 @@ import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import { getCoreStart } from '../services';
+import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
 
 export const useParagraphs = () => {
   const context = useContext(NotebookReactContext);
@@ -135,6 +136,29 @@ export const useParagraphs = () => {
     },
     [context.http, context.state.value.id, context.state.value.paragraphs]
   );
+  const showParagraphRunning = useCallback(
+    (param: number | string) => {
+      const newParas = context.state.value.paragraphs;
+      newParas.forEach((_: ParagraphState, index: number) => {
+        const payload: Partial<ParagraphStateValue['uiState']> = {};
+        let updateIndex = -1;
+        if (param === 'queue') {
+          updateIndex = index;
+          payload.inQueue = true;
+        } else if (param === 'loading') {
+          updateIndex = index;
+          payload.isRunning = true;
+        } else if (param === index) {
+          updateIndex = index;
+          payload.isRunning = true;
+        }
+        if (updateIndex > -1) {
+          context.state.value.paragraphs[updateIndex].updateUIState(payload);
+        }
+      });
+    },
+    [context.state]
+  );
 
   return {
     createParagraph,
@@ -167,31 +191,47 @@ export const useParagraphs = () => {
         });
     },
     // Assigns Loading, Running & inQueue for paragraphs in current notebook
-    showParagraphRunning: useCallback(
-      (param: number | string) => {
-        const newParas = context.state.value.paragraphs;
-        newParas.forEach((_: ParagraphState, index: number) => {
-          const payload: Partial<ParagraphStateValue['uiState']> = {};
-          let updateIndex = -1;
-          if (param === 'queue') {
-            updateIndex = index;
-            payload.inQueue = true;
-          } else if (param === 'loading') {
-            updateIndex = index;
-            payload.isRunning = true;
-          } else if (param === index) {
-            updateIndex = index;
-            payload.isRunning = true;
-          }
-          if (updateIndex > -1) {
-            context.state.value.paragraphs[updateIndex].updateUIState(payload);
-          }
-        });
-      },
-      [context.state]
-    ),
+    showParagraphRunning,
     moveParagraph,
     cloneParagraph,
     saveParagraph,
+    runParagraph: useCallback(
+      (index: number) => {
+        const { id: openedNoteId } = context.state.value;
+        const para = context.state.getParagraphsValue()[index];
+        const isSavedObjectNotebook = isValidUUID(openedNoteId);
+        showParagraphRunning(index);
+
+        const paraUpdateObject = {
+          noteId: openedNoteId,
+          paragraphId: para.id,
+          paragraphInput: para.input.inputText,
+          paragraphType: para.input.inputType || '',
+          dataSourceMDSId: para.dataSourceMDSId || '',
+        };
+        const route = isSavedObjectNotebook
+          ? `${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/update/run`
+          : `${NOTEBOOKS_API_PREFIX}/paragraph/update/run/`;
+        return http
+          .post<ParagraphBackendType>(route, {
+            body: JSON.stringify(paraUpdateObject),
+          })
+          .then(async (res) => {
+            const paragraphState = context.state.value.paragraphs[index];
+            paragraphState.updateValue(res);
+          })
+          .catch((err) => {
+            if (err?.body?.statusCode === 413)
+              getCoreStart().notifications.toasts.addDanger(
+                `Error running paragraph: ${err.body.message}`
+              );
+            else
+              getCoreStart().notifications.toasts.addDanger(
+                'Error running paragraph, please make sure you have the correct permission.'
+              );
+          });
+      },
+      [context.state, http, showParagraphRunning]
+    ),
   };
 };

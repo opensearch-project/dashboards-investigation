@@ -26,6 +26,7 @@ import React, {
   useState,
 } from 'react';
 import { useCallback } from 'react';
+import { useContext } from 'react';
 import {
   CoreStart,
   SavedObjectsFindOptions,
@@ -54,7 +55,9 @@ import { ParaOutput } from './para_output';
 import { AgentsSelector } from './agents_selector';
 import { DataSourceSelectorProps } from '../../../../../../../src/plugins/data_source_management/public/components/data_source_selector/data_source_selector';
 import { ParagraphActionPanel } from './paragraph_actions_panel';
-import { ParagraphStateValue } from '../../../../../common/state/paragraph_state';
+import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
+import { useParagraphs } from '../../../../hooks/use_paragraphs';
+import { NotebookReactContext } from '../../context_provider/context_provider';
 
 /*
  * "Paragraphs" component is used to render cells of the notebook open and "add para div" between paragraphs
@@ -94,8 +97,7 @@ export interface ParagraphProps {
     index: number,
     vizObjectInput?: string,
     paraType?: string,
-    dataSourceMDSId?: string,
-    deepResearchAgentId?: string
+    dataSourceMDSId?: string
   ) => void;
   showQueryParagraphError: boolean;
   queryParagraphErrorMessage: string;
@@ -147,6 +149,9 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   const [deepResearchAgentId, setDeepResearchAgentId] = useState<string | undefined>(
     parsedParagraphOut[0]?.agent_id
   );
+  const { saveParagraph } = useParagraphs();
+  const context = useContext(NotebookReactContext);
+  const paragraph = context.state.value.paragraphs[index];
 
   // output is available if it's not cleared and vis paragraph has a selected visualization
   const isOutputAvailable =
@@ -305,14 +310,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
       newVisObjectInput = JSON.stringify(inputTemp);
     }
     setRunParaError(false);
-    return props.runPara(
-      para,
-      index,
-      newVisObjectInput,
-      visType,
-      dataSourceMDSId,
-      deepResearchAgentId
-    );
+    return props.runPara(para, index, newVisObjectInput, visType, dataSourceMDSId);
   };
 
   const setStartTime = (time: string) => {
@@ -461,7 +459,16 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
                     http={http}
                     value={deepResearchAgentId}
                     dataSourceMDSId={dataSourceMDSId}
-                    onChange={setDeepResearchAgentId}
+                    onChange={async (value) => {
+                      setDeepResearchAgentId(value);
+                      // FIXME move to deep research paragraph
+                      await saveParagraph({
+                        paragraphStateValue: ParagraphState.updateOutputResult(
+                          paragraph.value,
+                          JSON.stringify({ agent_id: value })
+                        ),
+                      });
+                    }}
                   />
                 </EuiFlexItem>
               </>

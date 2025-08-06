@@ -17,6 +17,7 @@ export interface NotebookStateValue {
   dateCreated: string;
   isLoading: boolean;
   path: string;
+  vizPrefix: string;
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {

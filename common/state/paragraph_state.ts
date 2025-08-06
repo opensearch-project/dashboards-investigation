@@ -28,7 +28,13 @@ export class ParagraphState<TOutputResult = string, TFullfilledOutput = {}> exte
     return value.output?.[0];
   }
   static updateOutputResult<T>(value: ParagraphStateValue<T>, newResult: T) {
-    if (value.output?.[0]) {
+    if (!value || !value.output?.[0]) {
+      return value;
+    }
+
+    if (typeof newResult === 'string') {
+      value.output[0].result = newResult;
+    } else {
       value.output[0].result = {
         ...value.output[0].result,
         ...newResult,
@@ -79,20 +85,6 @@ export class ParagraphState<TOutputResult = string, TFullfilledOutput = {}> exte
           ...output,
         } as Required<ParagraphStateValue<TOutputResult, TFullfilledOutput>>['output'][0],
       ],
-    });
-  }
-  updateOutputResult(outputResult: TOutputResult) {
-    if (typeof outputResult === 'string') {
-      this.updateOutput({
-        result: outputResult,
-      });
-    }
-
-    this.updateOutput({
-      result: {
-        ...this.value.output?.[0].result,
-        ...outputResult,
-      },
     });
   }
   updateFullfilledOutput(fullfilledOutput: Partial<TFullfilledOutput>) {

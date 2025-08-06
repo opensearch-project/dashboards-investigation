@@ -99,6 +99,7 @@ export interface NotebookBackendType {
   paragraphs: ParagraphBackendType[];
   context?: NotebookContext;
   path: string;
+  vizPrefix?: string;
 }
 
 export interface AnomalyVisualizationAnalysisOutputResult {
