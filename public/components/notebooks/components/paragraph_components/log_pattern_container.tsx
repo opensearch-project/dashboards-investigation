@@ -94,6 +94,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
             baselineTo: context.timeRange.baselineTo,
           }
         : null,
+      variables: context.variables,
     };
   }, [context]);
 
@@ -163,7 +164,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
           selectionStartTime: moment(selectionFrom).toISOString(),
           selectionEndTime: moment(selectionTo).toISOString(),
           timeField: memoizedContextValues.timeField,
-          logMessageField: 'body',
+          logMessageField: memoizedContextValues?.variables?.log_message_field,
           indexName: memoizedContextValues.index,
           dataSourceMDSId: memoizedContextValues.dataSourceId,
         },
@@ -177,7 +178,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
           selectionStartTime: moment(selectionFrom).toISOString(),
           selectionEndTime: moment(selectionTo).toISOString(),
           timeField: memoizedContextValues.timeField,
-          logMessageField: 'body',
+          logMessageField: memoizedContextValues?.variables?.log_message_field,
           indexName: memoizedContextValues.index,
           dataSourceMDSId: memoizedContextValues.dataSourceId,
         },
@@ -191,8 +192,8 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
           selectionStartTime: moment(selectionFrom).toISOString(),
           selectionEndTime: moment(selectionTo).toISOString(),
           timeField: memoizedContextValues.timeField,
-          traceIdField: 'traceId',
-          logMessageField: 'body',
+          traceIdField: memoizedContextValues?.variables?.trace_id_field,
+          logMessageField: memoizedContextValues?.variables?.log_message_field,
           indexName: memoizedContextValues.index,
           dataSourceMDSId: memoizedContextValues.dataSourceId,
         },
