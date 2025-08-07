@@ -30,7 +30,10 @@ import { LogPattern, LogPatternAnalysisResult, LogSequenceEntry } from 'common/t
 import { Observable } from 'rxjs';
 import { NoteBookServices } from 'public/types';
 import { ParaType } from '../../../../../common/types/notebooks';
-import { LogPatternService } from '../../../../services/requests/log_pattern';
+import {
+  LogPatternAnalysisParams,
+  LogPatternService,
+} from '../../../../services/requests/log_pattern';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
@@ -155,50 +158,48 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
       baselineTo,
     } = memoizedContextValues.timeRange;
 
+    const apiRequestsParam: LogPatternAnalysisParams = {
+      selectionStartTime: moment(selectionFrom).toISOString(),
+      selectionEndTime: moment(selectionTo).toISOString(),
+      timeField: memoizedContextValues.timeField,
+      logMessageField: memoizedContextValues?.indexInsight?.log_message_field,
+      indexName: memoizedContextValues.index,
+      dataSourceMDSId: memoizedContextValues.dataSourceId,
+    };
+
     // Define all API requests
     const apiRequests = [
       {
         name: 'Log Insights Analysis',
-        params: {
-          selectionStartTime: moment(selectionFrom).toISOString(),
-          selectionEndTime: moment(selectionTo).toISOString(),
-          timeField: memoizedContextValues.timeField,
-          logMessageField: memoizedContextValues?.indexInsight?.log_message_field,
-          indexName: memoizedContextValues.index,
-          dataSourceMDSId: memoizedContextValues.dataSourceId,
-        },
+        params: apiRequestsParam,
         resultKey: 'logInsights' as keyof LogPatternAnalysisResult,
       },
-      {
+    ];
+
+    if (baselineFrom && baselineTo) {
+      apiRequests.push({
         name: 'Pattern Difference Analysis',
         params: {
           baselineStartTime: moment(baselineFrom).toISOString(),
           baselineEndTime: moment(baselineTo).toISOString(),
-          selectionStartTime: moment(selectionFrom).toISOString(),
-          selectionEndTime: moment(selectionTo).toISOString(),
-          timeField: memoizedContextValues.timeField,
-          logMessageField: memoizedContextValues?.indexInsight?.log_message_field,
-          indexName: memoizedContextValues.index,
-          dataSourceMDSId: memoizedContextValues.dataSourceId,
+          ...apiRequestsParam,
         },
         resultKey: 'patternMapDifference' as keyof LogPatternAnalysisResult,
-      },
-      {
+      });
+    }
+
+    if (memoizedContextValues?.indexInsight?.trace_id_field) {
+      apiRequests.push({
         name: 'Log Sequence Analysis',
         params: {
           baselineStartTime: moment(baselineFrom).toISOString(),
           baselineEndTime: moment(baselineTo).toISOString(),
-          selectionStartTime: moment(selectionFrom).toISOString(),
-          selectionEndTime: moment(selectionTo).toISOString(),
-          timeField: memoizedContextValues.timeField,
           traceIdField: memoizedContextValues?.indexInsight?.trace_id_field,
-          logMessageField: memoizedContextValues?.indexInsight?.log_message_field,
-          indexName: memoizedContextValues.index,
-          dataSourceMDSId: memoizedContextValues.dataSourceId,
+          ...apiRequestsParam,
         },
         resultKey: 'EXCEPTIONAL' as keyof LogPatternAnalysisResult,
-      },
-    ];
+      });
+    }
 
     // Initialize loading status
     setLoadingStatus({

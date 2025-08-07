@@ -14,7 +14,7 @@ export interface LogPatternAnalysisParams {
   selectionEndTime: string;
   timeField?: string;
   traceIdField?: string;
-  logMessageField: string;
+  logMessageField?: string;
   indexName?: string;
   dataSourceMDSId?: string;
 }

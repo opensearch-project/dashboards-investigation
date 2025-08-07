@@ -66,8 +66,7 @@ export const usePrecheck = () => {
           if (resContext?.timeRange && resContext?.index && resContext?.timeField) {
             if (
               resContext?.indexInsight?.is_log_index &&
-              resContext?.indexInsight?.log_message_field &&
-              resContext?.indexInsight?.trace_id_field
+              resContext?.indexInsight?.log_message_field
             ) {
               const logPatternResult = await createParagraph(
                 totalParagraphLength + 1,
