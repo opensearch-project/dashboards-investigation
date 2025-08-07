@@ -15,9 +15,8 @@ import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dash
 export const useParagraphs = () => {
   const context = useContext(NotebookReactContext);
   const {
-    services: { notifications },
+    services: { notifications, http },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { http } = context;
   const { id } = context.state.value;
 
   const createParagraph = useCallback(
@@ -29,7 +28,7 @@ export const useParagraphs = () => {
         inputType: inpType,
       };
 
-      return context.http
+      return http
         .post(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
           body: JSON.stringify(addParaObj),
         })
@@ -48,7 +47,7 @@ export const useParagraphs = () => {
           console.error(err);
         });
     },
-    [context, notifications.toasts]
+    [context, notifications.toasts, http]
   );
 
   // Function to move a paragraph
@@ -110,7 +109,7 @@ export const useParagraphs = () => {
       });
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const outputPayload = output?.map(({ execution_time: executionTime, ...others }) => others);
-      return context.http
+      return http
         .put<ParagraphBackendType<T>>(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
           body: JSON.stringify({
             noteId: context.state.value.id,
@@ -136,7 +135,7 @@ export const useParagraphs = () => {
           });
         });
     },
-    [context.http, context.state.value.id, context.state.value.paragraphs, notifications.toasts]
+    [http, context.state.value.id, context.state.value.paragraphs, notifications.toasts]
   );
   const showParagraphRunning = useCallback(
     (param: number | string) => {
