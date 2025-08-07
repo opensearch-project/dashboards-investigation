@@ -15,6 +15,8 @@ import { EmbeddableSetup, EmbeddableStart } from '../../../src/plugins/embeddabl
 import { NavigationPublicPluginStart } from '../../../src/plugins/navigation/public';
 import { VisualizationsSetup } from '../../../src/plugins/visualizations/public';
 import { ExpressionsStart } from '../../../src/plugins/expressions/public';
+import { CoreStart } from '../../../src/core/public';
+import PPLService from './services/requests/ppl';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -33,6 +35,12 @@ export interface SetupDependencies {
   dataSource: DataSourcePluginSetup;
   dataSourceManagement?: DataSourceManagementPluginSetup;
 }
+
+export type NoteBookServices = CoreStart &
+  AppPluginStartDependencies & {
+    appName: string;
+    pplService: PPLService;
+  };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface InvestigationSetup {}

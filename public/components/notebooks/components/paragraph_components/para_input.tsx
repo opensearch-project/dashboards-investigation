@@ -112,9 +112,9 @@ export const ParaInput = (props: {
                   data-test-subj="para-input-visualization-browse-button"
                   onClick={() => {
                     setSelectableOptions([
-                      ...props.visOptions[0].options,
-                      ...props.visOptions[1].options,
-                    ]);
+                      ...(props.visOptions[0]?.options || []),
+                      ...(props.visOptions[1]?.options || []),
+                    ] as EuiSelectableOption[]);
                     setSelectableError(false);
                     setIsModalOpen(true);
                   }}

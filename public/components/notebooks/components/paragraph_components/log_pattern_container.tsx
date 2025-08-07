@@ -28,16 +28,16 @@ import moment from 'moment';
 import { useObservable } from 'react-use';
 import { LogPattern, LogPatternAnalysisResult, LogSequenceEntry } from 'common/types/log_pattern';
 import { Observable } from 'rxjs';
+import { NoteBookServices } from 'public/types';
 import { ParaType } from '../../../../../common/types/notebooks';
 import { LogPatternService } from '../../../../services/requests/log_pattern';
-import { CoreStart } from '../../../../../../../src/core/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 interface LogPatternContainerProps {
   para: ParaType;
-  http: CoreStart['http'];
   paragraph$: Observable<ParagraphStateValue<LogPatternAnalysisResult>>;
 }
 
@@ -50,11 +50,10 @@ interface LoadingStatus {
   progress: number;
 }
 
-export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({
-  para,
-  http,
-  paragraph$,
-}) => {
+export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, paragraph$ }) => {
+  const {
+    services: { http },
+  } = useOpenSearchDashboards<NoteBookServices>();
   const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({
     isLoading: false,
     completedRequests: 0,

@@ -11,13 +11,13 @@ import {
   investigationNotebookTitle,
 } from '../common/constants/shared';
 import { setOSDHttp, setOSDSavedObjectsClient, uiSettingsService } from '../common/utils';
-import { coreRefs } from './framework/core_refs';
 import { registerAllPluginNavGroups } from './plugin_helpers/plugin_nav';
 import PPLService from './services/requests/ppl';
 import {
   AppPluginStartDependencies,
   InvestigationSetup,
   InvestigationStart,
+  NoteBookServices,
   SetupDependencies,
 } from './types';
 
@@ -25,14 +25,13 @@ import './index.scss';
 import { BubbleUpEmbeddableFactory } from './components/notebooks/components/bubbleup/embeddable/BubbleUpEmbeddableFactory';
 import {
   setClient,
-  setCoreStart,
   setData,
   setDataSourceManagementSetup,
-  setEmbeddable,
   setExpressions,
   setSearch,
 } from './services';
 import { Notebook, NotebookProps } from './components/notebooks/components/notebook';
+import { NOTEBOOK_APP_NAME } from '../common/constants/notebooks';
 
 export class InvestigationPlugin
   implements
@@ -50,14 +49,15 @@ export class InvestigationPlugin
     const appMountWithStartPage = () => async (params: AppMountParameters) => {
       const { Observability } = await import('./components/index');
       const [coreStart, depsStart] = await core.getStartServices();
-      const { dataSourceManagement } = setupDeps;
-      return Observability(
-        coreStart,
-        depsStart as AppPluginStartDependencies,
-        params,
-        dataSourceManagement!,
-        coreStart.savedObjects
-      );
+      const pplService: PPLService = new PPLService(core.http);
+      const services: NoteBookServices = {
+        ...coreStart,
+        ...depsStart,
+        appName: NOTEBOOK_APP_NAME,
+        pplService,
+        savedObjects: coreStart.savedObjects,
+      };
+      return Observability(services, params!);
     };
 
     core.application.register({
@@ -86,20 +86,8 @@ export class InvestigationPlugin
           }
     );
 
-    const getNotebook = async (props: Pick<NotebookProps, 'openedNoteId'>) => {
-      const [coreStart, depsStart] = await core.getStartServices();
-      return (
-        <Notebook
-          http={core.http}
-          dataSourceManagement={setupDeps.dataSourceManagement!}
-          dataSourceEnabled={!!setupDeps.dataSource}
-          DashboardContainerByValueRenderer={depsStart.dashboard.DashboardContainerByValueRenderer}
-          notifications={coreStart.notifications}
-          savedObjectsMDSClient={coreStart.savedObjects}
-          chrome={coreStart.chrome}
-          {...props}
-        />
-      );
+    const getNotebook = async ({ openedNoteId }: Pick<NotebookProps, 'openedNoteId'>) => {
+      return <Notebook openedNoteId={openedNoteId} />;
     };
     // Return methods that should be available to other plugins
     return {
@@ -110,27 +98,9 @@ export class InvestigationPlugin
   }
 
   public start(core: CoreStart, startDeps: AppPluginStartDependencies): InvestigationStart {
-    const pplService: PPLService = new PPLService(core.http);
-
-    coreRefs.core = core;
-    coreRefs.http = core.http;
-    coreRefs.savedObjectsClient = core.savedObjects.client;
-    coreRefs.pplService = pplService;
-    coreRefs.toasts = core.notifications.toasts;
-    coreRefs.chrome = core.chrome;
-    coreRefs.dataSources = startDeps.data;
-    coreRefs.application = core.application;
-    coreRefs.dashboard = startDeps.dashboard;
-    coreRefs.overlays = core.overlays;
-    coreRefs.dataSource = startDeps.dataSource;
-    coreRefs.navigation = startDeps.navigation;
-    coreRefs.workspaces = core.workspaces;
-
     setExpressions(startDeps.expressions);
     setData(startDeps.data);
-    setEmbeddable(startDeps.embeddable);
     setSearch(startDeps.data.search);
-    setCoreStart(core);
     setClient(core.http);
 
     // Export so other plugins can use this flyout

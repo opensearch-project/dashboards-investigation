@@ -4,7 +4,7 @@
  */
 
 import { fireEvent, render } from '@testing-library/react';
-import { configure, mount, shallow } from 'enzyme';
+import { configure, shallow } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 import React from 'react';
 import {
@@ -14,6 +14,16 @@ import {
   getDeleteModal,
   getSampleNotebooksModal,
 } from '../modal_containers';
+
+jest.mock('../../../../../../public/services', () => ({
+  getDataSourceManagementSetup: jest.fn(() => ({
+    dataSourceManagement: {
+      ui: {
+        DataSourceSelector: () => <div>DataSourceSelector</div>,
+      },
+    },
+  })),
+}));
 
 describe('modal_containers spec', () => {
   configure({ adapter: new Adapter() });
@@ -46,7 +56,9 @@ describe('modal_containers spec', () => {
   it('render get sample notebooks modal', () => {
     const onCancel = jest.fn();
     const onConfirm = jest.fn();
-    const wrapper = shallow(getSampleNotebooksModal(onCancel, onConfirm));
+    const wrapper = shallow(
+      getSampleNotebooksModal(onCancel, onConfirm, true, {} as any, {} as any, () => {})!
+    );
     expect(wrapper).toMatchSnapshot();
   });
 

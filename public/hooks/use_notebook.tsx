@@ -5,10 +5,12 @@
 
 import { useContext, useCallback } from 'react';
 import { IndexInsights, NotebookBackendType, NotebookContext } from 'common/types/notebooks';
+import { NoteBookServices } from 'public/types';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { useParagraphs } from './use_paragraphs';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
+import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 
 const fetchIndexInsightMock = (index: string): Promise<IndexInsights> => {
   return new Promise((resolve) => {
@@ -32,7 +34,9 @@ const fetchIndexInsightMock = (index: string): Promise<IndexInsights> => {
 export const useNotebook = () => {
   const context = useContext(NotebookReactContext);
   const { showParagraphRunning } = useParagraphs();
-  const { http } = context;
+  const {
+    services: { http },
+  } = useOpenSearchDashboards<NoteBookServices>();
 
   const updateNotebookContext = useCallback(
     async (newContext: Partial<NotebookContext>) => {

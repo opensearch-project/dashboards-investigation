@@ -7,8 +7,10 @@ import { EuiSelect } from '@elastic/eui';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import _ from 'lodash';
 
+import { NoteBookServices } from 'public/types';
 import { CoreStart } from '../../../../../../../src/core/public';
 import { searchMLCommonsAgents } from '../../../../../public/utils/ml_commons_apis';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 // Create a debounced request function that's memoized by data source ID
 const fetchPERAgents = _.memoize(
@@ -44,15 +46,16 @@ const fetchPERAgents = _.memoize(
 
 export const AgentsSelector = ({
   dataSourceMDSId,
-  http,
   value,
   onChange,
 }: {
   dataSourceMDSId: string;
-  http: CoreStart['http'];
   value: string | undefined;
   onChange: (value: string | undefined) => void;
 }) => {
+  const {
+    services: { http },
+  } = useOpenSearchDashboards<NoteBookServices>();
   const [agents, setAgents] = useState([]);
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);

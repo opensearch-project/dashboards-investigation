@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useEffect, useState } from 'react';
+import moment from 'moment';
 import MarkdownRender from '@nteract/markdown';
 import {
   EuiModal,
@@ -17,8 +18,10 @@ import {
   EuiLoadingContent,
   EuiCodeBlock,
 } from '@elastic/eui';
-import { CoreStart } from '../../../../../../../src/core/public';
+import { NoteBookServices } from 'public/types';
 import { getAllTracesByMessageId, isMarkdownText } from './utils';
+import { getTimeGapFromDates } from '../../../../utils/time';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 const renderTraceString = ({ text, fallback }: { text: string | undefined; fallback: string }) => {
   if (!text) {
@@ -47,17 +50,20 @@ const renderTraceString = ({ text, fallback }: { text: string | undefined; fallb
 
 export const MessageTraceModal = ({
   messageId,
+  messageCreateTime,
   closeModal,
-  http,
   dataSourceId,
   refresh,
 }: {
   messageId: string;
+  messageCreateTime: string;
   closeModal: () => void;
-  http: CoreStart['http'];
   dataSourceId?: string;
   refresh: boolean;
 }) => {
+  const {
+    services: { http },
+  } = useOpenSearchDashboards<NoteBookServices>();
   const [traces, setTraces] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
@@ -105,42 +111,58 @@ export const MessageTraceModal = ({
         </EuiText>
       );
     }
-    return traces.map(({ input, response, message_id: traceMessageId, origin }, index) => {
-      const isFromLLM = origin?.toLowerCase() === 'llm';
-      return (
-        <React.Fragment key={traceMessageId}>
-          <EuiAccordion
-            id={`trace-${index}`}
-            buttonContent={`Step ${index + 1} - ${isFromLLM ? input : `Execute ${origin}`}`}
-            paddingSize="l"
-          >
-            <EuiText className="wrapAll markdown-output-text" size="s">
-              {isFromLLM ? (
-                renderTraceString({ text: response, fallback: 'No response' })
-              ) : (
-                <>
-                  <EuiAccordion
-                    id={`trace-step-${index}-input`}
-                    buttonContent={`${origin} input`}
-                    initialIsOpen
-                  >
-                    {renderTraceString({ text: input, fallback: 'No input' })}
-                  </EuiAccordion>
-                  <EuiAccordion
-                    id={`trace-step-${index}-response`}
-                    buttonContent={`${origin} response`}
-                    initialIsOpen={!response}
-                  >
-                    {renderTraceString({ text: response, fallback: 'No response' })}
-                  </EuiAccordion>
-                </>
-              )}
-            </EuiText>
-          </EuiAccordion>
-          <EuiSpacer />
-        </React.Fragment>
-      );
-    });
+    return traces.map(
+      (
+        { input, response, message_id: traceMessageId, origin, create_time: traceCreateTime },
+        index
+      ) => {
+        const isFromLLM = origin?.toLowerCase() === 'llm';
+        let durationStr = '';
+        if (traces[index - 1]) {
+          durationStr = getTimeGapFromDates(
+            moment(traces[index - 1].create_time),
+            moment(traceCreateTime)
+          );
+        } else if (messageCreateTime) {
+          durationStr = getTimeGapFromDates(moment(messageCreateTime), moment(traceCreateTime));
+        }
+        return (
+          <React.Fragment key={traceMessageId}>
+            <EuiAccordion
+              id={`trace-${index}`}
+              buttonContent={`Step ${index + 1} - ${isFromLLM ? input : `Execute ${origin}`} ${
+                durationStr ? `Duration (${durationStr})` : ''
+              }`}
+              paddingSize="l"
+            >
+              <EuiText className="wrapAll markdown-output-text" size="s">
+                {isFromLLM ? (
+                  renderTraceString({ text: response, fallback: 'No response' })
+                ) : (
+                  <>
+                    <EuiAccordion
+                      id={`trace-step-${index}-input`}
+                      buttonContent={`${origin} input`}
+                      initialIsOpen
+                    >
+                      {renderTraceString({ text: input, fallback: 'No input' })}
+                    </EuiAccordion>
+                    <EuiAccordion
+                      id={`trace-step-${index}-response`}
+                      buttonContent={`${origin} response`}
+                      initialIsOpen={!response}
+                    >
+                      {renderTraceString({ text: response, fallback: 'No response' })}
+                    </EuiAccordion>
+                  </>
+                )}
+              </EuiText>
+            </EuiAccordion>
+            <EuiSpacer />
+          </React.Fragment>
+        );
+      }
+    );
   };
 
   return (

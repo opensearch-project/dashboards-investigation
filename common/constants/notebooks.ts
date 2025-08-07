@@ -29,3 +29,5 @@ export const PPL_PARAGRAPH_TYPE = 'ppl';
 
 export const EXECUTOR_SYSTEM_PROMPT =
   'You are a dedicated helper agent working as part of a plan‑execute‑reflect framework. Your role is to receive a discrete task, execute all necessary internal reasoning or tool calls, and return a single, final response that fully addresses the task. You must never return an empty response. If you are unable to complete the task or retrieve meaningful information, you must respond with a clear explanation of the issue or what was missing. Under no circumstances should you end your reply with a question or ask for more information. If you search any index, always include the raw documents in the final result instead of summarizing the content. This is critical to give visibility into what the query retrieved. ';
+
+export const NOTEBOOK_APP_NAME = 'investigate-notebook';

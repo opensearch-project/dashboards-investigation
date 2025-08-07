@@ -26,16 +26,9 @@ import React, {
 } from 'react';
 import { useCallback } from 'react';
 import { useContext } from 'react';
-import {
-  CoreStart,
-  SavedObjectsFindOptions,
-  SavedObjectsStart,
-} from '../../../../../../../src/core/public';
-import {
-  DashboardContainerInput,
-  DashboardStart,
-} from '../../../../../../../src/plugins/dashboard/public';
-import { DataSourceManagementPluginSetup } from '../../../../../../../src/plugins/data_source_management/public';
+import { NoteBookServices } from 'public/types';
+import { SavedObjectsFindOptions } from '../../../../../../../src/core/public';
+import { DashboardContainerInput } from '../../../../../../../src/plugins/dashboard/public';
 import { ViewMode } from '../../../../../../../src/plugins/embeddable/public';
 import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
 import {
@@ -45,7 +38,6 @@ import {
 import { ParaType } from '../../../../../common/types/notebooks';
 import { uiSettingsService } from '../../../../../common/utils';
 import { dataSourceFilterFn } from '../../../../../common/utils/shared';
-import { coreRefs } from '../../../../framework/core_refs';
 import { SavedObjectsActions } from '../../../../services/saved_objects/saved_object_client/saved_objects_actions';
 import { ObservabilitySavedVisualization } from '../../../../services/saved_objects/saved_object_client/types';
 import { parseParagraphOut } from '../../../../utils/paragraph';
@@ -54,12 +46,14 @@ import { ParaOutput } from './para_output';
 import { AgentsSelector } from './agents_selector';
 import { DataSourceSelectorProps } from '../../../../../../../src/plugins/data_source_management/public/components/data_source_selector/data_source_selector';
 import { ParagraphActionPanel } from './paragraph_actions_panel';
-import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { PPLParagraph } from './ppl';
 import { getInputType } from '../../../../../common/utils/paragraph';
 import { MarkdownParagraph } from './markdown';
+import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { getDataSourceManagementSetup } from '../../../../../public/services';
 
 /*
  * "Paragraphs" component is used to render cells of the notebook open and "add para div" between paragraphs
@@ -81,8 +75,6 @@ export interface ParagraphProps {
   originalPara: ParagraphStateValue;
   setPara: (para: ParagraphStateValue) => void;
   index: number;
-  DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
-  http: CoreStart['http'];
   selectedViewId: string;
   deletePara: (index: number) => void;
   runPara: (
@@ -92,10 +84,6 @@ export interface ParagraphProps {
     paraType?: string,
     dataSourceMDSId?: string
   ) => void;
-  dataSourceManagement: DataSourceManagementPluginSetup;
-  notifications: CoreStart['notifications'];
-  dataSourceEnabled: boolean;
-  savedObjectsMDSClient: SavedObjectsStart;
   handleSelectedDataSourceChange: (
     dataSourceMDSId: string | undefined,
     dataSourceMDSLabel: string | undefined
@@ -110,17 +98,16 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   const {
     para,
     index,
-    DashboardContainerByValueRenderer,
-    http,
-    dataSourceEnabled,
-    dataSourceManagement,
-    notifications,
-    savedObjectsMDSClient,
     handleSelectedDataSourceChange,
     paradataSourceMDSId,
     scrollToPara,
     deletePara,
   } = props;
+  const {
+    services: { http, notifications, dataSource, savedObjects: savedObjectsMDSClient },
+  } = useOpenSearchDashboards<NoteBookServices>();
+  const { dataSourceManagement } = getDataSourceManagementSetup();
+  const dataSourceEnabled = !!dataSource;
 
   const [visOptions, setVisOptions] = useState<EuiComboBoxOptionOption[]>([
     { label: 'Dashboards Visualizations', options: [] },
@@ -159,7 +146,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
       const vizOptions: SavedObjectsFindOptions = {
         type: 'visualization',
       };
-      await coreRefs.savedObjectsClient
+      await savedObjectsMDSClient.client
         ?.find(vizOptions)
         .then((res) => {
           opts = res.savedObjects.map((vizObject) => ({
@@ -224,7 +211,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
         setSelectedVisOption(selectedObject);
       }
     }
-  }, [dataSourceEnabled, dataSourceMDSId, http, para.visSavedObjId]);
+  }, [dataSourceEnabled, dataSourceMDSId, http, para.visSavedObjId, savedObjectsMDSClient.client]);
 
   useEffect(() => {
     if (para.isVizualisation) {
@@ -333,12 +320,10 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
     para.isLogPattern) && (
     <ParaOutput
       index={index}
-      http={http}
       key={para.uniqueId}
       para={para}
       visInput={visInput}
       setVisInput={setVisInput}
-      DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
     />
   );
 
@@ -373,9 +358,10 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   const paraClass = `notebooks-paragraph notebooks-paragraph-${
     uiSettingsService.get('theme:darkMode') ? 'dark' : 'light'
   }`;
-  const DataSourceSelector: React.ComponentType<DataSourceSelectorProps> = dataSourceEnabled
-    ? (dataSourceManagement.ui.DataSourceSelector as React.ComponentType<DataSourceSelectorProps>)
-    : () => <></>;
+  const DataSourceSelector: React.ComponentType<DataSourceSelectorProps> =
+    dataSourceEnabled && dataSourceManagement
+      ? (dataSourceManagement.ui.DataSourceSelector as React.ComponentType<DataSourceSelectorProps>)
+      : () => <></>;
   const onSelectedDataSource = (e) => {
     const dataConnectionId = e[0] ? e[0].id : undefined;
     const dataConnectionLabel = e[0] ? e[0].label : undefined;
@@ -435,7 +421,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
                       <EuiFlexItem>
                         <DataSourceSelector
                           savedObjectsClient={savedObjectsMDSClient.client}
-                          notifications={notifications}
+                          notifications={notifications.toasts}
                           onSelectedDataSource={onSelectedDataSource}
                           disabled={false}
                           fullWidth={false}
@@ -452,7 +438,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
                         <>
                           <EuiFlexItem>
                             <AgentsSelector
-                              http={http}
                               value={deepResearchAgentId}
                               dataSourceMDSId={dataSourceMDSId}
                               onChange={async (value) => {
@@ -491,10 +476,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
                           selectedVisOption={selectedVisOption}
                           setSelectedVisOption={setSelectedVisOption}
                           setVisType={setVisType}
-                          dataSourceManagement={dataSourceManagement}
-                          notifications={notifications}
-                          dataSourceEnabled={dataSourceEnabled}
-                          savedObjectsMDSClient={savedObjectsMDSClient}
                         />
                       </EuiCompressedFormRow>
                       {runParaError && (

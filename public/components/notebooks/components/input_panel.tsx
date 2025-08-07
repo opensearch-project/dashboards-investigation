@@ -17,6 +17,7 @@ import { useEffectOnce } from 'react-use';
 import { ActionMetadata, actionsMetadata } from '../../../../common/constants/actions';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { executeMLCommonsAgent, getMLCommonsConfig } from '../../../utils/ml_commons_apis';
+import { CoreStart } from '../../../../../../src/core/public';
 
 interface InputPanelProps {
   onCreateParagraph: (paragraphInput: string, inputType: string) => Promise<void>;
@@ -73,7 +74,11 @@ export const InputPanel: React.FC<InputPanelProps> = ({
     try {
       const {
         configuration: { agent_id: actionSelectionAgentId },
-      } = await getMLCommonsConfig({ http, configName: 'action-selection-agent' });
+      } = await getMLCommonsConfig({
+        http,
+        configName: 'action-selection-agent',
+        dataSourceId: dataSourceId ?? undefined,
+      });
 
       if (!actionSelectionAgentId) {
         throw new Error('Failed to get actionSelectionAgentId');
