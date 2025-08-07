@@ -109,7 +109,7 @@ export const useParagraphs = () => {
       });
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const outputPayload = output?.map(({ execution_time: executionTime, ...others }) => others);
-      return http
+      const promise = http
         .put<ParagraphBackendType<T>>(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
           body: JSON.stringify({
             noteId: context.state.value.id,
@@ -213,15 +213,15 @@ export const useParagraphs = () => {
         }
 
         if (index < 0) {
-          getCoreStart().notifications.toasts.addDanger(
-            'Please provide a valid paragraph index or id to run'
-          );
+          notifications.toasts.addDanger('Please provide a valid paragraph index or id to run');
           return;
         }
 
         const para = context.state.getParagraphsValue()[index];
         const isSavedObjectNotebook = isValidUUID(openedNoteId);
-        showParagraphRunning(index);
+        context.state.value.paragraphs[index].updateUIState({
+          isRunning: true,
+        });
 
         const paraUpdateObject = {
           noteId: openedNoteId,
@@ -248,9 +248,14 @@ export const useParagraphs = () => {
               notifications.toasts.addDanger(
                 'Error running paragraph, please make sure you have the correct permission.'
               );
+          })
+          .finally(() => {
+            context.state.value.paragraphs[index].updateUIState({
+              isRunning: false,
+            });
           });
       },
-      [context.state, http, showParagraphRunning, notifications.toasts]
+      [context.state, http, notifications.toasts]
     ),
   };
 };

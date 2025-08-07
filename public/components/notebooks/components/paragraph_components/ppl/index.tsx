@@ -23,6 +23,7 @@ import { useEffect } from 'react';
 import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { useRef } from 'react';
+import { NoteBookServices } from 'public/types';
 import { ParagraphDataSourceSelector } from '../../data_source_selector';
 import {
   ParagraphState,
@@ -35,9 +36,9 @@ import {
   PPL_DOCUMENTATION_URL,
   SQL_DOCUMENTATION_URL,
 } from '../../../../../../common/constants/shared';
-import { getCoreStart } from '../../../../../services';
 import { QueryDataGridMemo } from '../para_query_grid';
 import { getInputType } from '../../../../../../common/utils/paragraph';
+import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 interface QueryObject {
   schema?: any[];
@@ -89,6 +90,9 @@ const inputPlaceholderString =
   'Type %sql or %ppl on the first line to define the input type. \nCode block starts here.';
 
 export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
+  const {
+    services: { http, notifications },
+  } = useOpenSearchDashboards<NoteBookServices>();
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const selectedDataSource = paragraphValue?.dataSourceMDSId;
   const onSelectedDataSource: DataSourceSelectorProps['onSelectedDataSource'] = (event) => {
@@ -119,8 +123,8 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
         isRunning: true,
       });
       previousRunQueryRef.current = searchQuery;
-      await getCoreStart()
-        .http.post(`/api/investigation/sql/${queryType}`, {
+      await http
+        .post(`/api/investigation/sql/${queryType}`, {
           body: JSON.stringify(searchQuery),
           ...(!!paragraph.dataSourceMDSId && { query: queryString }),
         })
@@ -128,7 +132,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
           setQueryObject(response.data.resp);
         })
         .catch((err) => {
-          getCoreStart().notifications.toasts.addDanger('Error getting query output');
+          notifications.toasts.addDanger('Error getting query output');
           setQueryObject({
             error: {
               body: {
@@ -143,7 +147,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
           });
         });
     },
-    [paragraphState, searchQuery]
+    [paragraphState, searchQuery, http, notifications.toasts]
   );
 
   useEffect(() => {
@@ -156,23 +160,12 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
   }, [paragraphValue, loadQueryResultsFromInput, searchQuery]);
 
   const runParagraphHandler = async () => {
-    paragraphState.updateUIState({
-      isRunning: true,
+    await saveParagraph({
+      paragraphStateValue: paragraphState.getBackgroundValue(),
     });
-    try {
-      await saveParagraph({
-        paragraphStateValue: paragraphState.getBackgroundValue(),
-      });
-      await runParagraph({
-        id: paragraphValue.id,
-      });
-    } catch (e) {
-      // do nothing
-    } finally {
-      paragraphState.updateUIState({
-        isRunning: false,
-      });
-    }
+    await runParagraph({
+      id: paragraphValue.id,
+    });
   };
 
   const inputQuery = paragraphValue.input.inputText.substring(
@@ -244,7 +237,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
               className="editorArea"
               fullWidth
               disabled={!!isRunning}
-              isInvalid={!!paragraphValue.uiState?.errorMessage}
+              isInvalid={!!errorMessage}
               onChange={(evt) => {
                 paragraphState.updateInput({
                   inputText: evt.target.value,

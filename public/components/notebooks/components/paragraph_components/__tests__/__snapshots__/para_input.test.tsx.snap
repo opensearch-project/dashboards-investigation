@@ -1,29 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`<para_input /> spec renders the markdown component 1`] = `
-<div
-  class="sc-gLDzan gebGCr"
->
-  <div
-    class="sc-beqWaB CSaoA"
-  />
-  <div
-    style="width: 100%;"
-  >
-    <textarea
-      class="euiTextArea euiTextArea--resizeVertical euiTextArea--fullWidth euiTextArea--compressed editorArea"
-      data-test-subj="editorArea-1"
-      id="editorArea"
-      placeholder="Type %md, %sql or %ppl on the first line to define the input type. 
-Code block starts here."
-      rows="3"
-    >
-      # Type your input here
-    </textarea>
-  </div>
-</div>
-`;
-
 exports[`<para_input /> spec renders the visualization component 1`] = `
 <div
   class="sc-gLDzan gebGCr"

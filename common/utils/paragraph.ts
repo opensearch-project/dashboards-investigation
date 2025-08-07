@@ -10,7 +10,7 @@ export const extractCodeBlockType = (content: string) => {
   return content.match(regexp)?.[1] || '';
 };
 
-export const getInputType = (paragraph: ParagraphBackendType) => {
+export const getInputType = <T>(paragraph: ParagraphBackendType<T>) => {
   const inputType = paragraph.input.inputType;
   if (inputType === 'MARKDOWN') {
     return extractCodeBlockType(paragraph.input.inputText);

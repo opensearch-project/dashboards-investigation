@@ -27,6 +27,7 @@ import React, {
 import { useCallback } from 'react';
 import { useContext } from 'react';
 import { NoteBookServices } from 'public/types';
+import { useObservable } from 'react-use';
 import { SavedObjectsFindOptions } from '../../../../../../../src/core/public';
 import { DashboardContainerInput } from '../../../../../../../src/plugins/dashboard/public';
 import { ViewMode } from '../../../../../../../src/plugins/embeddable/public';
@@ -126,6 +127,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   const { saveParagraph } = useParagraphs();
   const context = useContext(NotebookReactContext);
   const paragraph = context.state.value.paragraphs[index];
+  const paragraphValue = useObservable(paragraph.getValue$(), paragraph.value);
 
   // output is available if it's not cleared and vis paragraph has a selected visualization
   const isOutputAvailable =
@@ -391,9 +393,7 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
     >
       {<ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />}
       {(() => {
-        const paragraphType = getInputType(
-          (paragraph as ParagraphState<string>).getBackgroundValue()
-        );
+        const paragraphType = getInputType(paragraphValue);
         switch (paragraphType) {
           case 'ppl':
           case 'sql': {

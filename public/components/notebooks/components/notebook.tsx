@@ -780,15 +780,15 @@ export function NotebookComponent() {
                       <EuiFlexItem grow={3}>
                         <EuiCard
                           icon={<EuiIcon size="xxl" type="editorCodeBlock" />}
-                          title="Code block"
+                          title="Query"
                           description="Write contents directly using markdown, SQL or PPL."
                           footer={
                             <EuiSmallButton
                               data-test-subj="emptyNotebookAddCodeBlockBtn"
-                              onClick={() => createParagraph(0, '', 'CODE')}
+                              onClick={() => createParagraph(0, '%ppl ', 'CODE')}
                               style={{ marginBottom: 17 }}
                             >
-                              Add code block
+                              Add query
                             </EuiSmallButton>
                           }
                         />

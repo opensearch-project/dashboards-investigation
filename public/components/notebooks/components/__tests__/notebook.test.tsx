@@ -11,7 +11,7 @@ import React from 'react';
 import { HttpResponse } from '../../../../../../../src/core/public';
 import { getOSDHttp } from '../../../../../common/utils';
 import {
-  addCodeBlockResponse,
+  addQueryResponse,
   clearOutputNotebook,
   codeBlockNotebook,
   codePlaceholderText,
@@ -142,13 +142,13 @@ describe('<Notebook /> spec', () => {
     expect(utils.container.firstChild).toMatchSnapshot();
   });
 
-  it('Adds a code block', async () => {
+  it('Adds a query', async () => {
     httpClient.get = jest.fn(() => Promise.resolve((emptyNotebook as unknown) as HttpResponse));
     let postFlag = 1;
     httpClient.post = jest.fn(() => {
       if (postFlag === 1) {
         postFlag += 1;
-        return Promise.resolve((addCodeBlockResponse as unknown) as HttpResponse);
+        return Promise.resolve((addQueryResponse as unknown) as HttpResponse);
       } else return Promise.resolve((runCodeBlockResponse as unknown) as HttpResponse);
     });
     const utils = render(<ContextAwareNotebook {...defaultProps} />);
@@ -157,7 +157,7 @@ describe('<Notebook /> spec', () => {
     });
 
     act(() => {
-      utils.getByText('Add code block').click();
+      utils.getByText('Add query').click();
     });
 
     await waitFor(() => {
@@ -165,13 +165,13 @@ describe('<Notebook /> spec', () => {
     });
   });
 
-  it('runs a code block and checks the output', async () => {
+  it('runs a query and checks the output', async () => {
     httpClient.get = jest.fn(() => Promise.resolve((emptyNotebook as unknown) as HttpResponse));
     let postFlag = 1;
     httpClient.post = jest.fn(() => {
       if (postFlag === 1) {
         postFlag += 1;
-        return Promise.resolve((addCodeBlockResponse as unknown) as HttpResponse);
+        return Promise.resolve((addQueryResponse as unknown) as HttpResponse);
       } else return Promise.resolve((runCodeBlockResponse as unknown) as HttpResponse);
     });
     const utils = render(<ContextAwareNotebook {...defaultProps} />);
@@ -180,7 +180,7 @@ describe('<Notebook /> spec', () => {
     });
 
     act(() => {
-      utils.getByText('Add code block').click();
+      utils.getByText('Add query').click();
     });
 
     await waitFor(() => {
@@ -214,7 +214,7 @@ describe('<Notebook /> spec', () => {
     });
 
     httpClient.post = jest.fn(() => {
-      return Promise.resolve((addCodeBlockResponse as unknown) as HttpResponse);
+      return Promise.resolve((addQueryResponse as unknown) as HttpResponse);
     });
 
     const utils = render(<ContextAwareNotebook {...defaultProps} />);
@@ -258,7 +258,7 @@ describe('<Notebook /> spec', () => {
     });
 
     httpClient.post = jest.fn(() => {
-      return Promise.resolve((addCodeBlockResponse as unknown) as HttpResponse);
+      return Promise.resolve((addQueryResponse as unknown) as HttpResponse);
     });
 
     const utils = render(<ContextAwareNotebook {...defaultProps} />);
@@ -297,7 +297,7 @@ describe('<Notebook /> spec', () => {
     });
 
     httpClient.post = jest.fn(() => {
-      return Promise.resolve((addCodeBlockResponse as unknown) as HttpResponse);
+      return Promise.resolve((addQueryResponse as unknown) as HttpResponse);
     });
 
     const utils = render(<ContextAwareNotebook {...defaultProps} />);
@@ -393,7 +393,7 @@ describe('<Notebook /> spec', () => {
     });
 
     httpClient.post = jest.fn(() => {
-      return Promise.resolve((addCodeBlockResponse as unknown) as HttpResponse);
+      return Promise.resolve((addQueryResponse as unknown) as HttpResponse);
     });
 
     const utils = render(<ContextAwareNotebook {...defaultProps} openedNoteId="mock-id" />);
