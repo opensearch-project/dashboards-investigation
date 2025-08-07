@@ -350,11 +350,55 @@ export async function runParagraph(
               parameters: {
                 question: paragraphs[index].input.inputText,
                 planner_prompt_template:
-                  '${parameters.tools_prompt} \n ${parameters.planner_prompt} \n Objective: ${parameters.user_prompt} \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n',
+                  '# AVAILABLE TOOLS\n' +
+                  '${parameters.tools_prompt}\n' +
+                  '# PLANNING GUIDANCE\n' +
+                  '${parameters.planner_prompt}\n\n' +
+                  '# USER OBJECTIVE\n' +
+                  "The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively.\n" +
+                  '${parameters.user_prompt}\n\n' +
+                  '# PREVIOUS CONTEXT\n' +
+                  'The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research without doing the same thing again. \n' +
+                  '[${parameters.context}]\n\n' +
+                  '# RESPONSE FORMAT\n' +
+                  '${parameters.plan_execute_reflect_response_format}',
                 planner_with_history_template:
-                  '${parameters.tools_prompt} \n ${parameters.planner_prompt} \n Objective: ```${parameters.user_prompt}``` \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n You have currently executed the following steps: \n[${parameters.completed_steps}] \n\n',
+                  '# AVAILABLE TOOLS\n' +
+                  '${parameters.tools_prompt}\n' +
+                  '# PLANNING GUIDANCE\n' +
+                  '${parameters.planner_prompt}\n\n' +
+                  '# USER OBJECTIVE\n' +
+                  "The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively.\n" +
+                  '```${parameters.user_prompt}```\n\n' +
+                  '# PREVIOUS CONTEXT\n' +
+                  'The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research without doing the same thing again. \n' +
+                  '[${parameters.context}]\n\n' +
+                  '## CURRENT PROGRESS\n' +
+                  'You have already completed the following steps in the current plan. Consider these when determining next actions:\n' +
+                  '[${parameters.completed_steps}]\n\n' +
+                  '# RESPONSE FORMAT\n' +
+                  '${parameters.plan_execute_reflect_response_format}',
                 reflect_prompt_template:
-                  '${parameters.tools_prompt} \n ${parameters.planner_prompt} \n Objective: ```${parameters.user_prompt}``` \n\n Original plan:\n[${parameters.steps}] \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n You have currently executed the following steps from the original plan: \n[${parameters.completed_steps}] \n\n ${parameters.reflect_prompt} \n\n.',
+                  '# AVAILABLE TOOLS\n' +
+                  '${parameters.tools_prompt}\n' +
+                  '# PLANNING GUIDANCE\n' +
+                  '```${parameters.planner_prompt}```\n\n' +
+                  '# USER OBJECTIVE\n' +
+                  "The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively.\n" +
+                  '${parameters.user_prompt}\n\n' +
+                  '# ORIGINAL PLAN\n' +
+                  'This was the initially created plan to address the objective:\n' +
+                  '[${parameters.steps}]\n\n' +
+                  '# PREVIOUS CONTEXT\n' +
+                  'The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research without doing the same thing again:\n' +
+                  '[${parameters.context}]\n\n' +
+                  '# CURRENT PROGRESS\n' +
+                  'You have already completed the following steps from the original plan. Consider these when determining next actions:\n' +
+                  '[${parameters.completed_steps}]\n\n' +
+                  '# REFLECTION INSTRUCTIONS\n' +
+                  '${parameters.reflect_prompt}\n\n' +
+                  '# RESPONSE FORMAT\n' +
+                  '${parameters.plan_execute_reflect_response_format}',
                 context: contextContent,
                 executor_system_prompt: `${EXECUTOR_SYSTEM_PROMPT} \n You have currently executed the following steps: \n ${contextContent}`,
                 memory_id: baseMemoryId,
