@@ -219,10 +219,10 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
             .
           </EuiText>
         }
-        isInvalid={!!paragraphValue.uiState?.errorMessage}
+        isInvalid={!!errorMessage}
         error={
           <EuiText size="s">
-            {paragraphValue.uiState?.errorMessage}.{' '}
+            {errorMessage}.{' '}
             {getInputType(paragraphState.getBackgroundValue()) === 'ppl' ? (
               <EuiLink href={PPL_DOCUMENTATION_URL} target="_blank">
                 Learn More <EuiIcon type="popout" size="s" />

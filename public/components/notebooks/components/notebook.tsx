@@ -430,25 +430,6 @@ export function NotebookComponent({
       });
   };
 
-  // Handles text editor value and syncs with paragraph input
-  const textValueEditor = (evt: React.ChangeEvent<HTMLTextAreaElement>, index: number) => {
-    if (!(evt.key === 'Enter' && evt.shiftKey)) {
-      const newParas = [...paragraphs];
-      newParas[index].input = newParas[index].input || {};
-      newParas[index].input.inputText = evt.target.value;
-      notebookContext.state.updateValue({
-        paragraphs: newParas.map((paragraph) => new ParagraphState(paragraph)),
-      });
-    }
-  };
-
-  // Handles run paragraph shortcut "Shift+Enter"
-  const handleKeyPress = (evt: React.KeyboardEvent<Element>, para: ParaType, index: number) => {
-    if (evt.key === 'Enter' && evt.shiftKey) {
-      updateRunParagraph(para, index);
-    }
-  };
-
   const setBreadcrumbs = useCallback(
     (notePath: string) => {
       setNavBreadCrumbs(
@@ -780,8 +761,6 @@ export function NotebookComponent({
                     setPara={(pr: ParagraphStateValue) => setPara(pr, index)}
                     index={index}
                     paraCount={parsedPara.length}
-                    textValueEditor={textValueEditor}
-                    handleKeyPress={handleKeyPress}
                     DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
                     http={http}
                     selectedViewId={selectedViewId}

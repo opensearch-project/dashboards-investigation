@@ -59,6 +59,7 @@ import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { PPLParagraph } from './ppl';
 import { getInputType } from '../../../../../common/utils/paragraph';
+import { MarkdownParagraph } from './markdown';
 
 /*
  * "Paragraphs" component is used to render cells of the notebook open and "add para div" between paragraphs
@@ -66,8 +67,6 @@ import { getInputType } from '../../../../../common/utils/paragraph';
  * Props taken in as params are:
  * para - parsed paragraph from notebook
  * index - index of paragraph in the notebook
- * textValueEditor - function for handling input in textarea
- * handleKeyPress - function for handling key press like "Shift-key+Enter" to run paragraph
  * DashboardContainerByValueRenderer - Dashboard container renderer for visualization
  * http object - for making API requests
  * selectedViewId - selected view: view_both, input_only, output_only
@@ -82,13 +81,6 @@ export interface ParagraphProps {
   originalPara: ParagraphStateValue;
   setPara: (para: ParagraphStateValue) => void;
   index: number;
-  textValueEditor: (evt: React.ChangeEvent<HTMLTextAreaElement>, index: number) => void;
-  handleKeyPress: (
-    evt: React.KeyboardEvent<Element>,
-    para: ParaType,
-    index: number,
-    dataSourceMDSID: string
-  ) => void;
   DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
   http: CoreStart['http'];
   selectedViewId: string;
@@ -118,8 +110,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   const {
     para,
     index,
-    textValueEditor,
-    handleKeyPress,
     DashboardContainerByValueRenderer,
     http,
     dataSourceEnabled,
@@ -427,6 +417,13 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
               </div>
             );
           }
+          case 'md': {
+            return (
+              <div key={paragraph.value.id} className={paraClass}>
+                <MarkdownParagraph paragraphState={paragraph as ParagraphState<string>} />
+              </div>
+            );
+          }
           default: {
             return (
               <>
@@ -485,8 +482,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
                           para={para}
                           index={index}
                           runParaError={runParaError}
-                          textValueEditor={textValueEditor}
-                          handleKeyPress={handleKeyPress}
                           startTime={para.visStartTime}
                           setStartTime={setStartTime}
                           endTime={para.visEndTime}

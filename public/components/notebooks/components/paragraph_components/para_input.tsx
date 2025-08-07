@@ -6,7 +6,6 @@
 import {
   EuiSmallButton,
   EuiSmallButtonEmpty,
-  EuiCodeBlock,
   EuiCompressedComboBox,
   EuiComboBoxOptionOption,
   EuiFlexGroup,
@@ -25,7 +24,6 @@ import {
   EuiSpacer,
   EuiSuperDatePicker,
   EuiText,
-  EuiCompressedTextArea,
 } from '@elastic/eui';
 import { Input, Prompt } from '@nteract/presentational-components';
 import React, { useState } from 'react';
@@ -39,8 +37,6 @@ import { uiSettingsService } from '../../../../../common/utils';
  * Props taken in as params are:
  * para - parsed paragraph from notebook
  * index - index of paragraph in the notebook
- * textValueEditor - function for handling input in textarea
- * handleKeyPress - function for handling key press like "Shift-key+Enter" to run paragraph
  *
  * Input component of nteract used as a container for notebook UI.
  * https://components.nteract.io/#input
@@ -50,8 +46,6 @@ export const ParaInput = (props: {
   para: ParaType;
   index: number;
   runParaError: boolean;
-  textValueEditor: (evt: React.ChangeEvent<HTMLTextAreaElement>, index: number) => void;
-  handleKeyPress: (evt: React.KeyboardEvent<Element>, para: any, index: number) => void;
   startTime: string;
   setStartTime: (startTime: string) => void;
   endTime: string;
@@ -62,44 +56,7 @@ export const ParaInput = (props: {
   setSelectedVisOption: (newOption: EuiComboBoxOptionOption[]) => void;
   setVisType: React.Dispatch<React.SetStateAction<string>>;
 }) => {
-  const { para, index, runParaError, textValueEditor, handleKeyPress } = props;
-
-  const inputPlaceholderString =
-    'Type %md, %sql or %ppl on the first line to define the input type. \nCode block starts here.';
-
-  const RenderParaInput = () => {
-    return (
-      <div style={{ width: '100%' }}>
-        {/* If the para is selected show the editor else display the code in the paragraph */}
-        {para.viewMode !== 'output_only' ? (
-          <EuiCompressedTextArea
-            data-test-subj={`editorArea-${index}`}
-            placeholder={inputPlaceholderString}
-            id="editorArea"
-            className="editorArea"
-            fullWidth
-            isInvalid={runParaError}
-            onChange={(evt) => {
-              textValueEditor(evt, index);
-              props.setIsOutputStale(true);
-            }}
-            onKeyPress={(evt) => handleKeyPress(evt, para, index)}
-            value={para.inp}
-            autoFocus
-          />
-        ) : (
-          <EuiCodeBlock
-            data-test-subj={`paraInputCodeBlock-${index}`}
-            language={para.inp.match(/^%(sql|md)/)?.[1]}
-            overflowHeight={200}
-            paddingSize="s"
-          >
-            {para.inp}
-          </EuiCodeBlock>
-        )}
-      </div>
-    );
-  };
+  const { para } = props;
 
   const RenderVisInput = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -247,7 +204,7 @@ export const ParaInput = (props: {
   return (
     <Input>
       <Prompt blank={true} running={para.isRunning} queued={para.inQueue} />
-      {para.isVizualisation ? RenderVisInput() : RenderParaInput()}
+      {para.isVizualisation ? RenderVisInput() : null}
     </Input>
   );
 };

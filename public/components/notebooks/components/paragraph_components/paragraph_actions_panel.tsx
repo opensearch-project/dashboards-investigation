@@ -25,7 +25,7 @@ export const ParagraphActionPanel = (props: {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const { state } = useContext(NotebookReactContext);
   const paragraphStates = useObservable(state.getParagraphStates$(), state.value.paragraphs);
-  const { moveParagraph: moveParaHook, createParagraph, cloneParagraph } = useParagraphs();
+  const { moveParagraph: moveParaHook, cloneParagraph } = useParagraphs();
   const movePara = (index: number, targetIndex: number) => {
     return moveParaHook(index, targetIndex).then((_res) => props.scrollToPara(targetIndex));
   };
@@ -34,14 +34,6 @@ export const ParagraphActionPanel = (props: {
       id: 0,
       title: 'Paragraph actions',
       items: [
-        {
-          name: 'Insert paragraph above',
-          panel: 1,
-        },
-        {
-          name: 'Insert paragraph below',
-          panel: 2,
-        },
         {
           name: 'Move up',
           disabled: idx === 0,
@@ -87,60 +79,6 @@ export const ParagraphActionPanel = (props: {
           onClick: () => {
             setIsPopoverOpen(false);
             props.deletePara(idx);
-          },
-        },
-      ],
-    },
-    {
-      id: 1,
-      title: 'Insert paragraph above',
-      items: [
-        {
-          name: 'Code block',
-          onClick: () => {
-            setIsPopoverOpen(false);
-            createParagraph(idx, '', 'CODE');
-          },
-        },
-        {
-          name: 'Visualization',
-          onClick: () => {
-            setIsPopoverOpen(false);
-            createParagraph(idx, '', 'VISUALIZATION');
-          },
-        },
-        {
-          name: 'Deep Research',
-          onClick: () => {
-            setIsPopoverOpen(false);
-            createParagraph(idx, '', 'DEEP_RESEARCH');
-          },
-        },
-      ],
-    },
-    {
-      id: 2,
-      title: 'Insert paragraph below',
-      items: [
-        {
-          name: 'Code block',
-          onClick: () => {
-            setIsPopoverOpen(false);
-            createParagraph(idx + 1, '', 'CODE');
-          },
-        },
-        {
-          name: 'Visualization',
-          onClick: () => {
-            setIsPopoverOpen(false);
-            createParagraph(idx + 1, '', 'VISUALIZATION');
-          },
-        },
-        {
-          name: 'Deep Research',
-          onClick: () => {
-            setIsPopoverOpen(false);
-            createParagraph(idx + 1, '', 'DEEP_RESEARCH');
           },
         },
       ],
