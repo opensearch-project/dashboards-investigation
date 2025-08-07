@@ -128,19 +128,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
   };
 
   useEffect(() => {
-    // Parse the result from the paragraph output if available
-    if (memoizedParaOut) {
-      try {
-        if (memoizedParaOut) {
-          setResult(memoizedParaOut);
-          setHasData(true);
-          return;
-        }
-      } catch (err) {
-        setError('Failed to parse log pattern results');
-        return;
-      }
-    }
     if (!memoizedContextValues) {
       return;
     }
@@ -199,6 +186,28 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
         },
         resultKey: 'EXCEPTIONAL' as keyof LogPatternAnalysisResult,
       });
+    }
+
+    // Parse the result from the paragraph output if available
+    if (memoizedParaOut) {
+      try {
+        if (memoizedParaOut) {
+          setResult(memoizedParaOut);
+          setLoadingStatus({
+            isLoading: false,
+            completedRequests: apiRequests.length,
+            totalRequests: apiRequests.length,
+            currentlyRunning: [],
+            completedSteps: apiRequests.map((req) => req.name),
+            progress: 100,
+          });
+          setHasData(true);
+          return;
+        }
+      } catch (err) {
+        setError('Failed to parse log pattern results');
+        return;
+      }
     }
 
     // Initialize loading status
