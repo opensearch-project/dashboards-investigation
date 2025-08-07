@@ -22,9 +22,10 @@ import {
 } from '@elastic/eui';
 import React, { useState } from 'react';
 import { CoreStart, SavedObjectsStart } from '../../../../../../../src/core/public';
-import { DataSourceManagementPluginSetup } from '../../../../../../../src/plugins/data_source_management/public/plugin';
 import { dataSourceFilterFn } from '../../../../../common/utils/shared';
 import { CustomInputModal } from './custom_modals/custom_input_modal';
+import { getDataSourceManagementSetup } from '../../../../../public/services';
+import { DataSourceOption } from '../../../../../../../src/plugins/data_source_management/public';
 
 /* The file contains helper functions for modal layouts
  * getCustomModal - returns modal with input field
@@ -52,8 +53,8 @@ export const getCustomModal = (
       titletxt={titletxt}
       btn1txt={btn1txt}
       btn2txt={btn2txt}
-      openNoteName={openNoteName}
-      helpText={helpText}
+      openNoteName={openNoteName!}
+      helpText={helpText!}
     />
   );
 };
@@ -86,7 +87,6 @@ export const getSampleNotebooksModal = (
   ) => void,
   onConfirm: (event?: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void,
   dataSourceEnabled: boolean,
-  dataSourceManagement: DataSourceManagementPluginSetup,
   savedObjectsMDSClient: SavedObjectsStart,
   notifications: CoreStart['notifications'],
   handleSelectedDataSourceChange: (
@@ -94,15 +94,19 @@ export const getSampleNotebooksModal = (
     dataSourceMDSLabel: string | undefined
   ) => void
 ) => {
+  const { dataSourceManagement } = getDataSourceManagementSetup();
   let DataSourceSelector;
-  const onSelectedDataSource = (e) => {
-    const dataConnectionId = e[0] ? e[0].id : undefined;
-    const dataConnectionLabel = e[0] ? e[0].label : undefined;
+  const onSelectedDataSource = (dsOption: DataSourceOption[]) => {
+    const dataConnectionId = dsOption[0] ? dsOption[0].id : undefined;
+    const dataConnectionLabel = dsOption[0] ? dsOption[0].label : undefined;
     handleSelectedDataSourceChange(dataConnectionId, dataConnectionLabel);
   };
 
   if (dataSourceEnabled) {
-    DataSourceSelector = dataSourceManagement.ui.DataSourceSelector;
+    DataSourceSelector = dataSourceManagement?.ui.DataSourceSelector;
+  }
+  if (!DataSourceSelector) {
+    return null;
   }
   return (
     <EuiOverlayMask>
@@ -121,7 +125,7 @@ export const getSampleNotebooksModal = (
             </EuiTitle>
             <DataSourceSelector
               savedObjectsClient={savedObjectsMDSClient.client}
-              notifications={notifications}
+              notifications={notifications.toasts}
               onSelectedDataSource={onSelectedDataSource}
               disabled={false}
               fullWidth={false}

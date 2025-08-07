@@ -15,6 +15,7 @@ import {
 import { ParaOutput, ParaOutputProps } from '../para_output';
 import { ParagraphStateValue } from 'common/state/paragraph_state';
 import { MockContextProvider } from '../../../context_provider/context_provider.mock';
+import { OpenSearchDashboardsContextProvider } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 jest.mock('../../bubbleup/bubble_up_container', () => ({
   BubbleUpContainer: () => <div />,
@@ -26,9 +27,13 @@ const ContextAwareParaOutput = (
   }
 ) => {
   return (
-    <MockContextProvider paragraphValues={props.paragraphValues}>
-      <ParaOutput {...props} />
-    </MockContextProvider>
+    <OpenSearchDashboardsContextProvider
+      services={{ dashboard: { DashboardContainerByValueRenderer: () => null } }}
+    >
+      <MockContextProvider paragraphValues={props.paragraphValues}>
+        <ParaOutput {...props} />
+      </MockContextProvider>
+    </OpenSearchDashboardsContextProvider>
   );
 };
 
@@ -44,7 +49,6 @@ describe('<ParaOutput /> spec', () => {
         para={para}
         visInput={jest.fn()}
         setVisInput={setVisInput}
-        DashboardContainerByValueRenderer={jest.fn()}
         paragraphValues={[para]}
         index={0}
       />
@@ -61,7 +65,6 @@ describe('<ParaOutput /> spec', () => {
         para={para}
         visInput={jest.fn()}
         setVisInput={setVisInput}
-        DashboardContainerByValueRenderer={jest.fn()}
         paragraphValues={[para]}
         index={0}
       />
@@ -79,7 +82,6 @@ describe('<ParaOutput /> spec', () => {
         para={para}
         visInput={jest.fn()}
         setVisInput={setVisInput}
-        DashboardContainerByValueRenderer={jest.fn()}
         paragraphValues={[para]}
         index={0}
       />
@@ -100,7 +102,6 @@ describe('<ParaOutput /> spec', () => {
           timeRange: { from: '2020-JUL-21 18:37:44', to: '2020-AUG-20 18:37:44' },
         }}
         setVisInput={setVisInput}
-        DashboardContainerByValueRenderer={() => null}
         paragraphValues={[para]}
         index={0}
       />
@@ -122,7 +123,6 @@ describe('<ParaOutput /> spec', () => {
           timeRange: { from: '2020-JUL-21 18:37:44', to: '2020-AUG-20 18:37:44' },
         }}
         setVisInput={setVisInput}
-        DashboardContainerByValueRenderer={() => null}
         paragraphValues={[para]}
         index={0}
       />
@@ -142,7 +142,6 @@ describe('<ParaOutput /> spec', () => {
         para={para}
         visInput={jest.fn()}
         setVisInput={setVisInput}
-        DashboardContainerByValueRenderer={jest.fn()}
         paragraphValues={[para]}
         index={0}
       />

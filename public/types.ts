@@ -21,6 +21,8 @@ import {
   ContentManagementPluginStart,
 } from '../../../src/plugins/content_management/public/types';
 import { ExpressionsStart } from '../../../src/plugins/expressions/public';
+import { CoreStart } from '../../../src/core/public';
+import PPLService from './services/requests/ppl';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -44,6 +46,12 @@ export interface SetupDependencies {
   dataSourceManagement?: DataSourceManagementPluginSetup;
   contentManagement?: ContentManagementPluginSetup;
 }
+
+export type NoteBookServices = CoreStart &
+  AppPluginStartDependencies & {
+    appName: string;
+    pplService: PPLService;
+  };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface InvestigationSetup {}

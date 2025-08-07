@@ -10,10 +10,12 @@ import Adapter from 'enzyme-adapter-react-16';
 import React from 'react';
 import { NoteTable } from '../note_table';
 import {
+  chromeServiceMock,
   httpServiceMock,
   notificationServiceMock,
 } from '../../../../../../../src/core/public/mocks';
 import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
+import { OpenSearchDashboardsContextProvider } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 jest.mock('react-router-dom', () => ({
   useLocation: jest.fn().mockReturnValue({
@@ -26,11 +28,20 @@ jest.mock('react-router-dom', () => ({
   useHistory: jest.fn(),
 }));
 
+jest.mock('../../../../../public/services', () => ({
+  getDataSourceManagementSetup: jest.fn(() => ({
+    dataSourceManagement: {
+      ui: {
+        DataSourceSelector: () => <div>DataSourceSelector</div>,
+      },
+    },
+  })),
+}));
+
 describe('<NoteTable /> spec', () => {
   configure({ adapter: new Adapter() });
 
   const props = {
-    deleteNotebook: jest.fn(),
     http: {
       ...httpServiceMock.createStartContract(),
       get: jest.fn().mockResolvedValue({
@@ -47,17 +58,15 @@ describe('<NoteTable /> spec', () => {
       }),
       post: jest.fn().mockResolvedValue({ body: [], saved_objects: [], data: [{}] }),
     },
-    dataSourceEnabled: true,
-    dataSourceManagement: {
-      ui: {
-        DataSourceSelector: () => <div>DataSourceSelector</div>,
-      },
-    } as any,
-    savedObjectsMDSClient: {
+    dataSource: {},
+    savedObjects: {
       get: jest.fn().mockResolvedValue({ body: {}, saved_objects: [], data: [] }),
     } as any,
     notifications: notificationServiceMock.createStartContract(),
+    chrome: chromeServiceMock.createStartContract(),
   };
+
+  const deleteNotebook = jest.fn();
 
   const renderNoteTable = async (overrides: { notebooks?: any[] } = {}) => {
     if (overrides.notebooks) {
@@ -67,7 +76,11 @@ describe('<NoteTable /> spec', () => {
         data: overrides.notebooks,
       });
     }
-    const utils = render(<NoteTable {...props} {...overrides} />);
+    const utils = render(
+      <OpenSearchDashboardsContextProvider services={{ ...props, ...overrides }}>
+        <NoteTable deleteNotebook={deleteNotebook} />
+      </OpenSearchDashboardsContextProvider>
+    );
     // Wait for the initial fetch to complete
     await waitFor(() => {
       expect(props.http.get).toHaveBeenCalledWith(`${NOTEBOOKS_API_PREFIX}/savedNotebook`);
@@ -183,8 +196,8 @@ describe('<NoteTable /> spec', () => {
     fireEvent.click(getByTestId('delete-notebook-modal-delete-button'));
 
     // Assert that the deleteNotebook function is called
-    expect(props.deleteNotebook).toHaveBeenCalledTimes(1);
-    expect(props.deleteNotebook).toHaveBeenCalledWith(['id-1'], expect.any(String));
+    expect(deleteNotebook).toHaveBeenCalledTimes(1);
+    expect(deleteNotebook).toHaveBeenCalledWith(['id-1'], expect.any(String));
   });
 
   it('adds sample notebooks', async () => {

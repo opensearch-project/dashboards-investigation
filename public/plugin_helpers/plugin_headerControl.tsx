@@ -4,11 +4,12 @@
  */
 
 import React from 'react';
-import { coreRefs } from '../framework/core_refs';
+import { NoteBookServices } from 'public/types';
 import {
   TopNavControlLinkData,
   TopNavControlButtonData,
 } from '../../../../src/plugins/navigation/public';
+import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 
 interface DescriptionWithOptionalLink {
   text: string;
@@ -63,8 +64,12 @@ export const HeaderControlledComponentsWrapper = ({
   badgeContent,
   description,
 }: HeaderControlledComponentsWrapperProps) => {
-  const HeaderControl = coreRefs.navigation?.ui.HeaderControl;
-  const showActionsInHeader = coreRefs.chrome?.navGroup.getNavGroupEnabled();
+  const {
+    services: { navigation, chrome, application },
+  } = useOpenSearchDashboards<NoteBookServices>();
+
+  const HeaderControl = navigation.ui.HeaderControl;
+  const showActionsInHeader = chrome.navGroup.getNavGroupEnabled();
 
   const isBadgeReactElement = React.isValidElement(badgeContent);
 
@@ -74,7 +79,7 @@ export const HeaderControlledComponentsWrapper = ({
         <>
           {showActionsInHeader && HeaderControl ? (
             <HeaderControl
-              setMountPoint={coreRefs.application?.setAppBadgeControls}
+              setMountPoint={application.setAppBadgeControls}
               controls={[
                 {
                   renderComponent: isBadgeReactElement ? (
@@ -95,7 +100,7 @@ export const HeaderControlledComponentsWrapper = ({
         <>
           {showActionsInHeader && HeaderControl ? (
             <HeaderControl
-              setMountPoint={coreRefs.application?.setAppDescriptionControls}
+              setMountPoint={application.setAppDescriptionControls}
               controls={[
                 {
                   description: typeof description === 'string' ? description : description.text,
@@ -125,7 +130,7 @@ export const HeaderControlledComponentsWrapper = ({
         <>
           {showActionsInHeader && HeaderControl ? (
             <HeaderControl
-              setMountPoint={coreRefs.application?.setAppRightControls}
+              setMountPoint={application.setAppRightControls}
               controls={components.map((component) => renderHeaderComponent(component))}
             />
           ) : (

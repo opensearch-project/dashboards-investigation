@@ -18,9 +18,10 @@ import {
   EuiLoadingContent,
   EuiCodeBlock,
 } from '@elastic/eui';
-import { CoreStart } from '../../../../../../../src/core/public';
+import { NoteBookServices } from 'public/types';
 import { getAllTracesByMessageId, isMarkdownText } from './utils';
 import { getTimeGapFromDates } from '../../../../utils/time';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 const renderTraceString = ({ text, fallback }: { text: string | undefined; fallback: string }) => {
   if (!text) {
@@ -51,17 +52,18 @@ export const MessageTraceModal = ({
   messageId,
   messageCreateTime,
   closeModal,
-  http,
   dataSourceId,
   refresh,
 }: {
   messageId: string;
   messageCreateTime: string;
   closeModal: () => void;
-  http: CoreStart['http'];
   dataSourceId?: string;
   refresh: boolean;
 }) => {
+  const {
+    services: { http },
+  } = useOpenSearchDashboards<NoteBookServices>();
   const [traces, setTraces] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   useEffect(() => {

@@ -5,27 +5,19 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { AppMountParameters, CoreStart } from '../../../../src/core/public';
-import { DataSourceManagementPluginSetup } from '../../../../src/plugins/data_source_management/public';
-import { AppPluginStartDependencies } from '../types';
+import { AppMountParameters } from '../../../../src/core/public';
+import { NoteBookServices } from '../types';
 import { App } from './app';
+import { OpenSearchDashboardsContextProvider } from '../../../../src/plugins/opensearch_dashboards_react/public';
 
 export const Observability = (
-  CoreStartProp: CoreStart,
-  DepsStart: AppPluginStartDependencies,
-  AppMountParametersProp: AppMountParameters,
-  dataSourceManagement: DataSourceManagementPluginSetup,
-  savedObjectsMDSClient: CoreStart['savedObjects']
+  services: NoteBookServices,
+  AppMountParametersProp: AppMountParameters
 ) => {
-  const { dataSource } = DepsStart;
   ReactDOM.render(
-    <App
-      CoreStartProp={CoreStartProp}
-      DepsStart={DepsStart}
-      dataSourceManagement={dataSourceManagement}
-      dataSourceEnabled={!!dataSource}
-      savedObjectsMDSClient={savedObjectsMDSClient}
-    />,
+    <OpenSearchDashboardsContextProvider services={services}>
+      <App />
+    </OpenSearchDashboardsContextProvider>,
     AppMountParametersProp.element
   );
 

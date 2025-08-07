@@ -12,6 +12,8 @@ import { sampleParsedParagraghs1 } from '../../../../../../test/notebooks_consta
 import { ParagraphProps, Paragraphs } from '../paragraphs';
 import { ParagraphStateValue } from '../../../../../../common/state/paragraph_state';
 import { MockContextProvider } from '../../../context_provider/context_provider.mock';
+import { OpenSearchDashboardsContextProvider } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { notificationServiceMock } from '../../../../../../../../src/core/public/mocks';
 
 jest.mock('../../../../../../../../src/plugins/embeddable/public', () => ({
   ViewMode: {
@@ -28,12 +30,12 @@ const mockFind = jest.fn().mockResolvedValue({
   savedObjects: [],
 });
 
-jest.mock('../../../../../framework/core_refs', () => ({
-  coreRefs: {
-    savedObjectsClient: {
-      find: (options) => mockFind(options),
+jest.mock('../../../../../../public/services', () => ({
+  getDataSourceManagementSetup: jest.fn(() => ({
+    dataSourceManagement: {
+      ui: { DataSourceSelector: () => <div data-test-sub="dataSourceSelector" /> },
     },
-  },
+  })),
 }));
 
 const ContextAwareParagraphs = (
@@ -42,9 +44,21 @@ const ContextAwareParagraphs = (
   }
 ) => {
   return (
-    <MockContextProvider paragraphValues={props.paragraphValues}>
-      <Paragraphs {...props} />
-    </MockContextProvider>
+    <OpenSearchDashboardsContextProvider
+      services={{
+        http: getOSDHttp(),
+        dashboard: {
+          DashboardContainerByValueRenderer: jest.fn(),
+        },
+        savedObjects: { client: { find: mockFind } },
+        dataSource: {},
+        notifications: notificationServiceMock.createStartContract(),
+      }}
+    >
+      <MockContextProvider paragraphValues={props.paragraphValues}>
+        <Paragraphs {...props} />
+      </MockContextProvider>
+    </OpenSearchDashboardsContextProvider>
   );
 };
 
@@ -136,7 +150,7 @@ describe('<Paragraphs /> spec', () => {
         showQueryParagraphError={false}
         queryParagraphErrorMessage="error-message"
         dataSourceEnabled={true}
-        dataSourceManagement={{ ui: { DataSourceSelector: <></> } }}
+        dataSourceManagement={{ ui: { DataSourceSelector: () => null } }}
         paragraphs={[]}
         paragraphValues={[para]}
       />

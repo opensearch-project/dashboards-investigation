@@ -37,10 +37,8 @@ import { useObservable } from 'react-use';
 import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { i18n } from '@osd/i18n';
+import { NoteBookServices } from 'public/types';
 import { ParagraphState, ParagraphStateValue } from '../../../../common/state/paragraph_state';
-import { CoreStart, SavedObjectsStart } from '../../../../../../src/core/public';
-import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
-import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
 import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
 import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
 import {
@@ -70,6 +68,7 @@ import { useParagraphs } from '../../../hooks/use_paragraphs';
 import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
 import { usePrecheck } from '../../../hooks/use_precheck';
+import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 const ParagraphTypeDeepResearch = 'DEEP_RESEARCH';
 
@@ -86,24 +85,13 @@ const panelStyles: CSS.Properties = {
  */
 export interface NotebookProps {
   openedNoteId: string;
-  DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
-  http: CoreStart['http'];
-  dataSourceManagement: DataSourceManagementPluginSetup;
-  notifications: CoreStart['notifications'];
-  dataSourceEnabled: boolean;
-  savedObjectsMDSClient: SavedObjectsStart;
-  chrome: CoreStart['chrome'];
 }
 
-export function NotebookComponent({
-  DashboardContainerByValueRenderer,
-  http,
-  dataSourceManagement,
-  notifications,
-  savedObjectsMDSClient,
-  chrome,
-}: NotebookProps) {
+export function NotebookComponent() {
   const history = useHistory();
+  const {
+    services: { http, notifications, chrome },
+  } = useOpenSearchDashboards<NoteBookServices>();
 
   const [selectedViewId] = useState('view_both');
   const [vizPrefix, _setVizPrefix] = useState('');
@@ -511,10 +499,11 @@ export function NotebookComponent({
             text: notePath,
             href: `#/${openedNoteId}`,
           },
-        ]
+        ],
+        chrome
       );
     },
-    [openedNoteId]
+    [openedNoteId, chrome]
   );
 
   const loadNotebook = useCallback(async () => {
@@ -870,17 +859,12 @@ export function NotebookComponent({
                     paraCount={parsedPara.length}
                     textValueEditor={textValueEditor}
                     handleKeyPress={handleKeyPress}
-                    DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
-                    http={http}
                     selectedViewId={selectedViewId}
                     deletePara={showDeleteParaModal}
                     runPara={updateRunParagraph}
                     showQueryParagraphError={showQueryParagraphError}
                     queryParagraphErrorMessage={queryParagraphErrorMessage}
-                    dataSourceManagement={dataSourceManagement}
-                    notifications={notifications}
                     dataSourceEnabled={dataSourceMDSEnabled}
-                    savedObjectsMDSClient={savedObjectsMDSClient}
                     handleSelectedDataSourceChange={handleSelectedDataSourceChange}
                     paradataSourceMDSId={parsedPara[index].dataSourceMDSId}
                     dataSourceMDSLabel={parsedPara[index].dataSourceMDSLabel}
@@ -962,27 +946,26 @@ export function NotebookComponent({
           </EuiPageContent>
         </EuiPageBody>
         <EuiSpacer />
-        <InputPanel
-          onCreateParagraph={handleCreateParagraph}
-          http={http}
-          dataSourceId={dataSourceMDSId}
-        />
+        <InputPanel onCreateParagraph={handleCreateParagraph} dataSourceId={dataSourceMDSId} />
       </EuiPage>
       {isModalVisible && modalLayout}
     </>
   );
 }
 
-export const Notebook = (props: NotebookProps) => {
+export const Notebook = ({ openedNoteId }: NotebookProps) => {
+  const {
+    services: { dataSource },
+  } = useOpenSearchDashboards<NoteBookServices>();
   const stateRef = useRef(
     getDefaultState({
-      id: props.openedNoteId,
-      dataSourceEnabled: props.dataSourceEnabled,
+      id: openedNoteId,
+      dataSourceEnabled: !!dataSource,
     })
   );
   return (
     <NotebookContextProvider state={stateRef.current}>
-      <NotebookComponent {...props} />
+      <NotebookComponent />
     </NotebookContextProvider>
   );
 };

@@ -22,7 +22,7 @@ import moment from 'moment';
 
 import { ParagraphStateValue } from 'common/state/paragraph_state';
 import { useObservable, useUpdateEffect } from 'react-use';
-import { CoreStart } from '../../../../../../../src/core/public';
+import { NoteBookServices } from 'public/types';
 import { ParaType } from '../../../../../common/types/notebooks';
 
 import { getAllMessagesByMemoryId, getAllTracesByMessageId, isMarkdownText } from './utils';
@@ -37,14 +37,17 @@ import {
 } from '../../../../utils/task';
 import { getMLCommonsTask } from '../../../../utils/ml_commons_apis';
 import { formatTimeGap, getTimeGapFromDates } from '../../../../utils/time';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 interface Props {
-  http: CoreStart['http'];
   para: ParaType;
   paragraph$: Observable<ParagraphStateValue>;
 }
 
-export const DeepResearchContainer = ({ para, http, paragraph$ }: Props) => {
+export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
+  const {
+    services: { http },
+  } = useOpenSearchDashboards<NoteBookServices>();
   const [traces, setTraces] = useState([]);
   // FIXME: Read paragraph out directly once all notebooks store object as output
   const parsedParagraphOut = useMemo(() => parseParagraphOut(para)[0], [para]);
@@ -321,7 +324,6 @@ export const DeepResearchContainer = ({ para, http, paragraph$ }: Props) => {
           messageId={traceModalData.messageId}
           messageCreateTime={traceModalData.messageCreateTime}
           refresh={shouldTracesModalRefresh()}
-          http={http}
           closeModal={() => {
             setTraceModalData(undefined);
           }}
