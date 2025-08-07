@@ -124,7 +124,6 @@ export class InvestigationPlugin
     coreRefs.overlays = core.overlays;
     coreRefs.dataSource = startDeps.dataSource;
     coreRefs.navigation = startDeps.navigation;
-    coreRefs.contentManagement = startDeps.contentManagement;
     coreRefs.workspaces = core.workspaces;
 
     setExpressions(startDeps.expressions);

@@ -8,7 +8,6 @@ import {
   EuiCompressedFormRow,
   EuiFlexGroup,
   EuiFlexItem,
-  EuiIcon,
   EuiLink,
   EuiPanel,
   EuiSmallButton,
@@ -58,6 +57,8 @@ import { ParagraphActionPanel } from './paragraph_actions_panel';
 import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { NotebookReactContext } from '../../context_provider/context_provider';
+import { PPLParagraph } from './ppl';
+import { getInputType } from '../../../../../common/utils/paragraph';
 
 /*
  * "Paragraphs" component is used to render cells of the notebook open and "add para div" between paragraphs
@@ -99,8 +100,6 @@ export interface ParagraphProps {
     paraType?: string,
     dataSourceMDSId?: string
   ) => void;
-  showQueryParagraphError: boolean;
-  queryParagraphErrorMessage: string;
   dataSourceManagement: DataSourceManagementPluginSetup;
   notifications: CoreStart['notifications'];
   dataSourceEnabled: boolean;
@@ -122,8 +121,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
     textValueEditor,
     handleKeyPress,
     DashboardContainerByValueRenderer,
-    showQueryParagraphError,
-    queryParagraphErrorMessage,
     http,
     dataSourceEnabled,
     dataSourceManagement,
@@ -383,22 +380,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
     </EuiText>
   ) : null;
 
-  const queryErrorMessage = queryParagraphErrorMessage.includes('SQL') ? (
-    <EuiText size="s">
-      {queryParagraphErrorMessage}. Learn More{' '}
-      <EuiLink href={SQL_DOCUMENTATION_URL} target="_blank">
-        <EuiIcon type="popout" size="s" />
-      </EuiLink>
-    </EuiText>
-  ) : (
-    <EuiText size="s">
-      {queryParagraphErrorMessage}.{' '}
-      <EuiLink href={PPL_DOCUMENTATION_URL} target="_blank">
-        Learn More <EuiIcon type="popout" size="s" />
-      </EuiLink>
-    </EuiText>
-  );
-
   const paraClass = `notebooks-paragraph notebooks-paragraph-${
     uiSettingsService.get('theme:darkMode') ? 'dark' : 'light'
   }`;
@@ -433,94 +414,119 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
       hasBorder={false}
     >
       {<ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />}
-      {dataSourceEnabled &&
-        !para.isVizualisation &&
-        !para.isAnomalyVisualizationAnalysis &&
-        !para.isLogPattern && (
-          <EuiFlexGroup style={{ marginTop: 0 }}>
-            <EuiFlexItem>
-              <DataSourceSelector
-                savedObjectsClient={savedObjectsMDSClient.client}
-                notifications={notifications}
-                onSelectedDataSource={onSelectedDataSource}
-                disabled={false}
-                fullWidth={false}
-                removePrepend={false}
-                defaultOption={
-                  paradataSourceMDSId !== undefined ? [{ id: paradataSourceMDSId }] : undefined
-                }
-                dataSourceFilter={dataSourceFilterFn}
-              />
-            </EuiFlexItem>
-            {para.isDeepResearch && (
+      {(() => {
+        const paragraphType = getInputType(
+          (paragraph as ParagraphState<string>).getBackgroundValue()
+        );
+        switch (paragraphType) {
+          case 'ppl':
+          case 'sql': {
+            return (
+              <div key={paragraph.value.id} className={paraClass}>
+                <PPLParagraph paragraphState={paragraph as ParagraphState<string>} />
+              </div>
+            );
+          }
+          default: {
+            return (
               <>
-                <EuiFlexItem>
-                  <AgentsSelector
-                    http={http}
-                    value={deepResearchAgentId}
-                    dataSourceMDSId={dataSourceMDSId}
-                    onChange={async (value) => {
-                      setDeepResearchAgentId(value);
-                      // FIXME move to deep research paragraph
-                      await saveParagraph({
-                        paragraphStateValue: ParagraphState.updateOutputResult(paragraph.value, {
-                          agent_id: value,
-                        }),
-                      });
-                    }}
-                  />
-                </EuiFlexItem>
+                {dataSourceEnabled &&
+                  !para.isVizualisation &&
+                  !para.isAnomalyVisualizationAnalysis &&
+                  !para.isLogPattern && (
+                    <EuiFlexGroup style={{ marginTop: 0 }}>
+                      <EuiFlexItem>
+                        <DataSourceSelector
+                          savedObjectsClient={savedObjectsMDSClient.client}
+                          notifications={notifications}
+                          onSelectedDataSource={onSelectedDataSource}
+                          disabled={false}
+                          fullWidth={false}
+                          removePrepend={false}
+                          defaultOption={
+                            paradataSourceMDSId !== undefined
+                              ? [{ id: paradataSourceMDSId }]
+                              : undefined
+                          }
+                          dataSourceFilter={dataSourceFilterFn}
+                        />
+                      </EuiFlexItem>
+                      {para.isDeepResearch && (
+                        <>
+                          <EuiFlexItem>
+                            <AgentsSelector
+                              http={http}
+                              value={deepResearchAgentId}
+                              dataSourceMDSId={dataSourceMDSId}
+                              onChange={async (value) => {
+                                setDeepResearchAgentId(value);
+                                // FIXME move to deep research paragraph
+                                await saveParagraph({
+                                  paragraphStateValue: ParagraphState.updateOutputResult(
+                                    paragraph.value,
+                                    {
+                                      agent_id: value,
+                                    }
+                                  ),
+                                });
+                              }}
+                            />
+                          </EuiFlexItem>
+                        </>
+                      )}
+                    </EuiFlexGroup>
+                  )}
+                <div key={index} className={paraClass}>
+                  {!para.isAnomalyVisualizationAnalysis && !para.isLogPattern && (
+                    <>
+                      <EuiSpacer size="s" />
+                      <EuiCompressedFormRow fullWidth={true} helpText={paragraphLabel}>
+                        <ParaInput
+                          para={para}
+                          index={index}
+                          runParaError={runParaError}
+                          textValueEditor={textValueEditor}
+                          handleKeyPress={handleKeyPress}
+                          startTime={para.visStartTime}
+                          setStartTime={setStartTime}
+                          endTime={para.visEndTime}
+                          setEndTime={setEndTime}
+                          setIsOutputStale={setIsOutputStale}
+                          visOptions={visOptions}
+                          selectedVisOption={selectedVisOption}
+                          setSelectedVisOption={setSelectedVisOption}
+                          setVisType={setVisType}
+                          dataSourceManagement={dataSourceManagement}
+                          notifications={notifications}
+                          dataSourceEnabled={dataSourceEnabled}
+                          savedObjectsMDSClient={savedObjectsMDSClient}
+                        />
+                      </EuiCompressedFormRow>
+                      {runParaError && (
+                        <EuiText
+                          color="danger"
+                          size="s"
+                          data-test-subj="paragraphInputErrorText"
+                        >{`${
+                          para.isVizualisation ? 'Visualization' : 'Input'
+                        } is required.`}</EuiText>
+                      )}
+                      <EuiSpacer size="m" />
+                      <EuiFlexGroup alignItems="center" gutterSize="s">
+                        <EuiFlexItem grow={false}>{executeButton}</EuiFlexItem>
+                      </EuiFlexGroup>
+                      <EuiSpacer size="m" />
+                    </>
+                  )}
+                  {props.selectedViewId !== 'input_only' && isOutputAvailable && (
+                    <div style={{ opacity: para.isOutputStale ? 0.5 : 1 }}>{paraOutput}</div>
+                  )}
+                </div>
               </>
-            )}
-          </EuiFlexGroup>
-        )}
-      <div key={index} className={paraClass}>
-        {!para.isAnomalyVisualizationAnalysis && !para.isLogPattern && (
-          <>
-            <EuiSpacer size="s" />
-            <EuiCompressedFormRow
-              fullWidth={true}
-              helpText={paragraphLabel}
-              isInvalid={showQueryParagraphError}
-              error={queryErrorMessage}
-            >
-              <ParaInput
-                para={para}
-                index={index}
-                runParaError={runParaError}
-                textValueEditor={textValueEditor}
-                handleKeyPress={handleKeyPress}
-                startTime={para.visStartTime}
-                setStartTime={setStartTime}
-                endTime={para.visEndTime}
-                setEndTime={setEndTime}
-                setIsOutputStale={setIsOutputStale}
-                visOptions={visOptions}
-                selectedVisOption={selectedVisOption}
-                setSelectedVisOption={setSelectedVisOption}
-                setVisType={setVisType}
-                dataSourceManagement={dataSourceManagement}
-                notifications={notifications}
-                dataSourceEnabled={dataSourceEnabled}
-                savedObjectsMDSClient={savedObjectsMDSClient}
-              />
-            </EuiCompressedFormRow>
-            {runParaError && (
-              <EuiText color="danger" size="s" data-test-subj="paragraphInputErrorText">{`${
-                para.isVizualisation ? 'Visualization' : 'Input'
-              } is required.`}</EuiText>
-            )}
-            <EuiSpacer size="m" />
-            <EuiFlexGroup alignItems="center" gutterSize="s">
-              <EuiFlexItem grow={false}>{executeButton}</EuiFlexItem>
-            </EuiFlexGroup>
-            <EuiSpacer size="m" />
-          </>
-        )}
-        {props.selectedViewId !== 'input_only' && isOutputAvailable && (
-          <div style={{ opacity: para.isOutputStale ? 0.5 : 1 }}>{paraOutput}</div>
-        )}
-      </div>
+            );
+          }
+        }
+      })()}
     </EuiPanel>
   );
 });
