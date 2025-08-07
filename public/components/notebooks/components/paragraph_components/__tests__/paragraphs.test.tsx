@@ -76,7 +76,18 @@ describe('<Paragraphs /> spec', () => {
         runPara={runPara}
         dataSourceEnabled={false}
         paragraphs={[]}
-        paragraphValues={sampleParsedParagraghs1}
+        paragraphValues={[
+          {
+            ...sampleParsedParagraghs1[0],
+            input: {
+              inputType: 'CODE',
+              inputText: '%md # Type your input here',
+            },
+            dateCreated: '',
+            dateModified: '',
+            id: '',
+          },
+        ]}
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();
@@ -126,7 +137,18 @@ describe('<Paragraphs /> spec', () => {
         dataSourceEnabled={true}
         dataSourceManagement={{ ui: { DataSourceSelector: <></> } }}
         paragraphs={[]}
-        paragraphValues={[para]}
+        paragraphValues={[
+          {
+            ...para,
+            input: {
+              inputType: 'VISUALIZATION',
+              inputText: '%md # Type your input here',
+            },
+            dateCreated: '',
+            dateModified: '',
+            id: '',
+          },
+        ]}
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();
