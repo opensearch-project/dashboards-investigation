@@ -7,13 +7,12 @@ import React from 'react';
 // eslint-disable-next-line @osd/eslint/module_migration
 import { Route, Switch } from 'react-router';
 import { HashRouter } from 'react-router-dom';
-import { CoreStart, SavedObjectsStart } from '../../../../../../src/core/public';
-import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
-import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
+import { NoteBookServices } from 'public/types';
 import { NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
 import { isValidUUID } from './helpers/notebooks_parser';
 import { NoteTable } from './note_table';
 import { Notebook } from './notebook';
+import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 /*
  * "Main" component renders the whole Notebooks as a single page application
  *
@@ -25,21 +24,6 @@ import { Notebook } from './notebook';
  * https://components.nteract.io/#cell
  */
 
-interface MainProps {
-  DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
-  http: CoreStart['http'];
-  notifications: CoreStart['notifications'];
-  dataSourceEnabled: boolean;
-  dataSourceManagement: DataSourceManagementPluginSetup;
-  savedObjectsMDSClient: SavedObjectsStart;
-  chrome: CoreStart['chrome'];
-}
-
-interface MainState {
-  defaultMDSId: string;
-  defaultMDSLabel: string;
-}
-
 export interface NotebookType {
   path: string;
   id: string;
@@ -47,30 +31,26 @@ export interface NotebookType {
   dateModified: string;
 }
 
-export class Main extends React.Component<MainProps, MainState> {
-  constructor(props: Readonly<MainProps>) {
-    super(props);
-    this.state = {
-      defaultMDSId: '',
-      defaultMDSLabel: '',
-    };
-  }
+export const Main: React.FC = () => {
+  const {
+    services: { http, notifications },
+  } = useOpenSearchDashboards<NoteBookServices>();
 
   // Deletes existing notebooks
-  deleteNotebook = async (notebookList: string[], toastMessage?: string) => {
-    const deleteNotebook = (id: string) => {
+  const deleteNotebook = async (notebookList: string[], toastMessage?: string) => {
+    const deleteNotebookFn = (id: string) => {
       const isValid = isValidUUID(id);
       const route = isValid
         ? `${NOTEBOOKS_API_PREFIX}/note/savedNotebook/${id}`
         : `${NOTEBOOKS_API_PREFIX}/note/${id}`;
-      return this.props.http.delete(route).then((res) => {
+      return http.delete(route).then((res) => {
         return res;
       });
     };
 
     const promises = notebookList.map((id) =>
-      deleteNotebook(id).catch((err) => {
-        this.props.notifications.toasts.addDanger(
+      deleteNotebookFn(id).catch((err) => {
+        notifications.toasts.addDanger(
           'Error deleting notebook, please make sure you have the correct permission.'
         );
         console.error(err.body.message);
@@ -81,53 +61,31 @@ export class Main extends React.Component<MainProps, MainState> {
       .then(() => {
         const message =
           toastMessage || `Notebook${notebookList.length > 1 ? 's' : ''} successfully deleted!`;
-        this.props.notifications.toasts.addSuccess(message);
+        notifications.toasts.addSuccess(message);
       })
       .catch((err) => {
         console.error('Error in deleting multiple notebooks', err);
       });
   };
 
-  render() {
-    return (
-      <HashRouter>
-        <>
-          <Switch>
-            <Route
-              exact
-              path={['/create', '/']}
-              render={(_props) => (
-                <NoteTable
-                  deleteNotebook={this.deleteNotebook}
-                  dataSourceManagement={this.props.dataSourceManagement}
-                  notifications={this.props.notifications}
-                  dataSourceEnabled={this.props.dataSourceEnabled}
-                  savedObjectsMDSClient={this.props.savedObjectsMDSClient}
-                  http={this.props.http}
-                />
-              )}
-            />
-            <Route
-              exact
-              path="/:id"
-              render={(props) => {
-                return (
-                  <Notebook
-                    openedNoteId={props.match.params.id}
-                    DashboardContainerByValueRenderer={this.props.DashboardContainerByValueRenderer}
-                    http={this.props.http}
-                    dataSourceManagement={this.props.dataSourceManagement}
-                    notifications={this.props.notifications}
-                    dataSourceEnabled={this.props.dataSourceEnabled}
-                    savedObjectsMDSClient={this.props.savedObjectsMDSClient}
-                    chrome={this.props.chrome}
-                  />
-                );
-              }}
-            />
-          </Switch>
-        </>
-      </HashRouter>
-    );
-  }
-}
+  return (
+    <HashRouter>
+      <>
+        <Switch>
+          <Route
+            exact
+            path={['/create', '/']}
+            render={(_props) => <NoteTable deleteNotebook={deleteNotebook} />}
+          />
+          <Route
+            exact
+            path="/:id"
+            render={(props) => {
+              return <Notebook openedNoteId={props.match.params.id} />;
+            }}
+          />
+        </Switch>
+      </>
+    </HashRouter>
+  );
+};

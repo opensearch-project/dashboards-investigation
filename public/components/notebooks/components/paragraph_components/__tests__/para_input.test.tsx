@@ -25,40 +25,8 @@ describe('<para_input /> spec', () => {
     { label: 'VisOptions2', options: visOptions2 },
   ];
 
-  it('renders the markdown component', () => {
-    const para = sampleParsedParagraghs1[0];
-    const textValueEditor = jest.fn();
-    const handleKeyPress = jest.fn();
-    const setStartTime = jest.fn();
-    const setEndTime = jest.fn();
-    const setIsOutputStale = jest.fn();
-    const setSelectedVisOption = jest.fn();
-    const setVisType = jest.fn();
-    const utils = render(
-      <ParaInput
-        para={para}
-        index={1}
-        runParaError={false}
-        textValueEditor={textValueEditor}
-        handleKeyPress={handleKeyPress}
-        startTime={para.visStartTime}
-        setStartTime={setStartTime}
-        endTime={para.visEndTime}
-        setEndTime={setEndTime}
-        setIsOutputStale={setIsOutputStale}
-        visOptions={[]}
-        selectedVisOption={[]}
-        setSelectedVisOption={setSelectedVisOption}
-        setVisType={setVisType}
-      />
-    );
-    expect(utils.container.firstChild).toMatchSnapshot();
-  });
-
   it('renders the visualization component', () => {
     const para = sampleParsedParagraghs1[2];
-    const textValueEditor = jest.fn();
-    const handleKeyPress = jest.fn();
     const setStartTime = jest.fn();
     const setEndTime = jest.fn();
     const setIsOutputStale = jest.fn();
@@ -69,8 +37,6 @@ describe('<para_input /> spec', () => {
         para={para}
         index={1}
         runParaError={false}
-        textValueEditor={textValueEditor}
-        handleKeyPress={handleKeyPress}
         startTime={para.visStartTime}
         setStartTime={setStartTime}
         endTime={para.visEndTime}
@@ -85,42 +51,8 @@ describe('<para_input /> spec', () => {
     expect(utils.container.firstChild).toMatchSnapshot();
   });
 
-  it('types in the markdown component', () => {
-    const para = sampleParsedParagraghs1[0];
-    const textValueEditor = jest.fn();
-    const handleKeyPress = jest.fn();
-    const setStartTime = jest.fn();
-    const setEndTime = jest.fn();
-    const setIsOutputStale = jest.fn();
-    const setSelectedVisOption = jest.fn();
-    const setVisType = jest.fn();
-    const utils = render(
-      <ParaInput
-        para={para}
-        index={1}
-        runParaError={false}
-        textValueEditor={textValueEditor}
-        handleKeyPress={handleKeyPress}
-        startTime={para.visStartTime}
-        setStartTime={setStartTime}
-        endTime={para.visEndTime}
-        setEndTime={setEndTime}
-        setIsOutputStale={setIsOutputStale}
-        visOptions={[]}
-        selectedVisOption={[]}
-        setSelectedVisOption={setSelectedVisOption}
-        setVisType={setVisType}
-      />
-    );
-    const textarea = utils.container.querySelectorAll('textarea#editorArea')[0];
-    fireEvent.change(textarea, { target: { value: 'test input' } });
-    expect(setIsOutputStale).toBeCalledWith(true);
-  });
-
   it('clicks the visualization component', async () => {
     const para = sampleParsedParagraghs1[2];
-    const textValueEditor = jest.fn();
-    const handleKeyPress = jest.fn();
     const setStartTime = jest.fn();
     const setEndTime = jest.fn();
     const setIsOutputStale = jest.fn();
@@ -131,8 +63,6 @@ describe('<para_input /> spec', () => {
         para={para}
         index={1}
         runParaError={false}
-        textValueEditor={textValueEditor}
-        handleKeyPress={handleKeyPress}
         startTime={para.visStartTime}
         setStartTime={setStartTime}
         endTime={para.visEndTime}

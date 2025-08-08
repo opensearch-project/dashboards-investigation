@@ -37,10 +37,8 @@ import { useObservable } from 'react-use';
 import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { i18n } from '@osd/i18n';
+import { NoteBookServices } from 'public/types';
 import { ParagraphState, ParagraphStateValue } from '../../../../common/state/paragraph_state';
-import { CoreStart, SavedObjectsStart } from '../../../../../../src/core/public';
-import { DashboardStart } from '../../../../../../src/plugins/dashboard/public';
-import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
 import {
   CREATE_NOTE_MESSAGE,
   DEEP_RESEARCH_PARAGRAPH_TYPE,
@@ -74,6 +72,7 @@ import { useParagraphs } from '../../../hooks/use_paragraphs';
 import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
 import { usePrecheck } from '../../../hooks/use_precheck';
+import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -88,24 +87,13 @@ const panelStyles: CSS.Properties = {
  */
 export interface NotebookProps {
   openedNoteId: string;
-  DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
-  http: CoreStart['http'];
-  dataSourceManagement: DataSourceManagementPluginSetup;
-  notifications: CoreStart['notifications'];
-  dataSourceEnabled: boolean;
-  savedObjectsMDSClient: SavedObjectsStart;
-  chrome: CoreStart['chrome'];
 }
 
-export function NotebookComponent({
-  DashboardContainerByValueRenderer,
-  http,
-  dataSourceManagement,
-  notifications,
-  savedObjectsMDSClient,
-  chrome,
-}: NotebookProps) {
+export function NotebookComponent() {
   const history = useHistory();
+  const {
+    services: { http, notifications, chrome },
+  } = useOpenSearchDashboards<NoteBookServices>();
 
   const [selectedViewId] = useState('view_both');
   const [vizPrefix, _setVizPrefix] = useState('');
@@ -114,8 +102,6 @@ export function NotebookComponent({
   const [isReportingLoadingModalOpen, setIsReportingLoadingModalOpen] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
-  const [showQueryParagraphError, setShowQueryParagraphError] = useState(false);
-  const [queryParagraphErrorMessage, setQueryParagraphErrorMessage] = useState('');
   const [dataSourceMDSId, setDataSourceMDSId] = useState<string | undefined | null>(null);
   const [dataSourceMDSLabel, setDataSourceMDSLabel] = useState<string | undefined | null>(null);
   const [context] = useState<NotebookContext | undefined>(undefined);
@@ -371,33 +357,6 @@ export function NotebookComponent({
     setIsModalVisible(true);
   };
 
-  // FIXME
-  // Move the method into PPL paragraph
-  const loadQueryResultsFromInput = useCallback(
-    async (paragraph: any, MDSId?: any) => {
-      const queryType =
-        paragraph.input.inputText.substring(0, 4) === '%sql' ? 'sqlquery' : 'pplquery';
-      const query = {
-        dataSourceMDSId: MDSId,
-      };
-      await http
-        .post(`/api/investigation/sql/${queryType}`, {
-          body: JSON.stringify(paragraph.output[0].result),
-          ...(dataSourceEnabled && { query }),
-        })
-        .then((response) => {
-          paragraph.output[0].result =
-            response.data.resp || JSON.stringify({ error: 'no response' });
-          return paragraph;
-        })
-        .catch((err) => {
-          notifications.toasts.addDanger('Error getting query output');
-          console.error(err);
-        });
-    },
-    [http, notifications.toasts, dataSourceEnabled]
-  );
-
   const scrollToPara = (index: number) => {
     setTimeout(() => {
       window.scrollTo({
@@ -417,7 +376,9 @@ export function NotebookComponent({
     _dataSourceMDSId?: string
   ) => {
     if (paragraphs[index].input.inputType === 'DEEP_RESEARCH') {
-      runParagraph(index);
+      runParagraph({
+        index,
+      });
       return;
     }
     showParagraphRunning(index);
@@ -441,13 +402,6 @@ export function NotebookComponent({
         body: JSON.stringify(paraUpdateObject),
       })
       .then(async (res) => {
-        if (res.output?.[0]?.outputType === 'QUERY') {
-          await loadQueryResultsFromInput(res, dataSourceMDSId);
-          const checkErrorJSON = JSON.parse(res.output?.[0].result);
-          if (checkQueryOutputError(checkErrorJSON)) {
-            return;
-          }
-        }
         const newParagraphs = [...paragraphs];
         const paragraphStateValue = new ParagraphState(res).value;
         newParagraphs[index] = paragraphStateValue;
@@ -466,40 +420,6 @@ export function NotebookComponent({
       });
   };
 
-  const checkQueryOutputError = (checkErrorJSON: JSON) => {
-    // if query output has error output
-    if (checkErrorJSON.hasOwnProperty('error')) {
-      setShowQueryParagraphError(true);
-      setQueryParagraphErrorMessage(checkErrorJSON.error.reason);
-      return true;
-    }
-    // query ran successfully, reset error variables if currently set to true
-    else if (showQueryParagraphError) {
-      setShowQueryParagraphError(false);
-      setQueryParagraphErrorMessage('');
-      return false;
-    }
-  };
-
-  // Handles text editor value and syncs with paragraph input
-  const textValueEditor = (evt: React.ChangeEvent<HTMLTextAreaElement>, index: number) => {
-    if (!(evt.key === 'Enter' && evt.shiftKey)) {
-      const newParas = [...paragraphs];
-      newParas[index].input = newParas[index].input || {};
-      newParas[index].input.inputText = evt.target.value;
-      notebookContext.state.updateValue({
-        paragraphs: newParas.map((paragraph) => new ParagraphState(paragraph)),
-      });
-    }
-  };
-
-  // Handles run paragraph shortcut "Shift+Enter"
-  const handleKeyPress = (evt: React.KeyboardEvent<Element>, para: ParaType, index: number) => {
-    if (evt.key === 'Enter' && evt.shiftKey) {
-      updateRunParagraph(para, index);
-    }
-  };
-
   const setBreadcrumbs = useCallback(
     (notePath: string) => {
       setNavBreadCrumbs(
@@ -513,46 +433,17 @@ export function NotebookComponent({
             text: notePath,
             href: `#/${openedNoteId}`,
           },
-        ]
+        ],
+        chrome
       );
     },
-    [openedNoteId]
+    [openedNoteId, chrome]
   );
 
   const loadNotebook = useCallback(async () => {
     loadNotebookHook()
       .then(async (res) => {
         setBreadcrumbs(res.path);
-        let index = 0;
-        for (index = 0; index < res.paragraphs.length; ++index) {
-          const outputType = ParagraphState.getOutput(res.paragraphs[index])?.outputType;
-          // if the paragraph is a query, load the query output
-          if (
-            outputType === 'QUERY' &&
-            dataSourceEnabled &&
-            res.paragraphs[index].dataSourceMDSId
-          ) {
-            await loadQueryResultsFromInput(
-              res.paragraphs[index],
-              res.paragraphs[index].dataSourceMDSId
-            );
-          } else if (
-            outputType === 'QUERY' &&
-            !dataSourceEnabled &&
-            res.paragraphs[index].dataSourceMDSId
-          ) {
-            (res.paragraphs[index].output as Required<
-              ParagraphBackendType
-            >['output'])[0] = ([] as unknown) as Required<ParagraphBackendType>['output'][0];
-            notifications.toasts.addDanger(
-              `Data source is not available. Please configure your dataSources`
-            );
-          } else if (outputType === 'QUERY' && !isSavedObjectNotebook) {
-            await loadQueryResultsFromInput(res.paragraphs[index]);
-          } else if (outputType === 'QUERY') {
-            await loadQueryResultsFromInput(res.paragraphs[index], '');
-          }
-        }
         notebookContext.state.updateValue({
           paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
         });
@@ -567,16 +458,7 @@ export function NotebookComponent({
         );
         console.error(err);
       });
-  }, [
-    loadNotebookHook,
-    setBreadcrumbs,
-    notifications.toasts,
-    loadQueryResultsFromInput,
-    dataSourceEnabled,
-    isSavedObjectNotebook,
-    notebookContext.state,
-    start,
-  ]);
+  }, [loadNotebookHook, setBreadcrumbs, notifications.toasts, notebookContext.state, start]);
 
   const handleSelectedDataSourceChange = (id: string | undefined, label: string | undefined) => {
     setDataSourceMDSId(id);
@@ -870,19 +752,9 @@ export function NotebookComponent({
                     setPara={(pr: ParagraphStateValue) => setPara(pr, index)}
                     index={index}
                     paraCount={parsedPara.length}
-                    textValueEditor={textValueEditor}
-                    handleKeyPress={handleKeyPress}
-                    DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
-                    http={http}
                     selectedViewId={selectedViewId}
                     deletePara={showDeleteParaModal}
                     runPara={updateRunParagraph}
-                    showQueryParagraphError={showQueryParagraphError}
-                    queryParagraphErrorMessage={queryParagraphErrorMessage}
-                    dataSourceManagement={dataSourceManagement}
-                    notifications={notifications}
-                    dataSourceEnabled={dataSourceMDSEnabled}
-                    savedObjectsMDSClient={savedObjectsMDSClient}
                     handleSelectedDataSourceChange={handleSelectedDataSourceChange}
                     paradataSourceMDSId={parsedPara[index].dataSourceMDSId}
                     dataSourceMDSLabel={parsedPara[index].dataSourceMDSLabel}
@@ -910,15 +782,15 @@ export function NotebookComponent({
                       <EuiFlexItem grow={3}>
                         <EuiCard
                           icon={<EuiIcon size="xxl" type="editorCodeBlock" />}
-                          title="Code block"
+                          title="Query"
                           description="Write contents directly using markdown, SQL or PPL."
                           footer={
                             <EuiSmallButton
                               data-test-subj="emptyNotebookAddCodeBlockBtn"
-                              onClick={() => createParagraph(0, '', 'CODE')}
+                              onClick={() => createParagraph(0, '%ppl ', 'CODE')}
                               style={{ marginBottom: 17 }}
                             >
-                              Add code block
+                              Add query
                             </EuiSmallButton>
                           }
                         />
@@ -964,27 +836,26 @@ export function NotebookComponent({
           </EuiPageContent>
         </EuiPageBody>
         <EuiSpacer />
-        <InputPanel
-          onCreateParagraph={handleCreateParagraph}
-          http={http}
-          dataSourceId={dataSourceMDSId}
-        />
+        <InputPanel onCreateParagraph={handleCreateParagraph} dataSourceId={dataSourceMDSId} />
       </EuiPage>
       {isModalVisible && modalLayout}
     </>
   );
 }
 
-export const Notebook = (props: NotebookProps) => {
+export const Notebook = ({ openedNoteId }: NotebookProps) => {
+  const {
+    services: { dataSource },
+  } = useOpenSearchDashboards<NoteBookServices>();
   const stateRef = useRef(
     getDefaultState({
-      id: props.openedNoteId,
-      dataSourceEnabled: props.dataSourceEnabled,
+      id: openedNoteId,
+      dataSourceEnabled: !!dataSource,
     })
   );
   return (
     <NotebookContextProvider state={stateRef.current}>
-      <NotebookComponent {...props} />
+      <NotebookComponent />
     </NotebookContextProvider>
   );
 };

@@ -12,15 +12,12 @@ import { useContext } from 'react';
 import { Observable } from 'rxjs';
 import { ParagraphStateValue } from 'common/state/paragraph_state';
 import { LogPatternAnalysisResult } from 'common/types/log_pattern';
+import { NoteBookServices } from 'public/types';
 import {
   ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
   LOG_PATTERN_PARAGRAPH_TYPE,
 } from '../../../../../common/constants/notebooks';
-import { CoreStart } from '../../../../../../../src/core/public';
-import {
-  DashboardContainerInput,
-  DashboardStart,
-} from '../../../../../../../src/plugins/dashboard/public';
+import { DashboardContainerInput } from '../../../../../../../src/plugins/dashboard/public';
 import {
   AnomalyVisualizationAnalysisOutputResult,
   ParaType,
@@ -33,6 +30,7 @@ import { LogPatternContainer } from './log_pattern_container';
 import { DashboardPanelState } from '../../../../../../../src/plugins/dashboard/public/application';
 import { EmbeddableInput } from '../../../../../../../src/plugins/embeddable/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 const createQueryColumns = (jsonColumns: any[]) => {
   let index = 0;
@@ -70,28 +68,29 @@ const getQueryOutputData = (queryObject: any) => {
 
 const OutputBody = ({
   index,
-  http,
   typeOut,
   val,
   para,
   visInput,
   setVisInput,
-  DashboardContainerByValueRenderer,
 }: {
   index: number;
-  http: CoreStart['http'];
   typeOut: string;
   val: string;
   para: ParaType;
   visInput: DashboardContainerInput;
   setVisInput: (input: DashboardContainerInput) => void;
-  DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
 }) => {
   /* Returns a component to render paragraph outputs using the para.typeOut property
    * Currently supports HTML, TABLE, IMG
    * TODO: add table rendering
    */
   const context = useContext(NotebookReactContext);
+  const {
+    services: {
+      dashboard: { DashboardContainerByValueRenderer },
+    },
+  } = useOpenSearchDashboards<NoteBookServices>();
 
   const paragraph$: Observable<ParagraphStateValue<any>> = context.state.value.paragraphs[
     index
@@ -197,7 +196,7 @@ const OutputBody = ({
       case 'IMG':
         return <img alt="" src={'data:image/gif;base64,' + val} />;
       case 'DEEP_RESEARCH':
-        return <DeepResearchContainer http={http} para={para} paragraph$={paragraph$} />;
+        return <DeepResearchContainer para={para} paragraph$={paragraph$} />;
       case ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE:
         return (
           <BubbleUpContainer
@@ -211,7 +210,6 @@ const OutputBody = ({
       case LOG_PATTERN_PARAGRAPH_TYPE:
         return (
           <LogPatternContainer
-            http={http}
             para={para}
             paragraph$={paragraph$ as Observable<ParagraphStateValue<LogPatternAnalysisResult>>}
           />
@@ -236,15 +234,13 @@ const OutputBody = ({
  */
 export interface ParaOutputProps {
   index: number;
-  http: CoreStart['http'];
   para: ParaType;
   visInput: DashboardContainerInput;
   setVisInput: (input: DashboardContainerInput) => void;
-  DashboardContainerByValueRenderer: DashboardStart['DashboardContainerByValueRenderer'];
 }
 
 export const ParaOutput = (props: ParaOutputProps) => {
-  const { index, para, http, DashboardContainerByValueRenderer, visInput, setVisInput } = props;
+  const { index, para, visInput, setVisInput } = props;
 
   return (
     !para.isRunning && (
@@ -259,8 +255,6 @@ export const ParaOutput = (props: ParaOutputProps) => {
               para={para}
               visInput={visInput}
               setVisInput={setVisInput}
-              DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
-              http={http}
             />
           );
         })}

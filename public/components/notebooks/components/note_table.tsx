@@ -27,8 +27,6 @@ import truncate from 'lodash/truncate';
 import moment from 'moment';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
-import { CoreStart, HttpStart, SavedObjectsStart } from '../../../../../../src/core/public';
-import { DataSourceManagementPluginSetup } from '../../../../../../src/plugins/data_source_management/public';
 import {
   CREATE_NOTE_MESSAGE,
   NOTEBOOKS_DOCUMENTATION_URL,
@@ -36,7 +34,6 @@ import {
 import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
 import { setNavBreadCrumbs } from '../../../../common/utils/set_nav_bread_crumbs';
 import { HeaderControlledComponentsWrapper } from '../../../../public/plugin_helpers/plugin_headerControl';
-import { coreRefs } from '../../../framework/core_refs';
 import {
   DeleteNotebookModal,
   getCustomModal,
@@ -44,27 +41,21 @@ import {
 } from './helpers/modal_containers';
 import { NotebookType } from './main';
 import { NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
-import { toMountPoint } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
-
-const newNavigation = coreRefs.chrome?.navGroup.getNavGroupEnabled();
+import {
+  toMountPoint,
+  useOpenSearchDashboards,
+} from '../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { NoteBookServices } from '../../../types';
 
 interface NoteTableProps {
   deleteNotebook: (noteList: string[], toastMessage?: string) => void;
-  dataSourceEnabled: boolean;
-  dataSourceManagement: DataSourceManagementPluginSetup;
-  savedObjectsMDSClient: SavedObjectsStart;
-  notifications: CoreStart['notifications'];
-  http: HttpStart;
 }
 
-export function NoteTable({
-  deleteNotebook,
-  dataSourceEnabled,
-  dataSourceManagement,
-  savedObjectsMDSClient,
-  notifications,
-  http,
-}: NoteTableProps) {
+export function NoteTable({ deleteNotebook }: NoteTableProps) {
+  const {
+    services: { http, notifications, savedObjects: savedObjectsMDSClient, dataSource, chrome },
+  } = useOpenSearchDashboards<NoteBookServices>();
+
   const [notebooks, setNotebooks] = useState<NotebookType[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false); // Modal Toggle
   const [modalLayout, setModalLayout] = useState(<EuiOverlayMask />); // Modal Layout
@@ -73,6 +64,9 @@ export function NoteTable({
   const [loading, setLoading] = useState(false);
   const location = useLocation();
   const history = useHistory();
+
+  const dataSourceEnabled = !!dataSource;
+  const newNavigation = chrome.navGroup.getNavGroupEnabled();
 
   // Fetches path and id for all stored notebooks
   const fetchNotebooks = useCallback(() => {
@@ -101,10 +95,11 @@ export function NoteTable({
           href: '#/',
         },
       ],
+      chrome,
       notebooks.length
     );
     fetchNotebooks();
-  }, [notebooks.length, fetchNotebooks]);
+  }, [notebooks.length, fetchNotebooks, chrome]);
 
   const closeModal = useCallback(() => {
     setIsModalVisible(false);
@@ -370,7 +365,6 @@ export function NoteTable({
           await addSampleNotebooks(selectedDataSourceId, selectedDataSourceLabel);
         },
         dataSourceEnabled,
-        dataSourceManagement,
         savedObjectsMDSClient,
         notifications,
         handleSelectedDataSourceChange

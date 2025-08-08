@@ -17,9 +17,11 @@ import {
 import React, { useCallback, useContext, useState } from 'react';
 import moment from 'moment';
 import { useObservable } from 'react-use';
+import { NoteBookServices } from 'public/types';
 import { NotebookReactContext } from '../context_provider/context_provider';
-import { getCoreStart, getDataSourceManagementSetup } from '../../../services';
+import { getDataSourceManagementSetup } from '../../../services';
 import { ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE } from '../../../../common/constants/notebooks';
+import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 interface AddButtonProps {
   addPara: (index: number, newParaContent: string, inputType: string) => Promise<void>;
@@ -31,7 +33,9 @@ export const ContextPanel = ({ addPara }: AddButtonProps) => {
     context.state.value.context.getValue$(),
     context.state.value.context.value
   );
-  const coreStart = getCoreStart();
+  const {
+    services: { savedObjects: savedObjectsMDSClient, notifications },
+  } = useOpenSearchDashboards<NoteBookServices>();
   const dataSourceManagementSetup = getDataSourceManagementSetup();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -65,9 +69,9 @@ export const ContextPanel = ({ addPara }: AddButtonProps) => {
           {DataSourceSelector ? (
             <EuiFlexItem>
               <DataSourceSelector
-                savedObjectsClient={coreStart.savedObjects.client}
+                savedObjectsClient={savedObjectsMDSClient.client}
                 disabled
-                notifications={coreStart.notifications.toasts}
+                notifications={notifications.toasts}
                 onSelectedDataSource={() => {}}
                 fullWidth
                 defaultOption={[

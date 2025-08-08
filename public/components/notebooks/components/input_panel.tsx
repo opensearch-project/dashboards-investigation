@@ -67,6 +67,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({
       key: 'DEEP_RESEARCH_AGENT',
       'data-test-subj': 'paragraph-type-deep-research',
     },
+    { label: 'SQL', key: 'SQL', 'data-test-subj': 'paragraph-type-sql' },
   ];
 
   const executeActionSelectionAgent = async (input: string, actions: ActionMetadata[]) => {
@@ -129,6 +130,10 @@ export const InputPanel: React.FC<InputPanelProps> = ({
         case 'PPL':
           inputType = 'CODE';
           paragraphInput = '%ppl\n';
+          break;
+        case 'SQL':
+          inputType = 'CODE';
+          paragraphInput = '%sql\n';
           break;
         case 'MARKDOWN':
           inputType = 'CODE';

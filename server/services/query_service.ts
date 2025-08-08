@@ -14,8 +14,7 @@ export class QueryService {
   private describeQueryInternal = async (
     transport: OpenSearchClient['transport'],
     query: string,
-    path: string,
-    responseFormat: string
+    path: string
   ) => {
     try {
       const queryRequest = {
@@ -31,9 +30,7 @@ export class QueryService {
       return {
         data: {
           ok: true,
-          resp: _.isEqual(responseFormat, 'json')
-            ? JSON.stringify(queryResponse.body)
-            : queryResponse.body,
+          resp: queryResponse.body,
         },
       };
     } catch (err) {
@@ -51,10 +48,10 @@ export class QueryService {
   };
 
   describeSQLQuery = async (transport: OpenSearchClient['transport'], query: string) => {
-    return this.describeQueryInternal(transport, query, 'investigationNotebook.sqlQuery', 'json');
+    return this.describeQueryInternal(transport, query, '/_plugins/_sql');
   };
 
   describePPLQuery = async (transport: OpenSearchClient['transport'], query: string) => {
-    return this.describeQueryInternal(transport, query, '/_plugins/_ppl', 'json');
+    return this.describeQueryInternal(transport, query, '/_plugins/_ppl');
   };
 }

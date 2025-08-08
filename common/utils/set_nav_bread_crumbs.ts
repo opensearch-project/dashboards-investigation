@@ -4,14 +4,15 @@
  */
 
 import { EuiBreadcrumb } from '@elastic/eui';
-import { coreRefs } from '../../public/framework/core_refs';
+import { ChromeStart } from '../../../../src/core/public';
 
 export const setNavBreadCrumbs = (
   parentBreadCrumb: EuiBreadcrumb[],
   pageBreadCrumb: EuiBreadcrumb[],
+  chrome: ChromeStart,
   counter?: number
 ) => {
-  const isNavGroupEnabled = coreRefs?.chrome?.navGroup.getNavGroupEnabled();
+  const isNavGroupEnabled = chrome.navGroup.getNavGroupEnabled();
 
   const updatedPageBreadCrumb = pageBreadCrumb.map((crumb) => ({
     ...crumb,
@@ -19,8 +20,8 @@ export const setNavBreadCrumbs = (
   }));
 
   if (isNavGroupEnabled) {
-    coreRefs?.chrome?.setBreadcrumbs([...updatedPageBreadCrumb]);
+    chrome.setBreadcrumbs([...updatedPageBreadCrumb]);
   } else {
-    coreRefs?.chrome?.setBreadcrumbs([...parentBreadCrumb, ...updatedPageBreadCrumb]);
+    chrome.setBreadcrumbs([...parentBreadCrumb, ...updatedPageBreadCrumb]);
   }
 };

@@ -12,6 +12,8 @@ import { sampleParsedParagraghs1 } from '../../../../../../test/notebooks_consta
 import { ParagraphProps, Paragraphs } from '../paragraphs';
 import { ParagraphStateValue } from '../../../../../../common/state/paragraph_state';
 import { MockContextProvider } from '../../../context_provider/context_provider.mock';
+import { OpenSearchDashboardsContextProvider } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { notificationServiceMock } from '../../../../../../../../src/core/public/mocks';
 
 jest.mock('../../../../../../../../src/plugins/embeddable/public', () => ({
   ViewMode: {
@@ -28,12 +30,12 @@ const mockFind = jest.fn().mockResolvedValue({
   savedObjects: [],
 });
 
-jest.mock('../../../../../framework/core_refs', () => ({
-  coreRefs: {
-    savedObjectsClient: {
-      find: (options) => mockFind(options),
+jest.mock('../../../../../../public/services', () => ({
+  getDataSourceManagementSetup: jest.fn(() => ({
+    dataSourceManagement: {
+      ui: { DataSourceSelector: () => <div data-test-sub="dataSourceSelector" /> },
     },
-  },
+  })),
 }));
 
 const ContextAwareParagraphs = (
@@ -42,9 +44,21 @@ const ContextAwareParagraphs = (
   }
 ) => {
   return (
-    <MockContextProvider paragraphValues={props.paragraphValues}>
-      <Paragraphs {...props} />
-    </MockContextProvider>
+    <OpenSearchDashboardsContextProvider
+      services={{
+        http: getOSDHttp(),
+        dashboard: {
+          DashboardContainerByValueRenderer: jest.fn(),
+        },
+        savedObjects: { client: { find: mockFind } },
+        dataSource: {},
+        notifications: notificationServiceMock.createStartContract(),
+      }}
+    >
+      <MockContextProvider paragraphValues={props.paragraphValues}>
+        <Paragraphs {...props} />
+      </MockContextProvider>
+    </OpenSearchDashboardsContextProvider>
   );
 };
 
@@ -54,8 +68,6 @@ describe('<Paragraphs /> spec', () => {
   it('renders the component', () => {
     const setPara = jest.fn();
     const paragraphSelector = jest.fn();
-    const textValueEditor = jest.fn();
-    const handleKeyPress = jest.fn();
     const addPara = jest.fn();
     const DashboardContainerByValueRenderer = jest.fn();
     const deletePara = jest.fn();
@@ -70,19 +82,26 @@ describe('<Paragraphs /> spec', () => {
         index={0}
         paraCount={2}
         paragraphSelector={paragraphSelector}
-        textValueEditor={textValueEditor}
-        handleKeyPress={handleKeyPress}
         addPara={addPara}
         DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
         http={getOSDHttp()}
         selectedViewId="view_both"
         deletePara={deletePara}
         runPara={runPara}
-        showQueryParagraphError={false}
-        queryParagraphErrorMessage="error-message"
         dataSourceEnabled={false}
         paragraphs={[]}
-        paragraphValues={sampleParsedParagraghs1}
+        paragraphValues={[
+          {
+            ...sampleParsedParagraghs1[0],
+            input: {
+              inputType: 'CODE',
+              inputText: '%md # Type your input here',
+            },
+            dateCreated: '',
+            dateModified: '',
+            id: '',
+          },
+        ]}
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();
@@ -91,8 +110,6 @@ describe('<Paragraphs /> spec', () => {
   it('use SavedObject find to fetch visualizations when dataSourceEnabled', () => {
     const setPara = jest.fn();
     const paragraphSelector = jest.fn();
-    const textValueEditor = jest.fn();
-    const handleKeyPress = jest.fn();
     const addPara = jest.fn();
     const DashboardContainerByValueRenderer = jest.fn();
     const deletePara = jest.fn();
@@ -125,20 +142,27 @@ describe('<Paragraphs /> spec', () => {
         index={0}
         paraCount={2}
         paragraphSelector={paragraphSelector}
-        textValueEditor={textValueEditor}
-        handleKeyPress={handleKeyPress}
         addPara={addPara}
         DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
         http={getOSDHttp()}
         selectedViewId="view_both"
         deletePara={deletePara}
         runPara={runPara}
-        showQueryParagraphError={false}
-        queryParagraphErrorMessage="error-message"
         dataSourceEnabled={true}
-        dataSourceManagement={{ ui: { DataSourceSelector: <></> } }}
+        dataSourceManagement={{ ui: { DataSourceSelector: () => null } }}
         paragraphs={[]}
-        paragraphValues={[para]}
+        paragraphValues={[
+          {
+            ...para,
+            input: {
+              inputType: 'VISUALIZATION',
+              inputText: '%md # Type your input here',
+            },
+            dateCreated: '',
+            dateModified: '',
+            id: '',
+          },
+        ]}
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();

@@ -249,7 +249,7 @@ exports[`<Notebook /> spec Renders the empty component 1`] = `
                     class="euiTitle euiTitle--small euiCard__title"
                     id="random_html_idTitle"
                   >
-                    Code block
+                    Query
                   </span>
                   <div
                     class="euiText euiText--small euiCard__description"
@@ -275,7 +275,7 @@ exports[`<Notebook /> spec Renders the empty component 1`] = `
                       <span
                         class="euiButton__text"
                       >
-                        Add code block
+                        Add query
                       </span>
                     </span>
                   </button>

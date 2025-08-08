@@ -35,3 +35,5 @@ export const OPENSEARCH_DATACONNECTIONS_API = {
 
 // Saved Objects
 export const SAVED_OBJECT = '/object';
+
+export const observabilityLogsID = 'observability-logs';

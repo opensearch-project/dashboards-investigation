@@ -5,15 +5,18 @@
 
 import { useContext, useCallback } from 'react';
 import { ParagraphBackendType } from 'common/types/notebooks';
+import { NoteBookServices } from 'public/types';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
-import { getCoreStart } from '../services';
 import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
+import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 
 export const useParagraphs = () => {
   const context = useContext(NotebookReactContext);
-  const { http } = context;
+  const {
+    services: { notifications, http },
+  } = useOpenSearchDashboards<NoteBookServices>();
   const { id } = context.state.value;
 
   const createParagraph = useCallback(
@@ -26,7 +29,7 @@ export const useParagraphs = () => {
         inputType: inpType,
       };
 
-      return context.http
+      return http
         .post(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
           body: JSON.stringify(addParaObj),
         })
@@ -43,13 +46,13 @@ export const useParagraphs = () => {
           return context.state.value.paragraphs[index];
         })
         .catch((err) => {
-          getCoreStart().notifications.toasts.addDanger(
+          notifications.toasts.addDanger(
             'Error adding paragraph, please make sure you have the correct permission.'
           );
           console.error(err);
         });
     },
-    [context]
+    [context, notifications.toasts, http]
   );
 
   // Function to move a paragraph
@@ -74,7 +77,7 @@ export const useParagraphs = () => {
         });
       })
       .catch((err) => {
-        getCoreStart().notifications.toasts.addDanger(
+        notifications.toasts.addDanger(
           'Error moving paragraphs, please make sure you have the correct permission.'
         );
         console.error(err);
@@ -103,9 +106,7 @@ export const useParagraphs = () => {
         (paragraph) => paragraph.value.id === paragraphId
       );
       if (!findUpdateParagraphState) {
-        return getCoreStart().notifications.toasts.addDanger(
-          'The paragraph you want to save can not be found'
-        );
+        return notifications.toasts.addDanger('The paragraph you want to save can not be found');
       }
 
       findUpdateParagraphState.updateUIState({
@@ -113,7 +114,7 @@ export const useParagraphs = () => {
       });
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const outputPayload = output?.map(({ execution_time: executionTime, ...others }) => others);
-      return context.http
+      const promise = http
         .put<ParagraphBackendType<T>>(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph`, {
           body: JSON.stringify({
             noteId: context.state.value.id,
@@ -126,9 +127,11 @@ export const useParagraphs = () => {
           if (findUpdateParagraphState) {
             findUpdateParagraphState.updateValue(res);
           }
-        })
+        });
+
+      promise
         .catch((err) => {
-          getCoreStart().notifications.toasts.addDanger(
+          notifications.toasts.addDanger(
             'Error updating paragraph, please make sure you have the correct permission.'
           );
           console.error(err);
@@ -138,8 +141,10 @@ export const useParagraphs = () => {
             isRunning: false,
           });
         });
+
+      return promise;
     },
-    [context.http, context.state.value.id, context.state.value.paragraphs]
+    [http, context.state.value.id, context.state.value.paragraphs, notifications.toasts]
   );
   const showParagraphRunning = useCallback(
     (param: number | string) => {
@@ -189,7 +194,7 @@ export const useParagraphs = () => {
           return _res;
         })
         .catch((err) => {
-          getCoreStart().notifications.toasts.addDanger(
+          notifications.toasts.addDanger(
             'Error deleting paragraph, please make sure you have the correct permission.'
           );
           console.error(err);
@@ -201,11 +206,27 @@ export const useParagraphs = () => {
     cloneParagraph,
     saveParagraph,
     runParagraph: useCallback(
-      (index: number) => {
+      (props: { index?: number; id?: string }) => {
         const { id: openedNoteId } = context.state.value;
+        let index: number = -1;
+        if (props.hasOwnProperty('index') && props.index) {
+          index = props.index;
+        } else {
+          index = context.state
+            .getParagraphsValue()
+            .findIndex((paragraph) => paragraph.id === props.id);
+        }
+
+        if (index < 0) {
+          notifications.toasts.addDanger('Please provide a valid paragraph index or id to run');
+          return;
+        }
+
         const para = context.state.getParagraphsValue()[index];
         const isSavedObjectNotebook = isValidUUID(openedNoteId);
-        showParagraphRunning(index);
+        context.state.value.paragraphs[index].updateUIState({
+          isRunning: true,
+        });
 
         const paraUpdateObject = {
           noteId: openedNoteId,
@@ -227,16 +248,19 @@ export const useParagraphs = () => {
           })
           .catch((err) => {
             if (err?.body?.statusCode === 413)
-              getCoreStart().notifications.toasts.addDanger(
-                `Error running paragraph: ${err.body.message}`
-              );
+              notifications.toasts.addDanger(`Error running paragraph: ${err.body.message}`);
             else
-              getCoreStart().notifications.toasts.addDanger(
+              notifications.toasts.addDanger(
                 'Error running paragraph, please make sure you have the correct permission.'
               );
+          })
+          .finally(() => {
+            context.state.value.paragraphs[index].updateUIState({
+              isRunning: false,
+            });
           });
       },
-      [context.state, http, showParagraphRunning]
+      [context.state, http, notifications.toasts]
     ),
   };
 };

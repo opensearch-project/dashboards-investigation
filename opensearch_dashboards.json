@@ -5,24 +5,17 @@
   "server": true,
   "ui": true,
   "requiredPlugins": [
-    "charts",
     "dashboard",
     "data",
     "embeddable",
-    "inspector",
     "navigation",
     "opensearchDashboardsReact",
     "opensearchDashboardsUtils",
     "savedObjects",
-    "uiActions",
-    "urlForwarding",
     "visualizations",
-    "contentManagement",
     "expressions"
   ],
   "optionalPlugins": [
-    "managementOverview",
-    "securityDashboards",
     "dataSource",
     "dataSourceManagement"
   ],
