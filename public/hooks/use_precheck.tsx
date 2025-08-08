@@ -91,33 +91,28 @@ export const usePrecheck = () => {
           );
           const subscription = combinedObservable.subscribe(async (paragraphValues) => {
             const anomalyAnalysisParagraph = paragraphValues.find(
-              (p) =>
-                p.input?.inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE &&
-                !p.uiState?.inQueue &&
-                !p.uiState?.isRunning
+              (p) => p.input?.inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE
             );
             const logPatternPara = paragraphValues.find(
-              (p) =>
-                p.input?.inputType === LOG_PATTERN_PARAGRAPH_TYPE &&
-                !p.uiState?.inQueue &&
-                !p.uiState?.isRunning
+              (p) => p.input?.inputType === LOG_PATTERN_PARAGRAPH_TYPE
             );
 
             const hasAnomalyResult =
               anomalyAnalysisParagraph?.output?.[0]?.result &&
               anomalyAnalysisParagraph.output[0].result !== '';
-            const hasLogPatternResult = logPatternPara?.output?.[0]?.result;
+            const hasLogPatternResult =
+              logPatternPara?.output?.[0]?.result && logPatternPara?.output?.[0]?.result !== '';
 
             if (hasAnomalyResult && hasLogPatternResult && !deepResearchParaCreated.current) {
               deepResearchParaCreated.current = true;
 
               await createParagraph(
                 totalParagraphLength + 2,
-                "What's wrong with my application?",
+                'What did the alert happen?',
                 DEEP_RESEARCH_PARAGRAPH_TYPE
               );
 
-              await runParagraph(totalParagraphLength + 2);
+              await runParagraph({ index: totalParagraphLength + 2 });
 
               // Force re-render to ensure UI updates
               notebookContext.state.updateValue({
