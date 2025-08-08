@@ -16,7 +16,7 @@ import { EuiStepHorizontalProps } from '@elastic/eui/src/components/steps/step_h
 import { useObservable } from 'react-use';
 import { Observable } from 'rxjs';
 import { AnomalyVisualizationAnalysisOutputResult } from 'common/types/notebooks';
-import { getEmbeddable } from '../../../../services';
+import { NoteBookServices } from 'public/types';
 import { BubbleUpInput } from './embeddable/types';
 import { EmbeddableRenderer } from '../../../../../../../src/plugins/embeddable/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
@@ -25,6 +25,7 @@ import { BubbleUpDataService } from './bubble_up_data_service';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
 import './bubble_up_viz.scss';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 const ITEMS_PER_PAGE = 3;
 
@@ -33,6 +34,9 @@ export const BubbleUpContainer = ({
 }: {
   paragraph$: Observable<ParagraphStateValue<AnomalyVisualizationAnalysisOutputResult>>;
 }) => {
+  const {
+    services: { embeddable },
+  } = useOpenSearchDashboards<NoteBookServices>();
   const context = useContext(NotebookReactContext);
   const topContextValue = useObservable(
     context.state.value.context.getValue$(),
@@ -47,7 +51,8 @@ export const BubbleUpContainer = ({
   const [specsLoading, setSpecsLoading] = useState(false);
   const [distributionLoading, setDistributionLoading] = useState(false);
   const [bubbleUpSpecs, setBubbleUpSpecs] = useState<Array<Record<string, unknown>>>([]);
-  const factory = getEmbeddable().getEmbeddableFactory<BubbleUpInput>('vega_visualization');
+  const factory = embeddable.getEmbeddableFactory<BubbleUpInput>('vega_visualization');
+
   const dataService = useMemo(() => new BubbleUpDataService(), []);
 
   useEffect(() => {
