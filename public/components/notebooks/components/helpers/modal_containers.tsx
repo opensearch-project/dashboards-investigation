@@ -19,6 +19,7 @@ import {
   EuiSpacer,
   EuiText,
   EuiTitle,
+  EuiSwitch,
 } from '@elastic/eui';
 import React, { useState } from 'react';
 import { CoreStart, SavedObjectsStart } from '../../../../../../../src/core/public';
@@ -225,6 +226,93 @@ export const DeleteNotebookModal = ({
             disabled={value !== 'delete'}
           >
             Delete
+          </EuiSmallButton>
+        </EuiModalFooter>
+      </EuiModal>
+    </EuiOverlayMask>
+  );
+};
+
+interface CreateNotebookModalProps {
+  runModal: (name: string, isAgentic: boolean) => void;
+  closeModal: (
+    event?: React.KeyboardEvent<HTMLDivElement> | React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ) => void;
+  labelTxt: string;
+  titletxt: string;
+  btn1txt: string;
+  btn2txt: string;
+  openNoteName?: string;
+  helpText?: string;
+}
+
+export const CreateNotebookModal = ({
+  runModal,
+  closeModal,
+  labelTxt,
+  titletxt,
+  btn1txt,
+  btn2txt,
+  openNoteName,
+  helpText,
+}: CreateNotebookModalProps) => {
+  const [value, setValue] = useState(openNoteName || ''); // sets input value
+  const [checked, setChecked] = useState(true);
+
+  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(e.target.value);
+  };
+
+  const onToggle = (
+    e: React.BaseSyntheticEvent<
+      React.MouseEvent<HTMLButtonElement>,
+      HTMLButtonElement,
+      EventTarget & { checked: boolean }
+    >
+  ) => {
+    setChecked(e.target.checked);
+  };
+
+  return (
+    <EuiOverlayMask>
+      <EuiModal onClose={closeModal} initialFocus="[name=input]">
+        <EuiModalHeader>
+          <EuiModalHeaderTitle>
+            <EuiText size="s">
+              <h2>{titletxt}</h2>
+            </EuiText>
+          </EuiModalHeaderTitle>
+        </EuiModalHeader>
+
+        <EuiModalBody>
+          <EuiForm>
+            <EuiCompressedFormRow label={labelTxt} helpText={helpText}>
+              <EuiCompressedFieldText
+                data-test-subj="custom-input-modal-input"
+                name="input"
+                value={value}
+                onChange={(e) => onChange(e)}
+              />
+            </EuiCompressedFormRow>
+            <EuiSpacer size="m" />
+            <EuiCompressedFormRow label="Notebook Type">
+              <EuiSwitch
+                label={checked ? 'Agentic Notebook' : 'Classic Notebook'}
+                checked={checked}
+                onChange={(e) => onToggle(e)}
+              />
+            </EuiCompressedFormRow>
+          </EuiForm>
+        </EuiModalBody>
+
+        <EuiModalFooter>
+          <EuiSmallButtonEmpty onClick={closeModal}>{btn1txt}</EuiSmallButtonEmpty>
+          <EuiSmallButton
+            data-test-subj="custom-input-modal-confirm-button"
+            onClick={() => runModal(value, checked)}
+            fill
+          >
+            {btn2txt}
           </EuiSmallButton>
         </EuiModalFooter>
       </EuiModal>

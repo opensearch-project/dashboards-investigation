@@ -29,6 +29,7 @@ export interface NotebookType {
   id: string;
   dateCreated: string;
   dateModified: string;
+  isAgentic: boolean;
 }
 
 export const Main: React.FC = () => {
