@@ -46,6 +46,7 @@ import { ParagraphState, ParagraphStateValue } from '../../../../../common/state
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { getDataSourceManagementSetup } from '../../../../../public/services';
 import { DeepResearchParagraph } from './deep_research';
+import { VisualizationParagraph } from './visualization';
 
 /*
  * "Paragraphs" component is used to render cells of the notebook open and "add para div" between paragraphs
@@ -400,8 +401,15 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
             return (
               <div key={paragraph.value.id} className={paraClass}>
                 <DeepResearchParagraph
-                  paragraphState={paragraph as ParagraphState<DeepResearchOutputResult>}
+                  paragraphState={paragraph as ParagraphState<DeepResearchOutputResult | { agent_id?: string } | string>}
                 />
+              </div>
+            );
+          }
+          case 'VISUALIZATION': {
+            return (
+              <div key={paragraph.value.id} className={paraClass}>
+                <VisualizationParagraph paragraphState={paragraph as ParagraphState<string>} />
               </div>
             );
           }
