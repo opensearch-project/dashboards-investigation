@@ -21,6 +21,7 @@ export const useParagraphs = () => {
 
   const createParagraph = useCallback(
     (index: number, newParaContent: string, inpType: string) => {
+      const { context: notebookContext } = context.state.value;
       const addParaObj = {
         noteId: context.state.value.id,
         paragraphIndex: index,
@@ -33,6 +34,10 @@ export const useParagraphs = () => {
           body: JSON.stringify(addParaObj),
         })
         .then((res) => {
+          const dataSourceId = notebookContext?.value?.dataSourceId;
+          if (dataSourceId) {
+            res.dataSourceMDSId = dataSourceId;
+          }
           const newParagraphs = [...context.state.value.paragraphs];
           newParagraphs.splice(index, 0, new ParagraphState(res));
           context.state.updateValue({
