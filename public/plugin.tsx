@@ -27,6 +27,7 @@ import {
   setClient,
   setData,
   setDataSourceManagementSetup,
+  setEmbeddable,
   setExpressions,
   setSearch,
 } from './services';
@@ -102,6 +103,7 @@ export class InvestigationPlugin
     setData(startDeps.data);
     setSearch(startDeps.data.search);
     setClient(core.http);
+    setEmbeddable(startDeps.embeddable);
 
     // Export so other plugins can use this flyout
     return {};
