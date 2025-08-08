@@ -91,10 +91,16 @@ export const usePrecheck = () => {
           );
           const subscription = combinedObservable.subscribe(async (paragraphValues) => {
             const anomalyAnalysisParagraph = paragraphValues.find(
-              (p) => p.input?.inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE
+              (p) =>
+                p.input?.inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE &&
+                !p.uiState?.inQueue &&
+                !p.uiState?.isRunning
             );
             const logPatternPara = paragraphValues.find(
-              (p) => p.input?.inputType === LOG_PATTERN_PARAGRAPH_TYPE
+              (p) =>
+                p.input?.inputType === LOG_PATTERN_PARAGRAPH_TYPE &&
+                !p.uiState?.inQueue &&
+                !p.uiState?.isRunning
             );
 
             const hasAnomalyResult =
@@ -108,7 +114,7 @@ export const usePrecheck = () => {
 
               await createParagraph(
                 totalParagraphLength + 2,
-                'What did the alert happen?',
+                'What did the alert happen? Find the root cause and give some solutions.',
                 DEEP_RESEARCH_PARAGRAPH_TYPE
               );
 
