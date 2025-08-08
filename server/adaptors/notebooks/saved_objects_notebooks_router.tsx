@@ -17,6 +17,7 @@ export function fetchNotebooks(savedObjectNotebooks: []) {
         dateModified: savedObject.attributes.savedNotebook.dateModified,
         path: savedObject.attributes.savedNotebook.name,
         id: savedObject.id,
+        isAgentic: savedObject.attributes.savedNotebook.context?.isAgentic || false,
       });
     }
   });

@@ -45,6 +45,7 @@ export interface NotebookType {
   id: string;
   dateCreated: string;
   dateModified: string;
+  isAgentic: boolean;
 }
 
 export class Main extends React.Component<MainProps, MainState> {

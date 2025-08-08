@@ -38,8 +38,8 @@ import { setNavBreadCrumbs } from '../../../../common/utils/set_nav_bread_crumbs
 import { HeaderControlledComponentsWrapper } from '../../../../public/plugin_helpers/plugin_headerControl';
 import { coreRefs } from '../../../framework/core_refs';
 import {
+  CreateNotebookModal,
   DeleteNotebookModal,
-  getCustomModal,
   getSampleNotebooksModal,
 } from './helpers/modal_containers';
 import { NotebookType } from './main';
@@ -115,7 +115,7 @@ export function NoteTable({
 
   // Creates a new notebook
   const createNotebook = useCallback(
-    async (newNoteName: string) => {
+    async (newNoteName: string, isAgentic: boolean) => {
       if (newNoteName.length >= 50 || newNoteName.length === 0) {
         notifications.toasts.addDanger('Invalid notebook name');
         window.location.assign('#/');
@@ -123,6 +123,7 @@ export function NoteTable({
       }
       const newNoteObject = {
         name: newNoteName,
+        context: { isAgentic: isAgentic },
       };
 
       return http
@@ -150,8 +151,8 @@ export function NoteTable({
   );
 
   const onCreate = useCallback(
-    async (newNoteName: string) => {
-      createNotebook(newNoteName);
+    async (newNoteName: string, isAgentic: boolean) => {
+      createNotebook(newNoteName, isAgentic);
       closeModal();
     },
     [createNotebook, closeModal]
@@ -173,19 +174,16 @@ export function NoteTable({
 
   const createNote = useCallback(() => {
     setModalLayout(
-      getCustomModal(
-        onCreate,
-        () => {
-          closeModal();
-          history.goBack();
-        },
-        'Name',
-        'Create notebook',
-        'Cancel',
-        'Create',
-        undefined,
-        CREATE_NOTE_MESSAGE
-      )
+      <CreateNotebookModal
+        runModal={onCreate}
+        closeModal={closeModal}
+        labelTxt="Name"
+        titletxt="Create notebook"
+        btn1txt="Cancel"
+        btn2txt="Create"
+        openNoteName={undefined}
+        helpText={CREATE_NOTE_MESSAGE}
+      />
     );
     showModal();
   }, [onCreate, closeModal, history]);
@@ -390,6 +388,13 @@ export function NoteTable({
       ),
     },
     {
+      field: 'isAgentic',
+      name: 'Type',
+      sortable: true,
+      render: (isAgentic) =>
+        isAgentic !== undefined && isAgentic === true ? 'Agentic' : 'Classic',
+    },
+    {
       field: 'dateModified',
       name: 'Last updated',
       sortable: true,
@@ -407,6 +412,7 @@ export function NoteTable({
       id: string;
       dateCreated: string;
       dateModified: string;
+      isAgentic: boolean;
     }>
   >;
 
