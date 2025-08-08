@@ -9,24 +9,15 @@ import {
   EuiFlexItem,
   EuiPanel,
   EuiText,
-  EuiTitle,
   EuiSpacer,
   EuiCallOut,
-  EuiCodeBlock,
-  EuiBadge,
-  EuiAccordion,
-  EuiBasicTable,
-  EuiTableFieldDataColumnType,
-  EuiIcon,
-  EuiPopover,
-  EuiEmptyPrompt,
   EuiProgress,
   EuiLoadingSpinner,
-  EuiButtonIcon,
+  EuiIcon,
 } from '@elastic/eui';
 import moment from 'moment';
 import { useObservable } from 'react-use';
-import { LogPattern, LogPatternAnalysisResult, LogSequenceEntry } from 'common/types/log_pattern';
+import { LogPatternAnalysisResult } from 'common/types/log_pattern';
 import { Observable } from 'rxjs';
 import { NoteBookServices } from 'public/types';
 import { ParaType } from '../../../../../common/types/notebooks';
@@ -38,6 +29,10 @@ import { NotebookReactContext } from '../../context_provider/context_provider';
 import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { LogInsight } from './components/log_insight';
+import { PatternDifference } from './components/pattern_difference';
+import { LogSequence } from './components/log_sequence';
+import { SummaryStatistics } from './components/summary_statistics';
 
 interface LogPatternContainerProps {
   para: ParaType;
@@ -75,7 +70,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
   });
   const { saveParagraph } = useParagraphs();
   const [hasData, setHasData] = useState<boolean>(false);
-  const [openPopovers, setOpenPopovers] = useState<{ [key: string]: boolean }>({});
   const notebookReactContext = useContext(NotebookReactContext);
 
   const notebookState = useObservable(notebookReactContext.state.getValue$());
@@ -104,28 +98,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
   const memoizedParaOut = useMemo(() => {
     return paragraph?.output?.[0].result;
   }, [paragraph]);
-
-  const togglePopover = (id: string) => {
-    setOpenPopovers((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
-
-  const closePopover = (id: string) => {
-    setOpenPopovers((prev) => ({
-      ...prev,
-      [id]: false,
-    }));
-  };
-
-  // Helper function to convert map to array for table rendering
-  const convertMapToSequenceArray = (map: { [key: string]: string }): LogSequenceEntry[] => {
-    return Object.entries(map || {}).map(([traceId, sequence]) => ({
-      traceId,
-      sequence,
-    }));
-  };
 
   useEffect(() => {
     if (!memoizedContextValues) {
@@ -276,7 +248,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
 
           setHasData(true);
         } catch (err) {
-          if (err.response.status === 404) {
+          if (err.response?.status === 404) {
             setError('Log sequence/pattern analysis agent not found');
             return;
           }
@@ -396,209 +368,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
     );
   }
 
-  // Columns for log insights table
-  const logInsightsColumns: Array<EuiTableFieldDataColumnType<LogPattern>> = [
-    {
-      field: 'pattern',
-      name: 'Log template',
-      render: (pattern: string) => (
-        <EuiCodeBlock language="text" fontSize="s" paddingSize="s" transparentBackground>
-          {pattern}
-        </EuiCodeBlock>
-      ),
-      width: '50%',
-    },
-    {
-      field: 'count',
-      name: 'Count',
-      render: (count: number) => <EuiBadge color="primary">{count}</EuiBadge>,
-      width: '10%',
-    },
-    {
-      field: 'sampleLogs',
-      name: 'Examples',
-      render: (examples: string[], record: LogPattern) => {
-        const popoverId = `examples-${record.pattern.replace(/[^a-zA-Z0-9]/g, '')}-${record.count}`;
-        return (
-          <EuiPopover
-            id={popoverId}
-            button={
-              <EuiButtonIcon
-                iconType="inspect"
-                aria-label="View examples"
-                onClick={() => togglePopover(popoverId)}
-              />
-            }
-            isOpen={openPopovers[popoverId] || false}
-            closePopover={() => closePopover(popoverId)}
-            panelPaddingSize="s"
-          >
-            <div style={{ maxWidth: '400px', maxHeight: '300px', overflowY: 'auto' }}>
-              <EuiTitle size="xs">
-                <h4>Log Examples</h4>
-              </EuiTitle>
-              <EuiSpacer size="s" />
-              {examples?.slice(0, 10).map((example, idx) => (
-                <div key={idx} style={{ marginBottom: '8px' }}>
-                  <EuiCodeBlock language="text" fontSize="s" paddingSize="s">
-                    {example}
-                  </EuiCodeBlock>
-                </div>
-              ))}
-              {examples?.length > 10 && (
-                <EuiText
-                  size="xs"
-                  color="subdued"
-                  style={{ textAlign: 'center', marginTop: '8px' }}
-                >
-                  ... and {examples.length - 10} more examples
-                </EuiText>
-              )}
-            </div>
-          </EuiPopover>
-        );
-      },
-      width: '10%',
-    },
-  ];
-
-  // Columns for pattern difference table
-  const patternDiffColumns: Array<EuiTableFieldDataColumnType<LogPattern>> = [
-    {
-      field: 'pattern',
-      name: 'Log template',
-      render: (pattern: string) => (
-        <EuiCodeBlock language="text" fontSize="s" paddingSize="s" transparentBackground>
-          {pattern}
-        </EuiCodeBlock>
-      ),
-      width: '60%',
-    },
-    {
-      field: 'selection',
-      name: 'Selection percent',
-      render: (count: number, record: LogPattern) => {
-        const base = record.base || 0;
-        const color = count > base ? 'danger' : 'success';
-        const icon = count > base ? 'sortUp' : 'sortDown';
-        return (
-          <EuiFlexGroup alignItems="center" gutterSize="xs">
-            <EuiFlexItem grow={false}>
-              <EuiIcon type={icon} color={color} />
-            </EuiFlexItem>
-            <EuiFlexItem grow={false}>
-              <EuiBadge color={color}>{(Math.abs(count) * 100).toFixed(2)}%</EuiBadge>
-            </EuiFlexItem>
-          </EuiFlexGroup>
-        );
-      },
-      width: '10%',
-    },
-    {
-      field: 'base',
-      name: 'Baseline percent',
-      render: (count: number) => {
-        return (
-          <EuiFlexGroup alignItems="center" gutterSize="xs">
-            <EuiFlexItem grow={false}>
-              <EuiBadge>{(Math.abs(count) * 100).toFixed(2)}%</EuiBadge>
-            </EuiFlexItem>
-          </EuiFlexGroup>
-        );
-      },
-      width: '10%',
-    },
-    {
-      field: 'lift',
-      name: 'Lift',
-      render: (count: number) => {
-        // Show '-' if lift is empty, undefined, null, or NaN
-        if (count === null || count === undefined || isNaN(count)) {
-          return (
-            <EuiFlexGroup alignItems="center" gutterSize="xs">
-              <EuiFlexItem grow={false}>
-                <EuiBadge color="hollow">-</EuiBadge>
-              </EuiFlexItem>
-            </EuiFlexGroup>
-          );
-        }
-
-        return (
-          <EuiFlexGroup alignItems="center" gutterSize="xs">
-            <EuiFlexItem grow={false}>
-              <EuiBadge>{(Math.abs(count) * 100).toFixed(2)}%</EuiBadge>
-            </EuiFlexItem>
-          </EuiFlexGroup>
-        );
-      },
-      width: '10%',
-    },
-  ];
-
-  // Columns for sequence entries table
-  const sequenceColumns: Array<EuiTableFieldDataColumnType<LogSequenceEntry>> = [
-    {
-      field: 'traceId',
-      name: 'Trace ID',
-      render: (traceId: string) => (
-        <EuiText size="s" style={{ fontFamily: 'monospace' }}>
-          {traceId}
-        </EuiText>
-      ),
-      width: '30%',
-    },
-    {
-      field: 'sequence',
-      name: 'Log Sequence',
-      render: (sequence: string) => (
-        <EuiCodeBlock language="text" fontSize="s" paddingSize="s" transparentBackground>
-          {sequence}
-        </EuiCodeBlock>
-      ),
-      width: '70%',
-    },
-  ];
-
-  const renderSection = (title: string, data: any[], columns: any[], emptyMessage: string) => {
-    if (!data || data.length === 0) {
-      return (
-        <EuiEmptyPrompt
-          iconType="search"
-          title={<h4>No {title.toLowerCase()} found</h4>}
-          body={<p>{emptyMessage}</p>}
-        />
-      );
-    }
-
-    return (
-      <EuiBasicTable
-        items={data}
-        columns={columns}
-        tableCaption={title}
-        noItemsMessage={emptyMessage}
-      />
-    );
-  };
-
-  // Function to sort patternMapDifference with multiple sort options
-  const sortPatternMapDifference = (patterns: LogPattern[]) => {
-    if (!patterns || patterns.length === 0) {
-      return patterns;
-    }
-
-    return [...patterns].sort((a, b) => {
-      // Sort order 1: Sort by lift (descending - highest lift first)
-      const liftDiff = Math.abs(b.lift || 0) - Math.abs(a.lift || 0);
-      if (liftDiff !== 0) {
-        return liftDiff;
-      }
-
-      // Sort order 2: Sort by selection (descending - highest absolute selection first)
-      const selectionDiff = Math.abs(b.selection || 0) - Math.abs(a.selection || 0);
-      return selectionDiff;
-    });
-  };
-
   return (
     <EuiPanel hasBorder={false} hasShadow={false} paddingSize="none">
       {context?.index && context?.timeRange && (
@@ -615,7 +384,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
                 <>
                   <span role="img" aria-label="magnifying glass">
                     🔍
-                  </span>
+                  </span>{' '}
                   <strong>Investigation Period:</strong>{' '}
                   {moment(context.timeRange.selectionFrom).format('MMM DD, YYYY HH:mm')} to{' '}
                   {moment(context.timeRange.selectionTo).format('MMM DD, YYYY HH:mm')}
@@ -650,140 +419,21 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
       {/* Summary Statistics */}
       {hasData && (
         <>
-          <EuiFlexGroup>
-            <EuiFlexItem>
-              <EuiPanel color="subdued" paddingSize="s">
-                <EuiText size="s" textAlign="center">
-                  <strong>Log Insights</strong>
-                  <br />
-                  <EuiBadge color="primary">{result.logInsights?.length || 0}</EuiBadge>
-                </EuiText>
-              </EuiPanel>
-            </EuiFlexItem>
-            <EuiFlexItem>
-              <EuiPanel color="subdued" paddingSize="s">
-                <EuiText size="s" textAlign="center">
-                  <strong>Pattern Differences</strong>
-                  <br />
-                  <EuiBadge color="accent">{result.patternMapDifference?.length || 0}</EuiBadge>
-                </EuiText>
-              </EuiPanel>
-            </EuiFlexItem>
-            <EuiFlexItem>
-              <EuiPanel color="subdued" paddingSize="s">
-                <EuiText size="s" textAlign="center">
-                  <strong>Exceptional Sequences</strong>
-                  <br />
-                  <EuiBadge color="danger">{Object.keys(result.EXCEPTIONAL || {}).length}</EuiBadge>
-                </EuiText>
-              </EuiPanel>
-            </EuiFlexItem>
-            <EuiFlexItem>
-              <EuiPanel color="subdued" paddingSize="s">
-                <EuiText size="s" textAlign="center">
-                  <strong>Baseline Sequences</strong>
-                  <br />
-                  <EuiBadge color="hollow">{Object.keys(result.BASE || {}).length}</EuiBadge>
-                </EuiText>
-              </EuiPanel>
-            </EuiFlexItem>
-          </EuiFlexGroup>
-
+          <SummaryStatistics result={result} />
           <EuiSpacer size="l" />
 
           {/* Log Insights Section */}
-          <EuiAccordion
-            id="logInsights"
-            buttonContent={
-              <EuiTitle size="xs">
-                <h4>
-                  <EuiIcon type="inspect" />
-                  &nbsp;Log Insights ({result.logInsights?.length || 0})
-                </h4>
-              </EuiTitle>
-            }
-            initialIsOpen={true}
-          >
-            <EuiSpacer size="s" />
-            {renderSection(
-              'Log Insights',
-              result.logInsights || [],
-              logInsightsColumns,
-              'No log insights patterns were detected in the analysis.'
-            )}
-          </EuiAccordion>
+          <LogInsight logInsights={result.logInsights || []} />
 
           <EuiSpacer size="m" />
 
           {/* Pattern Differences Section */}
-          <EuiAccordion
-            id="patternDifferences"
-            buttonContent={
-              <EuiTitle size="xs">
-                <h4>
-                  <EuiIcon type="diff" />
-                  &nbsp;Pattern Differences ({result.patternMapDifference?.length || 0})
-                </h4>
-              </EuiTitle>
-            }
-            initialIsOpen={result.patternMapDifference && result.patternMapDifference.length > 0}
-          >
-            <EuiSpacer size="s" />
-            {renderSection(
-              'Pattern Differences',
-              sortPatternMapDifference(result.patternMapDifference || []),
-              patternDiffColumns,
-              'No significant pattern differences found between baseline and selection periods.'
-            )}
-          </EuiAccordion>
+          <PatternDifference patternMapDifference={result.patternMapDifference || []} />
 
           <EuiSpacer size="m" />
 
-          {/* Exceptional Sequences Section */}
-          <EuiAccordion
-            id="exceptionalSequences"
-            buttonContent={
-              <EuiTitle size="xs">
-                <h4>
-                  <EuiIcon type="alert" color="danger" />
-                  &nbsp;Exceptional Sequences ({Object.keys(result.EXCEPTIONAL || {}).length})
-                </h4>
-              </EuiTitle>
-            }
-            initialIsOpen={result.EXCEPTIONAL && Object.keys(result.EXCEPTIONAL).length > 0}
-          >
-            <EuiSpacer size="s" />
-            {renderSection(
-              'Exceptional Sequences',
-              convertMapToSequenceArray(result.EXCEPTIONAL),
-              sequenceColumns,
-              'No exceptional log sequences detected during the analysis period.'
-            )}
-          </EuiAccordion>
-
-          <EuiSpacer size="m" />
-
-          {/* Baseline Sequences Section */}
-          <EuiAccordion
-            id="baselineSequences"
-            buttonContent={
-              <EuiTitle size="xs">
-                <h4>
-                  <EuiIcon type="timeline" />
-                  &nbsp;Baseline Sequences ({Object.keys(result.BASE || {}).length})
-                </h4>
-              </EuiTitle>
-            }
-            initialIsOpen={false}
-          >
-            <EuiSpacer size="s" />
-            {renderSection(
-              'Baseline Sequences',
-              convertMapToSequenceArray(result.BASE),
-              sequenceColumns,
-              'No baseline log sequences available for comparison.'
-            )}
-          </EuiAccordion>
+          {/* Log Sequences Section */}
+          <LogSequence exceptionalSequences={result.EXCEPTIONAL} baselineSequences={result.BASE} />
         </>
       )}
     </EuiPanel>
