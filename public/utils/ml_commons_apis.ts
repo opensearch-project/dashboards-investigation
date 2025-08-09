@@ -4,7 +4,7 @@
  */
 
 import { OPENSEARCH_ML_COMMONS_API } from '../../common/constants/ml_commons';
-import { CoreStart, HttpFetchQuery } from '../../../../src/core/public';
+import { CoreStart } from '../../../../src/core/public';
 
 const callApiWithProxy = ({
   path,
@@ -18,15 +18,21 @@ const callApiWithProxy = ({
   path: string;
   http: CoreStart['http'];
   method: string;
-  query?: HttpFetchQuery;
+  query?: Record<string, string | number>;
   signal?: AbortSignal;
   dataSourceId?: string;
   body?: BodyInit;
-}) =>
-  http.post({
+}) => {
+  const queryEntries = query ? Object.entries(query) : [];
+  if (queryEntries.length > 0) {
+    path = `${path}?${queryEntries
+      .filter(([_key, value]) => typeof value !== 'undefined')
+      .map((item) => item.join('='))
+      .join('&')}`;
+  }
+  return http.post({
     path: '/api/console/proxy',
     query: {
-      ...query,
       path,
       method,
       dataSourceId,
@@ -34,6 +40,7 @@ const callApiWithProxy = ({
     signal,
     body,
   });
+};
 
 export const getMLCommonsTask = async ({
   http,
@@ -92,9 +99,11 @@ export const getMLCommonsMemoryMessages = async ({
     path: OPENSEARCH_ML_COMMONS_API.memoryMessages.replace('{memoryId}', memoryId),
     signal,
     dataSourceId,
-    query: {
-      ...(nextToken ? { next_token: nextToken } : {}),
-    },
+    query: nextToken
+      ? {
+          next_token: nextToken,
+        }
+      : {},
   });
 
 export const getMLCommonsMessageTraces = async ({
@@ -116,9 +125,11 @@ export const getMLCommonsMessageTraces = async ({
     path: OPENSEARCH_ML_COMMONS_API.messageTraces.replace('{messageId}', messageId),
     signal,
     dataSourceId,
-    query: {
-      next_token: nextToken,
-    },
+    query: nextToken
+      ? {
+          next_token: nextToken,
+        }
+      : {},
   });
 
 export const searchMLCommonsAgents = ({

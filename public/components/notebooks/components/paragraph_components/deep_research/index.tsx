@@ -51,11 +51,14 @@ export const DeepResearchParagraph = ({
     if (typeof rawOutputResult !== 'string' || typeof rawOutputResult === 'undefined') {
       return rawOutputResult;
     }
+    if (!rawOutputResult) {
+      return undefined;
+    }
     let parsedResult;
     try {
       parsedResult = JSON.parse(rawOutputResult);
     } catch (e) {
-      console.error('Failed to parse output result');
+      console.error('Failed to parse output result', e);
     }
     if (typeof parsedResult?.task_id === 'string') {
       return {
