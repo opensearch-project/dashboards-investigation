@@ -197,6 +197,7 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
                 endTime: value.endTime || visualizationValue?.endTime || '',
               })
             ),
+            inputType: value.type?.toUpperCase(),
           });
         }}
       />

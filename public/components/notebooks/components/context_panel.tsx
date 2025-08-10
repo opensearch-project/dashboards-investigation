@@ -18,13 +18,14 @@ import React, { useCallback, useContext, useState } from 'react';
 import moment from 'moment';
 import { useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
+import { useParagraphs } from 'public/hooks/use_paragraphs';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { getDataSourceManagementSetup } from '../../../services';
 import { ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE } from '../../../../common/constants/notebooks';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 interface AddButtonProps {
-  addPara: (index: number, newParaContent: string, inputType: string) => Promise<void>;
+  addPara: ReturnType<typeof useParagraphs>['createParagraph'];
 }
 
 export const ContextPanel = ({ addPara }: AddButtonProps) => {
