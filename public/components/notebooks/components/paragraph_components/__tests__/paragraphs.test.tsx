@@ -13,7 +13,10 @@ import { ParagraphProps, Paragraphs } from '../paragraphs';
 import { ParagraphStateValue } from '../../../../../../common/state/paragraph_state';
 import { MockContextProvider } from '../../../context_provider/context_provider.mock';
 import { OpenSearchDashboardsContextProvider } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
-import { notificationServiceMock } from '../../../../../../../../src/core/public/mocks';
+import {
+  notificationServiceMock,
+  uiSettingsServiceMock,
+} from '../../../../../../../../src/core/public/mocks';
 
 jest.mock('../../../../../../../../src/plugins/embeddable/public', () => ({
   ViewMode: {
@@ -53,6 +56,7 @@ const ContextAwareParagraphs = (
         savedObjects: { client: { find: mockFind } },
         dataSource: {},
         notifications: notificationServiceMock.createStartContract(),
+        uiSettings: uiSettingsServiceMock.createStartContract(),
       }}
     >
       <MockContextProvider paragraphValues={props.paragraphValues}>
@@ -66,30 +70,16 @@ describe('<Paragraphs /> spec', () => {
   configure({ adapter: new Adapter() });
 
   it('renders the component', () => {
-    const setPara = jest.fn();
-    const paragraphSelector = jest.fn();
-    const addPara = jest.fn();
-    const DashboardContainerByValueRenderer = jest.fn();
     const deletePara = jest.fn();
-    const runPara = jest.fn();
     const para = sampleParsedParagraghs1[0];
     const utils = render(
       <ContextAwareParagraphs
-        ref={jest.fn()}
         para={para}
-        setPara={setPara}
-        dateModified="2023-11-01 01:02:03"
         index={0}
-        paraCount={2}
-        paragraphSelector={paragraphSelector}
-        addPara={addPara}
-        DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
-        http={getOSDHttp()}
+        handleSelectedDataSourceChange={jest.fn()}
+        scrollToPara={jest.fn()}
         selectedViewId="view_both"
         deletePara={deletePara}
-        runPara={runPara}
-        dataSourceEnabled={false}
-        paragraphs={[]}
         paragraphValues={[
           {
             ...sampleParsedParagraghs1[0],
@@ -108,12 +98,7 @@ describe('<Paragraphs /> spec', () => {
   });
 
   it('use SavedObject find to fetch visualizations when dataSourceEnabled', () => {
-    const setPara = jest.fn();
-    const paragraphSelector = jest.fn();
-    const addPara = jest.fn();
-    const DashboardContainerByValueRenderer = jest.fn();
     const deletePara = jest.fn();
-    const runPara = jest.fn();
     const para = {
       uniqueId: 'paragraph_1a710988-ec19-4caa-83cc-38eb609427d1',
       isRunning: false,
@@ -135,22 +120,12 @@ describe('<Paragraphs /> spec', () => {
     };
     const utils = render(
       <ContextAwareParagraphs
-        ref={jest.fn()}
         para={para}
-        setPara={setPara}
-        dateModified="2023-11-01 01:02:03"
         index={0}
-        paraCount={2}
-        paragraphSelector={paragraphSelector}
-        addPara={addPara}
-        DashboardContainerByValueRenderer={DashboardContainerByValueRenderer}
-        http={getOSDHttp()}
         selectedViewId="view_both"
         deletePara={deletePara}
-        runPara={runPara}
-        dataSourceEnabled={true}
-        dataSourceManagement={{ ui: { DataSourceSelector: () => null } }}
-        paragraphs={[]}
+        handleSelectedDataSourceChange={jest.fn()}
+        scrollToPara={jest.fn()}
         paragraphValues={[
           {
             ...para,
