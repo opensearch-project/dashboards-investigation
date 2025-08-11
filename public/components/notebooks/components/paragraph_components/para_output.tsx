@@ -23,10 +23,9 @@ import {
   ParaType,
 } from '../../../../../common/types/notebooks';
 import { uiSettingsService } from '../../../../../common/utils';
-import { DeepResearchContainer } from '../../../../components/custom_panels/panel_modules/deep_research_container';
 import { QueryDataGridMemo } from './para_query_grid';
 import { BubbleUpContainer } from '../bubbleup/bubble_up_container';
-import { LogPatternContainer } from './log_pattern_container';
+import { LogPatternContainer } from '../log_analytics/log_pattern_container';
 import { DashboardPanelState } from '../../../../../../../src/plugins/dashboard/public/application';
 import { EmbeddableInput } from '../../../../../../../src/plugins/embeddable/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
@@ -195,8 +194,6 @@ const OutputBody = ({
         return <pre>{val}</pre>;
       case 'IMG':
         return <img alt="" src={'data:image/gif;base64,' + val} />;
-      case 'DEEP_RESEARCH':
-        return <DeepResearchContainer para={para} paragraph$={paragraph$} />;
       case ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE:
         return (
           <BubbleUpContainer

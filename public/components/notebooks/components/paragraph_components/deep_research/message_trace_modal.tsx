@@ -18,10 +18,12 @@ import {
   EuiLoadingContent,
   EuiCodeBlock,
 } from '@elastic/eui';
-import { NoteBookServices } from 'public/types';
+import type { NoteBookServices } from 'public/types';
+
+import { getTimeGapFromDates } from '../../../../../utils/time';
+import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
+
 import { getAllTracesByMessageId, isMarkdownText } from './utils';
-import { getTimeGapFromDates } from '../../../../utils/time';
-import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 const renderTraceString = ({ text, fallback }: { text: string | undefined; fallback: string }) => {
   if (!text) {

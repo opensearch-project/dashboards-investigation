@@ -16,14 +16,7 @@ import {
   htmlIdGenerator,
 } from '@elastic/eui';
 import filter from 'lodash/filter';
-import React, {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useCallback } from 'react';
 import { useContext } from 'react';
 import { NoteBookServices } from 'public/types';
@@ -36,18 +29,15 @@ import {
   PPL_DOCUMENTATION_URL,
   SQL_DOCUMENTATION_URL,
 } from '../../../../../common/constants/shared';
-import { ParaType } from '../../../../../common/types/notebooks';
+import { DeepResearchOutputResult, ParaType } from '../../../../../common/types/notebooks';
 import { uiSettingsService } from '../../../../../common/utils';
 import { dataSourceFilterFn } from '../../../../../common/utils/shared';
 import { SavedObjectsActions } from '../../../../services/saved_objects/saved_object_client/saved_objects_actions';
 import { ObservabilitySavedVisualization } from '../../../../services/saved_objects/saved_object_client/types';
-import { parseParagraphOut } from '../../../../utils/paragraph';
 import { ParaInput } from './para_input';
 import { ParaOutput } from './para_output';
-import { AgentsSelector } from './agents_selector';
 import { DataSourceSelectorProps } from '../../../../../../../src/plugins/data_source_management/public/components/data_source_selector/data_source_selector';
 import { ParagraphActionPanel } from './paragraph_actions_panel';
-import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { PPLParagraph } from './ppl';
 import { getInputType } from '../../../../../common/utils/paragraph';
@@ -55,6 +45,7 @@ import { MarkdownParagraph } from './markdown';
 import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { getDataSourceManagementSetup } from '../../../../../public/services';
+import { DeepResearchParagraph } from './deep_research';
 
 /*
  * "Paragraphs" component is used to render cells of the notebook open and "add para div" between paragraphs
@@ -120,11 +111,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
   const [visType, setVisType] = useState('');
   const [dataSourceMDSId, setDataSourceMDSId] = useState('');
   const shouldSkipAgentIdResetRef = useRef(true);
-  const parsedParagraphOut = useMemo(() => parseParagraphOut(para), [para]);
-  const [deepResearchAgentId, setDeepResearchAgentId] = useState<string | undefined>(
-    parsedParagraphOut[0]?.agent_id
-  );
-  const { saveParagraph } = useParagraphs();
   const context = useContext(NotebookReactContext);
   const paragraph = context.state.value.paragraphs[index];
   const paragraphValue = useObservable(paragraph.getValue$(), paragraph.value);
@@ -410,6 +396,15 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
               </div>
             );
           }
+          case 'DEEP_RESEARCH': {
+            return (
+              <div key={paragraph.value.id} className={paraClass}>
+                <DeepResearchParagraph
+                  paragraphState={paragraph as ParagraphState<DeepResearchOutputResult>}
+                />
+              </div>
+            );
+          }
           default: {
             return (
               <>
@@ -434,28 +429,6 @@ export const Paragraphs = forwardRef((props: ParagraphProps, ref) => {
                           dataSourceFilter={dataSourceFilterFn}
                         />
                       </EuiFlexItem>
-                      {para.isDeepResearch && (
-                        <>
-                          <EuiFlexItem>
-                            <AgentsSelector
-                              value={deepResearchAgentId}
-                              dataSourceMDSId={dataSourceMDSId}
-                              onChange={async (value) => {
-                                setDeepResearchAgentId(value);
-                                // FIXME move to deep research paragraph
-                                await saveParagraph({
-                                  paragraphStateValue: ParagraphState.updateOutputResult(
-                                    paragraph.value,
-                                    {
-                                      agent_id: value,
-                                    }
-                                  ),
-                                });
-                              }}
-                            />
-                          </EuiFlexItem>
-                        </>
-                      )}
                     </EuiFlexGroup>
                   )}
                 <div key={index} className={paraClass}>

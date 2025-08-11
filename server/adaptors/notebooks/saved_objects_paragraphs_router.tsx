@@ -20,14 +20,13 @@ import { formatNotRecognized, inputIsQuery } from '../../common/helpers/notebook
 import { RequestHandlerContext } from '../../../../../src/core/server';
 import { getInputType } from '../../../common/utils/paragraph';
 import { updateParagraphText } from '../../common/helpers/notebooks/paragraph';
-import { NotebookContext, ParagraphBackendType } from '../../../common/types/notebooks';
+import {
+  DeepResearchOutputResult,
+  NotebookContext,
+  ParagraphBackendType,
+} from '../../../common/types/notebooks';
 import { getNotebookTopLevelContextPrompt, getOpenSearchClientTransport } from '../../routes/utils';
 import { getParagraphServiceSetup } from '../../services/get_set';
-
-interface DeepResearchParagraphResult {
-  taskId: string;
-  memoryId?: string;
-}
 
 export function createNotebook(paragraphInput: string, inputType: string) {
   try {
@@ -189,7 +188,7 @@ export async function updateRunFetchParagraph(
     );
 
     const updateNotebook: {
-      paragraphs: Array<ParagraphBackendType<string | DeepResearchParagraphResult>>;
+      paragraphs: Array<ParagraphBackendType<string | DeepResearchOutputResult>>;
       dateModified: string;
       context?: NotebookContext;
     } = {
@@ -228,7 +227,7 @@ export async function updateRunFetchParagraph(
 }
 
 export async function runParagraph(
-  paragraphs: Array<ParagraphBackendType<string | { taskId: string; memoryId?: string }>>,
+  paragraphs: Array<ParagraphBackendType<string | DeepResearchOutputResult>>,
   paragraphId: string,
   context: RequestHandlerContext,
   notebookinfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>
@@ -287,7 +286,10 @@ export async function runParagraph(
         } else if (paragraphs[index].input.inputType === 'DEEP_RESEARCH') {
           let output: { agent_id: string } = { agent_id: '' };
           try {
-            output = JSON.parse((updatedParagraph.output?.[0].result || '') as string);
+            output =
+              typeof updatedParagraph.output?.[0].result === 'string'
+                ? JSON.parse(updatedParagraph.output?.[0].result)
+                : updatedParagraph.output?.[0].result;
           } catch (e) {
             // do nothing
           }
@@ -366,6 +368,7 @@ export async function runParagraph(
               result: {
                 taskId: body.task_id,
                 memoryId: body.response?.memory_id,
+                agent_id: output.agent_id,
               },
               execution_time: `${(now() - startTime).toFixed(3)} ms`,
             },

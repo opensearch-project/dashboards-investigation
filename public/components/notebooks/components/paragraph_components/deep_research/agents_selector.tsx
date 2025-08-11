@@ -7,10 +7,10 @@ import { EuiSelect } from '@elastic/eui';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import _ from 'lodash';
 
-import { NoteBookServices } from 'public/types';
-import { CoreStart } from '../../../../../../../src/core/public';
-import { searchMLCommonsAgents } from '../../../../../public/utils/ml_commons_apis';
-import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import type { NoteBookServices } from 'public/types';
+import { searchMLCommonsAgents } from '../../../../../utils/ml_commons_apis';
+import { CoreStart } from '../../../../../../../../src/core/public';
+import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 // Create a debounced request function that's memoized by data source ID
 const fetchPERAgents = _.memoize(
@@ -48,10 +48,12 @@ export const AgentsSelector = ({
   dataSourceMDSId,
   value,
   onChange,
+  disabled,
 }: {
-  dataSourceMDSId: string;
+  dataSourceMDSId: string | undefined;
   value: string | undefined;
   onChange: (value: string | undefined) => void;
+  disabled?: boolean;
 }) => {
   const {
     services: { http },
@@ -80,13 +82,9 @@ export const AgentsSelector = ({
     };
   }, [http, dataSourceMDSId]);
 
-  const options = useMemo(
-    () => [
-      { text: 'Select a agent', value: undefined, selected: value === undefined, disabled: true },
-      ...agents.map(({ id, name }) => ({ text: name, value: id, selected: id === value })),
-    ],
-    [agents, value]
-  );
+  const options = useMemo(() => agents.map(({ id, name }) => ({ text: name, value: id })), [
+    agents,
+  ]);
 
   return (
     <EuiSelect
@@ -95,6 +93,9 @@ export const AgentsSelector = ({
       onChange={(e) => {
         onChange(e.target.value);
       }}
+      value={value}
+      hasNoInitialSelection
+      disabled={disabled}
     />
   );
 };

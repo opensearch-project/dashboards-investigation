@@ -16,43 +16,39 @@ import {
   EuiMarkdownFormat,
   EuiTabbedContent,
 } from '@elastic/eui';
-import { interval, Observable, timer } from 'rxjs';
+import { interval, timer } from 'rxjs';
 import { switchMap, takeWhile } from 'rxjs/operators';
 import moment from 'moment';
+import { useUpdateEffect } from 'react-use';
 
-import { ParagraphStateValue } from 'common/state/paragraph_state';
-import { useObservable, useUpdateEffect } from 'react-use';
-import { NoteBookServices } from 'public/types';
-import { ParaType } from '../../../../../common/types/notebooks';
-
-import { getAllMessagesByMemoryId, getAllTracesByMessageId, isMarkdownText } from './utils';
-import { MessageTraceModal } from './message_trace_modal';
-import { parseParagraphOut } from '../../../../utils/paragraph';
+import { DeepResearchOutputResult } from '../../../../../../common/types/notebooks';
 import {
   extractCompletedResponse,
   extractFailedErrorMessage,
   extractExecutorMemoryId,
   extractParentInteractionId,
   isStateCompletedOrFailed,
-} from '../../../../utils/task';
-import { getMLCommonsTask } from '../../../../utils/ml_commons_apis';
-import { formatTimeGap, getTimeGapFromDates } from '../../../../utils/time';
-import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+} from '../../../../../utils/task';
+import { getMLCommonsTask } from '../../../../../utils/ml_commons_apis';
+import { formatTimeGap, getTimeGapFromDates } from '../../../../../utils/time';
+import { CoreStart } from '../../../../../../../../src/core/public';
+
+import { getAllMessagesByMemoryId, getAllTracesByMessageId, isMarkdownText } from './utils';
+import { MessageTraceModal } from './message_trace_modal';
 
 interface Props {
-  para: ParaType;
-  paragraph$: Observable<ParagraphStateValue>;
+  http: CoreStart['http'];
+  dataSourceId: string | undefined;
+  outputResult: DeepResearchOutputResult;
+  input?: {
+    PERAgentInput?: any;
+    PERAgentContext?: any;
+  };
 }
 
-export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
-  const {
-    services: { http },
-  } = useOpenSearchDashboards<NoteBookServices>();
+export const DeepResearchOutput = ({ http, dataSourceId, outputResult, input }: Props) => {
   const [traces, setTraces] = useState([]);
-  // FIXME: Read paragraph out directly once all notebooks store object as output
-  const parsedParagraphOut = useMemo(() => parseParagraphOut(para)[0], [para]);
-  // FIXME: Remove legacy task_id support here
-  const taskId = parsedParagraphOut.taskId ?? parsedParagraphOut.task_id;
+  const taskId = outputResult.taskId;
   const [tracesVisible, setTracesVisible] = useState(false);
   const [executorMessages, setExecutorMessages] = useState([]);
   const [loadingSteps, setLoadingSteps] = useState(false);
@@ -64,9 +60,6 @@ export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
   }>();
   const [task, setTask] = useState();
   const initialFinalResponseVisible = useRef(false);
-  const dataSourceIdRef = useRef(para.dataSourceMDSId);
-  dataSourceIdRef.current = para.dataSourceMDSId;
-  const paragraph = useObservable(paragraph$);
   const taskLoaded = !!task;
   const taskFinished = taskLoaded && isStateCompletedOrFailed(task.state);
   const taskRef = useRef(task);
@@ -90,13 +83,16 @@ export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
 
   useEffect(() => {
     const abortController = new AbortController();
+    if (!taskId) {
+      return;
+    }
     const subscription = timer(0, 5000)
       .pipe(
         switchMap(() => {
           return getMLCommonsTask({
             http,
             taskId,
-            dataSourceId: para.dataSourceMDSId,
+            dataSourceId,
             signal: abortController.signal,
           });
         })
@@ -114,7 +110,7 @@ export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
       subscription.unsubscribe();
       abortController.abort('unmount...');
     };
-  }, [taskId, para.dataSourceMDSId, http]);
+  }, [taskId, dataSourceId, http]);
 
   useEffect(() => {
     if (!taskLoaded || taskFinished) {
@@ -137,7 +133,7 @@ export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
                   messageId: parentInteractionId,
                   http,
                   signal: abortController.signal,
-                  dataSourceId: dataSourceIdRef.current,
+                  dataSourceId,
                 })
               : Promise.resolve([]),
             executorMemoryId
@@ -145,7 +141,7 @@ export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
                   memoryId: executorMemoryId,
                   http,
                   signal: abortController.signal,
-                  dataSourceId: dataSourceIdRef.current,
+                  dataSourceId,
                 })
               : Promise.resolve([]),
           ]);
@@ -160,7 +156,7 @@ export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
       subscription.unsubscribe();
       abortController.abort('unmount...');
     };
-  }, [taskLoaded, taskFinished, http]);
+  }, [taskLoaded, taskFinished, http, dataSourceId]);
 
   useUpdateEffect(() => {
     setTracesVisible(taskLoaded && !taskFinished);
@@ -181,7 +177,10 @@ export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
     return (
       <>
         {allSteps.map(
-          ({ input, response, message_id: messageId, create_time: createTime }, index) => {
+          (
+            { input: stepInput, response, message_id: messageId, create_time: createTime },
+            index
+          ) => {
             let durationStr = '';
             if (allSteps[index - 1]) {
               durationStr = getTimeGapFromDates(
@@ -196,9 +195,9 @@ export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
               <React.Fragment key={messageId}>
                 <EuiAccordion
                   id={`trace-${index}`}
-                  buttonContent={`Step ${index + 1}${!response ? '(No response)' : ''} - ${input} ${
-                    durationStr ? `(Duration: ${durationStr})` : ''
-                  }`}
+                  buttonContent={`Step ${index + 1}${
+                    !response ? '(No response)' : ''
+                  } - ${stepInput} ${durationStr ? `(Duration: ${durationStr})` : ''}`}
                   paddingSize="l"
                 >
                   {response && (
@@ -212,6 +211,7 @@ export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
                         setTraceModalData({
                           messageId: executorMessages[index].message_id,
                           refresh: !response,
+                          messageCreateTime: executorMessages[index].create_time,
                         });
                       }}
                     >
@@ -232,13 +232,16 @@ export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
     if (!traceModalData || !traceModalData.refresh) {
       return false;
     }
-    if (isStateCompletedOrFailed(parsedParagraphOut.state)) {
+    if (isStateCompletedOrFailed(task.state)) {
       return false;
     }
-    const traceMessage = executorMessages.find(
+    const traceMessageIndex = executorMessages.findIndex(
       ({ message_id: messageId }) => messageId === traceModalData.messageId
     );
-    return !traceMessage?.response;
+    if (traceMessageIndex + 1 < executorMessages.length) {
+      return false;
+    }
+    return !executorMessages[traceMessageIndex]?.response;
   };
 
   return (
@@ -269,55 +272,59 @@ export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
           <EuiSpacer />
         </>
       )}
-      {paragraph?.output && (
-        <EuiButton style={{ marginRight: '10px' }} onClick={() => setShowContextModal(true)}>
-          Show agent request details
-        </EuiButton>
-      )}
-      {taskId && (!taskLoaded || !taskFinished) ? (
-        <EuiLoadingContent />
-      ) : (
-        <EuiButton
-          isLoading={loadingSteps}
-          onClick={async () => {
-            if (!task) {
-              return;
-            }
-            if (traces.length > 0) {
-              setTracesVisible((flag) => !flag);
-              return;
-            }
-            setLoadingSteps(true);
-            try {
-              const parentInteractionId = extractParentInteractionId(task);
-              const executorMemoryId = extractExecutorMemoryId(task);
-              await Promise.allSettled([
-                parentInteractionId
-                  ? getAllTracesByMessageId({
-                      messageId: parentInteractionId,
-                      http,
-                      dataSourceId: dataSourceIdRef.current,
-                    })
-                  : Promise.resolve([]),
-                executorMemoryId
-                  ? getAllMessagesByMemoryId({
-                      memoryId: executorMemoryId,
-                      http,
-                      dataSourceId: dataSourceIdRef.current,
-                    })
-                  : Promise.resolve([]),
-              ]).then(([{ value: loadedTraces }, { value: loadedExecutorMessages }]) => {
-                setTraces(loadedTraces);
-                setExecutorMessages(loadedExecutorMessages);
-              });
-            } finally {
-              setLoadingSteps(false);
-            }
-            setTracesVisible((flag) => !flag);
-          }}
-        >
-          {tracesVisible ? 'Hide traces' : 'Show traces'}
-        </EuiButton>
+      {taskId && (
+        <>
+          {(input?.PERAgentInput || input?.PERAgentContext) && (
+            <EuiButton style={{ marginRight: '10px' }} onClick={() => setShowContextModal(true)}>
+              Show agent request details
+            </EuiButton>
+          )}
+          {!taskLoaded || !taskFinished ? (
+            <EuiLoadingContent />
+          ) : (
+            <EuiButton
+              isLoading={loadingSteps}
+              onClick={async () => {
+                if (!task) {
+                  return;
+                }
+                if (traces.length > 0) {
+                  setTracesVisible((flag) => !flag);
+                  return;
+                }
+                setLoadingSteps(true);
+                try {
+                  const parentInteractionId = extractParentInteractionId(task);
+                  const executorMemoryId = extractExecutorMemoryId(task);
+                  await Promise.allSettled([
+                    parentInteractionId
+                      ? getAllTracesByMessageId({
+                          messageId: parentInteractionId,
+                          http,
+                          dataSourceId,
+                        })
+                      : Promise.resolve([]),
+                    executorMemoryId
+                      ? getAllMessagesByMemoryId({
+                          memoryId: executorMemoryId,
+                          http,
+                          dataSourceId,
+                        })
+                      : Promise.resolve([]),
+                  ]).then(([{ value: loadedTraces }, { value: loadedExecutorMessages }]) => {
+                    setTraces(loadedTraces);
+                    setExecutorMessages(loadedExecutorMessages);
+                  });
+                } finally {
+                  setLoadingSteps(false);
+                }
+                setTracesVisible((flag) => !flag);
+              }}
+            >
+              {tracesVisible ? 'Hide traces' : 'Show traces'}
+            </EuiButton>
+          )}
+        </>
       )}
       {traceModalData && (
         <MessageTraceModal
@@ -327,7 +334,7 @@ export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
           closeModal={() => {
             setTraceModalData(undefined);
           }}
-          dataSourceId={para.dataSourceMDSId}
+          dataSourceId={dataSourceId}
         />
       )}
       {/* FIXME this is used for debug */}
@@ -337,38 +344,46 @@ export const DeepResearchContainer = ({ para, paragraph$ }: Props) => {
           <EuiModalBody>
             <EuiTabbedContent
               tabs={[
-                {
-                  id: 'agentInput',
-                  name: 'Agent input',
-                  content: (
-                    <>
-                      <EuiMarkdownFormat>
-                        {`\`\`\`json
+                ...(input?.PERAgentInput
+                  ? [
+                      {
+                        id: 'agentInput',
+                        name: 'Agent input',
+                        content: (
+                          <>
+                            <EuiMarkdownFormat>
+                              {`\`\`\`json
 ${JSON.stringify(
   {
-    ...paragraph?.input.PERAgentInput,
-    body: JSON.parse(paragraph?.input.PERAgentInput.body),
+    ...input?.PERAgentInput,
+    body: JSON.parse(input?.PERAgentInput.body),
   },
   null,
   2
 )}
                       \`\`\`
                       `}
-                      </EuiMarkdownFormat>
-                    </>
-                  ),
-                },
-                {
-                  id: 'agentContext',
-                  name: 'Agent context',
-                  content: (
-                    <>
-                      <EuiMarkdownFormat>
-                        {paragraph?.input.PERAgentContext || 'No context'}
-                      </EuiMarkdownFormat>
-                    </>
-                  ),
-                },
+                            </EuiMarkdownFormat>
+                          </>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...(input?.PERAgentContext
+                  ? [
+                      {
+                        id: 'agentContext',
+                        name: 'Agent context',
+                        content: (
+                          <>
+                            <EuiMarkdownFormat>
+                              {input?.PERAgentContext || 'No context'}
+                            </EuiMarkdownFormat>
+                          </>
+                        ),
+                      },
+                    ]
+                  : []),
               ]}
             />
           </EuiModalBody>

@@ -6,7 +6,7 @@
 import {
   getMLCommonsMemoryMessages,
   getMLCommonsMessageTraces,
-} from '../../../../utils/ml_commons_apis';
+} from '../../../../../utils/ml_commons_apis';
 
 export interface Trace {
   input: string;

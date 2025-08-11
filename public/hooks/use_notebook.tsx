@@ -4,32 +4,14 @@
  */
 
 import { useContext, useCallback } from 'react';
-import { IndexInsights, NotebookBackendType, NotebookContext } from 'common/types/notebooks';
 import { NoteBookServices } from 'public/types';
+import { IndexInsight, NotebookBackendType, NotebookContext } from 'common/types/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { useParagraphs } from './use_paragraphs';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
-
-const fetchIndexInsightMock = (index: string): Promise<IndexInsights> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        index_insights: [
-          {
-            index_name: index,
-            content:
-              '{"is_log_index": true, "log_message_field": "body", "trace_id_field": "traceId"}',
-            status: 'generating',
-            task_type: 'INDEX_DESCRIPTION',
-            last_updated_time: 1753671175376,
-          },
-        ],
-      });
-    }, 3000);
-  });
-};
+import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
 
 export const useNotebook = () => {
   const context = useContext(NotebookReactContext);
@@ -64,14 +46,19 @@ export const useNotebook = () => {
   );
 
   const fetchIndexInsights = useCallback(
-    async (index: string) => {
+    async (index: string, dataSourceId: string | undefined) => {
       try {
-        const indexInsightResponse = await fetchIndexInsightMock(index);
-        if (
-          indexInsightResponse?.index_insights &&
-          indexInsightResponse.index_insights.length > 0
-        ) {
-          const content = JSON.parse(indexInsightResponse.index_insights[0]?.content);
+        const indexInsightResponse: IndexInsight = await callOpenSearchCluster({
+          http,
+          dataSourceId,
+          request: {
+            path: `/_plugins/_ml/insights/${index}/LOG_RELATED_INDEX_CHECK`,
+            method: 'GET',
+          },
+        });
+
+        if (indexInsightResponse?.index_insight && indexInsightResponse.index_insight?.content) {
+          const content = JSON.parse(indexInsightResponse.index_insight.content);
           await updateNotebookContext({
             indexInsight: content,
           });
@@ -82,7 +69,7 @@ export const useNotebook = () => {
         throw error;
       }
     },
-    [updateNotebookContext]
+    [updateNotebookContext, http]
   );
 
   const loadNotebook = useCallback(() => {
@@ -112,7 +99,10 @@ export const useNotebook = () => {
       ) {
         const resWithIndexInsight = {
           ...res,
-          context: { ...res.context, indexInsight: await fetchIndexInsights(res.context.index) },
+          context: {
+            ...res.context,
+            indexInsight: await fetchIndexInsights(res.context.index, res.context?.dataSourceId),
+          },
         };
         return resWithIndexInsight;
       }
