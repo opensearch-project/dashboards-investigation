@@ -354,11 +354,11 @@ export async function runParagraph(
                   '${parameters.tools_prompt}\n' +
                   '# PLANNING GUIDANCE\n' +
                   '${parameters.planner_prompt}\n\n' +
-                  '# USER OBJECTIVE\n' +
-                  "The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively.\n" +
+                  '# OBJECTIVE\n' +
+                  "Your job is to fulfill user's requirements and answer their questions effectively. User Input:\n" +
                   '${parameters.user_prompt}\n\n' +
                   '# PREVIOUS CONTEXT\n' +
-                  'The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research without doing the same thing again. \n' +
+                  'The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research\n' +
                   '[${parameters.context}]\n\n' +
                   '# RESPONSE FORMAT\n' +
                   '${parameters.plan_execute_reflect_response_format}',
@@ -367,11 +367,11 @@ export async function runParagraph(
                   '${parameters.tools_prompt}\n' +
                   '# PLANNING GUIDANCE\n' +
                   '${parameters.planner_prompt}\n\n' +
-                  '# USER OBJECTIVE\n' +
-                  "The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively.\n" +
+                  '# OBJECTIVE\n' +
+                  "The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively. User Input:\n" +
                   '```${parameters.user_prompt}```\n\n' +
                   '# PREVIOUS CONTEXT\n' +
-                  'The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research without doing the same thing again. \n' +
+                  'The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research\n' +
                   '[${parameters.context}]\n\n' +
                   '## CURRENT PROGRESS\n' +
                   'You have already completed the following steps in the current plan. Consider these when determining next actions:\n' +
@@ -383,8 +383,8 @@ export async function runParagraph(
                   '${parameters.tools_prompt}\n' +
                   '# PLANNING GUIDANCE\n' +
                   '```${parameters.planner_prompt}```\n\n' +
-                  '# USER OBJECTIVE\n' +
-                  "The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively.\n" +
+                  '# OBJECTIVE\n' +
+                  "The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively. User Input:\n" +
                   '${parameters.user_prompt}\n\n' +
                   '# ORIGINAL PLAN\n' +
                   'This was the initially created plan to address the objective:\n' +
@@ -395,7 +395,7 @@ export async function runParagraph(
                   '# CURRENT PROGRESS\n' +
                   'You have already completed the following steps from the original plan. Consider these when determining next actions:\n' +
                   '[${parameters.completed_steps}]\n\n' +
-                  '# REFLECTION INSTRUCTIONS\n' +
+                  '# REFLECTION GUIDELINE\n' +
                   '${parameters.reflect_prompt}\n\n' +
                   '# RESPONSE FORMAT\n' +
                   '${parameters.plan_execute_reflect_response_format}',

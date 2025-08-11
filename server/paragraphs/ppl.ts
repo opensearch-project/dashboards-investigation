@@ -22,12 +22,11 @@ export const PPLParagraph: ParagraphRegistryItem = {
 
     return `
       ## Step description
-      This step executes PPL query and get response data for further research
+      This step executes PPL query and get response data for further research. Analyze these results as part of your investigation and consider how they relate to the overall issue. 
 
       ## Step result:
       User has executed the following PPL query: '${query}' which returned the following results:
       ${JSON.stringify(PPLResult.data.resp)}.
-      Analyze these results as part of your investigation and consider how they relate to the overall issue.
     `;
   },
 };

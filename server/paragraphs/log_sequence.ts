@@ -12,8 +12,9 @@ export const LogPatternParagraph: ParagraphRegistryItem<LogPatternAnalysisResult
       paragraph.output?.[0].result! || {};
     return `
       ## Step description
-      This step analyzed log patterns using clustering algorithms to identify recurring patterns and anomalies.
-      
+      This step analyzed log patterns using clustering algorithms to identify recurring patterns and anomalies. 
+      These patterns reveal potential system behavior anomalies and correlations between events. Higher lift values indicate stronger statistical correlations between log events.
+
       ## Step result: 
 
       ### Pattern Summary
@@ -59,8 +60,6 @@ export const LogPatternParagraph: ParagraphRegistryItem<LogPatternAnalysisResult
               : '')
           : 'None detected'
       }
-
-      These patterns reveal potential system behavior anomalies and correlations between events. Higher lift values indicate stronger statistical correlations between log events.
     `;
   },
 };
