@@ -672,7 +672,7 @@ export function NotebookComponent() {
               <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
             ) : null}
             {/* Temporarily determine whether to display the context panel based on datasource id */}
-            {context?.dataSourceId && <ContextPanel addPara={createParagraph} />}
+            {context?.dataSourceId && <ContextPanel />}
             {isLoading ? null : parsedPara.length > 0 ? (
               parsedPara.map((para: ParaType, index: number) => (
                 <div ref={parsedPara[index].paraDivRef} key={`para_div_${para.uniqueId}`}>
