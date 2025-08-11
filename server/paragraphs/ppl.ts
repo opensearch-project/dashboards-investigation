@@ -22,7 +22,7 @@ export const PPLParagraph: ParagraphRegistryItem = {
 
     return `
       User has executed the following PPL query: '${query}' which returned the following results:
-      ${PPLResult.data.resp}.
+      ${JSON.stringify(PPLResult.data.resp)}.
       Analyze these results as part of your investigation and consider how they relate to the overall issue.
     `;
   },
