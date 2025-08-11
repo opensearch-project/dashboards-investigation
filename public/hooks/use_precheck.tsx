@@ -89,22 +89,27 @@ export const usePrecheck = () => {
             paragraphStates.map((paragraphState) => paragraphState.getValue$())
           );
           const subscription = combinedObservable.subscribe(async (paragraphValues) => {
-            const anomalyAnalysisParagraph = paragraphValues.find(
-              (p) =>
-                p.input?.inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE &&
-                !p.uiState?.isRunning
+            const anomalyAnalysisPara = paragraphValues.find(
+              (p) => p.input?.inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE
             );
             const logPatternPara = paragraphValues.find(
-              (p) => p.input?.inputType === LOG_PATTERN_PARAGRAPH_TYPE && !p.uiState?.isRunning
+              (p) => p.input?.inputType === LOG_PATTERN_PARAGRAPH_TYPE
             );
 
-            const hasAnomalyResult =
-              anomalyAnalysisParagraph?.output?.[0]?.result &&
-              anomalyAnalysisParagraph.output[0].result !== '';
-            const hasLogPatternResult =
-              logPatternPara?.output?.[0]?.result && logPatternPara?.output?.[0]?.result !== '';
+            const hasResult = (para) =>
+              !para?.uiState?.isRunning &&
+              para?.output?.[0]?.result &&
+              para.output[0].result !== '';
+            const hasAnomalyResult = hasResult(anomalyAnalysisPara);
+            const hasLogResult = hasResult(logPatternPara);
 
-            if (hasAnomalyResult && hasLogPatternResult && !deepResearchParaCreated.current) {
+            const shouldCreate =
+              !deepResearchParaCreated.current &&
+              ((anomalyAnalysisPara && logPatternPara && hasAnomalyResult && hasLogResult) ||
+                (anomalyAnalysisPara && !logPatternPara && hasAnomalyResult) ||
+                (!anomalyAnalysisPara && logPatternPara && hasLogResult));
+
+            if (shouldCreate) {
               deepResearchParaCreated.current = true;
 
               await createParagraph(
