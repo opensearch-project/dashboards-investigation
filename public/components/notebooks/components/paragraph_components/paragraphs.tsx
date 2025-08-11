@@ -107,7 +107,7 @@ export const Paragraphs = (props: ParagraphProps) => {
       {<ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />}
       {(() => {
         const paragraphType = getInputType(paragraphValue);
-        switch (paragraphType.toLowerCase()) {
+        switch (paragraphType) {
           case 'ppl':
           case 'sql': {
             return (
@@ -136,6 +136,8 @@ export const Paragraphs = (props: ParagraphProps) => {
               </div>
             );
           }
+          case DASHBOARDS_VISUALIZATION_TYPE.toUpperCase():
+          case OBSERVABILITY_VISUALIZATION_TYPE.toUpperCase():
           case DASHBOARDS_VISUALIZATION_TYPE:
           case OBSERVABILITY_VISUALIZATION_TYPE: {
             return (

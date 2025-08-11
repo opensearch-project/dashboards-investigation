@@ -138,23 +138,6 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
   }, [inputJSON, endDate]);
   const { runParagraph } = useParagraphs();
 
-  const runParagraphHandler = async () => {
-    paragraphState.updateUIState({
-      isRunning: true,
-    });
-    try {
-      await runParagraph({
-        id: paragraphValue.id,
-      });
-    } catch (e) {
-      // do nothing
-    } finally {
-      paragraphState.updateUIState({
-        isRunning: false,
-      });
-    }
-  };
-
   const isRunning = paragraphValue.uiState?.isRunning;
   const dateFormat = uiSettings.get('dateFormat');
 
@@ -207,7 +190,9 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
           <EuiSmallButton
             data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
             onClick={() => {
-              runParagraphHandler();
+              runParagraph({
+                id: paragraphValue.id,
+              });
             }}
           >
             {ParagraphState.getOutput(paragraphValue)?.result !== '' ? 'Refresh' : 'Run'}
