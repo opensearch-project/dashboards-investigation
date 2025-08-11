@@ -405,7 +405,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
       id: string;
       dateCreated: string;
       dateModified: string;
-      isAgentic: boolean;
+      notebookType: notebookType;
     }>
   >;
 
