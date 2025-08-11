@@ -181,7 +181,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
       />
     );
     showModal();
-  }, [onCreate, closeModal, history]);
+  }, [onCreate, closeModal]);
 
   useEffect(() => {
     const url = window.location.hash.split('/');
