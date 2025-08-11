@@ -22,7 +22,7 @@ export const usePrecheck = () => {
 
   return {
     start: useCallback(
-      async (res: { context: NotebookContext; paragraphs: ParagraphBackendType[] }) => {
+      async (res: { context?: NotebookContext; paragraphs: ParagraphBackendType[] }) => {
         let logPatternParaExists = false;
         let anomalyAnalysisParaExists = false;
 
@@ -92,14 +92,10 @@ export const usePrecheck = () => {
             const anomalyAnalysisParagraph = paragraphValues.find(
               (p) =>
                 p.input?.inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE &&
-                !p.uiState?.inQueue &&
                 !p.uiState?.isRunning
             );
             const logPatternPara = paragraphValues.find(
-              (p) =>
-                p.input?.inputType === LOG_PATTERN_PARAGRAPH_TYPE &&
-                !p.uiState?.inQueue &&
-                !p.uiState?.isRunning
+              (p) => p.input?.inputType === LOG_PATTERN_PARAGRAPH_TYPE && !p.uiState?.isRunning
             );
 
             const hasAnomalyResult =
@@ -112,12 +108,12 @@ export const usePrecheck = () => {
               deepResearchParaCreated.current = true;
 
               await createParagraph(
-                totalParagraphLength + 2,
-                'What did the alert happen? Find the root cause and give some solutions.',
+                totalParagraphLength + paragraphStates.length,
+                'Why did the alert happen? Find the root cause and give some solutions.',
                 DEEP_RESEARCH_PARAGRAPH_TYPE
               );
 
-              await runParagraph({ index: totalParagraphLength + 2 });
+              await runParagraph({ index: totalParagraphLength + paragraphStates.length });
 
               // Force re-render to ensure UI updates
               notebookContext.state.updateValue({
