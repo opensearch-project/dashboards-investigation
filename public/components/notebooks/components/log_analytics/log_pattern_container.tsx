@@ -20,7 +20,6 @@ import { useObservable } from 'react-use';
 import { LogPatternAnalysisResult } from 'common/types/log_pattern';
 import { Observable } from 'rxjs';
 import { NoteBookServices } from 'public/types';
-import { ParaType } from '../../../../../common/types/notebooks';
 import {
   LogPatternAnalysisParams,
   LogPatternService,
