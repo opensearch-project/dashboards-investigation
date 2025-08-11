@@ -22,6 +22,7 @@ import { getInputType } from '../../../common/utils/paragraph';
 import { updateParagraphText } from '../../common/helpers/notebooks/paragraph';
 import {
   DeepResearchOutputResult,
+  NotebookBackendType,
   NotebookContext,
   ParagraphBackendType,
 } from '../../../common/types/notebooks';
@@ -53,14 +54,14 @@ export function createNotebook(paragraphInput: string, inputType: string) {
       inputType: paragraphType,
       inputText: paragraphInput,
     };
-    const outputObjects: DefaultOutput[] = [
+    const outputObjects: ParagraphBackendType['output'] = [
       {
         outputType: paragraphType,
         result: '',
         execution_time: '0s',
       },
     ];
-    const newParagraph = {
+    const newParagraph: ParagraphBackendType = {
       id: 'paragraph_' + uuid(),
       dateCreated: new Date().toISOString(),
       dateModified: new Date().toISOString(),
@@ -79,7 +80,10 @@ export async function fetchNotebook(
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
   try {
-    const notebook = await opensearchNotebooksClient.get(NOTEBOOK_SAVED_OBJECT, noteId);
+    const notebook = await opensearchNotebooksClient.get<{ savedNotebook: NotebookBackendType }>(
+      NOTEBOOK_SAVED_OBJECT,
+      noteId
+    );
     return notebook;
   } catch (error) {
     throw new Error('update Paragraph Error:' + error);
@@ -87,12 +91,17 @@ export async function fetchNotebook(
 }
 
 export async function createParagraphs(
-  params: { noteId: string; paragraphIndex: number; paragraphInput: string; inputType: string },
+  params: {
+    noteId: string;
+    input: ParagraphBackendType['input'];
+    dataSourceMDSId?: string;
+    paragraphIndex: number;
+  },
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
-  const notebookinfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
-  const paragraphs = notebookinfo.attributes.savedNotebook.paragraphs;
-  const newParagraph = createNotebook(params.paragraphInput, params.inputType);
+  const notebookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
+  const paragraphs = notebookInfo.attributes.savedNotebook.paragraphs;
+  const newParagraph = createNotebook(params.input.inputText, params.input.inputType);
   paragraphs.splice(params.paragraphIndex, 0, newParagraph);
   const updateNotebook = {
     paragraphs,
@@ -103,31 +112,6 @@ export async function createParagraphs(
   });
   await fetchNotebook(params.noteId, opensearchNotebooksClient);
   return newParagraph;
-}
-
-export async function clearParagraphs(
-  params: { noteId: string },
-  opensearchNotebooksClient: SavedObjectsClientContract
-) {
-  const notebookinfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
-  const updatedparagraphs: DefaultParagraph[] = [];
-  notebookinfo.attributes.savedNotebook.paragraphs.map((paragraph: DefaultParagraph) => {
-    const updatedParagraph = { ...paragraph };
-    updatedParagraph.output = [];
-    updatedparagraphs.push(updatedParagraph);
-  });
-  const updateNotebook = {
-    paragraphs: updatedparagraphs,
-    dateModified: new Date().toISOString(),
-  };
-  try {
-    await opensearchNotebooksClient.update(NOTEBOOK_SAVED_OBJECT, params.noteId, {
-      savedNotebook: updateNotebook,
-    });
-    return { paragraphs: updatedparagraphs };
-  } catch (error) {
-    throw new Error('Clear Paragraph Error:' + error);
-  }
 }
 
 export async function deleteParagraphs(

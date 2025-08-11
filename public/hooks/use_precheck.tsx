@@ -55,11 +55,14 @@ export const usePrecheck = () => {
               timeRange: resContext.timeRange,
               filters: resContext.filters,
             });
-            const anomalyAnalysisParagraphResult = await createParagraph(
-              totalParagraphLength,
-              newParaContent || '',
-              ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE
-            );
+            const anomalyAnalysisParagraphResult = await createParagraph({
+              index: totalParagraphLength + paragraphStates.length,
+              input: {
+                inputText: newParaContent || '',
+                inputType: ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+              },
+              dataSourceMDSId: resContext?.dataSourceId,
+            });
             if (anomalyAnalysisParagraphResult) {
               paragraphStates.push(anomalyAnalysisParagraphResult);
             }
@@ -72,11 +75,14 @@ export const usePrecheck = () => {
               resContext?.indexInsight?.is_log_index &&
               resContext?.indexInsight?.log_message_field
             ) {
-              const logPatternResult = await createParagraph(
-                totalParagraphLength + 1,
-                '',
-                LOG_PATTERN_PARAGRAPH_TYPE
-              );
+              const logPatternResult = await createParagraph({
+                index: totalParagraphLength + paragraphStates.length,
+                input: {
+                  inputText: '',
+                  inputType: LOG_PATTERN_PARAGRAPH_TYPE,
+                },
+                dataSourceMDSId: resContext?.dataSourceId,
+              });
               if (logPatternResult) {
                 paragraphStates.push(logPatternResult);
               }

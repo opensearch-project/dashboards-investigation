@@ -13,7 +13,6 @@ import { SavedObjectsClientContract } from '../../../../../src/core/server/types
 import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
 import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved_object_attributes';
 import {
-  clearParagraphs,
   createParagraphs,
   deleteParagraphs,
   updateFetchParagraph,
@@ -31,8 +30,11 @@ export function registerParaRoute(router: IRouter) {
         body: schema.object({
           noteId: schema.string(),
           paragraphIndex: schema.number(),
-          paragraphInput: schema.string(),
-          inputType: schema.string(),
+          input: schema.object({
+            inputText: schema.string(),
+            inputType: schema.string(),
+          }),
+          dataSourceMDSId: schema.maybe(schema.string()),
         }),
       },
     },
@@ -45,36 +47,6 @@ export function registerParaRoute(router: IRouter) {
         const saveResponse = await createParagraphs(request.body, context.core.savedObjects.client);
         return response.ok({
           body: saveResponse,
-        });
-      } catch (error) {
-        return response.custom({
-          statusCode: error.statusCode || 500,
-          body: error.message,
-        });
-      }
-    }
-  );
-  router.put(
-    {
-      path: `${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/clearall`,
-      validate: {
-        body: schema.object({
-          noteId: schema.string(),
-        }),
-      },
-    },
-    async (
-      context,
-      request,
-      response
-    ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
-      try {
-        const clearParaResponse = await clearParagraphs(
-          request.body,
-          context.core.savedObjects.client
-        );
-        return response.ok({
-          body: clearParaResponse,
         });
       } catch (error) {
         return response.custom({

@@ -5,12 +5,6 @@
 
 import { RefObject } from 'react';
 
-export interface NotebooksPluginSetup {
-  getGreeting: () => string;
-}
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface NotebooksPluginStart {}
-
 export interface OptionsType {
   baseUrl: string;
   payload?: any;

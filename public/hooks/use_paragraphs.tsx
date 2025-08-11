@@ -20,13 +20,12 @@ export const useParagraphs = () => {
   const { id } = context.state.value;
 
   const createParagraph = useCallback(
-    (index: number, newParaContent: string, inpType: string) => {
-      const { context: notebookContext } = context.state.value;
+    (props: { index: number; input: ParagraphBackendType['input']; dataSourceMDSId?: string }) => {
       const addParaObj = {
         noteId: context.state.value.id,
-        paragraphIndex: index,
-        paragraphInput: newParaContent,
-        inputType: inpType,
+        input: props.input,
+        paragraphIndex: props.index,
+        ...(props.dataSourceMDSId ? { dataSourceMDSId: props.dataSourceMDSId } : {}),
       };
 
       return http
@@ -34,16 +33,12 @@ export const useParagraphs = () => {
           body: JSON.stringify(addParaObj),
         })
         .then((res) => {
-          const dataSourceId = notebookContext?.value?.dataSourceId;
-          if (dataSourceId) {
-            res.dataSourceMDSId = dataSourceId;
-          }
           const newParagraphs = [...context.state.value.paragraphs];
-          newParagraphs.splice(index, 0, new ParagraphState(res));
+          newParagraphs.splice(props.index, 0, new ParagraphState(res));
           context.state.updateValue({
             paragraphs: newParagraphs,
           });
-          return context.state.value.paragraphs[index];
+          return context.state.value.paragraphs[props.index];
         })
         .catch((err) => {
           notifications.toasts.addDanger(
@@ -95,7 +90,13 @@ export const useParagraphs = () => {
       inputType = 'OBSERVABILITY_VISUALIZATION';
     }
     if (index !== -1) {
-      return createParagraph(index, para.input.inputText, inputType);
+      return createParagraph({
+        index,
+        input: {
+          inputText: para.input.inputText,
+          inputType,
+        },
+      });
     }
   };
 

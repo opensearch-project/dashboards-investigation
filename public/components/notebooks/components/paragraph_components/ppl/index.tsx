@@ -39,6 +39,7 @@ import {
 import { QueryDataGridMemo } from '../para_query_grid';
 import { getInputType } from '../../../../../../common/utils/paragraph';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { callOpenSearchCluster } from '../../../../../plugin_helpers/plugin_proxy_call';
 
 interface QueryObject {
   schema?: any[];
@@ -114,22 +115,24 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
 
   const loadQueryResultsFromInput = useCallback(
     async (paragraph: ParagraphStateValue) => {
-      const queryType =
-        paragraph.input.inputText.substring(0, 4) === '%sql' ? 'sqlquery' : 'pplquery';
-      const queryString = {
-        dataSourceMDSId: paragraph.dataSourceMDSId,
-      };
+      const queryType = paragraph.input.inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
       paragraphState.updateUIState({
         isRunning: true,
       });
       previousRunQueryRef.current = searchQuery;
-      await http
-        .post(`/api/investigation/sql/${queryType}`, {
-          body: JSON.stringify(searchQuery),
-          ...(!!paragraph.dataSourceMDSId && { query: queryString }),
-        })
+      await callOpenSearchCluster({
+        http,
+        dataSourceId: paragraph.dataSourceMDSId,
+        request: {
+          path: `/_plugins/${queryType}`,
+          method: 'POST',
+          body: JSON.stringify({
+            query: searchQuery,
+          }),
+        },
+      })
         .then((response) => {
-          setQueryObject(response.data.resp);
+          setQueryObject(response);
         })
         .catch((err) => {
           notifications.toasts.addDanger('Error getting query output');

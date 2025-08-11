@@ -21,14 +21,6 @@ export interface NotebookStateValue {
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {
-  createParagraph(paragraphIndex: number, paragraph: ParagraphState<unknown>) {
-    const newParagraph = this.value.paragraphs;
-    newParagraph.splice(paragraphIndex, 0, paragraph);
-    this.updateValue({
-      paragraphs: newParagraph,
-    });
-    return this;
-  }
   updateContext(context: Partial<NotebookContext>) {
     this.value.context.updateValue(context);
     return this;
