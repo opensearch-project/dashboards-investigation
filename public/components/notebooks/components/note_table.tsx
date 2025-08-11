@@ -46,6 +46,7 @@ import {
   useOpenSearchDashboards,
 } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NoteBookServices } from '../../../types';
+import { notebookType } from '../../../../common/types/notebooks';
 
 interface NoteTableProps {
   deleteNotebook: (noteList: string[], toastMessage?: string) => void;
@@ -63,7 +64,6 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const location = useLocation();
-  const history = useHistory();
 
   const dataSourceEnabled = !!dataSource;
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
@@ -110,7 +110,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
 
   // Creates a new notebook
   const createNotebook = useCallback(
-    async (newNoteName: string, isAgentic: boolean) => {
+    async (newNoteName: string, notebookType: notebookType) => {
       if (newNoteName.length >= 50 || newNoteName.length === 0) {
         notifications.toasts.addDanger('Invalid notebook name');
         window.location.assign('#/');
@@ -118,7 +118,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
       }
       const newNoteObject = {
         name: newNoteName,
-        context: { isAgentic: isAgentic },
+        context: { notebookType },
       };
 
       return http
@@ -146,8 +146,8 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
   );
 
   const onCreate = useCallback(
-    async (newNoteName: string, isAgentic: boolean) => {
-      createNotebook(newNoteName, isAgentic);
+    async (newNoteName: string, notebookType: notebookType) => {
+      createNotebook(newNoteName, notebookType);
       closeModal();
     },
     [createNotebook, closeModal]
@@ -382,11 +382,10 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
       ),
     },
     {
-      field: 'isAgentic',
+      field: 'notebookType',
       name: 'Type',
       sortable: true,
-      render: (isAgentic) =>
-        isAgentic !== undefined && isAgentic === true ? 'Agentic' : 'Classic',
+      render: (value) => value ?? notebookType.CLASSIC,
     },
     {
       field: 'dateModified',

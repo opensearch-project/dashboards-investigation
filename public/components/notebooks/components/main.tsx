@@ -13,6 +13,7 @@ import { isValidUUID } from './helpers/notebooks_parser';
 import { NoteTable } from './note_table';
 import { Notebook } from './notebook';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { notebookType } from '../../../../common/types/notebooks';
 /*
  * "Main" component renders the whole Notebooks as a single page application
  *
@@ -29,7 +30,7 @@ export interface NotebookType {
   id: string;
   dateCreated: string;
   dateModified: string;
-  isAgentic: boolean;
+  notebookType: notebookType;
 }
 
 export const Main: React.FC = () => {

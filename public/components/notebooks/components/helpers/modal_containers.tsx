@@ -27,6 +27,7 @@ import { dataSourceFilterFn } from '../../../../../common/utils/shared';
 import { CustomInputModal } from './custom_modals/custom_input_modal';
 import { getDataSourceManagementSetup } from '../../../../../public/services';
 import { DataSourceOption } from '../../../../../../../src/plugins/data_source_management/public';
+import { notebookType } from '../../../../../common//types/notebooks';
 
 /* The file contains helper functions for modal layouts
  * getCustomModal - returns modal with input field
@@ -234,7 +235,7 @@ export const DeleteNotebookModal = ({
 };
 
 interface CreateNotebookModalProps {
-  runModal: (name: string, isAgentic: boolean) => void;
+  runModal: (name: string, notebookType: notebookType) => void;
   closeModal: (
     event?: React.KeyboardEvent<HTMLDivElement> | React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => void;
@@ -309,7 +310,7 @@ export const CreateNotebookModal = ({
           <EuiSmallButtonEmpty onClick={closeModal}>{btn1txt}</EuiSmallButtonEmpty>
           <EuiSmallButton
             data-test-subj="custom-input-modal-confirm-button"
-            onClick={() => runModal(value, checked)}
+            onClick={() => runModal(value, checked ? notebookType.AGENTIC : notebookType.CLASSIC)}
             fill
           >
             {btn2txt}
