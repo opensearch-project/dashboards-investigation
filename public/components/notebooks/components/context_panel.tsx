@@ -18,7 +18,7 @@ import React, { useCallback, useContext, useState } from 'react';
 import moment from 'moment';
 import { useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
-import { useParagraphs } from 'public/hooks/use_paragraphs';
+import { useParagraphs } from '../../../hooks/use_paragraphs';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { getDataSourceManagementSetup } from '../../../services';
 import { ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE } from '../../../../common/constants/notebooks';
