@@ -21,6 +21,7 @@ export const getDefaultState = (props?: Partial<NotebookStateValue>) => {
     dateCreated: '',
     isLoading: false,
     path: '',
+    vizPrefix: '',
     ...props,
   });
 };
