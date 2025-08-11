@@ -12,7 +12,7 @@ import {
   DASHBOARDS_VISUALIZATION_TYPE,
   OBSERVABILITY_VISUALIZATION_TYPE,
 } from '../../../../../common/constants/notebooks';
-import { DeepResearchOutputResult, ParaType } from '../../../../../common/types/notebooks';
+import { ParaType } from '../../../../../common/types/notebooks';
 import { uiSettingsService } from '../../../../../common/utils';
 import { dataSourceFilterFn } from '../../../../../common/utils/shared';
 import { ParaOutput } from './para_output';
@@ -27,6 +27,17 @@ import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opense
 import { getDataSourceManagementSetup } from '../../../../../public/services';
 import { DeepResearchParagraph } from './deep_research';
 import { VisualizationParagraph } from './visualization';
+
+const mapParagraphTypeToRenderComponent = {
+  ppl: PPLParagraph,
+  sql: PPLParagraph,
+  md: MarkdownParagraph,
+  DEEP_RESEARCH: DeepResearchParagraph,
+  [DASHBOARDS_VISUALIZATION_TYPE.toUpperCase()]: VisualizationParagraph,
+  [OBSERVABILITY_VISUALIZATION_TYPE.toUpperCase()]: VisualizationParagraph,
+  [DASHBOARDS_VISUALIZATION_TYPE]: VisualizationParagraph,
+  [OBSERVABILITY_VISUALIZATION_TYPE]: VisualizationParagraph,
+};
 
 /*
  * "Paragraphs" component is used to render cells of the notebook open and "add para div" between paragraphs
@@ -106,81 +117,47 @@ export const Paragraphs = (props: ParagraphProps) => {
     >
       {<ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />}
       {(() => {
-        const paragraphType = getInputType(paragraphValue);
-        switch (paragraphType) {
-          case 'ppl':
-          case 'sql': {
-            return (
-              <div key={paragraph.value.id} className={paraClass}>
-                <PPLParagraph paragraphState={paragraph as ParagraphState<string>} />
-              </div>
-            );
-          }
-          case 'md': {
-            return (
-              <div key={paragraph.value.id} className={paraClass}>
-                <MarkdownParagraph paragraphState={paragraph as ParagraphState<string>} />
-              </div>
-            );
-          }
-          case 'DEEP_RESEARCH': {
-            return (
-              <div key={paragraph.value.id} className={paraClass}>
-                <DeepResearchParagraph
-                  paragraphState={
-                    paragraph as ParagraphState<
-                      DeepResearchOutputResult | { agent_id?: string } | string
-                    >
-                  }
-                />
-              </div>
-            );
-          }
-          case DASHBOARDS_VISUALIZATION_TYPE.toUpperCase():
-          case OBSERVABILITY_VISUALIZATION_TYPE.toUpperCase():
-          case DASHBOARDS_VISUALIZATION_TYPE:
-          case OBSERVABILITY_VISUALIZATION_TYPE: {
-            return (
-              <div key={paragraph.value.id} className={paraClass}>
-                <VisualizationParagraph paragraphState={paragraph as ParagraphState<string>} />
-              </div>
-            );
-          }
-          default: {
-            return (
-              <>
-                {dataSourceEnabled &&
-                  !para.isVizualisation &&
-                  !para.isAnomalyVisualizationAnalysis &&
-                  !para.isLogPattern && (
-                    <EuiFlexGroup style={{ marginTop: 0 }}>
-                      <EuiFlexItem>
-                        <DataSourceSelector
-                          savedObjectsClient={savedObjectsMDSClient.client}
-                          notifications={notifications.toasts}
-                          onSelectedDataSource={onSelectedDataSource}
-                          disabled={false}
-                          fullWidth={false}
-                          removePrepend={false}
-                          defaultOption={
-                            paragraphValue.dataSourceMDSId !== undefined
-                              ? [{ id: paragraphValue.dataSourceMDSId }]
-                              : undefined
-                          }
-                          dataSourceFilter={dataSourceFilterFn}
-                        />
-                      </EuiFlexItem>
-                    </EuiFlexGroup>
-                  )}
-                <div key={index} className={paraClass}>
-                  {props.selectedViewId !== 'input_only' && isOutputAvailable && (
-                    <div style={{ opacity: para.isOutputStale ? 0.5 : 1 }}>{paraOutput}</div>
-                  )}
-                </div>
-              </>
-            );
-          }
+        const RenderComponent = mapParagraphTypeToRenderComponent[getInputType(paragraphValue)];
+        if (RenderComponent) {
+          return (
+            <div key={paragraph.value.id} className={paraClass}>
+              <RenderComponent paragraphState={paragraph as ParagraphState<any>} />
+            </div>
+          );
         }
+
+        return (
+          <>
+            {dataSourceEnabled &&
+              !para.isVizualisation &&
+              !para.isAnomalyVisualizationAnalysis &&
+              !para.isLogPattern && (
+                <EuiFlexGroup style={{ marginTop: 0 }}>
+                  <EuiFlexItem>
+                    <DataSourceSelector
+                      savedObjectsClient={savedObjectsMDSClient.client}
+                      notifications={notifications.toasts}
+                      onSelectedDataSource={onSelectedDataSource}
+                      disabled={false}
+                      fullWidth={false}
+                      removePrepend={false}
+                      defaultOption={
+                        paragraphValue.dataSourceMDSId !== undefined
+                          ? [{ id: paragraphValue.dataSourceMDSId }]
+                          : undefined
+                      }
+                      dataSourceFilter={dataSourceFilterFn}
+                    />
+                  </EuiFlexItem>
+                </EuiFlexGroup>
+              )}
+            <div key={index} className={paraClass}>
+              {props.selectedViewId !== 'input_only' && isOutputAvailable && (
+                <div style={{ opacity: para.isOutputStale ? 0.5 : 1 }}>{paraOutput}</div>
+              )}
+            </div>
+          </>
+        );
       })()}
     </EuiPanel>
   );
