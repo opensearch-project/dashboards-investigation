@@ -11,7 +11,7 @@ import { useParagraphs } from './use_paragraphs';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
-import { CONSOLE_PROXY } from '../../common/constants/shared';
+import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
 
 export const useNotebook = () => {
   const context = useContext(NotebookReactContext);
@@ -48,11 +48,12 @@ export const useNotebook = () => {
   const fetchIndexInsights = useCallback(
     async (index: string, dataSourceId: string | undefined) => {
       try {
-        const indexInsightResponse: IndexInsight = await http.post(CONSOLE_PROXY, {
-          query: {
+        const indexInsightResponse: IndexInsight = await callOpenSearchCluster({
+          http,
+          dataSourceId,
+          request: {
             path: `_plugins/_ml/insights/${index}/LOG_RELATED_INDEX_CHECK`,
             method: 'GET',
-            dataSourceId,
           },
         });
 
