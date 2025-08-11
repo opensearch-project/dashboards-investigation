@@ -51,7 +51,7 @@ export const EXECUTOR_SYSTEM_PROMPT = `
       - If a tool call fails, try alternative approaches before declaring failure
       - If a search request is complex, break it down into multiple simple search queries
 
-      Your response must be complete and actionable as-is."""
+      Your response must be complete and actionable as-is.
   `;
 
 export const NOTEBOOK_APP_NAME = 'investigate-notebook';
