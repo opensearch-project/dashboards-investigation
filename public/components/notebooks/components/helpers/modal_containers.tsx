@@ -310,7 +310,7 @@ export const CreateNotebookModal = ({
           <EuiSmallButtonEmpty onClick={closeModal}>{btn1txt}</EuiSmallButtonEmpty>
           <EuiSmallButton
             data-test-subj="custom-input-modal-confirm-button"
-            onClick={() => runModal(value, checked ? notebookType.AGENTIC : NotebookType.CLASSIC)}
+            onClick={() => runModal(value, checked ? NotebookType.AGENTIC : NotebookType.CLASSIC)}
             fill
           >
             {btn2txt}
