@@ -101,13 +101,13 @@ export const usePrecheck = () => {
               para?.output?.[0]?.result &&
               para.output[0].result !== '';
             const hasAnomalyResult = hasResult(anomalyAnalysisPara);
-            const hasLogResult = hasResult(logPatternPara);
+            const hasLogPatternResult = hasResult(logPatternPara);
 
             const shouldCreate =
               !deepResearchParaCreated.current &&
-              ((anomalyAnalysisPara && logPatternPara && hasAnomalyResult && hasLogResult) ||
+              ((anomalyAnalysisPara && logPatternPara && hasAnomalyResult && hasLogPatternResult) ||
                 (anomalyAnalysisPara && !logPatternPara && hasAnomalyResult) ||
-                (!anomalyAnalysisPara && logPatternPara && hasLogResult));
+                (!anomalyAnalysisPara && logPatternPara && hasLogPatternResult));
 
             if (shouldCreate) {
               deepResearchParaCreated.current = true;
