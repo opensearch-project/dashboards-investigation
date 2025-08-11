@@ -52,7 +52,7 @@ export const useNotebook = () => {
           http,
           dataSourceId,
           request: {
-            path: `_plugins/_ml/insights/${index}/LOG_RELATED_INDEX_CHECK`,
+            path: `/_plugins/_ml/insights/${index}/LOG_RELATED_INDEX_CHECK`,
             method: 'GET',
           },
         });
