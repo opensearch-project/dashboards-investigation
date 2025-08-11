@@ -39,14 +39,14 @@ import {
   DeleteNotebookModal,
   getSampleNotebooksModal,
 } from './helpers/modal_containers';
-import { NotebookType } from './main';
+import { NotebookInfo } from './main';
 import { NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
 import {
   toMountPoint,
   useOpenSearchDashboards,
 } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NoteBookServices } from '../../../types';
-import { notebookType } from '../../../../common/types/notebooks';
+import { NotebookType } from '../../../../common/types/notebooks';
 
 interface NoteTableProps {
   deleteNotebook: (noteList: string[], toastMessage?: string) => void;
@@ -57,10 +57,10 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
     services: { http, notifications, savedObjects: savedObjectsMDSClient, dataSource, chrome },
   } = useOpenSearchDashboards<NoteBookServices>();
 
-  const [notebooks, setNotebooks] = useState<NotebookType[]>([]);
+  const [notebooks, setNotebooks] = useState<NotebookInfo[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false); // Modal Toggle
   const [modalLayout, setModalLayout] = useState(<EuiOverlayMask />); // Modal Layout
-  const [selectedNotebooks, setSelectedNotebooks] = useState<NotebookType[]>([]);
+  const [selectedNotebooks, setSelectedNotebooks] = useState<NotebookInfo[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const location = useLocation();
@@ -110,7 +110,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
 
   // Creates a new notebook
   const createNotebook = useCallback(
-    async (newNoteName: string, notebookType: notebookType) => {
+    async (newNoteName: string, notebookType: NotebookType) => {
       if (newNoteName.length >= 50 || newNoteName.length === 0) {
         notifications.toasts.addDanger('Invalid notebook name');
         window.location.assign('#/');
@@ -146,7 +146,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
   );
 
   const onCreate = useCallback(
-    async (newNoteName: string, notebookType: notebookType) => {
+    async (newNoteName: string, notebookType: NotebookType) => {
       createNotebook(newNoteName, notebookType);
       closeModal();
     },
@@ -385,7 +385,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
       field: 'notebookType',
       name: 'Type',
       sortable: true,
-      render: (value) => value ?? notebookType.CLASSIC,
+      render: (value) => value ?? NotebookType.CLASSIC,
     },
     {
       field: 'dateModified',
@@ -399,15 +399,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
       sortable: true,
       render: (value) => moment(value).format(UI_DATE_FORMAT),
     },
-  ] as Array<
-    EuiTableFieldDataColumnType<{
-      path: string;
-      id: string;
-      dateCreated: string;
-      dateModified: string;
-      notebookType: notebookType;
-    }>
-  >;
+  ] as Array<EuiTableFieldDataColumnType<NotebookInfo>>;
 
   return (
     <>

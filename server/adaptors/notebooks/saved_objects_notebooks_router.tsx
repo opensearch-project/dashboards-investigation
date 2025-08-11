@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { notebookType } from '../../../common/types/notebooks';
+import { NotebookType } from '../../../common/types/notebooks';
 import { SavedObjectsClientContract } from '../../../../../src/core/server/types';
 import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved_object_attributes';
 import { DefaultNotebooks } from '../../../server/common/helpers/notebooks/default_notebook_schema';
@@ -19,7 +19,7 @@ export function fetchNotebooks(savedObjectNotebooks: []) {
         path: savedObject.attributes.savedNotebook.name,
         id: savedObject.id,
         notebookType:
-          savedObject.attributes.savedNotebook.context?.notebookType || notebookType.CLASSIC,
+          savedObject.attributes.savedNotebook.context?.notebookType || NotebookType.CLASSIC,
       });
     }
   });
