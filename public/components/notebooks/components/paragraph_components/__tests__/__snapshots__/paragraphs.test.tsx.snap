@@ -37,23 +37,62 @@ exports[`<Paragraphs /> spec renders the component 1`] = `
     </div>
   </div>
   <div
-    class="euiFlexGroup euiFlexGroup--gutterLarge euiFlexGroup--directionRow euiFlexGroup--responsive"
-    style="margin-top: 0px;"
-  >
-    <div
-      class="euiFlexItem"
-    >
-      <div
-        data-test-sub="dataSourceSelector"
-      />
-    </div>
-  </div>
-  <div
     class="notebooks-paragraph notebooks-paragraph-light"
   >
     <div
-      style="opacity: 1;"
+      class="euiSpacer euiSpacer--s"
     />
+    <div
+      style="width: 100%;"
+    >
+      <textarea
+        class="euiTextArea euiTextArea--resizeVertical euiTextArea--fullWidth euiTextArea--compressed editorArea"
+        data-test-subj="editorArea-"
+        id="editorArea-"
+        placeholder="Type %md on the first line to define the input type. 
+Code block starts here."
+        rows="3"
+      >
+        %md # Type your input here
+      </textarea>
+    </div>
+    <div
+      class="euiSpacer euiSpacer--m"
+    />
+    <div
+      class="euiFlexGroup euiFlexGroup--gutterSmall euiFlexGroup--alignItemsCenter euiFlexGroup--directionRow euiFlexGroup--responsive"
+    >
+      <div
+        class="euiFlexItem euiFlexItem--flexGrowZero"
+      >
+        <button
+          class="euiButton euiButton--primary euiButton--small"
+          data-test-subj="runRefreshBtn-"
+          type="button"
+        >
+          <span
+            class="euiButtonContent euiButton__content"
+          >
+            <span
+              class="euiButton__text"
+            >
+              Refresh
+            </span>
+          </span>
+        </button>
+      </div>
+    </div>
+    <div
+      class="euiSpacer euiSpacer--m"
+    />
+    <div
+      class="euiText euiText--small wrapAll markdown-output-text"
+      data-test-subj="markdownOutputText"
+    >
+      <div
+        class="markdown-body "
+      />
+    </div>
   </div>
 </div>
 `;

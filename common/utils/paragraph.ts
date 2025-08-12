@@ -12,7 +12,7 @@ export const extractCodeBlockType = (content: string) => {
 
 export const getInputType = <T>(paragraph: ParagraphBackendType<T>) => {
   const inputType = paragraph.input.inputType;
-  if (inputType === 'MARKDOWN') {
+  if (inputType === 'MARKDOWN' || inputType === 'CODE') {
     return extractCodeBlockType(paragraph.input.inputText);
   }
 

@@ -5,67 +5,56 @@
 
 import now from 'performance-now';
 import { v4 as uuid } from 'uuid';
-import {
-  ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
-  EXECUTOR_SYSTEM_PROMPT,
-  LOG_PATTERN_PARAGRAPH_TYPE,
-} from '../../../common/constants/notebooks';
+import { EXECUTOR_SYSTEM_PROMPT } from '../../../common/constants/notebooks';
 import { SavedObjectsClientContract, SavedObject } from '../../../../../src/core/server/types';
 import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved_object_attributes';
-import {
-  DefaultOutput,
-  DefaultParagraph,
-} from '../../common/helpers/notebooks/default_notebook_schema';
 import { formatNotRecognized, inputIsQuery } from '../../common/helpers/notebooks/query_helpers';
 import { RequestHandlerContext } from '../../../../../src/core/server';
 import { getInputType } from '../../../common/utils/paragraph';
 import { updateParagraphText } from '../../common/helpers/notebooks/paragraph';
 import {
+  DeepResearchInputParameters,
   DeepResearchOutputResult,
+  NotebookBackendType,
   NotebookContext,
   ParagraphBackendType,
 } from '../../../common/types/notebooks';
 import { getNotebookTopLevelContextPrompt, getOpenSearchClientTransport } from '../../routes/utils';
 import { getParagraphServiceSetup } from '../../services/get_set';
 
-export function createNotebook(paragraphInput: string, inputType: string) {
+export function createParagraph<T>({
+  input,
+  dataSourceMDSId,
+}: {
+  input: ParagraphBackendType<string, T>['input'];
+  dataSourceMDSId?: string;
+}) {
+  const finalInput = { ...input };
   try {
-    let paragraphType = 'MARKDOWN';
-    if (inputType === 'VISUALIZATION') {
-      paragraphType = 'VISUALIZATION';
+    let paragraphType = finalInput.inputType;
+    const { inputText, inputType } = finalInput;
+    if (inputType === 'CODE') {
+      if (inputText.substring(0, 3) === '%sql' || inputText.substring(0, 3) === '%ppl') {
+        paragraphType = 'QUERY';
+      } else {
+        paragraphType = 'MARKDOWN';
+      }
     }
-    if (inputType === 'OBSERVABILITY_VISUALIZATION') {
-      paragraphType = 'OBSERVABILITY_VISUALIZATION';
-    }
-    if (paragraphInput.substring(0, 3) === '%sql' || paragraphInput.substring(0, 3) === '%ppl') {
-      paragraphType = 'QUERY';
-    }
-    if (inputType === 'DEEP_RESEARCH') {
-      paragraphType = inputType;
-    }
-    if (inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE) {
-      paragraphType = inputType;
-    }
-    if (inputType === LOG_PATTERN_PARAGRAPH_TYPE) {
-      paragraphType = inputType;
-    }
-    const inputObject = {
-      inputType: paragraphType,
-      inputText: paragraphInput,
-    };
-    const outputObjects: DefaultOutput[] = [
+
+    const outputObjects: ParagraphBackendType<string>['output'] = [
       {
         outputType: paragraphType,
         result: '',
         execution_time: '0s',
       },
     ];
-    const newParagraph = {
+    const newParagraph: ParagraphBackendType<string, T> = {
       id: 'paragraph_' + uuid(),
       dateCreated: new Date().toISOString(),
       dateModified: new Date().toISOString(),
-      input: inputObject,
+      input: finalInput,
       output: outputObjects,
+      ...(dataSourceMDSId ? { dataSourceMDSId } : {}),
     };
 
     return newParagraph;
@@ -79,20 +68,31 @@ export async function fetchNotebook(
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
   try {
-    const notebook = await opensearchNotebooksClient.get(NOTEBOOK_SAVED_OBJECT, noteId);
+    const notebook = await opensearchNotebooksClient.get<{ savedNotebook: NotebookBackendType }>(
+      NOTEBOOK_SAVED_OBJECT,
+      noteId
+    );
     return notebook;
   } catch (error) {
     throw new Error('update Paragraph Error:' + error);
   }
 }
 
-export async function createParagraphs(
-  params: { noteId: string; paragraphIndex: number; paragraphInput: string; inputType: string },
+export async function createParagraphs<TOutput>(
+  params: {
+    noteId: string;
+    input: ParagraphBackendType<TOutput>['input'];
+    dataSourceMDSId?: string;
+    paragraphIndex: number;
+  },
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
-  const notebookinfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
-  const paragraphs = notebookinfo.attributes.savedNotebook.paragraphs;
-  const newParagraph = createNotebook(params.paragraphInput, params.inputType);
+  const notebookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
+  const paragraphs = notebookInfo.attributes.savedNotebook.paragraphs;
+  const newParagraph = createParagraph({
+    input: params.input,
+    dataSourceMDSId: params.dataSourceMDSId,
+  });
   paragraphs.splice(params.paragraphIndex, 0, newParagraph);
   const updateNotebook = {
     paragraphs,
@@ -105,39 +105,14 @@ export async function createParagraphs(
   return newParagraph;
 }
 
-export async function clearParagraphs(
-  params: { noteId: string },
-  opensearchNotebooksClient: SavedObjectsClientContract
-) {
-  const notebookinfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
-  const updatedparagraphs: DefaultParagraph[] = [];
-  notebookinfo.attributes.savedNotebook.paragraphs.map((paragraph: DefaultParagraph) => {
-    const updatedParagraph = { ...paragraph };
-    updatedParagraph.output = [];
-    updatedparagraphs.push(updatedParagraph);
-  });
-  const updateNotebook = {
-    paragraphs: updatedparagraphs,
-    dateModified: new Date().toISOString(),
-  };
-  try {
-    await opensearchNotebooksClient.update(NOTEBOOK_SAVED_OBJECT, params.noteId, {
-      savedNotebook: updateNotebook,
-    });
-    return { paragraphs: updatedparagraphs };
-  } catch (error) {
-    throw new Error('Clear Paragraph Error:' + error);
-  }
-}
-
 export async function deleteParagraphs(
   params: { noteId: string; paragraphId: string | undefined },
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
   const notebookinfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
-  const updatedparagraphs: DefaultParagraph[] = [];
+  const updatedparagraphs: Array<ParagraphBackendType<unknown>> = [];
   if (params.paragraphId !== undefined) {
-    notebookinfo.attributes.savedNotebook.paragraphs.map((paragraph: DefaultParagraph) => {
+    notebookinfo.attributes.savedNotebook.paragraphs.map((paragraph) => {
       if (paragraph.id !== params.paragraphId) {
         updatedparagraphs.push(paragraph);
       }
@@ -158,14 +133,12 @@ export async function deleteParagraphs(
   }
 }
 
-export async function updateRunFetchParagraph(
+export async function updateRunFetchParagraph<TOutput>(
   params: {
     noteId: string;
     paragraphId: string;
-    paragraphInput: string;
-    paragraphType: string;
-    dataSourceMDSId: string | undefined;
-    dataSourceMDSLabel: string | undefined;
+    input: ParagraphBackendType<TOutput>['input'];
+    dataSourceMDSId?: string;
   },
   opensearchNotebooksClient: SavedObjectsClientContract,
   context: RequestHandlerContext
@@ -175,12 +148,10 @@ export async function updateRunFetchParagraph(
     const updatedInputParagraphs = updateParagraphs(
       notebookInfo.attributes.savedNotebook.paragraphs,
       params.paragraphId,
-      params.paragraphInput,
-      params.paragraphType,
-      params.dataSourceMDSId,
-      params.dataSourceMDSLabel
+      params.input,
+      params.dataSourceMDSId
     );
-    const updatedOutputParagraphs = await runParagraph(
+    const updatedOutputParagraphs = await runParagraph<TOutput>(
       updatedInputParagraphs,
       params.paragraphId,
       context,
@@ -188,7 +159,7 @@ export async function updateRunFetchParagraph(
     );
 
     const updateNotebook: {
-      paragraphs: Array<ParagraphBackendType<string | DeepResearchOutputResult>>;
+      paragraphs: Array<ParagraphBackendType<TOutput>>;
       dateModified: string;
       context?: NotebookContext;
     } = {
@@ -197,7 +168,11 @@ export async function updateRunFetchParagraph(
     };
     const notebookContext = notebookInfo.attributes.savedNotebook?.context;
     if (notebookContext && !notebookContext.memoryId) {
-      const targetParagraph = updatedOutputParagraphs.find(({ id }) => id === params.paragraphId);
+      const targetParagraph:
+        | ParagraphBackendType<DeepResearchOutputResult>
+        | undefined = updatedOutputParagraphs.find(({ id }) => id === params.paragraphId) as
+        | ParagraphBackendType<DeepResearchOutputResult>
+        | undefined;
       if (targetParagraph?.output?.[0]?.outputType === 'DEEP_RESEARCH') {
         const { result } = targetParagraph.output[0];
 
@@ -226,18 +201,22 @@ export async function updateRunFetchParagraph(
   }
 }
 
-export async function runParagraph(
-  paragraphs: Array<ParagraphBackendType<string | DeepResearchOutputResult>>,
+export async function runParagraph<TOutput>(
+  paragraphs: Array<ParagraphBackendType<unknown>>,
   paragraphId: string,
   context: RequestHandlerContext,
   notebookinfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>
-) {
+): Promise<Array<ParagraphBackendType<TOutput>>> {
   try {
-    const updatedParagraphs = [];
+    const updatedParagraphs: Array<ParagraphBackendType<TOutput>> = [];
     let index = 0;
     for (index = 0; index < paragraphs.length; ++index) {
       const startTime = now();
-      const updatedParagraph = { ...paragraphs[index] };
+
+      // use string as default
+      const updatedParagraph: ParagraphBackendType<string | unknown> = {
+        ...paragraphs[index],
+      } as ParagraphBackendType<string | unknown>;
       if (paragraphs[index].id === paragraphId) {
         updatedParagraph.dateModified = new Date().toISOString();
         if (inputIsQuery(paragraphs[index].input.inputText)) {
@@ -284,6 +263,13 @@ export async function runParagraph(
             },
           ];
         } else if (paragraphs[index].input.inputType === 'DEEP_RESEARCH') {
+          const deepResearchAgentUpdateParagraph: ParagraphBackendType<
+            DeepResearchOutputResult,
+            DeepResearchInputParameters
+          > = paragraphs[index] as ParagraphBackendType<
+            DeepResearchOutputResult,
+            DeepResearchInputParameters
+          >;
           let output: { agent_id: string } = { agent_id: '' };
           try {
             output =
@@ -362,7 +348,7 @@ export async function runParagraph(
             },
           };
           const { body } = await currentParagraphTransport.request(payload);
-          updatedParagraph.output = [
+          deepResearchAgentUpdateParagraph.output = [
             {
               outputType: 'DEEP_RESEARCH',
               result: {
@@ -375,8 +361,10 @@ export async function runParagraph(
           ];
 
           // FIXME: this is used for debug
-          updatedParagraph.input.PERAgentInput = payload;
-          updatedParagraph.input.PERAgentContext = contextContent;
+          deepResearchAgentUpdateParagraph.input.parameters =
+            updatedParagraph.input.parameters || {};
+          deepResearchAgentUpdateParagraph.input.parameters.PERAgentInput = payload;
+          deepResearchAgentUpdateParagraph.input.parameters.PERAgentContext = contextContent;
         } else if (formatNotRecognized(paragraphs[index].input.inputText)) {
           updatedParagraph.output = [
             {
@@ -387,7 +375,7 @@ export async function runParagraph(
           ];
         }
       }
-      updatedParagraphs.push(updatedParagraph);
+      updatedParagraphs.push(updatedParagraph as ParagraphBackendType<TOutput>);
     }
     return updatedParagraphs;
   } catch (error) {
@@ -395,29 +383,21 @@ export async function runParagraph(
   }
 }
 
-export function updateParagraphs(
-  paragraphs: DefaultParagraph[],
+export function updateParagraphs<TOutput, IInputParameters>(
+  paragraphs: Array<ParagraphBackendType<unknown>>,
   paragraphId: string,
-  paragraphInput?: string,
-  paragraphType?: string,
+  input: ParagraphBackendType<TOutput, IInputParameters>['input'],
   dataSourceMDSId?: string,
-  dataSourceMDSLabel?: string,
-  paragraphOutput?: DefaultOutput[]
+  paragraphOutput?: ParagraphBackendType<TOutput, IInputParameters>['output']
 ) {
   try {
-    const updatedParagraphs: DefaultParagraph[] = [];
-    paragraphs.map((paragraph: DefaultParagraph) => {
-      const updatedParagraph = { ...paragraph };
+    const updatedParagraphs: Array<ParagraphBackendType<TOutput, IInputParameters>> = [];
+    paragraphs.map((paragraph) => {
+      const updatedParagraph = { ...paragraph } as ParagraphBackendType<TOutput, IInputParameters>;
       if (paragraph.id === paragraphId) {
         updatedParagraph.dataSourceMDSId = dataSourceMDSId ?? paragraph.dataSourceMDSId;
-        updatedParagraph.dataSourceMDSLabel = dataSourceMDSLabel ?? paragraph.dataSourceMDSId;
         updatedParagraph.dateModified = new Date().toISOString();
-        if (paragraphInput) {
-          updatedParagraph.input.inputText = paragraphInput;
-        }
-        if (paragraphType && paragraphType.length > 0) {
-          updatedParagraph.input.inputType = paragraphType;
-        }
+        updatedParagraph.input = input;
         if (paragraphOutput) {
           updatedParagraph.output = paragraphOutput;
         }
@@ -430,12 +410,13 @@ export function updateParagraphs(
   }
 }
 
-export async function updateFetchParagraph(
+export async function updateFetchParagraph<TOutput, TInputParameters>(
   params: {
     noteId: string;
     paragraphId: string;
-    paragraphInput: string;
-    paragraphOutput?: DefaultOutput[];
+    input: ParagraphBackendType<TOutput, TInputParameters>['input'];
+    dataSourceMDSId?: string;
+    output?: ParagraphBackendType<TOutput, TInputParameters>['output'];
   },
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
@@ -444,11 +425,9 @@ export async function updateFetchParagraph(
     const updatedInputParagraphs = updateParagraphs(
       notebookinfo.attributes.savedNotebook.paragraphs,
       params.paragraphId,
-      params.paragraphInput,
-      undefined,
-      undefined,
-      undefined,
-      params.paragraphOutput
+      params.input,
+      params.dataSourceMDSId,
+      params.output
     );
 
     const updateNotebook = {
@@ -459,7 +438,7 @@ export async function updateFetchParagraph(
       savedNotebook: updateNotebook,
     });
     let resultParagraph = {};
-    updatedInputParagraphs.map((paragraph: DefaultParagraph) => {
+    updatedInputParagraphs.map((paragraph) => {
       if (params.paragraphId === paragraph.id) {
         resultParagraph = paragraph;
       }

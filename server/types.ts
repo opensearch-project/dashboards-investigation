@@ -4,9 +4,9 @@
  */
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ObservabilityPluginSetup {}
+export interface InvestigationPluginSetup {}
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ObservabilityPluginStart {}
+export interface InvestigationPluginStart {}
 
 /**
  * Introduce a compile dependency on dashboards-assistant

@@ -4,25 +4,13 @@
  */
 
 import { IRouter } from '../../../../src/core/server';
-import { registerNoteRoute } from './notebooks/noteRouter';
-import { registerParaRoute } from './notebooks/paraRouter';
-import { registerSqlRoute } from './notebooks/sqlRouter';
-import { registerVizRoute } from './notebooks/vizRouter';
-import { registerLogPatternRoute } from './notebooks/logPatternRouter';
-import { getQueryService } from '../services/get_set';
+import { registerNoteRoute } from './notebooks/notebook_router';
+import { registerParaRoute } from './notebooks/paragraph_router';
+import { registerLogPatternRoute } from './notebooks/log_pattern_router';
 
-export function setupRoutes({
-  router,
-  dataSourceEnabled,
-}: {
-  router: IRouter;
-  dataSourceEnabled: boolean;
-}) {
+export function setupRoutes({ router }: { router: IRouter }) {
   // notebooks routes
   registerParaRoute(router);
   registerNoteRoute(router);
-  registerVizRoute(router, dataSourceEnabled);
   registerLogPatternRoute(router);
-
-  registerSqlRoute(router, getQueryService(), dataSourceEnabled);
 }
