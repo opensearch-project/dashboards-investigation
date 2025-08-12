@@ -33,6 +33,7 @@ import {
 } from './services';
 import { Notebook, NotebookProps } from './components/notebooks/components/notebook';
 import { NOTEBOOK_APP_NAME } from '../common/constants/notebooks';
+import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opensearch_dashboards_react/public';
 
 export class InvestigationPlugin
   implements
@@ -88,7 +89,21 @@ export class InvestigationPlugin
     );
 
     const getNotebook = async ({ openedNoteId }: Pick<NotebookProps, 'openedNoteId'>) => {
-      return <Notebook openedNoteId={openedNoteId} />;
+      const [coreStart, depsStart] = await core.getStartServices();
+      const pplService: PPLService = new PPLService(core.http);
+      const services: NoteBookServices = {
+        ...coreStart,
+        ...depsStart,
+        appName: NOTEBOOK_APP_NAME,
+        pplService,
+        savedObjects: coreStart.savedObjects,
+      };
+
+      return (
+        <OpenSearchDashboardsContextProvider services={services}>
+          <Notebook openedNoteId={openedNoteId} />
+        </OpenSearchDashboardsContextProvider>
+      );
     };
     // Return methods that should be available to other plugins
     return {
