@@ -15,6 +15,7 @@ import { useContext } from 'react';
 import { useObservable } from 'react-use';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
+import { NotebookType } from '../../../../../common/types/notebooks';
 
 export const ParagraphActionPanel = (props: {
   idx: number;
@@ -24,6 +25,7 @@ export const ParagraphActionPanel = (props: {
   const { idx } = props;
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const { state } = useContext(NotebookReactContext);
+  const notebookType = state.getContext().notebookType;
   const paragraphStates = useObservable(state.getParagraphStates$(), state.value.paragraphs);
   const { moveParagraph: moveParaHook, cloneParagraph } = useParagraphs();
   const movePara = (index: number, targetIndex: number) => {
@@ -36,7 +38,7 @@ export const ParagraphActionPanel = (props: {
       items: [
         {
           name: 'Move up',
-          disabled: idx === 0,
+          disabled: idx === 0 || notebookType === NotebookType.AGENTIC,
           onClick: () => {
             setIsPopoverOpen(false);
             movePara(idx, idx - 1);
@@ -44,7 +46,7 @@ export const ParagraphActionPanel = (props: {
         },
         {
           name: 'Move to top',
-          disabled: idx === 0,
+          disabled: idx === 0 || notebookType === NotebookType.AGENTIC,
           onClick: () => {
             setIsPopoverOpen(false);
             movePara(idx, 0);
@@ -52,7 +54,7 @@ export const ParagraphActionPanel = (props: {
         },
         {
           name: 'Move down',
-          disabled: idx === paragraphStates.length - 1,
+          disabled: idx === paragraphStates.length - 1 || notebookType === NotebookType.AGENTIC,
           onClick: () => {
             setIsPopoverOpen(false);
             movePara(idx, idx + 1);
@@ -60,7 +62,7 @@ export const ParagraphActionPanel = (props: {
         },
         {
           name: 'Move to bottom',
-          disabled: idx === paragraphStates.length - 1,
+          disabled: idx === paragraphStates.length - 1 || notebookType === NotebookType.AGENTIC,
           onClick: () => {
             setIsPopoverOpen(false);
             movePara(idx, paragraphStates.length - 1);
@@ -68,6 +70,7 @@ export const ParagraphActionPanel = (props: {
         },
         {
           name: 'Duplicate',
+          disabled: notebookType === NotebookType.AGENTIC,
           onClick: () => {
             setIsPopoverOpen(false);
             cloneParagraph(idx, idx + 1);
@@ -76,6 +79,7 @@ export const ParagraphActionPanel = (props: {
         },
         {
           name: 'Delete',
+          disabled: notebookType === NotebookType.AGENTIC && idx < paragraphStates.length - 1,
           onClick: () => {
             setIsPopoverOpen(false);
             props.deletePara(idx);

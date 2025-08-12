@@ -78,6 +78,7 @@ export const Paragraphs = (props: ParagraphProps) => {
   const paragraph = context.state.value.paragraphs[index];
   const paragraphValue = useObservable(paragraph.getValue$(), paragraph.value);
 
+  const notebookType = context.state.getContext().notebookType || NotebookType.CLASSIC;
   // output is available if it's not cleared and vis paragraph has a selected visualization
   const isOutputAvailable =
     (para.out.length > 0 && para.out[0] !== '') ||
@@ -118,7 +119,7 @@ export const Paragraphs = (props: ParagraphProps) => {
       paddingSize="none"
       hasBorder={false}
     >
-      {<ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />}
+      <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
       {(() => {
         const RenderComponent = mapParagraphTypeToRenderComponent[getInputType(paragraphValue)];
         if (RenderComponent) {

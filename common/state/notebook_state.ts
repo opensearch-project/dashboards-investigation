@@ -17,7 +17,7 @@ export interface NotebookStateValue {
   dateCreated: string;
   isLoading: boolean;
   path: string;
-  vizPrefix: string;
+  vizPrefix?: string;
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {
@@ -25,6 +25,11 @@ export class NotebookState extends ObservableState<NotebookStateValue> {
     this.value.context.updateValue(context);
     return this;
   }
+
+  getContext(): NotebookContext {
+    return this.value.context.value;
+  }
+
   deleteParagraph(paragraphId: string) {
     const newParagraph = this.value.paragraphs;
     const findIndex = newParagraph.findIndex((paragraph) => paragraph.value.id === paragraphId);
