@@ -68,14 +68,15 @@ export interface NotebookContext {
   indexInsight?: IndexInsightContent;
 }
 
-export interface ParagraphBackendType<TOutputResult = string> {
+export interface ParagraphBackendType<TOutputResult, TInputParameters = unknown> {
   input: {
     inputText: string;
     inputType: string;
+    parameters?: TInputParameters;
   };
   output?: [
     {
-      execution_time: string;
+      execution_time?: string;
       outputType: string;
       result: TOutputResult;
     }
@@ -90,7 +91,7 @@ export interface NotebookBackendType {
   name: string;
   dateCreated: string;
   dateModified: string;
-  paragraphs: ParagraphBackendType[];
+  paragraphs: Array<ParagraphBackendType<unknown>>;
   context?: NotebookContext;
   path: string;
   vizPrefix?: string;
@@ -122,4 +123,10 @@ export interface DeepResearchOutputResult {
   memoryId?: string;
   // FIXME: Should be removed in the final release
   agent_id?: string;
+}
+
+export interface DeepResearchInputParameters {
+  // FIXME: Should be removed in the final release
+  PERAgentInput?: Record<string, unknown>;
+  PERAgentContext?: string;
 }

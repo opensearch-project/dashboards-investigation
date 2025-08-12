@@ -20,7 +20,11 @@ export const useParagraphs = () => {
   const { id } = context.state.value;
 
   const createParagraph = useCallback(
-    (props: { index: number; input: ParagraphBackendType['input']; dataSourceMDSId?: string }) => {
+    <TInput>(props: {
+      index: number;
+      input: ParagraphBackendType<unknown, TInput>['input'];
+      dataSourceMDSId?: string;
+    }) => {
       const addParaObj = {
         noteId: context.state.value.id,
         input: props.input,
@@ -96,13 +100,14 @@ export const useParagraphs = () => {
           inputText: para.input.inputText,
           inputType,
         },
+        dataSourceMDSId: para.dataSourceMDSId,
       });
     }
   };
 
   const saveParagraph = useCallback(
     function <T>(props: { paragraphStateValue: ParagraphStateValue<T> }) {
-      const { id: paragraphId, input, output } = props.paragraphStateValue;
+      const { id: paragraphId, input, output, dataSourceMDSId } = props.paragraphStateValue;
       const findUpdateParagraphState = context.state.value.paragraphs.find(
         (paragraph) => paragraph.value.id === paragraphId
       );
@@ -120,8 +125,9 @@ export const useParagraphs = () => {
           body: JSON.stringify({
             noteId: context.state.value.id,
             paragraphId,
-            paragraphInput: input.inputText,
-            paragraphOutput: outputPayload,
+            input,
+            dataSourceMDSId,
+            output: outputPayload,
           }),
         })
         .then((res) => {
@@ -150,7 +156,7 @@ export const useParagraphs = () => {
   const showParagraphRunning = useCallback(
     (param: number | string) => {
       const newParas = context.state.value.paragraphs;
-      newParas.forEach((_: ParagraphState, index: number) => {
+      newParas.forEach((_, index) => {
         const payload: Partial<ParagraphStateValue['uiState']> = {};
         let updateIndex = -1;
         if (param === 'queue') {
@@ -207,7 +213,7 @@ export const useParagraphs = () => {
     cloneParagraph,
     saveParagraph,
     runParagraph: useCallback(
-      (props: { index?: number; id?: string }) => {
+      <TOutput>(props: { index?: number; id?: string }) => {
         const { id: openedNoteId } = context.state.value;
         let index: number = -1;
         if (props.hasOwnProperty('index') && props.index) {
@@ -232,15 +238,14 @@ export const useParagraphs = () => {
         const paraUpdateObject = {
           noteId: openedNoteId,
           paragraphId: para.id,
-          paragraphInput: para.input.inputText,
-          paragraphType: para.input.inputType || '',
+          input: para.input,
           dataSourceMDSId: para.dataSourceMDSId || '',
         };
         const route = isSavedObjectNotebook
           ? `${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/update/run`
           : `${NOTEBOOKS_API_PREFIX}/paragraph/update/run/`;
         return http
-          .post<ParagraphBackendType>(route, {
+          .post<ParagraphBackendType<TOutput>>(route, {
             body: JSON.stringify(paraUpdateObject),
           })
           .then(async (res) => {

@@ -3,13 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SavedObjectsClientContract } from '../../../../../src/core/server/types';
+import { NotebookBackendType } from 'common/types/notebooks';
+import { SavedObject, SavedObjectsClientContract } from '../../../../../src/core/server/types';
 import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved_object_attributes';
-import { DefaultNotebooks } from '../../../server/common/helpers/notebooks/default_notebook_schema';
 import { getSampleNotebooks } from '../../../server/common/helpers/notebooks/sample_notebooks';
 
-export function fetchNotebooks(savedObjectNotebooks: []) {
-  const notebooks = [];
+export function fetchNotebooks(
+  savedObjectNotebooks: Array<SavedObject<{ savedNotebook: NotebookBackendType }>>
+) {
+  const notebooks: Array<{
+    dateCreated: string;
+    dateModified: string;
+    path: string;
+    id: string;
+  }> = [];
   savedObjectNotebooks.map((savedObject) => {
     if (savedObject.type === 'observability-notebook' && savedObject.attributes.savedNotebook) {
       notebooks.push({
@@ -40,7 +47,7 @@ export function createNotebook(notebookName: { name: string; context?: any }) {
   };
 }
 
-export function cloneNotebook(fetchedNotebook: DefaultNotebooks, name: string) {
+export function cloneNotebook(fetchedNotebook: NotebookBackendType, name: string) {
   const noteObject = {
     dateCreated: new Date().toISOString(),
     name,

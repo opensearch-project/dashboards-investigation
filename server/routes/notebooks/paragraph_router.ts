@@ -4,6 +4,7 @@
  */
 
 import { schema } from '@osd/config-schema';
+import { NotebookBackendType, ParagraphBackendType } from 'common/types/notebooks';
 import {
   IOpenSearchDashboardsResponse,
   IRouter,
@@ -18,10 +19,20 @@ import {
   updateFetchParagraph,
   updateRunFetchParagraph,
 } from '../../adaptors/notebooks/saved_objects_paragraphs_router';
-import {
-  DefaultNotebooks,
-  DefaultParagraph,
-} from '../../common/helpers/notebooks/default_notebook_schema';
+
+const paragraphInputValidation = schema.object({
+  inputText: schema.string(),
+  inputType: schema.string(),
+  parameters: schema.maybe(schema.object({}, { unknowns: 'allow' })),
+});
+
+const paragraphOutputValidation = schema.arrayOf(
+  schema.object({
+    outputType: schema.string(),
+    result: schema.oneOf([schema.string(), schema.object({}, { unknowns: 'allow' })]),
+  })
+);
+
 export function registerParaRoute(router: IRouter) {
   router.post(
     {
@@ -30,10 +41,7 @@ export function registerParaRoute(router: IRouter) {
         body: schema.object({
           noteId: schema.string(),
           paragraphIndex: schema.number(),
-          input: schema.object({
-            inputText: schema.string(),
-            inputType: schema.string(),
-          }),
+          input: paragraphInputValidation,
           dataSourceMDSId: schema.maybe(schema.string()),
         }),
       },
@@ -96,11 +104,8 @@ export function registerParaRoute(router: IRouter) {
         body: schema.object({
           noteId: schema.string(),
           paragraphId: schema.string(),
-          paragraphInput: schema.string(),
-          paragraphType: schema.string(),
+          input: paragraphInputValidation,
           dataSourceMDSId: schema.maybe(schema.string({ defaultValue: '' })),
-          dataSourceMDSLabel: schema.maybe(schema.string({ defaultValue: '' })),
-          deepResearchAgentId: schema.maybe(schema.string()),
         }),
       },
     },
@@ -134,15 +139,9 @@ export function registerParaRoute(router: IRouter) {
         body: schema.object({
           noteId: schema.string(),
           paragraphId: schema.string(),
-          paragraphInput: schema.maybe(schema.string()),
-          paragraphOutput: schema.maybe(
-            schema.arrayOf(
-              schema.object({
-                outputType: schema.string(),
-                result: schema.any(),
-              })
-            )
-          ),
+          input: paragraphInputValidation,
+          dataSourceMDSId: schema.maybe(schema.string({ defaultValue: '' })),
+          output: schema.maybe(paragraphOutputValidation),
         }),
       },
     },
@@ -152,8 +151,12 @@ export function registerParaRoute(router: IRouter) {
       response
     ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
       try {
+        const { output, ...others } = request.body;
         const saveResponse = await updateFetchParagraph(
-          request.body,
+          {
+            ...others,
+            ...(output ? { output: [output[0]] } : {}),
+          },
           context.core.savedObjects.client
         );
         return response.ok({
@@ -175,16 +178,12 @@ export function registerParaRoute(router: IRouter) {
           noteId: schema.string(),
           paragraphs: schema.arrayOf(
             schema.object({
-              output: schema.maybe(schema.arrayOf(schema.object({}, { unknowns: 'allow' }))),
-              input: schema.object({
-                inputText: schema.string(),
-                inputType: schema.string(),
-              }),
+              output: schema.maybe(paragraphOutputValidation),
+              input: paragraphInputValidation,
               dateCreated: schema.string(),
               dateModified: schema.string(),
               id: schema.string(),
               dataSourceMDSId: schema.maybe(schema.string({ defaultValue: '' })),
-              dataSourceMDSLabel: schema.maybe(schema.string({ defaultValue: '' })),
             })
           ),
         }),
@@ -198,8 +197,8 @@ export function registerParaRoute(router: IRouter) {
       const opensearchNotebooksClient: SavedObjectsClientContract =
         context.core.savedObjects.client;
       try {
-        const updateNotebook: Partial<DefaultNotebooks> = {
-          paragraphs: request.body.paragraphs as DefaultParagraph[],
+        const updateNotebook: Partial<NotebookBackendType> = {
+          paragraphs: request.body.paragraphs as Array<ParagraphBackendType<unknown>>,
           dateModified: new Date().toISOString(),
         };
         const updateResponse = await opensearchNotebooksClient.update(
