@@ -61,7 +61,7 @@ export class ParagraphState<
   getParagraphType() {
     return this.value.input.inputType;
   }
-  getBackgroundValue() {
+  getBackendValue() {
     const { input, output, id, dateModified, dateCreated, dataSourceMDSId } = this.value;
     return {
       input,

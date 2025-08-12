@@ -76,7 +76,7 @@ export const DeepResearchParagraph = ({
 
   const runParagraphHandler = async () => {
     await saveParagraph({
-      paragraphStateValue: paragraphState.getBackgroundValue(),
+      paragraphStateValue: paragraphState.getBackendValue(),
     });
     await runParagraph({
       id: paragraphValue.id,

@@ -164,7 +164,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
 
   const runParagraphHandler = async () => {
     await saveParagraph({
-      paragraphStateValue: paragraphState.getBackgroundValue(),
+      paragraphStateValue: paragraphState.getBackendValue(),
     });
     await runParagraph({
       id: paragraphValue.id,
@@ -219,7 +219,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
         error={
           <EuiText size="s">
             {errorMessage}.{' '}
-            {getInputType(paragraphState.getBackgroundValue()) === 'ppl' ? (
+            {getInputType(paragraphState.getBackendValue()) === 'ppl' ? (
               <EuiLink href={PPL_DOCUMENTATION_URL} target="_blank">
                 Learn More <EuiIcon type="popout" size="s" />
               </EuiLink>
