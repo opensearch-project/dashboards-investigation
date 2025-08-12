@@ -26,7 +26,7 @@ import {
 import truncate from 'lodash/truncate';
 import moment from 'moment';
 import React, { useEffect, useState, useCallback } from 'react';
-import { useHistory, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   CREATE_NOTE_MESSAGE,
   NOTEBOOKS_DOCUMENTATION_URL,
