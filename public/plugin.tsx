@@ -48,8 +48,7 @@ export class InvestigationPlugin
       setOSDSavedObjectsClient(coreStart.savedObjects.client);
     });
 
-    const appMountWithStartPage = () => async (params: AppMountParameters) => {
-      const { Observability } = await import('./components/index');
+    const getServices = async () => {
       const [coreStart, depsStart] = await core.getStartServices();
       const pplService: PPLService = new PPLService(core.http);
       const services: NoteBookServices = {
@@ -59,6 +58,12 @@ export class InvestigationPlugin
         pplService,
         savedObjects: coreStart.savedObjects,
       };
+      return services;
+    };
+
+    const appMountWithStartPage = () => async (params: AppMountParameters) => {
+      const { Observability } = await import('./components/index');
+      const services = await getServices();
       return Observability(services, params!);
     };
 
@@ -89,15 +94,7 @@ export class InvestigationPlugin
     );
 
     const getNotebook = async ({ openedNoteId }: Pick<NotebookProps, 'openedNoteId'>) => {
-      const [coreStart, depsStart] = await core.getStartServices();
-      const pplService: PPLService = new PPLService(core.http);
-      const services: NoteBookServices = {
-        ...coreStart,
-        ...depsStart,
-        appName: NOTEBOOK_APP_NAME,
-        pplService,
-        savedObjects: coreStart.savedObjects,
-      };
+      const services = await getServices();
 
       return (
         <OpenSearchDashboardsContextProvider services={services}>
