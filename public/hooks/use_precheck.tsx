@@ -39,9 +39,9 @@ export const usePrecheck = () => {
 
         const totalParagraphLength = res.paragraphs.length;
         const paragraphStates: Array<ParagraphState<unknown>> = [];
+        const resContext = res.context as NotebookContext;
 
         if (!anomalyAnalysisParaExists) {
-          const resContext = res.context;
           if (
             resContext?.filters &&
             resContext?.timeRange &&
@@ -69,7 +69,6 @@ export const usePrecheck = () => {
           }
         }
         if (!logPatternParaExists) {
-          const resContext = res.context as NotebookContext;
           if (resContext?.timeRange && resContext?.index && resContext?.timeField) {
             if (
               resContext?.indexInsight?.is_log_index &&
@@ -118,11 +117,15 @@ export const usePrecheck = () => {
             if (shouldCreate) {
               deepResearchParaCreated.current = true;
 
-              await createParagraph(
-                totalParagraphLength + paragraphStates.length,
-                'Why did the alert happen? Find the root cause and give some solutions.',
-                DEEP_RESEARCH_PARAGRAPH_TYPE
-              );
+              await createParagraph({
+                index: totalParagraphLength + paragraphStates.length,
+                input: {
+                  inputText:
+                    'Why did the alert happen? Find the root cause and give some solutions.',
+                  inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
+                },
+                dataSourceMDSId: resContext?.dataSourceId,
+              });
 
               await runParagraph({ index: totalParagraphLength + paragraphStates.length });
 
