@@ -5,11 +5,7 @@
 
 import now from 'performance-now';
 import { v4 as uuid } from 'uuid';
-import {
-  ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
-  EXECUTOR_SYSTEM_PROMPT,
-  LOG_PATTERN_PARAGRAPH_TYPE,
-} from '../../../common/constants/notebooks';
+import { EXECUTOR_SYSTEM_PROMPT } from '../../../common/constants/notebooks';
 import { SavedObjectsClientContract, SavedObject } from '../../../../../src/core/server/types';
 import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved_object_attributes';
 import { formatNotRecognized, inputIsQuery } from '../../common/helpers/notebooks/query_helpers';
@@ -26,32 +22,25 @@ import {
 import { getNotebookTopLevelContextPrompt, getOpenSearchClientTransport } from '../../routes/utils';
 import { getParagraphServiceSetup } from '../../services/get_set';
 
-export function createNotebook<T>(paragraphInput: string, inputType: string, parameters?: T) {
+export function createParagraph<T>({
+  input,
+  dataSourceMDSId,
+}: {
+  input: ParagraphBackendType<string, T>['input'];
+  dataSourceMDSId?: string;
+}) {
+  const finalInput = { ...input };
   try {
-    let paragraphType = 'MARKDOWN';
-    if (inputType === 'VISUALIZATION') {
-      paragraphType = 'VISUALIZATION';
+    let paragraphType = finalInput.inputType;
+    const { inputText, inputType } = finalInput;
+    if (inputType === 'CODE') {
+      if (inputText.substring(0, 3) === '%sql' || inputText.substring(0, 3) === '%ppl') {
+        paragraphType = 'QUERY';
+      } else {
+        paragraphType = 'MARKDOWN';
+      }
     }
-    if (inputType === 'OBSERVABILITY_VISUALIZATION') {
-      paragraphType = 'OBSERVABILITY_VISUALIZATION';
-    }
-    if (paragraphInput.substring(0, 3) === '%sql' || paragraphInput.substring(0, 3) === '%ppl') {
-      paragraphType = 'QUERY';
-    }
-    if (inputType === 'DEEP_RESEARCH') {
-      paragraphType = inputType;
-    }
-    if (inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE) {
-      paragraphType = inputType;
-    }
-    if (inputType === LOG_PATTERN_PARAGRAPH_TYPE) {
-      paragraphType = inputType;
-    }
-    const inputObject = {
-      inputType: paragraphType,
-      inputText: paragraphInput,
-      parameters,
-    };
+
     const outputObjects: ParagraphBackendType<string>['output'] = [
       {
         outputType: paragraphType,
@@ -63,8 +52,9 @@ export function createNotebook<T>(paragraphInput: string, inputType: string, par
       id: 'paragraph_' + uuid(),
       dateCreated: new Date().toISOString(),
       dateModified: new Date().toISOString(),
-      input: inputObject,
+      input: finalInput,
       output: outputObjects,
+      ...(dataSourceMDSId ? { dataSourceMDSId } : {}),
     };
 
     return newParagraph;
@@ -99,11 +89,10 @@ export async function createParagraphs<TOutput>(
 ) {
   const notebookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
   const paragraphs = notebookInfo.attributes.savedNotebook.paragraphs;
-  const newParagraph = createNotebook(
-    params.input.inputText,
-    params.input.inputType,
-    params.input.parameters
-  );
+  const newParagraph = createParagraph({
+    input: params.input,
+    dataSourceMDSId: params.dataSourceMDSId,
+  });
   paragraphs.splice(params.paragraphIndex, 0, newParagraph);
   const updateNotebook = {
     paragraphs,
