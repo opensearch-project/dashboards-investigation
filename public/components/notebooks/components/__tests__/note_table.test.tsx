@@ -53,6 +53,7 @@ describe('<NoteTable /> spec', () => {
             id: 'id-1',
             dateCreated: '2023-01-01 12:00:00',
             dateModified: '2023-01-01 12:00:00',
+            NotebookType: 'Agentic',
           },
         ],
       }),
@@ -103,6 +104,7 @@ describe('<NoteTable /> spec', () => {
       id: `id-${k}`,
       dateCreated: '2023-01-01 12:00:00',
       dateModified: '2023-01-02 12:00:00',
+      NotebookType: 'Agentic',
     }));
     const { getByTestId, getAllByText, ...utils } = await renderNoteTable({ notebooks });
     await waitFor(() => {
@@ -123,6 +125,7 @@ describe('<NoteTable /> spec', () => {
       id: `id-${k}`,
       dateCreated: 'date-created',
       dateModified: 'date-modified',
+      NotebookType: 'Agentic',
     }));
     const utils = await renderNoteTable({ notebooks });
     fireEvent.click(utils.getByText('Create notebook'));
@@ -139,6 +142,7 @@ describe('<NoteTable /> spec', () => {
           id: 'id-1',
           dateCreated: 'date-created',
           dateModified: 'date-modified',
+          NotebookType: 'Agentic',
         },
       ],
     });
@@ -165,7 +169,7 @@ describe('<NoteTable /> spec', () => {
     });
     fireEvent.click(getAllByText('Create')[0]);
     expect(props.http.post).toHaveBeenCalledWith(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook`, {
-      body: JSON.stringify({ name: 'test-notebook' }),
+      body: JSON.stringify({ name: 'test-notebook', context: { notebookType: 'Agentic' } }),
     });
   });
 
@@ -176,6 +180,7 @@ describe('<NoteTable /> spec', () => {
         id: 'id-1',
         dateCreated: 'date-created',
         dateModified: 'date-modified',
+        NotebookType: 'Agentic',
       },
     ];
     const { getByLabelText, getAllByText, getByTestId } = await renderNoteTable({ notebooks });
@@ -232,6 +237,7 @@ describe('<NoteTable /> spec', () => {
         id: 'id-1',
         dateCreated: 'date-created',
         dateModified: 'date-modified',
+        NotebookType: 'Agentic',
       },
     ];
     const { getByText, getByLabelText, getAllByText, getByTestId } = await renderNoteTable({
