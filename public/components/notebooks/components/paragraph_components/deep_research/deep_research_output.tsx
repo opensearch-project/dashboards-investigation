@@ -235,10 +235,13 @@ export const DeepResearchOutput = ({ http, dataSourceId, outputResult, input }: 
     if (isStateCompletedOrFailed(task.state)) {
       return false;
     }
-    const traceMessage = executorMessages.find(
+    const traceMessageIndex = executorMessages.findIndex(
       ({ message_id: messageId }) => messageId === traceModalData.messageId
     );
-    return !traceMessage?.response;
+    if (traceMessageIndex + 1 < executorMessages.length) {
+      return false;
+    }
+    return !executorMessages[traceMessageIndex]?.response;
   };
 
   return (

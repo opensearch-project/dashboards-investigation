@@ -118,15 +118,15 @@ export interface IndexInsightContent {
   trace_id_field?: string;
 }
 
-export interface IndexInsight {
+export interface IndexInsightBody {
   index_name: string;
   content: string;
   status: string;
   task_type: string;
   last_updated_time: number;
 }
-export interface IndexInsights {
-  index_insights: IndexInsight[];
+export interface IndexInsight {
+  index_insight: IndexInsightBody;
 }
 
 export interface DeepResearchOutputResult {

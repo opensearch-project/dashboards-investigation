@@ -38,14 +38,14 @@ import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { i18n } from '@osd/i18n';
 import { NoteBookServices } from 'public/types';
-import { ParagraphState, ParagraphStateValue } from '../../../../common/state/paragraph_state';
-import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
-import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
+import { ParagraphState } from '../../../../common/state/paragraph_state';
 import {
-  NotebookContext,
-  ParagraphBackendType,
-  ParaType,
-} from '../../../../common/types/notebooks';
+  CREATE_NOTE_MESSAGE,
+  DEEP_RESEARCH_PARAGRAPH_TYPE,
+  NOTEBOOKS_API_PREFIX,
+} from '../../../../common/constants/notebooks';
+import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
+import { NotebookContext, ParaType } from '../../../../common/types/notebooks';
 import { setNavBreadCrumbs } from '../../../../common/utils/set_nav_bread_crumbs';
 import { HeaderControlledComponentsWrapper } from '../../../plugin_helpers/plugin_headerControl';
 import { GenerateReportLoadingModal } from './helpers/custom_modals/reporting_loading_modal';
@@ -70,8 +70,6 @@ import { useNotebook } from '../../../hooks/use_notebook';
 import { usePrecheck } from '../../../hooks/use_precheck';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 
-const ParagraphTypeDeepResearch = 'DEEP_RESEARCH';
-
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
 };
@@ -94,16 +92,14 @@ export function NotebookComponent() {
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [selectedViewId] = useState('view_both');
-  const [vizPrefix, _setVizPrefix] = useState('');
   const [isReportingPluginInstalled, setIsReportingPluginInstalled] = useState(false);
   const [isReportingActionsPopoverOpen, setIsReportingActionsPopoverOpen] = useState(false);
   const [isReportingLoadingModalOpen, setIsReportingLoadingModalOpen] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
   const [dataSourceMDSId, setDataSourceMDSId] = useState<string | undefined | null>(null);
-  const [dataSourceMDSLabel, setDataSourceMDSLabel] = useState<string | undefined | null>(null);
   const [context] = useState<NotebookContext | undefined>(undefined);
-  const { createParagraph, showParagraphRunning, deleteParagraph, runParagraph } = useParagraphs();
+  const { createParagraph, deleteParagraph } = useParagraphs();
   const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start } = usePrecheck();
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
@@ -365,59 +361,6 @@ export function NotebookComponent() {
     }, 0);
   };
 
-  // Backend call to update and run contents of paragraph
-  const updateRunParagraph = (
-    para: ParaType,
-    index: number,
-    vizObjectInput?: string,
-    paraType?: string,
-    _dataSourceMDSId?: string
-  ) => {
-    if (paragraphs[index].input.inputType === 'DEEP_RESEARCH') {
-      runParagraph({
-        index,
-      });
-      return;
-    }
-    showParagraphRunning(index);
-    if (vizObjectInput) {
-      para.inp = vizPrefix + vizObjectInput; // "%sh check"
-    }
-
-    const paraUpdateObject = {
-      noteId: openedNoteId,
-      paragraphId: para.uniqueId,
-      paragraphInput: para.inp,
-      paragraphType: paraType || '',
-      dataSourceMDSId: dataSourceMDSId || '',
-      dataSourceMDSLabel: dataSourceMDSLabel || '',
-    };
-    const route = isSavedObjectNotebook
-      ? `${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraph/update/run`
-      : `${NOTEBOOKS_API_PREFIX}/paragraph/update/run/`;
-    return http
-      .post<ParagraphBackendType>(route, {
-        body: JSON.stringify(paraUpdateObject),
-      })
-      .then(async (res) => {
-        const newParagraphs = [...paragraphs];
-        const paragraphStateValue = new ParagraphState(res).value;
-        newParagraphs[index] = paragraphStateValue;
-        notebookContext.state.updateValue({
-          paragraphs: newParagraphs.map((paragraph) => new ParagraphState(paragraph)),
-        });
-      })
-      .catch((err) => {
-        console.log(err);
-        if (err?.body?.statusCode === 413)
-          notifications.toasts.addDanger(`Error running paragraph: ${err.body.message}`);
-        else
-          notifications.toasts.addDanger(
-            'Error running paragraph, please make sure you have the correct permission.'
-          );
-      });
-  };
-
   const setBreadcrumbs = useCallback(
     (notePath: string) => {
       setNavBreadCrumbs(
@@ -458,17 +401,8 @@ export function NotebookComponent() {
       });
   }, [loadNotebookHook, setBreadcrumbs, notifications.toasts, notebookContext.state, start]);
 
-  const handleSelectedDataSourceChange = (id: string | undefined, label: string | undefined) => {
+  const handleSelectedDataSourceChange = (id: string | undefined) => {
     setDataSourceMDSId(id);
-    setDataSourceMDSLabel(label);
-  };
-
-  const setPara = (para: ParagraphStateValue, index: number) => {
-    const newParas = [...paragraphs];
-    newParas.splice(index, 1, para);
-    notebookContext.state.updateValue({
-      paragraphs: newParas.map((paragraph) => new ParagraphState(paragraph)),
-    });
   };
 
   const checkIfReportingPluginIsInstalled = useCallback(() => {
@@ -740,23 +674,16 @@ export function NotebookComponent() {
               <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
             ) : null}
             {/* Temporarily determine whether to display the context panel based on datasource id */}
-            {context?.dataSourceId && <ContextPanel addPara={createParagraph} />}
+            {context?.dataSourceId && <ContextPanel />}
             {isLoading ? null : parsedPara.length > 0 ? (
               parsedPara.map((para: ParaType, index: number) => (
                 <div ref={parsedPara[index].paraDivRef} key={`para_div_${para.uniqueId}`}>
                   <Paragraphs
                     para={para}
-                    originalPara={paragraphs[index]}
-                    setPara={(pr: ParagraphStateValue) => setPara(pr, index)}
                     index={index}
-                    paraCount={parsedPara.length}
                     selectedViewId={selectedViewId}
                     deletePara={showDeleteParaModal}
-                    runPara={updateRunParagraph}
                     handleSelectedDataSourceChange={handleSelectedDataSourceChange}
-                    paradataSourceMDSId={parsedPara[index].dataSourceMDSId}
-                    dataSourceMDSLabel={parsedPara[index].dataSourceMDSLabel}
-                    paragraphs={parsedPara}
                     scrollToPara={scrollToPara}
                   />
                 </div>
@@ -815,7 +742,7 @@ export function NotebookComponent() {
                           description="Use deep research to analytics question."
                           footer={
                             <EuiSmallButton
-                              onClick={() => createParagraph(0, '', ParagraphTypeDeepResearch)}
+                              onClick={() => createParagraph(0, '', DEEP_RESEARCH_PARAGRAPH_TYPE)}
                               style={{ marginBottom: 17 }}
                             >
                               Add deep research

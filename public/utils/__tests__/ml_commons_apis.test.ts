@@ -244,10 +244,12 @@ describe('ML Commons APIs', () => {
       expect(mockHttp.post).toHaveBeenCalledWith({
         path: '/api/console/proxy',
         query: {
-          path: OPENSEARCH_ML_COMMONS_API.memoryMessages.replace('{memoryId}', 'memory-123'),
+          path: `${OPENSEARCH_ML_COMMONS_API.memoryMessages.replace(
+            '{memoryId}',
+            'memory-123'
+          )}?next_token=prev-token-456`,
           method: 'GET',
           dataSourceId: 'test-datasource',
-          next_token: 'prev-token-456',
         },
         signal: mockSignal,
       });
@@ -318,12 +320,15 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsMessageTraces(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
+        body: undefined,
         path: '/api/console/proxy',
         query: {
-          path: OPENSEARCH_ML_COMMONS_API.messageTraces.replace('{messageId}', 'message-123'),
+          path: `${OPENSEARCH_ML_COMMONS_API.messageTraces.replace(
+            '{messageId}',
+            'message-123'
+          )}?next_token=456`,
           method: 'GET',
           dataSourceId: 'test-datasource',
-          next_token: 456,
         },
         signal: mockSignal,
       });
@@ -374,10 +379,12 @@ describe('ML Commons APIs', () => {
       expect(mockHttp.post).toHaveBeenCalledWith({
         path: '/api/console/proxy',
         query: {
-          path: OPENSEARCH_ML_COMMONS_API.agentExecute.replace('{agentId}', 'agent-123'),
+          path: `${OPENSEARCH_ML_COMMONS_API.agentExecute.replace(
+            '{agentId}',
+            'agent-123'
+          )}?async=true`,
           method: 'POST',
           dataSourceId: 'test-datasource',
-          async: 'true',
         },
         signal: mockSignal,
         body: JSON.stringify({
@@ -496,10 +503,12 @@ describe('ML Commons APIs', () => {
       expect(mockHttp.post).toHaveBeenCalledWith({
         path: '/api/console/proxy',
         query: {
-          path: OPENSEARCH_ML_COMMONS_API.agentExecute.replace('{agentId}', 'agent-complex'),
+          path: `${OPENSEARCH_ML_COMMONS_API.agentExecute.replace(
+            '{agentId}',
+            'agent-complex'
+          )}?async=true`,
           method: 'POST',
           dataSourceId: undefined,
-          async: 'true',
         },
         signal: mockSignal,
         body: JSON.stringify({

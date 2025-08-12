@@ -18,8 +18,6 @@ import { NotebookType } from '../../../../common/types/notebooks';
  * "Main" component renders the whole Notebooks as a single page application
  *
  * Props taken in as params are:
- * DashboardContainerByValueRenderer: Dashboard container renderer for visualization
- * http object: for making API requests
  *
  * Cell component of nteract used as a container for paragraphs in notebook UI.
  * https://components.nteract.io/#cell

@@ -20,7 +20,6 @@ import { useObservable } from 'react-use';
 import { LogPatternAnalysisResult } from 'common/types/log_pattern';
 import { Observable } from 'rxjs';
 import { NoteBookServices } from 'public/types';
-import { ParaType } from '../../../../../common/types/notebooks';
 import {
   LogPatternAnalysisParams,
   LogPatternService,
@@ -35,7 +34,6 @@ import { LogSequence } from './components/log_sequence';
 import { SummaryStatistics } from './components/summary_statistics';
 
 interface LogPatternContainerProps {
-  para: ParaType;
   paragraph$: Observable<ParagraphStateValue<LogPatternAnalysisResult>>;
 }
 
@@ -48,7 +46,7 @@ interface LoadingStatus {
   progress: number;
 }
 
-export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, paragraph$ }) => {
+export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragraph$ }) => {
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
@@ -291,7 +289,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ para, 
   }, [
     loadingStatus.completedRequests,
     loadingStatus.totalRequests,
-    para,
     result,
     hasData,
     paragraph,

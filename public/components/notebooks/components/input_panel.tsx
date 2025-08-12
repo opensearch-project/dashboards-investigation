@@ -14,28 +14,27 @@ import {
 } from '@elastic/eui';
 import autosize from 'autosize';
 import { useEffectOnce } from 'react-use';
+import { NoteBookServices } from 'public/types';
 import { ActionMetadata, actionsMetadata } from '../../../../common/constants/actions';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { executeMLCommonsAgent, getMLCommonsConfig } from '../../../utils/ml_commons_apis';
-import { CoreStart } from '../../../../../../src/core/public';
+import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 interface InputPanelProps {
   onCreateParagraph: (paragraphInput: string, inputType: string) => Promise<void>;
-  http: CoreStart['http'];
   dataSourceId: string | undefined | null;
 }
 
-export const InputPanel: React.FC<InputPanelProps> = ({
-  onCreateParagraph,
-  http,
-  dataSourceId,
-}) => {
+export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, dataSourceId }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const [inputValue, setInputValue] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const context = useContext(NotebookReactContext);
+  const {
+    services: { http },
+  } = useOpenSearchDashboards<NoteBookServices>();
 
   useEffectOnce(() => {
     if (textareaRef.current) {
@@ -49,10 +48,10 @@ export const InputPanel: React.FC<InputPanelProps> = ({
   });
 
   useEffect(() => {
-    if (!context?.state.isLoading) {
+    if (!context?.state.value.isLoading) {
       setInputValue('');
     }
-  }, [context?.state.isLoading]);
+  }, [context?.state.value.isLoading]);
 
   const paragraphOptions: EuiSelectableOption[] = [
     { label: 'PPL', key: 'PPL', 'data-test-subj': 'paragraph-type-ppl' },

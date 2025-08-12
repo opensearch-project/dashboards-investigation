@@ -18,21 +18,19 @@ import React, { useCallback, useContext, useState } from 'react';
 import moment from 'moment';
 import { useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
+import { useParagraphs } from '../../../hooks/use_paragraphs';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { getDataSourceManagementSetup } from '../../../services';
 import { ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE } from '../../../../common/constants/notebooks';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 
-interface AddButtonProps {
-  addPara: (index: number, newParaContent: string, inputType: string) => Promise<void>;
-}
-
-export const ContextPanel = ({ addPara }: AddButtonProps) => {
+export const ContextPanel = () => {
   const context = useContext(NotebookReactContext);
   const { index, dataSourceId, timeRange } = useObservable(
     context.state.value.context.getValue$(),
     context.state.value.context.value
   );
+  const { createParagraph } = useParagraphs();
   const {
     services: { savedObjects: savedObjectsMDSClient, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
@@ -42,12 +40,12 @@ export const ContextPanel = ({ addPara }: AddButtonProps) => {
   const fetchBubbleData = useCallback(async () => {
     setIsLoading(true);
     try {
-      await addPara(0, '', ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE);
+      await createParagraph(0, '', ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE);
     } catch (error) {
       console.log(error);
     }
     setIsLoading(false);
-  }, [addPara]);
+  }, [createParagraph]);
 
   if (!index) {
     return null;
