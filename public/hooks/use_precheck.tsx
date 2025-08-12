@@ -3,26 +3,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { NotebookContext, ParagraphBackendType } from 'common/types/notebooks';
-import { useCallback, useContext, useRef } from 'react';
+import {
+  DeepResearchOutputResult,
+  NotebookContext,
+  ParagraphBackendType,
+} from 'common/types/notebooks';
+import { useCallback, useRef } from 'react';
 import { combineLatest } from 'rxjs';
-import { ParagraphState } from 'common/state/paragraph_state';
+import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import {
   ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   LOG_PATTERN_PARAGRAPH_TYPE,
 } from '../../common/constants/notebooks';
 import { useParagraphs } from './use_paragraphs';
-import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 
 export const usePrecheck = () => {
   const { createParagraph, runParagraph } = useParagraphs();
   const deepResearchParaCreated = useRef(false);
-  const notebookContext = useContext(NotebookReactContext);
 
   return {
     start: useCallback(
-      async (res: { context?: NotebookContext; paragraphs: ParagraphBackendType[] }) => {
+      async (res: {
+        context?: NotebookContext;
+        paragraphs: Array<ParagraphBackendType<unknown>>;
+      }) => {
         let logPatternParaExists = false;
         let anomalyAnalysisParaExists = false;
 
@@ -102,7 +107,7 @@ export const usePrecheck = () => {
               (p) => p.input?.inputType === LOG_PATTERN_PARAGRAPH_TYPE
             );
 
-            const hasResult = (para) =>
+            const hasResult = (para?: ParagraphStateValue<unknown>) =>
               !para?.uiState?.isRunning &&
               para?.output?.[0]?.result &&
               para.output[0].result !== '';
@@ -118,25 +123,34 @@ export const usePrecheck = () => {
             if (shouldCreate) {
               deepResearchParaCreated.current = true;
 
-              await createParagraph(
-                totalParagraphLength + paragraphStates.length,
-                'Why did the alert happen? Find the root cause and give some solutions.',
-                DEEP_RESEARCH_PARAGRAPH_TYPE
-              );
-
-              await runParagraph({ index: totalParagraphLength + paragraphStates.length });
-
-              // Force re-render to ensure UI updates
-              notebookContext.state.updateValue({
-                paragraphs: [...notebookContext.state.value.paragraphs],
+              subscription.unsubscribe();
+              const createdPERAgentParagraphState = await createParagraph({
+                index: totalParagraphLength + paragraphStates.length,
+                input: {
+                  inputText:
+                    'Why did the alert happen? Find the root cause and give some solutions.',
+                  inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
+                },
+                dataSourceMDSId: res.context?.dataSourceId,
               });
 
-              subscription.unsubscribe();
+              if (createdPERAgentParagraphState) {
+                const perAgentSubscription = (createdPERAgentParagraphState as ParagraphState<
+                  DeepResearchOutputResult
+                >)
+                  .getValue$()
+                  .subscribe(async (value) => {
+                    if (ParagraphState.getOutput(value)?.result.agent_id) {
+                      perAgentSubscription.unsubscribe();
+                      await runParagraph({ index: totalParagraphLength + paragraphStates.length });
+                    }
+                  });
+              }
             }
           });
         }
       },
-      [createParagraph, runParagraph, notebookContext]
+      [createParagraph, runParagraph]
     ),
   };
 };

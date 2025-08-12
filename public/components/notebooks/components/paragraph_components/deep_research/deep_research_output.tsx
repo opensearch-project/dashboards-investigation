@@ -201,7 +201,7 @@ export const DeepResearchOutput = ({ http, dataSourceId, outputResult, input }: 
                   paddingSize="l"
                 >
                   {response && (
-                    <EuiText className="wrapAll markdown-output-text" size="s">
+                    <EuiText className="markdown-output-text" size="s">
                       <MarkdownRender source={response} />
                     </EuiText>
                   )}
@@ -261,7 +261,7 @@ export const DeepResearchOutput = ({ http, dataSourceId, outputResult, input }: 
             }
             initialIsOpen={initialFinalResponseVisible.current}
           >
-            <EuiText className="wrapAll markdown-output-text" size="s">
+            <EuiText className="markdown-output-text" size="s">
               {isMarkdownText(finalMessage) ? (
                 <MarkdownRender source={finalMessage} />
               ) : (
