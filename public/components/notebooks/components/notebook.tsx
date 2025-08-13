@@ -69,6 +69,7 @@ import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
 import { usePrecheck } from '../../../hooks/use_precheck';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { ToggleSystemPromptSettingModal } from './helpers/custom_modals/toggle_system_prompt_setting_modal';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -516,6 +517,9 @@ export function NotebookComponent() {
     <EuiFlexGroup gutterSize="s">
       {isSavedObjectNotebook ? (
         <>
+          <EuiFlexItem grow={false}>
+            <ToggleSystemPromptSettingModal />
+          </EuiFlexItem>
           <EuiFlexItem grow={false}>
             <EuiToolTip
               content={

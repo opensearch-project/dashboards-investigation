@@ -4,7 +4,9 @@
  */
 
 import {
+  AI_RESPONSE_TYPE,
   ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+  DEEP_RESEARCH_PARAGRAPH_TYPE,
   LOG_PATTERN_PARAGRAPH_TYPE,
   PPL_PARAGRAPH_TYPE,
 } from '../common/constants/notebooks';
@@ -19,10 +21,12 @@ import { setupRoutes } from './routes/index';
 import { notebookSavedObject } from './saved_objects/observability_saved_object';
 import { ParagraphService } from './services/paragraph_service';
 import { AnomalyVisualizationAnalysisParagraph } from './paragraphs/anomaly_visualization_analytics';
-import { setParagraphServiceSetup, setQueryService } from './services/get_set';
+import { setMLService, setParagraphServiceSetup, setQueryService } from './services/get_set';
 import { QueryService } from './services/query_service';
 import { PPLParagraph } from './paragraphs/ppl';
 import { LogPatternParagraph } from './paragraphs/log_sequence';
+import { PERAgentParagraph } from './paragraphs/per_agent';
+import { MLService } from './services/ml_service';
 import { InvestigationPluginSetup, InvestigationPluginStart } from './types';
 
 export class ObservabilityPlugin
@@ -40,6 +44,7 @@ export class ObservabilityPlugin
     const router = core.http.createRouter();
 
     setQueryService(new QueryService(this.logger));
+    setMLService(new MLService());
 
     const paragraphServiceSetup = this.paragraphService.setup();
 
@@ -51,6 +56,8 @@ export class ObservabilityPlugin
     );
     paragraphServiceSetup.register(PPL_PARAGRAPH_TYPE, PPLParagraph);
     paragraphServiceSetup.register(LOG_PATTERN_PARAGRAPH_TYPE, LogPatternParagraph);
+    paragraphServiceSetup.register(DEEP_RESEARCH_PARAGRAPH_TYPE, PERAgentParagraph);
+    paragraphServiceSetup.register(AI_RESPONSE_TYPE, PERAgentParagraph);
 
     // Register server side APIs
     setupRoutes({

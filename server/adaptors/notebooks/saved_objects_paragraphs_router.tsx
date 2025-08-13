@@ -5,7 +5,10 @@
 
 import now from 'performance-now';
 import { v4 as uuid } from 'uuid';
-import { EXECUTOR_SYSTEM_PROMPT } from '../../../common/constants/notebooks';
+import {
+  AI_RESPONSE_TYPE,
+  DEEP_RESEARCH_PARAGRAPH_TYPE,
+} from '../../../common/constants/notebooks';
 import { SavedObjectsClientContract, SavedObject } from '../../../../../src/core/server/types';
 import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved_object_attributes';
 import { formatNotRecognized, inputIsQuery } from '../../common/helpers/notebooks/query_helpers';
@@ -13,14 +16,16 @@ import { RequestHandlerContext } from '../../../../../src/core/server';
 import { getInputType } from '../../../common/utils/paragraph';
 import { updateParagraphText } from '../../common/helpers/notebooks/paragraph';
 import {
-  DeepResearchInputParameters,
   DeepResearchOutputResult,
   NotebookBackendType,
   NotebookContext,
   ParagraphBackendType,
 } from '../../../common/types/notebooks';
-import { getNotebookTopLevelContextPrompt, getOpenSearchClientTransport } from '../../routes/utils';
-import { getParagraphServiceSetup } from '../../services/get_set';
+import { getOpenSearchClientTransport } from '../../routes/utils';
+import {
+  executePERAgentInParagraph,
+  generateContextPromptFromParagraphs,
+} from '../../common/helpers/notebooks/per_agent';
 
 export function createParagraph<T>({
   input,
@@ -39,6 +44,8 @@ export function createParagraph<T>({
       } else {
         paragraphType = 'MARKDOWN';
       }
+    } else if (inputType === AI_RESPONSE_TYPE) {
+      paragraphType = DEEP_RESEARCH_PARAGRAPH_TYPE;
     }
 
     const outputObjects: ParagraphBackendType<string>['output'] = [
@@ -173,7 +180,10 @@ export async function updateRunFetchParagraph<TOutput>(
         | undefined = updatedOutputParagraphs.find(({ id }) => id === params.paragraphId) as
         | ParagraphBackendType<DeepResearchOutputResult>
         | undefined;
-      if (targetParagraph?.output?.[0]?.outputType === 'DEEP_RESEARCH') {
+      if (
+        targetParagraph?.input.inputType === DEEP_RESEARCH_PARAGRAPH_TYPE &&
+        targetParagraph?.output?.[0]?.outputType === DEEP_RESEARCH_PARAGRAPH_TYPE
+      ) {
         const { result } = targetParagraph.output[0];
 
         if (typeof result !== 'string' && 'memoryId' in result) {
@@ -217,6 +227,7 @@ export async function runParagraph<TOutput>(
       const updatedParagraph: ParagraphBackendType<string | unknown> = {
         ...paragraphs[index],
       } as ParagraphBackendType<string | unknown>;
+      const inputType = getInputType(updatedParagraph);
       if (paragraphs[index].id === paragraphId) {
         updatedParagraph.dateModified = new Date().toISOString();
         if (inputIsQuery(paragraphs[index].input.inputText)) {
@@ -235,7 +246,7 @@ export async function runParagraph<TOutput>(
               execution_time: `${(now() - startTime).toFixed(3)} ms`,
             },
           ];
-        } else if (paragraphs[index].input.inputType === 'VISUALIZATION') {
+        } else if (inputType === 'VISUALIZATION') {
           updatedParagraph.dateModified = new Date().toISOString();
           updatedParagraph.output = [
             {
@@ -244,7 +255,7 @@ export async function runParagraph<TOutput>(
               execution_time: `${(now() - startTime).toFixed(3)} ms`,
             },
           ];
-        } else if (paragraphs[index].input.inputType === 'OBSERVABILITY_VISUALIZATION') {
+        } else if (inputType === 'OBSERVABILITY_VISUALIZATION') {
           updatedParagraph.dateModified = new Date().toISOString();
           updatedParagraph.output = [
             {
@@ -253,7 +264,7 @@ export async function runParagraph<TOutput>(
               execution_time: `${(now() - startTime).toFixed(3)} ms`,
             },
           ];
-        } else if (paragraphs[index].input.inputType === 'LOG_PATTERN') {
+        } else if (inputType === 'LOG_PATTERN') {
           updatedParagraph.dateModified = new Date().toISOString();
           updatedParagraph.output = [
             {
@@ -262,109 +273,31 @@ export async function runParagraph<TOutput>(
               execution_time: `${(now() - startTime).toFixed(3)} ms`,
             },
           ];
-        } else if (paragraphs[index].input.inputType === 'DEEP_RESEARCH') {
-          const deepResearchAgentUpdateParagraph: ParagraphBackendType<
-            DeepResearchOutputResult,
-            DeepResearchInputParameters
-          > = paragraphs[index] as ParagraphBackendType<
-            DeepResearchOutputResult,
-            DeepResearchInputParameters
-          >;
-          let output: { agent_id: string } = { agent_id: '' };
-          try {
-            output =
-              typeof updatedParagraph.output?.[0].result === 'string'
-                ? JSON.parse(updatedParagraph.output?.[0].result)
-                : updatedParagraph.output?.[0].result;
-          } catch (e) {
-            // do nothing
-          }
-
-          if (!output.agent_id) {
-            try {
-              const osDeepResearchAgentTransport = await getOpenSearchClientTransport({
-                context,
-                dataSourceId: updatedParagraph.dataSourceMDSId,
-              });
-              const { body } = await osDeepResearchAgentTransport.request({
-                method: 'GET',
-                path: '/_plugins/_ml/config/os_deep_research',
-              });
-              output.agent_id = body.configuration.agent_id;
-            } catch (error) {
-              // Add error catch here..
-            }
-          }
-
-          if (!output.agent_id) {
-            throw new Error('No deep research agent id configured.');
-          }
-          updatedParagraph.dateModified = new Date().toISOString();
-          const allContext = await Promise.all(
-            paragraphs.slice(0, index).map(async (paragraph) => {
-              const transport = await getOpenSearchClientTransport({
-                context,
-                dataSourceId: paragraph.dataSourceMDSId,
-              });
-              const paragraphRegistry = getParagraphServiceSetup().getParagraphRegistry(
-                getInputType(paragraph)
-              );
-              if (!paragraphRegistry) {
-                return '';
-              }
-
-              return await paragraphRegistry.getContext({
-                transport,
-                paragraph,
-              });
-            })
-          );
-          const contextContent = [getNotebookTopLevelContextPrompt(notebookinfo), ...allContext]
-            .filter((item) => item)
-            .map((item) => item)
-            .join('\n');
-          const currentParagraphTransport = await getOpenSearchClientTransport({
+        } else if (inputType === DEEP_RESEARCH_PARAGRAPH_TYPE || inputType === AI_RESPONSE_TYPE) {
+          const transport = await getOpenSearchClientTransport({
             context,
-            dataSourceId: paragraphs[index].dataSourceMDSId,
+            dataSourceId: updatedParagraph.dataSourceMDSId,
           });
-          const baseMemoryId = notebookinfo.attributes.savedNotebook.context?.memoryId;
-          const payload = {
-            method: 'POST',
-            path: `/_plugins/_ml/agents/${output.agent_id}/_execute`,
-            querystring: 'async=true',
-            body: {
-              parameters: {
-                question: paragraphs[index].input.inputText,
-                planner_prompt_template:
-                  '${parameters.tools_prompt} \n ${parameters.planner_prompt} \n Objective: ${parameters.user_prompt} \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n',
-                planner_with_history_template:
-                  '${parameters.tools_prompt} \n ${parameters.planner_prompt} \n Objective: ```${parameters.user_prompt}``` \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n You have currently executed the following steps: \n[${parameters.completed_steps}] \n\n',
-                reflect_prompt_template:
-                  '${parameters.tools_prompt} \n ${parameters.planner_prompt} \n Objective: ```${parameters.user_prompt}``` \n\n Original plan:\n[${parameters.steps}] \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n You have currently executed the following steps from the original plan: \n[${parameters.completed_steps}] \n\n ${parameters.reflect_prompt} \n\n.',
-                context: contextContent,
-                executor_system_prompt: `${EXECUTOR_SYSTEM_PROMPT} \n You have currently executed the following steps: \n ${contextContent}`,
-                memory_id: baseMemoryId,
-              },
-            },
-          };
-          const { body } = await currentParagraphTransport.request(payload);
-          deepResearchAgentUpdateParagraph.output = [
-            {
-              outputType: 'DEEP_RESEARCH',
-              result: {
-                taskId: body.task_id,
-                memoryId: body.response?.memory_id,
-                agent_id: output.agent_id,
-              },
-              execution_time: `${(now() - startTime).toFixed(3)} ms`,
-            },
-          ];
 
-          // FIXME: this is used for debug
-          deepResearchAgentUpdateParagraph.input.parameters =
-            updatedParagraph.input.parameters || {};
-          deepResearchAgentUpdateParagraph.input.parameters.PERAgentInput = payload;
-          deepResearchAgentUpdateParagraph.input.parameters.PERAgentContext = contextContent;
+          const contextContent = await generateContextPromptFromParagraphs({
+            paragraphs: paragraphs.slice(0, index),
+            routeContext: context,
+            notebookInfo: notebookinfo,
+            ignoreInputTypes: inputType === AI_RESPONSE_TYPE ? [] : [DEEP_RESEARCH_PARAGRAPH_TYPE],
+          });
+
+          const newParagraph = await executePERAgentInParagraph({
+            transport,
+            paragraph: updatedParagraph,
+            context: contextContent,
+            baseMemoryId:
+              inputType === AI_RESPONSE_TYPE
+                ? undefined
+                : notebookinfo.attributes.savedNotebook.context?.memoryId,
+          });
+          updatedParagraph.dateModified = newParagraph.dateModified;
+          updatedParagraph.input = newParagraph.input;
+          updatedParagraph.output = newParagraph.output;
         } else if (formatNotRecognized(paragraphs[index].input.inputText)) {
           updatedParagraph.output = [
             {

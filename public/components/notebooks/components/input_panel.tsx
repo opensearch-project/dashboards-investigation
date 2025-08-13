@@ -16,6 +16,10 @@ import autosize from 'autosize';
 import { useEffectOnce } from 'react-use';
 import { NoteBookServices } from 'public/types';
 import { ActionMetadata, actionsMetadata } from '../../../../common/constants/actions';
+import {
+  AI_RESPONSE_TYPE,
+  DEEP_RESEARCH_PARAGRAPH_TYPE,
+} from '../../../../common/constants/notebooks';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { executeMLCommonsAgent, getMLCommonsConfig } from '../../../utils/ml_commons_apis';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
@@ -67,6 +71,10 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, dataS
       'data-test-subj': 'paragraph-type-deep-research',
     },
     { label: 'SQL', key: 'SQL', 'data-test-subj': 'paragraph-type-sql' },
+    {
+      label: 'Ask AI',
+      key: AI_RESPONSE_TYPE,
+    },
   ];
 
   const executeActionSelectionAgent = async (input: string, actions: ActionMetadata[]) => {
@@ -143,7 +151,11 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, dataS
           paragraphInput = '';
           break;
         case 'DEEP_RESEARCH_AGENT':
-          inputType = 'DEEP_RESEARCH';
+          inputType = DEEP_RESEARCH_PARAGRAPH_TYPE;
+          paragraphInput = '';
+          break;
+        case AI_RESPONSE_TYPE:
+          inputType = AI_RESPONSE_TYPE;
           paragraphInput = '';
           break;
         default:
@@ -173,7 +185,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, dataS
       );
       const rawResult = JSON.parse(response?.inference_results?.[0]?.output?.[0]?.result);
       const jsonMatch = rawResult?.content?.[0]?.text?.match(/\{[\s\S]*\}/);
-      let inputType = 'DEEP_RESEARCH';
+      let inputType = 'CODE';
       let paragraphInput = '';
       if (jsonMatch) {
         const result = JSON.parse(jsonMatch[0]);
@@ -191,7 +203,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, dataS
             paragraphInput = '';
             break;
           case 'DEEP_RESEARCH_AGENT':
-            inputType = 'DEEP_RESEARCH';
+            inputType = AI_RESPONSE_TYPE;
             paragraphInput = result.input?.question || '';
             break;
           default:

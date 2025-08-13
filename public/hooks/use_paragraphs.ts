@@ -238,7 +238,11 @@ export const useParagraphs = () => {
         const paraUpdateObject = {
           noteId: openedNoteId,
           paragraphId: para.id,
-          input: para.input,
+          input: {
+            inputType: para.input.inputType,
+            inputText: para.input.inputText,
+            parameters: para.input.parameters,
+          },
           dataSourceMDSId: para.dataSourceMDSId || '',
         };
         const route = isSavedObjectNotebook

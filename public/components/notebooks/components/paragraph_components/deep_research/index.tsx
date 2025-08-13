@@ -24,6 +24,7 @@ import { dataSourceFilterFn } from '../../../../../../common/utils/shared';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
 import { useParagraphs } from '../../../../../hooks/use_paragraphs';
 import { ParagraphDataSourceSelector } from '../../data_source_selector';
+import { getSystemPrompts } from '../../helpers/custom_modals/system_prompt_setting_modal';
 
 import { AgentsSelector } from './agents_selector';
 import { DeepResearchOutput } from './deep_research_output';
@@ -75,8 +76,10 @@ export const DeepResearchParagraph = ({
   const isRunning = paragraphValue.uiState?.isRunning;
 
   const runParagraphHandler = async () => {
-    await saveParagraph({
-      paragraphStateValue: paragraphState.getBackendValue(),
+    paragraphState.updateInput({
+      parameters: {
+        prompts: getSystemPrompts(),
+      },
     });
     await runParagraph({
       id: paragraphValue.id,

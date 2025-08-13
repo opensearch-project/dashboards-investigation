@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const isStateCompletedOrFailed = (state) => ['COMPLETED', 'FAILED'].includes(state);
+export const isStateCompletedOrFailed = (state: string) => ['COMPLETED', 'FAILED'].includes(state);
 
 export const extractExecutorMemoryId = (task) => {
   const inferenceResult = task?.response?.inference_results?.[0];
