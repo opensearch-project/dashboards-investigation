@@ -3,32 +3,30 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { EuiFlexGroup, EuiFlexItem, EuiPanel } from '@elastic/eui';
-import React, { useRef } from 'react';
+import { EuiPanel } from '@elastic/eui';
+import React from 'react';
 import { useContext } from 'react';
-import { NoteBookServices } from 'public/types';
 import { useObservable } from 'react-use';
 import {
   AI_RESPONSE_TYPE,
+  ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
   DASHBOARDS_VISUALIZATION_TYPE,
   DEEP_RESEARCH_PARAGRAPH_TYPE,
+  LOG_PATTERN_PARAGRAPH_TYPE,
   OBSERVABILITY_VISUALIZATION_TYPE,
 } from '../../../../../common/constants/notebooks';
-import { ParaType } from '../../../../../common/types/notebooks';
 import { uiSettingsService } from '../../../../../common/utils';
-import { dataSourceFilterFn } from '../../../../../common/utils/shared';
-import { ParaOutput } from './para_output';
-import { DataSourceSelectorProps } from '../../../../../../../src/plugins/data_source_management/public/components/data_source_selector/data_source_selector';
 import { ParagraphActionPanel } from './paragraph_actions_panel';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { PPLParagraph } from './ppl';
 import { getInputType } from '../../../../../common/utils/paragraph';
 import { MarkdownParagraph } from './markdown';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
-import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
-import { getDataSourceManagementSetup } from '../../../../../public/services';
 import { DeepResearchParagraph } from './deep_research';
 import { VisualizationParagraph } from './visualization';
+import { OtherParagraph } from './other';
+import { BubbleUpContainer } from '../bubbleup/bubble_up_container';
+import { LogPatternContainer } from '../log_analytics/log_pattern_container';
 
 const mapParagraphTypeToRenderComponent = {
   ppl: PPLParagraph,
@@ -40,76 +38,30 @@ const mapParagraphTypeToRenderComponent = {
   [OBSERVABILITY_VISUALIZATION_TYPE.toUpperCase()]: VisualizationParagraph,
   [DASHBOARDS_VISUALIZATION_TYPE]: VisualizationParagraph,
   [OBSERVABILITY_VISUALIZATION_TYPE]: VisualizationParagraph,
+  HTML: OtherParagraph,
+  TABLE: OtherParagraph,
+  IMG: OtherParagraph,
+  [ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE]: BubbleUpContainer,
+  [LOG_PATTERN_PARAGRAPH_TYPE]: LogPatternContainer,
 };
 
-/*
- * "Paragraphs" component is used to render cells of the notebook open and "add para div" between paragraphs
- *
- * Props taken in as params are:
- * para - parsed paragraph from notebook
- * index - index of paragraph in the notebook
- * selectedViewId - selected view: view_both, input_only, output_only
- *
- * Cell component of nteract used as a container for paragraphs in notebook UI.
- * https://components.nteract.io/#cell
- */
 export interface ParagraphProps {
-  para: ParaType;
+  paragraphState: ParagraphState<unknown>;
   index: number;
-  selectedViewId: string;
   deletePara: (index: number) => void;
-  handleSelectedDataSourceChange: (
-    dataSourceMDSId: string | undefined,
-    dataSourceMDSLabel: string | undefined
-  ) => void;
   scrollToPara: (idx: number) => void;
 }
 
 export const Paragraphs = (props: ParagraphProps) => {
-  const { para, index, handleSelectedDataSourceChange, scrollToPara, deletePara } = props;
-  const {
-    services: { notifications, dataSource, savedObjects: savedObjectsMDSClient },
-  } = useOpenSearchDashboards<NoteBookServices>();
-  const { dataSourceManagement } = getDataSourceManagementSetup();
-  const dataSourceEnabled = !!dataSource;
+  const { index, scrollToPara, deletePara } = props;
 
-  const shouldSkipAgentIdResetRef = useRef(true);
   const context = useContext(NotebookReactContext);
   const paragraph = context.state.value.paragraphs[index];
   const paragraphValue = useObservable(paragraph.getValue$(), paragraph.value);
 
-  // output is available if it's not cleared and vis paragraph has a selected visualization
-  const isOutputAvailable =
-    (para.out.length > 0 && para.out[0] !== '') ||
-    para.isAnomalyVisualizationAnalysis ||
-    para.isLogPattern;
-
-  // do not show output if it is a visualization paragraph and visInput is not loaded yet
-  const paraOutput = (para.isAnomalyVisualizationAnalysis || para.isLogPattern) && (
-    <ParaOutput index={index} key={para.uniqueId} para={para} />
-  );
-
-  // do not show input and EuiPanel if view mode is output_only
-  if (props.selectedViewId === 'output_only') {
-    return <>{paraOutput}</>;
-  }
-
   const paraClass = `notebooks-paragraph notebooks-paragraph-${
     uiSettingsService.get('theme:darkMode') ? 'dark' : 'light'
   }`;
-  const DataSourceSelector: React.ComponentType<DataSourceSelectorProps> =
-    dataSourceEnabled && dataSourceManagement
-      ? (dataSourceManagement.ui.DataSourceSelector as React.ComponentType<DataSourceSelectorProps>)
-      : () => <></>;
-  const onSelectedDataSource = (e) => {
-    const dataConnectionId = e[0] ? e[0].id : undefined;
-    const dataConnectionLabel = e[0] ? e[0].label : undefined;
-    if (dataConnectionId !== paragraphValue.dataSourceMDSId) {
-      shouldSkipAgentIdResetRef.current = false;
-    }
-    shouldSkipAgentIdResetRef.current = false;
-    handleSelectedDataSourceChange(dataConnectionId, dataConnectionLabel);
-  };
 
   return (
     <EuiPanel
@@ -120,46 +72,12 @@ export const Paragraphs = (props: ParagraphProps) => {
     >
       {<ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />}
       {(() => {
-        const RenderComponent = mapParagraphTypeToRenderComponent[getInputType(paragraphValue)];
-        if (RenderComponent) {
-          return (
-            <div key={paragraph.value.id} className={paraClass}>
-              <RenderComponent paragraphState={paragraph as ParagraphState<any>} />
-            </div>
-          );
-        }
-
+        const RenderComponent =
+          mapParagraphTypeToRenderComponent[getInputType(paragraphValue)] || OtherParagraph;
         return (
-          <>
-            {dataSourceEnabled &&
-              !para.isVizualisation &&
-              !para.isAnomalyVisualizationAnalysis &&
-              !para.isLogPattern && (
-                <EuiFlexGroup style={{ marginTop: 0 }}>
-                  <EuiFlexItem>
-                    <DataSourceSelector
-                      savedObjectsClient={savedObjectsMDSClient.client}
-                      notifications={notifications.toasts}
-                      onSelectedDataSource={onSelectedDataSource}
-                      disabled={false}
-                      fullWidth={false}
-                      removePrepend={false}
-                      defaultOption={
-                        paragraphValue.dataSourceMDSId !== undefined
-                          ? [{ id: paragraphValue.dataSourceMDSId }]
-                          : undefined
-                      }
-                      dataSourceFilter={dataSourceFilterFn}
-                    />
-                  </EuiFlexItem>
-                </EuiFlexGroup>
-              )}
-            <div key={index} className={paraClass}>
-              {props.selectedViewId !== 'input_only' && isOutputAvailable && (
-                <div style={{ opacity: para.isOutputStale ? 0.5 : 1 }}>{paraOutput}</div>
-              )}
-            </div>
-          </>
+          <div key={paragraph.value.id} className={paraClass}>
+            <RenderComponent paragraphState={paragraph as ParagraphState<any>} />
+          </div>
         );
       })()}
     </EuiPanel>

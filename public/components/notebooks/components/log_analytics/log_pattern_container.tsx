@@ -18,14 +18,13 @@ import {
 import moment from 'moment';
 import { useObservable } from 'react-use';
 import { LogPatternAnalysisResult } from 'common/types/log_pattern';
-import { Observable } from 'rxjs';
 import { NoteBookServices } from 'public/types';
 import {
   LogPatternAnalysisParams,
   LogPatternService,
 } from '../../../../services/requests/log_pattern';
 import { NotebookReactContext } from '../../context_provider/context_provider';
-import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
+import { ParagraphState } from '../../../../../common/state/paragraph_state';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { LogInsight } from './components/log_insight';
@@ -34,7 +33,7 @@ import { LogSequence } from './components/log_sequence';
 import { SummaryStatistics } from './components/summary_statistics';
 
 interface LogPatternContainerProps {
-  paragraph$: Observable<ParagraphStateValue<LogPatternAnalysisResult>>;
+  paragraphState: ParagraphState<LogPatternAnalysisResult>;
 }
 
 interface LoadingStatus {
@@ -46,7 +45,7 @@ interface LoadingStatus {
   progress: number;
 }
 
-export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragraph$ }) => {
+export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragraphState }) => {
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
@@ -59,7 +58,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
     progress: 0,
   });
   const [error, setError] = useState<string | null>(null);
-  const paragraph = useObservable(paragraph$);
+  const paragraph = useObservable(paragraphState.getValue$());
   const [result, setResult] = useState<LogPatternAnalysisResult>({
     logInsights: [],
     patternMapDifference: [],

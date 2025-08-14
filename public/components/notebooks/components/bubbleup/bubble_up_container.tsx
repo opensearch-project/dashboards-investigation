@@ -14,7 +14,6 @@ import {
 } from '@elastic/eui';
 import { EuiStepHorizontalProps } from '@elastic/eui/src/components/steps/step_horizontal';
 import { useObservable } from 'react-use';
-import { Observable } from 'rxjs';
 import { AnomalyVisualizationAnalysisOutputResult } from 'common/types/notebooks';
 import { NoteBookServices } from 'public/types';
 import { BubbleUpInput } from './embeddable/types';
@@ -23,16 +22,16 @@ import { NotebookReactContext } from '../../context_provider/context_provider';
 import { generateAllFieldCharts } from './render_bubble_vega';
 import { BubbleUpDataService } from './bubble_up_data_service';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
-import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
+import { ParagraphState } from '../../../../../common/state/paragraph_state';
 import './bubble_up_viz.scss';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 const ITEMS_PER_PAGE = 3;
 
 export const BubbleUpContainer = ({
-  paragraph$,
+  paragraphState,
 }: {
-  paragraph$: Observable<ParagraphStateValue<AnomalyVisualizationAnalysisOutputResult>>;
+  paragraphState: ParagraphState<AnomalyVisualizationAnalysisOutputResult>;
 }) => {
   const {
     services: { embeddable },
@@ -42,7 +41,7 @@ export const BubbleUpContainer = ({
     context.state.value.context.getValue$(),
     context.state.value.context.value
   );
-  const paragraph = useObservable(paragraph$);
+  const paragraph = useObservable(paragraphState.getValue$());
   const { result } = ParagraphState.getOutput(paragraph)! || {};
   const { fieldComparison } = result! || {};
   const { timeRange, timeField, index, dataSourceId, PPLFilters, filters } = topContextValue;

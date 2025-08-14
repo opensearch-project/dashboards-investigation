@@ -13,7 +13,7 @@ import {
   EuiLoadingSpinner,
 } from '@elastic/eui';
 import autosize from 'autosize';
-import { useEffectOnce } from 'react-use';
+import { useEffectOnce, useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
 import { ActionMetadata, actionsMetadata } from '../../../../common/constants/actions';
 import {
@@ -26,10 +26,9 @@ import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearc
 
 interface InputPanelProps {
   onCreateParagraph: (paragraphInput: string, inputType: string) => Promise<void>;
-  dataSourceId: string | undefined | null;
 }
 
-export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, dataSourceId }) => {
+export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const [inputValue, setInputValue] = useState('');
@@ -39,6 +38,10 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph, dataS
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
+  const { dataSourceId } = useObservable(
+    context.state.value.context.getValue$(),
+    context.state.value.context.value
+  );
 
   useEffectOnce(() => {
     if (textareaRef.current) {
