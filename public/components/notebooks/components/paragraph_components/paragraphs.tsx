@@ -14,7 +14,7 @@ import {
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   OBSERVABILITY_VISUALIZATION_TYPE,
 } from '../../../../../common/constants/notebooks';
-import { ParaType } from '../../../../../common/types/notebooks';
+import { NotebookType, ParaType } from '../../../../../common/types/notebooks';
 import { uiSettingsService } from '../../../../../common/utils';
 import { dataSourceFilterFn } from '../../../../../common/utils/shared';
 import { ParaOutput } from './para_output';
@@ -119,13 +119,16 @@ export const Paragraphs = (props: ParagraphProps) => {
       paddingSize="none"
       hasBorder={false}
     >
-      <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
+      {notebookType === NotebookType.AGENTIC &&
+      index < context.state.value.paragraphs.length - 1 ? null : (
+        <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
+      )}
       {(() => {
         const RenderComponent = mapParagraphTypeToRenderComponent[getInputType(paragraphValue)];
         if (RenderComponent) {
           return (
             <div key={paragraph.value.id} className={paraClass}>
-              <RenderComponent paragraphState={paragraph as ParagraphState<any>} />
+              <RenderComponent idx={index} paragraphState={paragraph as ParagraphState<any>} />
             </div>
           );
         }
