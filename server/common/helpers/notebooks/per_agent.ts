@@ -84,12 +84,73 @@ export const executePERAgentInParagraph = async ({
   const startTime = now();
   const parameters = {
     question: paragraph.input.inputText,
-    planner_prompt_template:
-      '${parameters.tools_prompt} \n ${parameters.planner_prompt} \n Objective: ${parameters.user_prompt} \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n',
-    planner_with_history_template:
-      '${parameters.tools_prompt} \n ${parameters.planner_prompt} \n Objective: ```${parameters.user_prompt}``` \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n You have currently executed the following steps: \n[${parameters.completed_steps}] \n\n',
-    reflect_prompt_template:
-      '${parameters.tools_prompt} \n ${parameters.planner_prompt} \n Objective: ```${parameters.user_prompt}``` \n\n Original plan:\n[${parameters.steps}] \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n You have currently executed the following steps from the original plan: \n[${parameters.completed_steps}] \n\n ${parameters.reflect_prompt} \n\n.',
+    planner_prompt_template: `
+      ## AVAILABLE TOOLS
+      \${parameters.tools_prompt}
+
+      ## PLANNING GUIDANCE
+      \${parameters.planner_prompt}
+      
+      ## OBJECTIVE
+      Your job is to fulfill user's requirements and answer their questions effectively. User Input:
+      \${parameters.user_prompt}
+      
+      ## PREVIOUS CONTEXT
+      The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research
+      [\${parameters.context}]
+      
+      ## RESPONSE FORMAT
+      \${parameters.plan_execute_reflect_response_format}`,
+    planner_with_history_template: `
+      ## AVAILABLE TOOLS
+      \${parameters.tools_prompt}
+
+      ## PLANNING GUIDANCE
+      \${parameters.planner_prompt}
+      
+      ## OBJECTIVE
+      The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively. User Input:
+      \`\`\`\${parameters.user_prompt}\`\`\`
+      
+      ## PREVIOUS CONTEXT
+      The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research
+      [\${parameters.context}]
+      
+      ## CURRENT PROGRESS
+      You have already completed the following steps in the current plan. Consider these when determining next actions:
+      [\${parameters.completed_steps}]
+      
+      ## RESPONSE FORMAT
+      \${parameters.plan_execute_reflect_response_format}`,
+
+    reflect_prompt_template: `
+      ## AVAILABLE TOOLS
+      \${parameters.tools_prompt}
+
+      ## PLANNING GUIDANCE
+      \`\`\`\${parameters.planner_prompt}\`\`\`
+      
+      ## OBJECTIVE
+      The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively. User Input:
+      \${parameters.user_prompt}
+      
+      ## ORIGINAL PLAN
+      This was the initially created plan to address the objective:
+      [\${parameters.steps}]
+      
+      ## PREVIOUS CONTEXT
+      The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research without doing the same thing again:
+      [\${parameters.context}]
+      
+      ## CURRENT PROGRESS
+      You have already completed the following steps from the original plan. Consider these when determining next actions:
+      [\${parameters.completed_steps}]
+      
+      ## REFLECTION GUIDELINE
+      \${parameters.reflect_prompt}
+      
+      ## RESPONSE FORMAT
+      \${parameters.plan_execute_reflect_response_format}`,
     context,
     system_prompt: customizedPrompts?.systemPrompt ?? undefined,
     executor_system_prompt: `${
