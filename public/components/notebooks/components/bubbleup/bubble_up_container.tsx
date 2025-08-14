@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useContext, useMemo, useState, useEffect } from 'react';
+import React, { useContext, useMemo, useState, useEffect, useCallback } from 'react';
 import {
   EuiAccordion,
   EuiFlexGroup,
@@ -50,51 +50,59 @@ export const BubbleUpContainer = ({
   const [activePage, setActivePage] = useState(0);
   const [specsLoading, setSpecsLoading] = useState(false);
   const [distributionLoading, setDistributionLoading] = useState(false);
-  const [bubbleUpSpecs, setBubbleUpSpecs] = useState<Array<Record<string, unknown>>>([]);
   const factory = embeddable.getEmbeddableFactory<BubbleUpInput>('vega_visualization');
+  const bubbleUpSpecs = useMemo(() => {
+    if (fieldComparison) {
+      return generateAllFieldCharts(fieldComparison);
+    }
+
+    return [];
+  }, [fieldComparison]);
 
   const dataService = useMemo(() => new BubbleUpDataService(), []);
 
+  const loadSpecsData = useCallback(async () => {
+    try {
+      const response = await dataService.fetchComparisonData({ selectionFilters: filters });
+      setSpecsLoading(false);
+      const discoverFields = await dataService.discoverFields(response);
+      const difference = await dataService.analyzeDifferences(response, discoverFields);
+      const formatComparison = dataService.formatComparisonSummary(difference);
+      setDistributionLoading(false);
+      return formatComparison;
+    } catch (error) {
+      console.error('Error fetching or processing data:', error);
+    } finally {
+      setSpecsLoading(false);
+    }
+  }, [dataService, filters]);
+
   useEffect(() => {
-    const loadSpecsData = async () => {
-      if (specsLoading || distributionLoading || !paragraph) {
+    (async () => {
+      if (
+        fieldComparison ||
+        specsLoading ||
+        distributionLoading ||
+        !paragraph ||
+        paragraph.uiState?.isRunning
+      ) {
         return;
       }
+
       setSpecsLoading(true);
       setDistributionLoading(true);
 
-      if (fieldComparison && fieldComparison.length > 0) {
-        setBubbleUpSpecs(generateAllFieldCharts(fieldComparison));
-        setSpecsLoading(false);
-        setDistributionLoading(false);
-        return;
-      }
+      const formatComparison = await loadSpecsData();
 
-      try {
-        const response = await dataService.fetchComparisonData({ selectionFilters: filters });
-        setSpecsLoading(false);
-        const discoverFields = await dataService.discoverFields(response);
-        const difference = await dataService.analyzeDifferences(response, discoverFields);
-        const formatComparison = dataService.formatComparisonSummary(difference);
-        if (paragraph) {
-          await saveParagraph({
-            paragraphStateValue: ParagraphState.updateOutputResult(paragraph, {
-              fieldComparison: formatComparison,
-            }),
-          });
-        }
-        setBubbleUpSpecs(generateAllFieldCharts(formatComparison));
-        setDistributionLoading(false);
-      } catch (error) {
-        console.error('Error fetching or processing data:', error);
-      } finally {
-        setSpecsLoading(false);
+      if (paragraph) {
+        await saveParagraph({
+          paragraphStateValue: ParagraphState.updateOutputResult(paragraph, {
+            fieldComparison: formatComparison || [],
+          }),
+        });
       }
-    };
-
-    loadSpecsData();
-    // eslint-disable-next-line
-  }, [dataService, fieldComparison, paragraph]);
+    })();
+  }, [loadSpecsData, fieldComparison, specsLoading, distributionLoading, paragraph, saveParagraph]);
 
   const { paginatedSpecs, totalPages } = useMemo(() => {
     if (!bubbleUpSpecs?.length) {

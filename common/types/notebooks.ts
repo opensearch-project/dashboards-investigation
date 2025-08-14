@@ -103,8 +103,16 @@ export interface NotebookBackendType {
   vizPrefix?: string;
 }
 
+export interface SummaryDataItem {
+  field: string;
+  divergence: number;
+  topChanges: Array<{
+    value: string;
+  }>;
+}
+
 export interface AnomalyVisualizationAnalysisOutputResult {
-  fieldComparison: Array<Record<string, unknown>>;
+  fieldComparison: SummaryDataItem[];
 }
 
 export interface IndexInsightContent {
