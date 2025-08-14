@@ -111,7 +111,7 @@ export const MessageTraceModal = ({
   const renderTraces = () => {
     if (!isLoading && traces.length === 0) {
       return (
-        <EuiText className="wrapAll markdown-output-text" size="s">
+        <EuiText className="markdown-output-text" size="s">
           No traces data.
         </EuiText>
       );
@@ -140,7 +140,7 @@ export const MessageTraceModal = ({
               }`}
               paddingSize="l"
             >
-              <EuiText className="wrapAll markdown-output-text" size="s">
+              <EuiText className="markdown-output-text" size="s">
                 {isFromLLM ? (
                   renderTraceString({ text: response, fallback: 'No response' })
                 ) : (

@@ -93,7 +93,7 @@ export const executePERAgentInParagraph = async ({
       
       ## OBJECTIVE
       Your job is to fulfill user's requirements and answer their questions effectively. User Input:
-      \${parameters.user_prompt}
+      \`\`\`\${parameters.user_prompt}\`\`\`
       
       ## PREVIOUS CONTEXT
       The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research
