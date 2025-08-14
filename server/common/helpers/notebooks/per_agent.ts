@@ -99,8 +99,7 @@ export const executePERAgentInParagraph = async ({
       The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research
       [\${parameters.context}]
       
-      ## RESPONSE FORMAT
-      \${parameters.plan_execute_reflect_response_format}`,
+      Remember: Respond only in JSON format following the required schema.`,
     planner_with_history_template: `
       ## AVAILABLE TOOLS
       \${parameters.tools_prompt}
@@ -120,8 +119,7 @@ export const executePERAgentInParagraph = async ({
       You have already completed the following steps in the current plan. Consider these when determining next actions:
       [\${parameters.completed_steps}]
       
-      ## RESPONSE FORMAT
-      \${parameters.plan_execute_reflect_response_format}`,
+      Remember: Respond only in JSON format following the required schema.`,
 
     reflect_prompt_template: `
       ## AVAILABLE TOOLS
@@ -149,8 +147,7 @@ export const executePERAgentInParagraph = async ({
       ## REFLECTION GUIDELINE
       \${parameters.reflect_prompt}
       
-      ## RESPONSE FORMAT
-      \${parameters.plan_execute_reflect_response_format}`,
+      Remember: Respond only in JSON format following the required schema.`,
     context,
     system_prompt: customizedPrompts?.systemPrompt ?? undefined,
     executor_system_prompt: `${

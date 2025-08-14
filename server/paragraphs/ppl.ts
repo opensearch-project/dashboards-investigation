@@ -26,7 +26,10 @@ export const PPLParagraph: ParagraphRegistryItem = {
 
       ## Step result:
       User has executed the following PPL query: '${query}' which returned the following results:
-      ${JSON.stringify(PPLResult.data.resp)}.
+      
+      \`\`\`json
+      ${JSON.stringify(PPLResult.data.resp)}
+      \`\`\`
     `;
   },
 };
