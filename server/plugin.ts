@@ -42,6 +42,7 @@ export class ObservabilityPlugin
   public async setup(core: CoreSetup) {
     this.logger.debug('Observability: Setup');
     const router = core.http.createRouter();
+    const auth = core.http.auth;
 
     setQueryService(new QueryService(this.logger));
     setMLService(new MLService());
@@ -62,6 +63,7 @@ export class ObservabilityPlugin
     // Register server side APIs
     setupRoutes({
       router,
+      auth,
     });
 
     core.savedObjects.registerType(notebookSavedObject);

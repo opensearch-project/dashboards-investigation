@@ -9,7 +9,8 @@ import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved
 import { getSampleNotebooks } from '../../../server/common/helpers/notebooks/sample_notebooks';
 
 export function fetchNotebooks(
-  savedObjectNotebooks: Array<SavedObject<{ savedNotebook: NotebookBackendType }>>
+  savedObjectNotebooks: Array<SavedObject<{ savedNotebook: NotebookBackendType }>>,
+  userName?: string
 ) {
   const notebooks: Array<{
     dateCreated: string;
@@ -17,8 +18,12 @@ export function fetchNotebooks(
     path: string;
     id: string;
   }> = [];
-  savedObjectNotebooks.map((savedObject) => {
+  savedObjectNotebooks.forEach((savedObject) => {
     if (savedObject.type === 'observability-notebook' && savedObject.attributes.savedNotebook) {
+      const notebookOwner = savedObject.attributes.savedNotebook.owner;
+      const shouldFilterByOwner = userName && notebookOwner && notebookOwner !== userName;
+      if (shouldFilterByOwner) return;
+
       notebooks.push({
         dateCreated: savedObject.attributes.savedNotebook.dateCreated,
         dateModified: savedObject.attributes.savedNotebook.dateModified,
@@ -33,7 +38,7 @@ export function fetchNotebooks(
   return notebooks;
 }
 
-export function createNotebook(notebookName: { name: string; context?: any }) {
+export function createNotebook(notebookName: { name: string; context?: any }, userName?: string) {
   const noteObject = {
     dateCreated: new Date().toISOString(),
     name: notebookName.name,
@@ -43,6 +48,10 @@ export function createNotebook(notebookName: { name: string; context?: any }) {
     path: notebookName.name,
     context: notebookName?.context ?? undefined,
   };
+
+  if (userName) {
+    noteObject.owner = userName;
+  }
 
   return {
     savedNotebook: noteObject,

@@ -7,7 +7,9 @@ import { schema } from '@osd/config-schema';
 import {
   IOpenSearchDashboardsResponse,
   IRouter,
+  OpenSearchDashboardsRequest,
   ResponseError,
+  HttpAuth,
 } from '../../../../../src/core/server';
 import { SavedObjectsClientContract } from '../../../../../src/core/server/types';
 import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
@@ -20,7 +22,16 @@ import {
   renameNotebook,
 } from '../../adaptors/notebooks/saved_objects_notebooks_router';
 
-export function registerNoteRoute(router: IRouter) {
+export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
+  const getUserName = (request: OpenSearchDashboardsRequest) => {
+    const authInfo = auth.get<{
+      authInfo?: {
+        user_name?: string;
+      };
+    }>(request);
+    return authInfo?.state?.authInfo?.user_name;
+  };
+
   router.get(
     {
       path: `${NOTEBOOKS_API_PREFIX}/savedNotebook`,
@@ -38,7 +49,8 @@ export function registerNoteRoute(router: IRouter) {
           type: NOTEBOOK_SAVED_OBJECT,
           perPage: 1000,
         });
-        const fetchedNotebooks = fetchNotebooks(notebooksData.saved_objects);
+        const userName = getUserName(request);
+        const fetchedNotebooks = fetchNotebooks(notebooksData.saved_objects, userName);
         return response.ok({
           body: {
             data: fetchedNotebooks,
@@ -69,11 +81,12 @@ export function registerNoteRoute(router: IRouter) {
       request,
       response
     ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
+      const userName = getUserName(request);
       const opensearchNotebooksClient: SavedObjectsClientContract =
         context.core.savedObjects.client;
       let notebooksData;
       try {
-        const newNotebookObject = createNotebook(request.body);
+        const newNotebookObject = createNotebook(request.body, userName);
         notebooksData = await opensearchNotebooksClient.create(
           NOTEBOOK_SAVED_OBJECT,
           newNotebookObject
