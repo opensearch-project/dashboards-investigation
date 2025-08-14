@@ -40,7 +40,13 @@ export const ContextPanel = () => {
   const fetchBubbleData = useCallback(async () => {
     setIsLoading(true);
     try {
-      await createParagraph(0, '', ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE);
+      await createParagraph({
+        index: 0,
+        input: {
+          inputText: '',
+          inputType: ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+        },
+      });
     } catch (error) {
       console.log(error);
     }

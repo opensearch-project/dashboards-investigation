@@ -9,7 +9,9 @@ import { useContext } from 'react';
 import { NoteBookServices } from 'public/types';
 import { useObservable } from 'react-use';
 import {
+  AI_RESPONSE_TYPE,
   DASHBOARDS_VISUALIZATION_TYPE,
+  DEEP_RESEARCH_PARAGRAPH_TYPE,
   OBSERVABILITY_VISUALIZATION_TYPE,
 } from '../../../../../common/constants/notebooks';
 import { ParaType } from '../../../../../common/types/notebooks';
@@ -32,7 +34,8 @@ const mapParagraphTypeToRenderComponent = {
   ppl: PPLParagraph,
   sql: PPLParagraph,
   md: MarkdownParagraph,
-  DEEP_RESEARCH: DeepResearchParagraph,
+  [DEEP_RESEARCH_PARAGRAPH_TYPE]: DeepResearchParagraph,
+  [AI_RESPONSE_TYPE]: DeepResearchParagraph,
   [DASHBOARDS_VISUALIZATION_TYPE.toUpperCase()]: VisualizationParagraph,
   [OBSERVABILITY_VISUALIZATION_TYPE.toUpperCase()]: VisualizationParagraph,
   [DASHBOARDS_VISUALIZATION_TYPE]: VisualizationParagraph,

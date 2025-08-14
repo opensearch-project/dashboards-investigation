@@ -6,8 +6,11 @@
 import { ParagraphBackendType } from '../types/notebooks';
 import { ObservableState } from './observable_state';
 
-export interface ParagraphStateValue<TOutputResult = string, TFullfilledOutput = {}>
-  extends ParagraphBackendType<TOutputResult> {
+export interface ParagraphStateValue<
+  TOutputResult = string,
+  TInputParameters = unknown,
+  TFullfilledOutput = {}
+> extends ParagraphBackendType<TOutputResult, TInputParameters> {
   fullfilledOutput?: Partial<TFullfilledOutput>; // this is the fullfilled output, like PPL query result / PER agent response
   uiState?: Partial<{
     viewMode: 'input_only' | 'output_only' | 'view_both';
@@ -17,9 +20,11 @@ export interface ParagraphStateValue<TOutputResult = string, TFullfilledOutput =
   }>;
 }
 
-export class ParagraphState<TOutputResult = string, TFullfilledOutput = {}> extends ObservableState<
-  ParagraphStateValue<TOutputResult, TFullfilledOutput>
-> {
+export class ParagraphState<
+  TOutputResult = string,
+  TInputParameters = unknown,
+  TFullfilledOutput = {}
+> extends ObservableState<ParagraphStateValue<TOutputResult, TInputParameters, TFullfilledOutput>> {
   static getOutput<T>(value?: ParagraphStateValue<T>) {
     if (!value) {
       return undefined;
@@ -43,8 +48,8 @@ export class ParagraphState<TOutputResult = string, TFullfilledOutput = {}> exte
     return value;
   }
   protected formatValue(
-    value: ParagraphStateValue<TOutputResult, TFullfilledOutput>
-  ): ParagraphStateValue<TOutputResult, TFullfilledOutput> {
+    value: ParagraphStateValue<TOutputResult, TInputParameters, TFullfilledOutput>
+  ): ParagraphStateValue<TOutputResult, TInputParameters, TFullfilledOutput> {
     return {
       ...value,
       uiState: {
@@ -56,22 +61,41 @@ export class ParagraphState<TOutputResult = string, TFullfilledOutput = {}> exte
   getParagraphType() {
     return this.value.input.inputType;
   }
-  getBackgroundValue() {
-    const { input, output, id, dateModified, dateCreated } = this.value;
+  getBackendValue() {
+    const { input, output, id, dateModified, dateCreated, dataSourceMDSId } = this.value;
     return {
       input,
       output,
       id,
       dateModified,
       dateCreated,
+      dataSourceMDSId,
     };
   }
-  updateInput(input: Partial<ParagraphStateValue['input']>) {
+  updateInput(
+    input: Partial<ParagraphStateValue<TOutputResult, TInputParameters, TFullfilledOutput>['input']>
+  ) {
+    const { parameters, ...others } = this.value.input ?? {};
+    const { parameters: inputParameters, ...inputOthers } = input ?? {};
+    let payload: ParagraphStateValue<
+      TOutputResult,
+      TInputParameters,
+      TFullfilledOutput
+    >['input'] = {
+      ...others,
+      ...inputOthers,
+    };
+    if (parameters || inputParameters) {
+      payload = {
+        ...payload,
+        parameters: {
+          ...parameters,
+          ...inputParameters,
+        } as TInputParameters,
+      };
+    }
     this.updateValue({
-      input: {
-        ...this.value.input,
-        ...input,
-      },
+      input: payload,
     });
     return this;
   }

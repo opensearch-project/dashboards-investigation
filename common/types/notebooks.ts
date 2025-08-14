@@ -5,12 +5,6 @@
 
 import { RefObject } from 'react';
 
-export interface NotebooksPluginSetup {
-  getGreeting: () => string;
-}
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface NotebooksPluginStart {}
-
 export interface OptionsType {
   baseUrl: string;
   payload?: any;
@@ -55,6 +49,11 @@ export enum NoteBookSource {
   ALERTING = 'alert',
 }
 
+export enum NotebookType {
+  AGENTIC = 'Agentic',
+  CLASSIC = 'Classic',
+}
+
 export interface NotebookContext {
   dataSourceId?: string;
   timeField?: string;
@@ -72,16 +71,18 @@ export interface NotebookContext {
   variables?: Record<string, unknown>;
   memoryId?: string;
   indexInsight?: IndexInsightContent;
+  notebookType?: NotebookType;
 }
 
-export interface ParagraphBackendType<TOutputResult = string> {
+export interface ParagraphBackendType<TOutputResult, TInputParameters = unknown> {
   input: {
     inputText: string;
     inputType: string;
+    parameters?: TInputParameters;
   };
   output?: [
     {
-      execution_time: string;
+      execution_time?: string;
       outputType: string;
       result: TOutputResult;
     }
@@ -96,7 +97,7 @@ export interface NotebookBackendType {
   name: string;
   dateCreated: string;
   dateModified: string;
-  paragraphs: ParagraphBackendType[];
+  paragraphs: Array<ParagraphBackendType<unknown>>;
   context?: NotebookContext;
   path: string;
   vizPrefix?: string;
@@ -128,4 +129,10 @@ export interface DeepResearchOutputResult {
   memoryId?: string;
   // FIXME: Should be removed in the final release
   agent_id?: string;
+}
+
+export interface DeepResearchInputParameters {
+  // FIXME: Should be removed in the final release
+  PERAgentInput?: Record<string, unknown>;
+  PERAgentContext?: string;
 }

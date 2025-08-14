@@ -28,7 +28,7 @@ import {
   extractExecutorMemoryId,
   extractParentInteractionId,
   isStateCompletedOrFailed,
-} from '../../../../../utils/task';
+} from '../../../../../../common/utils/task';
 import { getMLCommonsTask } from '../../../../../utils/ml_commons_apis';
 import { formatTimeGap, getTimeGapFromDates } from '../../../../../utils/time';
 import { CoreStart } from '../../../../../../../../src/core/public';

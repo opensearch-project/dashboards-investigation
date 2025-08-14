@@ -17,6 +17,7 @@ import {
   EuiSpacer,
   EuiLoadingContent,
   EuiCodeBlock,
+  EuiErrorBoundary,
 } from '@elastic/eui';
 import type { NoteBookServices } from 'public/types';
 
@@ -37,9 +38,11 @@ const renderTraceString = ({ text, fallback }: { text: string | undefined; fallb
   }
   if (json) {
     return (
-      <EuiCodeBlock language="json" isCopyable>
-        {JSON.stringify(json, null, 2)}
-      </EuiCodeBlock>
+      <EuiErrorBoundary>
+        <EuiCodeBlock {...(text.length < 100000 ? { language: 'json' } : {})} isCopyable>
+          {JSON.stringify(json, null, 2)}
+        </EuiCodeBlock>
+      </EuiErrorBoundary>
     );
   }
 

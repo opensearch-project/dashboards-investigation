@@ -33,6 +33,7 @@ import {
 } from './services';
 import { Notebook, NotebookProps } from './components/notebooks/components/notebook';
 import { NOTEBOOK_APP_NAME } from '../common/constants/notebooks';
+import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opensearch_dashboards_react/public';
 
 export class InvestigationPlugin
   implements
@@ -47,8 +48,7 @@ export class InvestigationPlugin
       setOSDSavedObjectsClient(coreStart.savedObjects.client);
     });
 
-    const appMountWithStartPage = () => async (params: AppMountParameters) => {
-      const { Observability } = await import('./components/index');
+    const getServices = async () => {
       const [coreStart, depsStart] = await core.getStartServices();
       const pplService: PPLService = new PPLService(core.http);
       const services: NoteBookServices = {
@@ -58,6 +58,12 @@ export class InvestigationPlugin
         pplService,
         savedObjects: coreStart.savedObjects,
       };
+      return services;
+    };
+
+    const appMountWithStartPage = () => async (params: AppMountParameters) => {
+      const { Observability } = await import('./components/index');
+      const services = await getServices();
       return Observability(services, params!);
     };
 
@@ -88,7 +94,13 @@ export class InvestigationPlugin
     );
 
     const getNotebook = async ({ openedNoteId }: Pick<NotebookProps, 'openedNoteId'>) => {
-      return <Notebook openedNoteId={openedNoteId} />;
+      const services = await getServices();
+
+      return (
+        <OpenSearchDashboardsContextProvider services={services}>
+          <Notebook openedNoteId={openedNoteId} />
+        </OpenSearchDashboardsContextProvider>
+      );
     };
     // Return methods that should be available to other plugins
     return {

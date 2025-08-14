@@ -333,9 +333,34 @@ exports[`<NoteTable /> spec renders the component 1`] = `
                 </th>
                 <th
                   aria-live="polite"
+                  aria-sort="none"
+                  class="euiTableHeaderCell"
+                  data-test-subj="tableHeaderCell_notebookType_1"
+                  role="columnheader"
+                  scope="col"
+                >
+                  <button
+                    class="euiTableHeaderButton"
+                    data-test-subj="tableHeaderSortButton"
+                    type="button"
+                  >
+                    <span
+                      class="euiTableCellContent"
+                    >
+                      <span
+                        class="euiTableCellContent__text"
+                        title="Type"
+                      >
+                        Type
+                      </span>
+                    </span>
+                  </button>
+                </th>
+                <th
+                  aria-live="polite"
                   aria-sort="descending"
                   class="euiTableHeaderCell"
-                  data-test-subj="tableHeaderCell_dateModified_1"
+                  data-test-subj="tableHeaderCell_dateModified_2"
                   role="columnheader"
                   scope="col"
                 >
@@ -374,7 +399,7 @@ exports[`<NoteTable /> spec renders the component 1`] = `
                   aria-live="polite"
                   aria-sort="none"
                   class="euiTableHeaderCell"
-                  data-test-subj="tableHeaderCell_dateCreated_2"
+                  data-test-subj="tableHeaderCell_dateCreated_3"
                   role="columnheader"
                   scope="col"
                 >
@@ -442,6 +467,20 @@ exports[`<NoteTable /> spec renders the component 1`] = `
                     >
                       path-0
                     </a>
+                  </div>
+                </td>
+                <td
+                  class="euiTableRowCell"
+                >
+                  <div
+                    class="euiTableRowCell__mobileHeader euiTableRowCell--hideForDesktop"
+                  >
+                    Type
+                  </div>
+                  <div
+                    class="euiTableCellContent euiTableCellContent--overflowingContent"
+                  >
+                    Classic
                   </div>
                 </td>
                 <td
@@ -525,6 +564,20 @@ exports[`<NoteTable /> spec renders the component 1`] = `
                   <div
                     class="euiTableRowCell__mobileHeader euiTableRowCell--hideForDesktop"
                   >
+                    Type
+                  </div>
+                  <div
+                    class="euiTableCellContent euiTableCellContent--overflowingContent"
+                  >
+                    Classic
+                  </div>
+                </td>
+                <td
+                  class="euiTableRowCell"
+                >
+                  <div
+                    class="euiTableRowCell__mobileHeader euiTableRowCell--hideForDesktop"
+                  >
                     Last updated
                   </div>
                   <div
@@ -592,6 +645,20 @@ exports[`<NoteTable /> spec renders the component 1`] = `
                     >
                       path-2
                     </a>
+                  </div>
+                </td>
+                <td
+                  class="euiTableRowCell"
+                >
+                  <div
+                    class="euiTableRowCell__mobileHeader euiTableRowCell--hideForDesktop"
+                  >
+                    Type
+                  </div>
+                  <div
+                    class="euiTableCellContent euiTableCellContent--overflowingContent"
+                  >
+                    Classic
                   </div>
                 </td>
                 <td
@@ -675,6 +742,20 @@ exports[`<NoteTable /> spec renders the component 1`] = `
                   <div
                     class="euiTableRowCell__mobileHeader euiTableRowCell--hideForDesktop"
                   >
+                    Type
+                  </div>
+                  <div
+                    class="euiTableCellContent euiTableCellContent--overflowingContent"
+                  >
+                    Classic
+                  </div>
+                </td>
+                <td
+                  class="euiTableRowCell"
+                >
+                  <div
+                    class="euiTableRowCell__mobileHeader euiTableRowCell--hideForDesktop"
+                  >
                     Last updated
                   </div>
                   <div
@@ -742,6 +823,20 @@ exports[`<NoteTable /> spec renders the component 1`] = `
                     >
                       path-4
                     </a>
+                  </div>
+                </td>
+                <td
+                  class="euiTableRowCell"
+                >
+                  <div
+                    class="euiTableRowCell__mobileHeader euiTableRowCell--hideForDesktop"
+                  >
+                    Type
+                  </div>
+                  <div
+                    class="euiTableCellContent euiTableCellContent--overflowingContent"
+                  >
+                    Classic
                   </div>
                 </td>
                 <td

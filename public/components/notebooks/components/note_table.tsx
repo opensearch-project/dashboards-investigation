@@ -26,7 +26,7 @@ import {
 import truncate from 'lodash/truncate';
 import moment from 'moment';
 import React, { useEffect, useState, useCallback } from 'react';
-import { useHistory, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   CREATE_NOTE_MESSAGE,
   NOTEBOOKS_DOCUMENTATION_URL,
@@ -35,17 +35,18 @@ import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
 import { setNavBreadCrumbs } from '../../../../common/utils/set_nav_bread_crumbs';
 import { HeaderControlledComponentsWrapper } from '../../../../public/plugin_helpers/plugin_headerControl';
 import {
+  CreateNotebookModal,
   DeleteNotebookModal,
-  getCustomModal,
   getSampleNotebooksModal,
 } from './helpers/modal_containers';
-import { NotebookType } from './main';
+import { NotebookInfo } from './main';
 import { NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
 import {
   toMountPoint,
   useOpenSearchDashboards,
 } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NoteBookServices } from '../../../types';
+import { NotebookType } from '../../../../common/types/notebooks';
 
 interface NoteTableProps {
   deleteNotebook: (noteList: string[], toastMessage?: string) => void;
@@ -56,14 +57,13 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
     services: { http, notifications, savedObjects: savedObjectsMDSClient, dataSource, chrome },
   } = useOpenSearchDashboards<NoteBookServices>();
 
-  const [notebooks, setNotebooks] = useState<NotebookType[]>([]);
+  const [notebooks, setNotebooks] = useState<NotebookInfo[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false); // Modal Toggle
   const [modalLayout, setModalLayout] = useState(<EuiOverlayMask />); // Modal Layout
-  const [selectedNotebooks, setSelectedNotebooks] = useState<NotebookType[]>([]);
+  const [selectedNotebooks, setSelectedNotebooks] = useState<NotebookInfo[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const location = useLocation();
-  const history = useHistory();
 
   const dataSourceEnabled = !!dataSource;
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
@@ -110,7 +110,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
 
   // Creates a new notebook
   const createNotebook = useCallback(
-    async (newNoteName: string) => {
+    async (newNoteName: string, notebookType: NotebookType) => {
       if (newNoteName.length >= 50 || newNoteName.length === 0) {
         notifications.toasts.addDanger('Invalid notebook name');
         window.location.assign('#/');
@@ -118,6 +118,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
       }
       const newNoteObject = {
         name: newNoteName,
+        context: { notebookType },
       };
 
       return http
@@ -145,8 +146,8 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
   );
 
   const onCreate = useCallback(
-    async (newNoteName: string) => {
-      createNotebook(newNoteName);
+    async (newNoteName: string, notebookType: NotebookType) => {
+      createNotebook(newNoteName, notebookType);
       closeModal();
     },
     [createNotebook, closeModal]
@@ -168,22 +169,19 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
 
   const createNote = useCallback(() => {
     setModalLayout(
-      getCustomModal(
-        onCreate,
-        () => {
-          closeModal();
-          history.goBack();
-        },
-        'Name',
-        'Create notebook',
-        'Cancel',
-        'Create',
-        undefined,
-        CREATE_NOTE_MESSAGE
-      )
+      <CreateNotebookModal
+        runModal={onCreate}
+        closeModal={closeModal}
+        labelTxt="Name"
+        titletxt="Create notebook"
+        btn1txt="Cancel"
+        btn2txt="Create"
+        openNoteName={undefined}
+        helpText={CREATE_NOTE_MESSAGE}
+      />
     );
     showModal();
-  }, [onCreate, closeModal, history]);
+  }, [onCreate, closeModal]);
 
   useEffect(() => {
     const url = window.location.hash.split('/');
@@ -384,6 +382,12 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
       ),
     },
     {
+      field: 'notebookType',
+      name: 'Type',
+      sortable: true,
+      render: (value) => value ?? NotebookType.CLASSIC,
+    },
+    {
       field: 'dateModified',
       name: 'Last updated',
       sortable: true,
@@ -395,14 +399,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
       sortable: true,
       render: (value) => moment(value).format(UI_DATE_FORMAT),
     },
-  ] as Array<
-    EuiTableFieldDataColumnType<{
-      path: string;
-      id: string;
-      dateCreated: string;
-      dateModified: string;
-    }>
-  >;
+  ] as Array<EuiTableFieldDataColumnType<NotebookInfo>>;
 
   return (
     <>

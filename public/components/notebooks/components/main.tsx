@@ -13,6 +13,7 @@ import { isValidUUID } from './helpers/notebooks_parser';
 import { NoteTable } from './note_table';
 import { Notebook } from './notebook';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { NotebookType } from '../../../../common/types/notebooks';
 /*
  * "Main" component renders the whole Notebooks as a single page application
  *
@@ -22,11 +23,12 @@ import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearc
  * https://components.nteract.io/#cell
  */
 
-export interface NotebookType {
+export interface NotebookInfo {
   path: string;
   id: string;
   dateCreated: string;
   dateModified: string;
+  notebookType: NotebookType;
 }
 
 export const Main: React.FC = () => {

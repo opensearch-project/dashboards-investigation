@@ -6,7 +6,7 @@
 import { ParagraphBackendType } from 'common/types/notebooks';
 import { OpenSearchClient } from '../../../../src/core/server';
 
-export interface ParagraphRegistryItem<TOutput = string> {
+export interface ParagraphRegistryItem<TOutput = unknown> {
   getContext: (props: {
     paragraph: ParagraphBackendType<TOutput>;
     transport: OpenSearchClient['transport'];

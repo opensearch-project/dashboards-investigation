@@ -69,6 +69,7 @@ import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
 import { usePrecheck } from '../../../hooks/use_precheck';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { ToggleSystemPromptSettingModal } from './helpers/custom_modals/toggle_system_prompt_setting_modal';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -517,6 +518,9 @@ export function NotebookComponent() {
       {isSavedObjectNotebook ? (
         <>
           <EuiFlexItem grow={false}>
+            <ToggleSystemPromptSettingModal />
+          </EuiFlexItem>
+          <EuiFlexItem grow={false}>
             <EuiToolTip
               content={
                 <FormattedMessage id="notebook.deleteButton.tooltip" defaultMessage="Delete" />
@@ -603,7 +607,13 @@ export function NotebookComponent() {
 
   const handleCreateParagraph = async (paragraphInput: string, inputType: string) => {
     // Add paragraph at the end
-    await createParagraph(paragraphs.length, paragraphInput, inputType);
+    await createParagraph({
+      index: paragraphs.length,
+      input: {
+        inputText: paragraphInput,
+        inputType,
+      },
+    });
   };
 
   const reportingTopButton = !isSavedObjectNotebook ? (
@@ -712,7 +722,15 @@ export function NotebookComponent() {
                           footer={
                             <EuiSmallButton
                               data-test-subj="emptyNotebookAddCodeBlockBtn"
-                              onClick={() => createParagraph(0, '%ppl ', 'CODE')}
+                              onClick={() =>
+                                createParagraph({
+                                  index: 0,
+                                  input: {
+                                    inputText: '%ppl ',
+                                    inputType: 'CODE',
+                                  },
+                                })
+                              }
                               style={{ marginBottom: 17 }}
                             >
                               Add query
@@ -727,7 +745,15 @@ export function NotebookComponent() {
                           description="Import OpenSearch Dashboards or Observability visualizations to the notes."
                           footer={
                             <EuiSmallButton
-                              onClick={() => createParagraph(0, '', 'VISUALIZATION')}
+                              onClick={() =>
+                                createParagraph({
+                                  index: 0,
+                                  input: {
+                                    inputText: '',
+                                    inputType: 'VISUALIZATION',
+                                  },
+                                })
+                              }
                               style={{ marginBottom: 17 }}
                             >
                               Add visualization
@@ -742,7 +768,15 @@ export function NotebookComponent() {
                           description="Use deep research to analytics question."
                           footer={
                             <EuiSmallButton
-                              onClick={() => createParagraph(0, '', DEEP_RESEARCH_PARAGRAPH_TYPE)}
+                              onClick={() =>
+                                createParagraph({
+                                  index: 0,
+                                  input: {
+                                    inputText: '',
+                                    inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
+                                  },
+                                })
+                              }
                               style={{ marginBottom: 17 }}
                             >
                               Add deep research
