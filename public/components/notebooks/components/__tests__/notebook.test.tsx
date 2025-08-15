@@ -54,8 +54,8 @@ jest.mock('../bubbleup/bubble_up_container', () => ({
   BubbleUpContainer: () => <div />,
 }));
 
-jest.mock('../context_panel', () => ({
-  ContextPanel: () => <div />,
+jest.mock('../alert_panel', () => ({
+  AlertPanel: () => <div />,
 }));
 
 jest.mock('../input_panel.tsx', () => ({
