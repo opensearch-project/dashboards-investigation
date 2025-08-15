@@ -5,6 +5,7 @@
 
 import { euiPaletteForStatus } from '@elastic/eui';
 
+// The user can only set five severity alert.
 const paletteColors = euiPaletteForStatus(5);
 
 export const SEVERITY_OPTIONS = [

@@ -44,7 +44,6 @@ export interface NotebookContext {
   memoryId?: string;
   indexInsight?: IndexInsightContent;
   notebookType?: NotebookType;
-  alert?: Record<string, any>;
 }
 
 export interface ParagraphBackendType<TOutputResult, TInputParameters = unknown> {

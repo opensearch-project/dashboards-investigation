@@ -15,29 +15,37 @@ import {
 import React, { useContext } from 'react';
 import moment from 'moment';
 import { useObservable } from 'react-use';
-import _ from 'lodash';
+import { NoteBookServices } from 'public/types';
+import { i18n } from '@osd/i18n';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { SEVERITY_OPTIONS } from '../../../../common/constants/alert';
-import { getApplication } from '../../../services';
+import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 export const AlertPanel = () => {
   const notebookContext = useContext(NotebookReactContext);
-  const application = getApplication();
+  const {
+    services: { application, uiSettings },
+  } = useOpenSearchDashboards<NoteBookServices>();
 
-  const { alert, dataSourceId, index } = useObservable(
+  const { variables, dataSourceId, index } = useObservable(
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
   );
-  console.log(dataSourceId);
 
-  const severityColor = getSeverityColor(alert?.severity);
-
-  if (!alert) {
+  if (!variables?.alert) {
     return null;
   }
 
+  const alert = variables.alert as Record<string, any>;
+  const dateFormat = uiSettings.get('dateFormat');
+  const startTime = alert?.start_time ? moment(alert?.start_time).format(dateFormat) : '-';
+  const lastNotificationTime = alert?.last_notification_time
+    ? moment(alert?.last_notification_time).format(dateFormat)
+    : '-';
+  const severityColor = getSeverityColor(alert?.severity);
   const monitorUrl = `#/monitors/${alert.monitor_id}?dataSourceId=${dataSourceId}`;
   const alertNumber = alert.alertNumber;
+
   return (
     <EuiPanel borderRadius="l">
       <EuiFlexGroup gutterSize="s" alignItems="center">
@@ -55,20 +63,32 @@ export const AlertPanel = () => {
       <EuiFlexGroup gutterSize="m" alignItems="center">
         <EuiFlexItem>
           <EuiText size="xs">
-            <strong>Trigger name</strong>
+            <strong>
+              {i18n.translate('notebook.alert.panel.triggerName', {
+                defaultMessage: 'Trigger name',
+              })}
+            </strong>
             <p>{alert.trigger_name}</p>
           </EuiText>
         </EuiFlexItem>
 
         <EuiFlexItem>
           <EuiText size="xs">
-            <strong>Trigger start time</strong>
-            <p>{getTime(alert.start_time)}</p>
+            <strong>
+              {i18n.translate('notebook.alert.panel.triggerStartTime', {
+                defaultMessage: 'Trigger start time',
+              })}
+            </strong>
+            <p>{startTime}</p>
           </EuiText>
         </EuiFlexItem>
         <EuiFlexItem>
           <EuiText size="xs">
-            <strong>Monitor</strong>
+            <strong>
+              {i18n.translate('notebook.alert.panel.monitor', {
+                defaultMessage: 'Monitor',
+              })}
+            </strong>
             <p>
               <EuiLink onClick={() => application.navigateToApp('alerts', { path: monitorUrl })}>
                 {alert.monitor_name}
@@ -79,13 +99,21 @@ export const AlertPanel = () => {
 
         <EuiFlexItem>
           <EuiText size="xs">
-            <strong>Trigger last updated</strong>
-            <p>{getTime(alert.last_notification_time)}</p>
+            <strong>
+              {i18n.translate('notebook.alert.panel.triggerLastUpdated', {
+                defaultMessage: 'Trigger last updated',
+              })}
+            </strong>
+            <p>{lastNotificationTime}</p>
           </EuiText>
         </EuiFlexItem>
         <EuiFlexItem>
           <EuiText size="xs">
-            <strong>Monitor data sources</strong>
+            <strong>
+              {i18n.translate('notebook.alert.panel.monitorDataSources', {
+                defaultMessage: 'Monitor data sources',
+              })}
+            </strong>
             <p style={{ whiteSpace: 'pre-wrap' }}>{index}</p>
           </EuiText>
         </EuiFlexItem>
@@ -94,16 +122,10 @@ export const AlertPanel = () => {
   );
 };
 
-function getTime(time: number) {
-  const momentTime = moment.tz(time, moment.tz.guess());
-  if (time && momentTime.isValid()) return momentTime.format('MM/DD/YY h:mm a z');
-  return '-';
+function getSeverityColor(severity: string) {
+  return SEVERITY_OPTIONS.find((option) => option.value === severity)?.color;
 }
 
-function getSeverityColor(severity: number) {
-  return _.get(_.find(SEVERITY_OPTIONS, { value: severity }), 'color');
-}
-
-function getSeverityBadgeText(severity: number) {
-  return _.get(_.find(SEVERITY_OPTIONS, { value: severity }), 'badgeText');
+function getSeverityBadgeText(severity: string) {
+  return SEVERITY_OPTIONS.find((option) => option.value === severity)?.badgeText;
 }

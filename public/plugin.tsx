@@ -24,7 +24,6 @@ import {
 import './index.scss';
 import { BubbleUpEmbeddableFactory } from './components/notebooks/components/bubbleup/embeddable/BubbleUpEmbeddableFactory';
 import {
-  setApplication,
   setClient,
   setData,
   setDataSourceManagementSetup,
@@ -117,7 +116,6 @@ export class InvestigationPlugin
     setSearch(startDeps.data.search);
     setClient(core.http);
     setEmbeddable(startDeps.embeddable);
-    setApplication(core.application);
 
     // Export so other plugins can use this flyout
     return {};
