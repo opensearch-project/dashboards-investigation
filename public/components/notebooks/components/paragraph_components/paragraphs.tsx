@@ -25,7 +25,7 @@ import { ParagraphState } from '../../../../../common/state/paragraph_state';
 import { DeepResearchParagraph } from './deep_research';
 import { VisualizationParagraph } from './visualization';
 import { OtherParagraph } from './other';
-import { BubbleUpContainer } from '../bubbleup/bubble_up_container';
+import { DataDistributionContainer } from '../data_distribution/data_distribution_container';
 import { LogPatternContainer } from '../log_analytics/log_pattern_container';
 
 /**
@@ -41,7 +41,7 @@ const mapParagraphTypeToRenderComponent = {
   [OBSERVABILITY_VISUALIZATION_TYPE.toUpperCase()]: VisualizationParagraph,
   [DASHBOARDS_VISUALIZATION_TYPE]: VisualizationParagraph,
   [OBSERVABILITY_VISUALIZATION_TYPE]: VisualizationParagraph,
-  [ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE]: BubbleUpContainer,
+  [ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE]: DataDistributionContainer,
   [LOG_PATTERN_PARAGRAPH_TYPE]: LogPatternContainer,
 };
 

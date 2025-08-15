@@ -16,19 +16,19 @@ import { EuiStepHorizontalProps } from '@elastic/eui/src/components/steps/step_h
 import { useObservable } from 'react-use';
 import { AnomalyVisualizationAnalysisOutputResult } from 'common/types/notebooks';
 import { NoteBookServices } from 'public/types';
-import { BubbleUpInput } from './embeddable/types';
+import { DataDistributionInput } from './embeddable/types';
 import { EmbeddableRenderer } from '../../../../../../../src/plugins/embeddable/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
-import { generateAllFieldCharts } from './render_bubble_vega';
-import { BubbleUpDataService } from './bubble_up_data_service';
+import { generateAllFieldCharts } from './render_data_distribution_vega';
+import { DataDistributionDataService } from './data_distribution_data_service';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
-import './bubble_up_viz.scss';
+import './data_distribution_viz.scss';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 const ITEMS_PER_PAGE = 3;
 
-export const BubbleUpContainer = ({
+export const DataDistributionContainer = ({
   paragraphState,
 }: {
   paragraphState: ParagraphState<AnomalyVisualizationAnalysisOutputResult>;
@@ -49,8 +49,8 @@ export const BubbleUpContainer = ({
   const [activePage, setActivePage] = useState(0);
   const [specsLoading, setSpecsLoading] = useState(false);
   const [distributionLoading, setDistributionLoading] = useState(false);
-  const factory = embeddable.getEmbeddableFactory<BubbleUpInput>('vega_visualization');
-  const bubbleUpSpecs = useMemo(() => {
+  const factory = embeddable.getEmbeddableFactory<DataDistributionInput>('vega_visualization');
+  const dataDistributionSpecs = useMemo(() => {
     if (fieldComparison) {
       return generateAllFieldCharts(fieldComparison);
     }
@@ -58,7 +58,7 @@ export const BubbleUpContainer = ({
     return [];
   }, [fieldComparison]);
 
-  const dataService = useMemo(() => new BubbleUpDataService(), []);
+  const dataService = useMemo(() => new DataDistributionDataService(), []);
 
   const loadSpecsData = useCallback(async () => {
     try {
@@ -104,17 +104,17 @@ export const BubbleUpContainer = ({
   }, [loadSpecsData, fieldComparison, specsLoading, distributionLoading, paragraph, saveParagraph]);
 
   const { paginatedSpecs, totalPages } = useMemo(() => {
-    if (!bubbleUpSpecs?.length) {
+    if (!dataDistributionSpecs?.length) {
       return { paginatedSpecs: [], totalPages: 0 };
     }
 
     const start = activePage * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
     return {
-      paginatedSpecs: bubbleUpSpecs.slice(start, end),
-      totalPages: Math.ceil(bubbleUpSpecs.length / ITEMS_PER_PAGE),
+      paginatedSpecs: dataDistributionSpecs.slice(start, end),
+      totalPages: Math.ceil(dataDistributionSpecs.length / ITEMS_PER_PAGE),
     };
-  }, [bubbleUpSpecs, activePage]);
+  }, [dataDistributionSpecs, activePage]);
 
   if (!context || !timeRange || !timeField || !index) {
     return null;
