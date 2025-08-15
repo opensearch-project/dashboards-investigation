@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useState, useContext } from 'react';
+import React, { useMemo, useContext } from 'react';
 import { useObservable } from 'react-use';
 import {
   EuiCodeBlock,
@@ -16,7 +16,7 @@ import {
 } from '@elastic/eui';
 
 import type { NoteBookServices } from 'public/types';
-import type { DeepResearchOutputResult } from 'common/types/notebooks';
+import type { DeepResearchInputParameters, DeepResearchOutputResult } from 'common/types/notebooks';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
 import { NotebookType } from '../../../../../../common/types/notebooks';
 
@@ -36,7 +36,10 @@ export const DeepResearchParagraph = ({
   paragraphState,
 }: {
   idx: number;
-  paragraphState: ParagraphState<DeepResearchOutputResult | { agent_id?: string } | string>;
+  paragraphState: ParagraphState<
+    DeepResearchOutputResult | { agent_id?: string } | string,
+    DeepResearchInputParameters
+  >;
 }) => {
   const {
     services: { http },
@@ -54,7 +57,7 @@ export const DeepResearchParagraph = ({
     });
   };
 
-  const { runParagraph, saveParagraph } = useParagraphs();
+  const { runParagraph } = useParagraphs();
   const rawOutputResult = paragraphValue.output?.[0]?.result;
   // FIXME: Read paragraph out directly once all notebooks store object as output
   const outputResult = useMemo<DeepResearchOutputResult | { agent_id?: string } | undefined>(() => {
@@ -78,9 +81,7 @@ export const DeepResearchParagraph = ({
     return undefined;
   }, [rawOutputResult]);
 
-  const [deepResearchAgentId, setDeepResearchAgentId] = useState<string | undefined>(
-    outputResult?.agent_id
-  );
+  const deepResearchAgentId = paragraphValue.input.parameters?.agentId || outputResult?.agent_id;
 
   const isRunning = paragraphValue.uiState?.isRunning;
 
@@ -113,13 +114,11 @@ export const DeepResearchParagraph = ({
           <AgentsSelector
             value={deepResearchAgentId}
             dataSourceMDSId={selectedDataSource}
-            onChange={async (value) => {
-              setDeepResearchAgentId(value);
-              // FIXME move to deep research paragraph
-              await saveParagraph({
-                paragraphStateValue: ParagraphState.updateOutputResult(paragraphValue, {
-                  agent_id: value,
-                }),
+            onChange={(value) => {
+              paragraphState.updateInput({
+                parameters: {
+                  agentId: value,
+                },
               });
             }}
             disabled={!!isRunning}

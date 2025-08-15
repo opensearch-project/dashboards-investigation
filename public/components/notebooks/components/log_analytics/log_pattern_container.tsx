@@ -278,7 +278,8 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
       loadingStatus.completedRequests === loadingStatus.totalRequests &&
       loadingStatus.completedRequests > 0 &&
       hasData &&
-      !ParagraphState.getOutput(paragraph)?.result.logInsights
+      !ParagraphState.getOutput(paragraph)?.result.logInsights &&
+      !paragraph?.uiState?.isRunning
     ) {
       if (paragraph) {
         saveParagraph({

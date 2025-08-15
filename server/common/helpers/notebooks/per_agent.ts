@@ -6,6 +6,7 @@
 import now from 'performance-now';
 
 import type {
+  DeepResearchInputParameters,
   DeepResearchOutputResult,
   NotebookContext,
   ParagraphBackendType,
@@ -30,22 +31,26 @@ const getAgentIdFromParagraph = async ({
   transport,
   paragraph,
 }: {
-  paragraph: ParagraphBackendType<unknown>;
+  paragraph: ParagraphBackendType<unknown, DeepResearchInputParameters>;
   transport: OpenSearchClient['transport'];
 }) => {
-  let output: { agent_id: string } = { agent_id: '' };
-  try {
-    output =
-      typeof paragraph.output?.[0].result === 'string'
-        ? JSON.parse(paragraph.output?.[0].result)
-        : paragraph.output?.[0].result;
-  } catch (e) {
-    // do nothing
+  // FIXME: remove this when production release
+  let agentId = paragraph.input.parameters?.agentId;
+  if (!agentId) {
+    try {
+      const output =
+        typeof paragraph.output?.[0].result === 'string'
+          ? JSON.parse(paragraph.output?.[0].result)
+          : paragraph.output?.[0].result;
+      agentId = output.agent_id;
+    } catch (e) {
+      // do nothing
+    }
   }
 
-  if (!output.agent_id) {
+  if (!agentId) {
     try {
-      output.agent_id = (
+      agentId = (
         await getMLService().getMLConfig({
           transport,
           configName: 'os_deep_research',
@@ -55,7 +60,7 @@ const getAgentIdFromParagraph = async ({
       // Add error catch here..
     }
   }
-  return output.agent_id;
+  return agentId;
 };
 
 export const executePERAgentInParagraph = async ({
@@ -65,10 +70,7 @@ export const executePERAgentInParagraph = async ({
   baseMemoryId,
 }: {
   transport: OpenSearchClient['transport'];
-  paragraph: ParagraphBackendType<
-    unknown,
-    { prompts?: { systemPrompt?: string; executorSystemPrompt?: string } }
-  >;
+  paragraph: ParagraphBackendType<unknown, DeepResearchInputParameters>;
   baseMemoryId?: string;
   context?: string;
 }) => {
@@ -84,12 +86,70 @@ export const executePERAgentInParagraph = async ({
   const startTime = now();
   const parameters = {
     question: paragraph.input.inputText,
-    planner_prompt_template:
-      '${parameters.tools_prompt} \n ${parameters.planner_prompt} \n Objective: ${parameters.user_prompt} \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n',
-    planner_with_history_template:
-      '${parameters.tools_prompt} \n ${parameters.planner_prompt} \n Objective: ```${parameters.user_prompt}``` \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n You have currently executed the following steps: \n[${parameters.completed_steps}] \n\n',
-    reflect_prompt_template:
-      '${parameters.tools_prompt} \n ${parameters.planner_prompt} \n Objective: ```${parameters.user_prompt}``` \n\n Original plan:\n[${parameters.steps}] \n\n Here are some steps user has executed to help you investigate: \n[${parameters.context}] \n\n You have currently executed the following steps from the original plan: \n[${parameters.completed_steps}] \n\n ${parameters.reflect_prompt} \n\n.',
+    planner_prompt_template: `
+      ## AVAILABLE TOOLS
+      \${parameters.tools_prompt}
+
+      ## PLANNING GUIDANCE
+      \${parameters.planner_prompt}
+      
+      ## OBJECTIVE
+      Your job is to fulfill user's requirements and answer their questions effectively. User Input:
+      \`\`\`\${parameters.user_prompt}\`\`\`
+      
+      ## PREVIOUS CONTEXT
+      The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research
+      [\${parameters.context}]
+      
+      Remember: Respond only in JSON format following the required schema.`,
+    planner_with_history_template: `
+      ## AVAILABLE TOOLS
+      \${parameters.tools_prompt}
+
+      ## PLANNING GUIDANCE
+      \${parameters.planner_prompt}
+      
+      ## OBJECTIVE
+      The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively. User Input:
+      \`\`\`\${parameters.user_prompt}\`\`\`
+      
+      ## PREVIOUS CONTEXT
+      The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research
+      [\${parameters.context}]
+      
+      ## CURRENT PROGRESS
+      You have already completed the following steps in the current plan. Consider these when determining next actions:
+      [\${parameters.completed_steps}]
+      
+      Remember: Respond only in JSON format following the required schema.`,
+
+    reflect_prompt_template: `
+      ## AVAILABLE TOOLS
+      \${parameters.tools_prompt}
+
+      ## PLANNING GUIDANCE
+      \`\`\`\${parameters.planner_prompt}\`\`\`
+      
+      ## OBJECTIVE
+      The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively. User Input:
+      \${parameters.user_prompt}
+      
+      ## ORIGINAL PLAN
+      This was the initially created plan to address the objective:
+      [\${parameters.steps}]
+      
+      ## PREVIOUS CONTEXT
+      The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research without doing the same thing again:
+      [\${parameters.context}]
+      
+      ## CURRENT PROGRESS
+      You have already completed the following steps from the original plan. Consider these when determining next actions:
+      [\${parameters.completed_steps}]
+      
+      ## REFLECTION GUIDELINE
+      \${parameters.reflect_prompt}
+      
+      Remember: Respond only in JSON format following the required schema.`,
     context,
     system_prompt: customizedPrompts?.systemPrompt ?? undefined,
     executor_system_prompt: `${
@@ -110,7 +170,6 @@ export const executePERAgentInParagraph = async ({
       result: {
         taskId: body.task_id,
         memoryId: body.response?.memory_id,
-        agent_id: agentId,
       },
       execution_time: `${(now() - startTime).toFixed(3)} ms`,
     },
@@ -124,6 +183,7 @@ export const executePERAgentInParagraph = async ({
       // FIXME: this is used for debug
       parameters: {
         ...(paragraph.input.parameters ?? {}),
+        agentId,
         PERAgentInput: {
           body: JSON.stringify({
             agentId,

@@ -16,6 +16,7 @@ import { RequestHandlerContext } from '../../../../../src/core/server';
 import { getInputType } from '../../../common/utils/paragraph';
 import { updateParagraphText } from '../../common/helpers/notebooks/paragraph';
 import {
+  DeepResearchInputParameters,
   DeepResearchOutputResult,
   NotebookBackendType,
   NotebookContext,
@@ -288,7 +289,10 @@ export async function runParagraph<TOutput>(
 
           const newParagraph = await executePERAgentInParagraph({
             transport,
-            paragraph: updatedParagraph,
+            paragraph: updatedParagraph as ParagraphBackendType<
+              unknown,
+              DeepResearchInputParameters
+            >,
             context: contextContent,
             baseMemoryId:
               inputType === AI_RESPONSE_TYPE

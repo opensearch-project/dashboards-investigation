@@ -8,7 +8,11 @@ import {
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   EXECUTOR_SYSTEM_PROMPT,
 } from '../../../../common/constants/notebooks';
-import { NotebookContext, ParagraphBackendType } from '../../../../common/types/notebooks';
+import {
+  DeepResearchInputParameters,
+  NotebookContext,
+  ParagraphBackendType,
+} from '../../../../common/types/notebooks';
 import * as utils from '../../../routes/utils';
 import * as getSetModule from '../../../services/get_set';
 import { executePERAgentInParagraph, generateContextPromptFromParagraphs } from './per_agent';
@@ -19,7 +23,7 @@ jest.mock('../../../services/get_set');
 
 describe('per_agent', () => {
   let mockTransport: any;
-  let mockParagraph: ParagraphBackendType<unknown>;
+  let mockParagraph: ParagraphBackendType<unknown, DeepResearchInputParameters>;
   let mockMLService: any;
   let mockParagraphServiceSetup: any;
   let mockParagraphRegistry: any;
@@ -120,6 +124,51 @@ describe('per_agent', () => {
   });
 
   describe('getAgentIdFromParagraph', () => {
+    it('should extract agent_id from paragraph input if available', async () => {
+      // Setup
+      const paragraphWithOutput = {
+        ...mockParagraph,
+        input: {
+          ...mockParagraph.input,
+          parameters: {
+            ...mockParagraph.input.parameters,
+            agentId: 'input-agent-id',
+          },
+        },
+        output: [
+          {
+            result: { agent_id: 'output-agent-id' },
+            outputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
+            execution_time: '100 ms',
+          },
+        ] as [{ execution_time: string; outputType: string; result: unknown }],
+      };
+
+      // Mock executeAgent to return a valid response
+      mockMLService.executeAgent.mockResolvedValue({
+        body: {
+          task_id: 'test-task-id',
+          response: {
+            memory_id: 'test-memory-id',
+          },
+        },
+      });
+
+      // Execute
+      const result = await executePERAgentInParagraph({
+        transport: mockTransport,
+        paragraph: paragraphWithOutput,
+      });
+
+      // Verify
+      expect(mockMLService.executeAgent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          agentId: 'input-agent-id',
+        })
+      );
+      expect(result.input.parameters?.agentId).toEqual('input-agent-id');
+    });
+
     it('should extract agent_id from paragraph output if available', async () => {
       // Setup
       const paragraphWithOutput = {
@@ -155,11 +204,7 @@ describe('per_agent', () => {
           agentId: 'output-agent-id',
         })
       );
-      expect(result.output?.[0].result).toEqual(
-        expect.objectContaining({
-          agent_id: 'output-agent-id',
-        })
-      );
+      expect(result.input.parameters?.agentId).toEqual('output-agent-id');
     });
 
     it('should extract agent_id from ML config if not available in output', async () => {
@@ -207,11 +252,7 @@ describe('per_agent', () => {
           agentId: 'config-agent-id',
         })
       );
-      expect(result.output?.[0].result).toEqual(
-        expect.objectContaining({
-          agent_id: 'config-agent-id',
-        })
-      );
+      expect(result.input.parameters?.agentId).toEqual('config-agent-id');
     });
 
     it('should throw an error if no agent_id is found', async () => {
@@ -249,9 +290,12 @@ describe('per_agent', () => {
       // Create a paragraph with output containing agent_id
       mockParagraph = {
         ...mockParagraph,
+        input: {
+          ...mockParagraph.input,
+          parameters: { agentId: 'test-agent-id' },
+        },
         output: [
           {
-            result: { agent_id: 'test-agent-id' },
             outputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
             execution_time: '100 ms',
           },
@@ -301,6 +345,7 @@ describe('per_agent', () => {
         input: {
           ...mockParagraph.input,
           parameters: {
+            agentId: 'test-agent-id',
             PERAgentContext: context,
           },
         },
@@ -310,7 +355,6 @@ describe('per_agent', () => {
             result: {
               taskId: 'test-task-id',
               memoryId: 'test-memory-id',
-              agent_id: 'test-agent-id',
             },
           },
         ],
@@ -353,6 +397,11 @@ describe('per_agent', () => {
       // Verify
       expect(result).toMatchObject({
         ...mockParagraph,
+        input: {
+          parameters: {
+            agentId: 'test-agent-id',
+          },
+        },
         dateModified: mockDate.toISOString(),
         output: [
           {
@@ -360,7 +409,6 @@ describe('per_agent', () => {
             result: {
               taskId: 'test-task-id',
               memoryId: 'test-memory-id',
-              agent_id: 'test-agent-id',
             },
           },
         ],

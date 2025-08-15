@@ -135,4 +135,6 @@ export interface DeepResearchInputParameters {
   // FIXME: Should be removed in the final release
   PERAgentInput?: Record<string, unknown>;
   PERAgentContext?: string;
+  prompts?: { systemPrompt?: string; executorSystemPrompt?: string };
+  agentId?: string;
 }

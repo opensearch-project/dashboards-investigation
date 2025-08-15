@@ -37,15 +37,17 @@ export class ParagraphState<
       return value;
     }
 
+    const newValue = JSON.parse(JSON.stringify({ ...value }));
+
     if (typeof newResult === 'string') {
-      value.output[0].result = newResult;
+      newValue.output[0].result = newResult;
     } else {
-      value.output[0].result = {
-        ...value.output[0].result,
+      newValue.output[0].result = {
+        ...newValue.output[0].result,
         ...newResult,
       };
     }
-    return value;
+    return newValue;
   }
   protected formatValue(
     value: ParagraphStateValue<TOutputResult, TInputParameters, TFullfilledOutput>

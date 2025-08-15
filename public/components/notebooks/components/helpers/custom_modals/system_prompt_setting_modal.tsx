@@ -30,11 +30,15 @@ const DEEP_RESEARCH_SYSTEM_PROMPT_KEY = 'deep-research-system-prompt';
 const DEEP_RESEARCH_EXECUTOR_SYSTEM_PROMPT_KEY = 'deep-research-executor-system-prompt';
 
 export const getSystemPrompts = () => {
-  return {
+  const prompts = {
     systemPrompt: localStorage.getItem(DEEP_RESEARCH_SYSTEM_PROMPT_KEY) ?? undefined,
     executorSystemPrompt:
       localStorage.getItem(DEEP_RESEARCH_EXECUTOR_SYSTEM_PROMPT_KEY) ?? undefined,
   };
+  if (!prompts.systemPrompt && !prompts.executorSystemPrompt) {
+    return undefined;
+  }
+  return prompts;
 };
 
 export const SystemPromptSettingModal = ({ closeModal }: { closeModal: () => void }) => {
@@ -58,7 +62,7 @@ export const SystemPromptSettingModal = ({ closeModal }: { closeModal: () => voi
             <EuiCompressedFormRow fullWidth label="System prompt">
               <EuiTextArea
                 name="systemPrompt"
-                defaultValue={prompts.systemPrompt ?? PLANNER_SYSTEM_PROMPT}
+                defaultValue={prompts?.systemPrompt ?? PLANNER_SYSTEM_PROMPT}
                 placeholder="Input system prompt"
                 inputRef={(ref) => {
                   systemPromptInputRef.current = ref;
@@ -69,7 +73,7 @@ export const SystemPromptSettingModal = ({ closeModal }: { closeModal: () => voi
             <EuiCompressedFormRow fullWidth label="Executor system prompt">
               <EuiTextArea
                 name="executorSystemPrompt"
-                defaultValue={prompts.executorSystemPrompt ?? EXECUTOR_SYSTEM_PROMPT}
+                defaultValue={prompts?.executorSystemPrompt ?? EXECUTOR_SYSTEM_PROMPT}
                 inputRef={(ref) => {
                   executorSystemPromptInputRef.current = ref;
                 }}
