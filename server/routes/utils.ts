@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import moment from 'moment';
 import { NotebookContext } from 'common/types/notebooks';
 import { OpenSearchClient, RequestHandlerContext, SavedObject } from '../../../../src/core/server';
 
@@ -25,7 +26,8 @@ export const getOpenSearchClientTransport = async ({
   return context.core.opensearch.client.asCurrentUser.transport;
 };
 
-const getTimezoneFullfilledDateString = (time: number): string => new Date(time).toUTCString();
+const getTimezoneFullfilledDateString = (time: number): string =>
+  moment.utc(time).format('YYYY-MM-DD HH:mm:ss');
 
 export const getNotebookTopLevelContextPrompt = (
   notebookInfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>
