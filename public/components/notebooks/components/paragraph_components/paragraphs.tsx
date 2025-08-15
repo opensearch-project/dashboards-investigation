@@ -28,6 +28,9 @@ import { OtherParagraph } from './other';
 import { BubbleUpContainer } from '../bubbleup/bubble_up_container';
 import { LogPatternContainer } from '../log_analytics/log_pattern_container';
 
+/**
+ * TODO: Use paragraph service to maintain the relationships
+ */
 const mapParagraphTypeToRenderComponent = {
   ppl: PPLParagraph,
   sql: PPLParagraph,
@@ -38,9 +41,6 @@ const mapParagraphTypeToRenderComponent = {
   [OBSERVABILITY_VISUALIZATION_TYPE.toUpperCase()]: VisualizationParagraph,
   [DASHBOARDS_VISUALIZATION_TYPE]: VisualizationParagraph,
   [OBSERVABILITY_VISUALIZATION_TYPE]: VisualizationParagraph,
-  HTML: OtherParagraph,
-  TABLE: OtherParagraph,
-  IMG: OtherParagraph,
   [ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE]: BubbleUpContainer,
   [LOG_PATTERN_PARAGRAPH_TYPE]: LogPatternContainer,
 };
