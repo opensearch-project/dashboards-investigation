@@ -32,7 +32,7 @@ const getTimezoneFullfilledDateString = (time: number): string =>
 export const getNotebookTopLevelContextPrompt = (
   notebookInfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>
 ) => {
-  const { index, timeField, timeRange, filters, variables, summary, indexInsight } =
+  const { index, timeField, timeRange, filters, variables, summary } =
     notebookInfo.attributes.savedNotebook.context! || {};
   if (!index && !timeField && !timeRange && !filters && !variables && !summary) {
     return '';
@@ -53,15 +53,11 @@ export const getNotebookTopLevelContextPrompt = (
           **Time Period the issue happens**: From ${getTimezoneFullfilledDateString(
             timeRange.selectionFrom
           )} to ${getTimezoneFullfilledDateString(timeRange.selectionTo)}
-          **Time Period the system behaves normally**: From ${getTimezoneFullfilledDateString(
-            timeRange.baselineFrom
-          )} to ${getTimezoneFullfilledDateString(timeRange.baselineTo)}
         `
         : ''
     }
     ${filters ? `**Applied Filters**: ${JSON.stringify(filters, null, 2)}` : ''}
     ${variables ? `**Variables**: ${JSON.stringify(variables, null, 2)}` : ''}
-    ${indexInsight ? `**Index Insight**: ${JSON.stringify(indexInsight, null, 2)}` : ''}
 
     ## Request
     Based on the information above, please help me analyze the following:
