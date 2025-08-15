@@ -68,12 +68,12 @@ export const BubbleUpContainer = ({
       const discoverFields = await dataService.discoverFields(response);
       const difference = await dataService.analyzeDifferences(response, discoverFields);
       const formatComparison = dataService.formatComparisonSummary(difference);
-      setDistributionLoading(false);
       return formatComparison;
     } catch (error) {
       console.error('Error fetching or processing data:', error);
     } finally {
       setSpecsLoading(false);
+      setDistributionLoading(false);
     }
   }, [dataService, filters]);
 
