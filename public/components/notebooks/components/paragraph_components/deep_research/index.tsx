@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useContext } from 'react';
 import { useObservable } from 'react-use';
 import {
   EuiCodeBlock,
@@ -17,6 +17,8 @@ import {
 
 import type { NoteBookServices } from 'public/types';
 import type { DeepResearchInputParameters, DeepResearchOutputResult } from 'common/types/notebooks';
+import { NotebookReactContext } from '../../../context_provider/context_provider';
+import { NotebookType } from '../../../../../../common/types/notebooks';
 
 import { DataSourceSelectorProps } from '../../../../../../../../src/plugins/data_source_management/public/components/data_source_selector/data_source_selector';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
@@ -30,8 +32,10 @@ import { AgentsSelector } from './agents_selector';
 import { DeepResearchOutput } from './deep_research_output';
 
 export const DeepResearchParagraph = ({
+  idx,
   paragraphState,
 }: {
+  idx: number;
   paragraphState: ParagraphState<
     DeepResearchOutputResult | { agent_id?: string } | string,
     DeepResearchInputParameters
@@ -40,6 +44,11 @@ export const DeepResearchParagraph = ({
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
+
+  const context = useContext(NotebookReactContext);
+  const notebookType = context.state.getContext().notebookType || NotebookType.CLASSIC;
+  const paragraphs = context.state.value.paragraphs;
+
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const selectedDataSource = paragraphValue?.dataSourceMDSId;
   const onSelectedDataSource: DataSourceSelectorProps['onSelectedDataSource'] = (event) => {
@@ -126,7 +135,10 @@ export const DeepResearchParagraph = ({
               id={`editorArea-${paragraphValue.id}`}
               className="editorArea"
               fullWidth
-              disabled={!!isRunning}
+              disabled={
+                !!isRunning ||
+                (notebookType === NotebookType.AGENTIC && idx < paragraphs.length - 1)
+              }
               onChange={(evt) => {
                 paragraphState.updateInput({
                   inputText: evt.target.value,
@@ -155,18 +167,20 @@ export const DeepResearchParagraph = ({
         </div>
       </EuiCompressedFormRow>
       <EuiSpacer size="m" />
-      <EuiFlexGroup alignItems="center" gutterSize="s">
-        <EuiFlexItem grow={false}>
-          <EuiSmallButton
-            data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
-            onClick={() => {
-              runParagraphHandler();
-            }}
-          >
-            {outputResult && 'taskId' in outputResult ? 'Refresh' : 'Run'}
-          </EuiSmallButton>
-        </EuiFlexItem>
-      </EuiFlexGroup>
+      {notebookType === NotebookType.AGENTIC && idx < paragraphs.length - 1 ? null : (
+        <EuiFlexGroup alignItems="center" gutterSize="s">
+          <EuiFlexItem grow={false}>
+            <EuiSmallButton
+              data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
+              onClick={() => {
+                runParagraphHandler();
+              }}
+            >
+              {outputResult && 'taskId' in outputResult ? 'Refresh' : 'Run'}
+            </EuiSmallButton>
+          </EuiFlexItem>
+        </EuiFlexGroup>
+      )}
       <EuiSpacer size="m" />
       {outputResult && 'taskId' in outputResult && (
         <DeepResearchOutput

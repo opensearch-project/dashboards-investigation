@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useContext } from 'react';
 import {
   EuiCodeBlock,
   EuiCompressedFormRow,
@@ -24,6 +24,8 @@ import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { useRef } from 'react';
 import { NoteBookServices } from 'public/types';
+import { NotebookReactContext } from '../../../context_provider/context_provider';
+import { NotebookType } from '../../../../../../common/types/notebooks';
 import { ParagraphDataSourceSelector } from '../../data_source_selector';
 import {
   ParagraphState,
@@ -90,10 +92,21 @@ const getQueryOutputData = (queryObject: QueryObject) => {
 const inputPlaceholderString =
   'Type %sql or %ppl on the first line to define the input type. \nCode block starts here.';
 
-export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
+export const PPLParagraph = ({
+  idx,
+  paragraphState,
+}: {
+  idx: number;
+  paragraphState: ParagraphState;
+}) => {
   const {
     services: { http, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
+
+  const context = useContext(NotebookReactContext);
+  const notebookType = context.state.getContext().notebookType || NotebookType.CLASSIC;
+  const paragraphs = context.state.value.paragraphs;
+
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const selectedDataSource = paragraphValue?.dataSourceMDSId;
   const onSelectedDataSource: DataSourceSelectorProps['onSelectedDataSource'] = (event) => {
@@ -239,7 +252,10 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
               id={`editorArea-${paragraphValue.id}`}
               className="editorArea"
               fullWidth
-              disabled={!!isRunning}
+              disabled={
+                !!isRunning ||
+                (notebookType === NotebookType.AGENTIC && idx < paragraphs.length - 1)
+              }
               isInvalid={!!errorMessage}
               onChange={(evt) => {
                 paragraphState.updateInput({
@@ -270,18 +286,20 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
         </div>
       </EuiCompressedFormRow>
       <EuiSpacer size="m" />
-      <EuiFlexGroup alignItems="center" gutterSize="s">
-        <EuiFlexItem grow={false}>
-          <EuiSmallButton
-            data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
-            onClick={() => {
-              runParagraphHandler();
-            }}
-          >
-            {ParagraphState.getOutput(paragraphValue)?.result !== '' ? 'Refresh' : 'Run'}
-          </EuiSmallButton>
-        </EuiFlexItem>
-      </EuiFlexGroup>
+      {notebookType === NotebookType.AGENTIC && idx < paragraphs.length - 1 ? null : (
+        <EuiFlexGroup alignItems="center" gutterSize="s">
+          <EuiFlexItem grow={false}>
+            <EuiSmallButton
+              data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
+              onClick={() => {
+                runParagraphHandler();
+              }}
+            >
+              {ParagraphState.getOutput(paragraphValue)?.result !== '' ? 'Refresh' : 'Run'}
+            </EuiSmallButton>
+          </EuiFlexItem>
+        </EuiFlexGroup>
+      )}
       {isRunning ? (
         <EuiLoadingContent />
       ) : (
