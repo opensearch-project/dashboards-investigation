@@ -18,7 +18,7 @@ export interface OptionsType {
 }
 
 export enum NoteBookSource {
-  ALERTING = 'alert',
+  ALERTING = 'Alert',
 }
 
 export enum NotebookType {
@@ -44,6 +44,7 @@ export interface NotebookContext {
   memoryId?: string;
   indexInsight?: IndexInsightContent;
   notebookType?: NotebookType;
+  alert?: Record<string, any>;
 }
 
 export interface ParagraphBackendType<TOutputResult, TInputParameters = unknown> {

@@ -45,7 +45,7 @@ import {
   NOTEBOOKS_API_PREFIX,
 } from '../../../../common/constants/notebooks';
 import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
-import { NotebookContext } from '../../../../common/types/notebooks';
+import { NotebookContext, NoteBookSource } from '../../../../common/types/notebooks';
 import { setNavBreadCrumbs } from '../../../../common/utils/set_nav_bread_crumbs';
 import { HeaderControlledComponentsWrapper } from '../../../plugin_helpers/plugin_headerControl';
 import { GenerateReportLoadingModal } from './helpers/custom_modals/reporting_loading_modal';
@@ -56,7 +56,6 @@ import {
   generateInContextReport,
 } from './helpers/reporting_context_menu_helper';
 import { Paragraphs } from './paragraph_components/paragraphs';
-import { ContextPanel } from './context_panel';
 import {
   NotebookContextProvider,
   NotebookReactContext,
@@ -69,6 +68,7 @@ import { useNotebook } from '../../../hooks/use_notebook';
 import { usePrecheck } from '../../../hooks/use_precheck';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { ToggleSystemPromptSettingModal } from './helpers/custom_modals/toggle_system_prompt_setting_modal';
+import { AlertPanel } from './alert_panel';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -96,13 +96,17 @@ export function NotebookComponent() {
   const [isReportingLoadingModalOpen, setIsReportingLoadingModalOpen] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
-  const [context] = useState<NotebookContext | undefined>(undefined);
   const { createParagraph, deleteParagraph } = useParagraphs();
   const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start } = usePrecheck();
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
 
   const notebookContext = useContext(NotebookReactContext);
+  const { source } = useObservable(
+    notebookContext.state.value.context.getValue$(),
+    notebookContext.state.value.context.value
+  );
+
   const {
     dataSourceEnabled,
     id: openedNoteId,
@@ -653,12 +657,12 @@ export function NotebookComponent() {
               </EuiCallOut>
             </EuiFlexItem>
           )}
+          {source === NoteBookSource.ALERTING && <AlertPanel />}
+          <EuiSpacer />
           <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
             {isLoading ? (
               <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
             ) : null}
-            {/* Temporarily determine whether to display the context panel based on datasource id */}
-            {context?.dataSourceId && <ContextPanel />}
             {isLoading ? null : paragraphsStates.length > 0 ? (
               paragraphsStates.map((paragraphState, index: number) => (
                 <div
