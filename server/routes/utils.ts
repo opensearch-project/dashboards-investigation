@@ -25,10 +25,12 @@ export const getOpenSearchClientTransport = async ({
   return context.core.opensearch.client.asCurrentUser.transport;
 };
 
+const getTimezoneFullfilledDateString = (time: number): string => new Date(time).toUTCString();
+
 export const getNotebookTopLevelContextPrompt = (
   notebookInfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>
 ) => {
-  const { index, timeField, timeRange, filters, variables, summary } =
+  const { index, timeField, timeRange, filters, variables, summary, indexInsight } =
     notebookInfo.attributes.savedNotebook.context! || {};
   if (!index && !timeField && !timeRange && !filters && !variables && !summary) {
     return '';
@@ -45,11 +47,19 @@ export const getNotebookTopLevelContextPrompt = (
     ${timeField ? `**Time Field**: ${timeField}` : ''}
     ${
       timeRange
-        ? `**Time Period**: From ${timeRange?.selectionFrom} to ${timeRange.selectionTo}`
+        ? `
+          **Time Period the issue happens**: From ${getTimezoneFullfilledDateString(
+            timeRange.selectionFrom
+          )} to ${getTimezoneFullfilledDateString(timeRange.selectionTo)}
+          **Time Period the system behaves normally**: From ${getTimezoneFullfilledDateString(
+            timeRange.baselineFrom
+          )} to ${getTimezoneFullfilledDateString(timeRange.baselineTo)}
+        `
         : ''
     }
     ${filters ? `**Applied Filters**: ${JSON.stringify(filters, null, 2)}` : ''}
     ${variables ? `**Variables**: ${JSON.stringify(variables, null, 2)}` : ''}
+    ${indexInsight ? `**Index Insight**: ${JSON.stringify(indexInsight, null, 2)}` : ''}
 
     ## Request
     Based on the information above, please help me analyze the following:
