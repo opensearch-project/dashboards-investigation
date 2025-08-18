@@ -600,7 +600,6 @@ export function NotebookComponent() {
 
   const handleCreateParagraph = async (paragraphInput: string | object, inputType: string) => {
     // Add paragraph at the end
-    console.log(paragraphInput);
     await createParagraph({
       index: paragraphs.length,
       input: {

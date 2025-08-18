@@ -222,7 +222,8 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         onAskAISubmit(inputValue as string, () => setInputValue(''));
         break;
       case 'DEEP_RESEARCH_AGENT':
-        onSubmit(inputValue as string, currInputType);
+        onSubmit(inputValue as string, DEEP_RESEARCH_PARAGRAPH_TYPE);
+        break;
       case 'MARKDOWN':
         onSubmit(`%md ${inputValue}`, currInputType);
         setInputValue('');

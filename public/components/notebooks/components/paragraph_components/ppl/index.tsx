@@ -7,13 +7,11 @@ import React from 'react';
 import {
   EuiCodeBlock,
   EuiCompressedFormRow,
-  EuiCompressedTextArea,
   EuiFlexGroup,
   EuiFlexItem,
   EuiIcon,
   EuiLink,
   EuiLoadingContent,
-  EuiSmallButton,
   EuiSpacer,
   EuiText,
 } from '@elastic/eui';
@@ -40,6 +38,7 @@ import { QueryDataGridMemo } from '../para_query_grid';
 import { getInputType } from '../../../../../../common/utils/paragraph';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { callOpenSearchCluster } from '../../../../../plugin_helpers/plugin_proxy_call';
+import { MultiVariantInput } from '../../input/multi_variant_input';
 
 interface QueryObject {
   schema?: any[];
@@ -86,9 +85,6 @@ const getQueryOutputData = (queryObject: QueryObject) => {
   }
   return data;
 };
-
-const inputPlaceholderString =
-  'Type %sql or %ppl on the first line to define the input type. \nCode block starts here.';
 
 export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
   const {
@@ -232,56 +228,20 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
         }
       >
         <div style={{ width: '100%' }}>
-          {paragraphValue.uiState?.viewMode !== 'output_only' ? (
-            <EuiCompressedTextArea
-              data-test-subj={`editorArea-${paragraphValue.id}`}
-              placeholder={inputPlaceholderString}
-              id={`editorArea-${paragraphValue.id}`}
-              className="editorArea"
-              fullWidth
-              disabled={!!isRunning}
-              isInvalid={!!errorMessage}
-              onChange={(evt) => {
-                paragraphState.updateInput({
-                  inputText: evt.target.value,
-                });
-                paragraphState.updateUIState({
-                  isOutputStale: true,
-                });
-              }}
-              onKeyPress={(evt) => {
-                if (evt.key === 'Enter' && evt.shiftKey) {
-                  runParagraphHandler();
-                }
-              }}
-              value={paragraphValue.input.inputText}
-              autoFocus
-            />
-          ) : (
-            <EuiCodeBlock
-              data-test-subj={`paraInputCodeBlock-${paragraphValue.id}`}
-              language={paragraphValue.input.inputText.match(/^%(sql|md)/)?.[1]}
-              overflowHeight={200}
-              paddingSize="s"
-            >
-              {paragraphValue.input.inputText}
-            </EuiCodeBlock>
-          )}
-        </div>
-      </EuiCompressedFormRow>
-      <EuiSpacer size="m" />
-      <EuiFlexGroup alignItems="center" gutterSize="s">
-        <EuiFlexItem grow={false}>
-          <EuiSmallButton
-            data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
-            onClick={() => {
+          <MultiVariantInput
+            input={{ inputText: paragraphValue.input.inputText, inputType: 'PPL' }}
+            onSubmit={(value) => {
+              paragraphState.updateInput({
+                inputText: value,
+              });
+              paragraphState.updateUIState({
+                isOutputStale: true,
+              });
               runParagraphHandler();
             }}
-          >
-            {ParagraphState.getOutput(paragraphValue)?.result !== '' ? 'Refresh' : 'Run'}
-          </EuiSmallButton>
-        </EuiFlexItem>
-      </EuiFlexGroup>
+          />
+        </div>
+      </EuiCompressedFormRow>
       {isRunning ? (
         <EuiLoadingContent />
       ) : (

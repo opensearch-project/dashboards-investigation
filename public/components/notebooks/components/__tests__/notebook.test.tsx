@@ -58,7 +58,7 @@ jest.mock('../alert_panel', () => ({
   AlertPanel: () => <div />,
 }));
 
-jest.mock('../input/input_panel.tsx', () => ({
+jest.mock('../input_panel.tsx', () => ({
   InputPanel: () => <div />,
 }));
 
@@ -109,6 +109,13 @@ const ContextAwareNotebook = (props: NotebookProps & { dataSourceEnabled?: boole
         http: getOSDHttp(),
         dashboard: {
           DashboardContainerByValueRenderer: jest.fn(),
+        },
+        data: {
+          query: {
+            queryString: {
+              getDefaultQuery: jest.fn(() => ({})),
+            },
+          },
         },
         dataSource: props.dataSourceEnabled ? {} : undefined,
         chrome: chromeServiceMock.createStartContract(),
