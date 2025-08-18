@@ -598,12 +598,14 @@ export function NotebookComponent() {
     </EuiFlexGroup>
   );
 
-  const handleCreateParagraph = async (paragraphInput: string, inputType: string) => {
+  const handleCreateParagraph = async (paragraphInput: string | object, inputType: string) => {
     // Add paragraph at the end
+    console.log(paragraphInput);
     await createParagraph({
       index: paragraphs.length,
       input: {
-        inputText: paragraphInput,
+        inputText:
+          typeof paragraphInput === 'object' ? JSON.stringify(paragraphInput) : paragraphInput,
         inputType,
       },
     });
@@ -791,7 +793,7 @@ export function NotebookComponent() {
           </EuiPageContent>
         </EuiPageBody>
         <EuiSpacer />
-        <InputPanel onCreateParagraph={handleCreateParagraph} />
+        <InputPanel onSubmit={handleCreateParagraph} />
       </EuiPage>
       {isModalVisible && modalLayout}
     </>
