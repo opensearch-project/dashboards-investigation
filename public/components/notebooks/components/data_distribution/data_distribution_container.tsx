@@ -56,7 +56,7 @@ export const DataDistributionContainer = ({
   const [activePage, setActivePage] = useState(0);
   const [fetchDataLoading, setFetchDataLoading] = useState(false);
   const [distributionLoading, setDistributionLoading] = useState(false);
-  const [distributionModelExpand, setDistributionModelExpand] = useState(false);
+  const [distributionModalExpand, setDistributionModalExpand] = useState(false);
   const factory = embeddable.getEmbeddableFactory<DataDistributionInput>('vega_visualization');
 
   const dataDistributionSpecs = useMemo(() => {
@@ -143,7 +143,7 @@ export const DataDistributionContainer = ({
     <EuiTitle size="s">
       <h3>
         {i18n.translate('notebook.data.distribution.paragraph.title', {
-          defaultMessage: '[Data distribution analysis]',
+          defaultMessage: 'Data distribution analysis',
         })}
       </h3>
     </EuiTitle>
@@ -152,7 +152,7 @@ export const DataDistributionContainer = ({
   const dataDistributionSubtitle = (
     <EuiText size="s" color="subdued">
       {i18n.translate('notebook.data.distribution.paragraph.subtitle', {
-        defaultMessage: '[Visualization the values for key fields associated with the alert]',
+        defaultMessage: 'Visualization the values for key fields associated with the alert',
       })}
     </EuiText>
   );
@@ -217,8 +217,8 @@ export const DataDistributionContainer = ({
     </EuiPanel>
   );
 
-  const distributionModel = distributionModelExpand && (
-    <EuiModal onClose={() => setDistributionModelExpand(false)} style={{ minWidth: 1000 }}>
+  const distributionModal = distributionModalExpand && (
+    <EuiModal onClose={() => setDistributionModalExpand(false)} style={{ minWidth: 1000 }}>
       <EuiModalHeader>
         <EuiFlexGroup direction="column" gutterSize="none">
           <EuiFlexItem grow={false}>{dataDistributionTitle}</EuiFlexItem>
@@ -258,7 +258,7 @@ export const DataDistributionContainer = ({
         {dataDistributionSpecs.length > 0 && (
           <EuiFlexItem grow={false} style={{ paddingRight: 32 }}>
             <EuiButtonIcon
-              onClick={() => setDistributionModelExpand(true)}
+              onClick={() => setDistributionModalExpand(true)}
               iconType="expand"
               aria-label="Next"
               size="s"
@@ -270,7 +270,7 @@ export const DataDistributionContainer = ({
       <EuiSpacer size="s" />
       {dataDistributionLoadingSpinner}
       {specsVis}
-      {distributionModel}
+      {distributionModal}
     </>
   );
 };
