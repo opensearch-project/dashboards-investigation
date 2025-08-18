@@ -42,6 +42,7 @@ import { QueryDataGridMemo } from '../para_query_grid';
 import { getInputType } from '../../../../../../common/utils/paragraph';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { callOpenSearchCluster } from '../../../../../plugin_helpers/plugin_proxy_call';
+import { isAgenticRunBefore } from '../utils';
 
 interface QueryObject {
   schema?: any[];
@@ -252,10 +253,7 @@ export const PPLParagraph = ({
               id={`editorArea-${paragraphValue.id}`}
               className="editorArea"
               fullWidth
-              disabled={
-                !!isRunning ||
-                (notebookType === NotebookType.AGENTIC && idx < paragraphs.length - 1)
-              }
+              disabled={!!isRunning || isAgenticRunBefore(notebookType, idx, paragraphs.length)}
               isInvalid={!!errorMessage}
               onChange={(evt) => {
                 paragraphState.updateInput({
@@ -286,7 +284,7 @@ export const PPLParagraph = ({
         </div>
       </EuiCompressedFormRow>
       <EuiSpacer size="m" />
-      {notebookType === NotebookType.AGENTIC && idx < paragraphs.length - 1 ? null : (
+      {isAgenticRunBefore(notebookType, idx, paragraphs.length) ? null : (
         <EuiFlexGroup alignItems="center" gutterSize="s">
           <EuiFlexItem grow={false}>
             <EuiSmallButton

@@ -29,6 +29,7 @@ import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opense
 import { getDataSourceManagementSetup } from '../../../../../public/services';
 import { DeepResearchParagraph } from './deep_research';
 import { VisualizationParagraph } from './visualization';
+import { isAgenticRunBefore } from './utils';
 
 const mapParagraphTypeToRenderComponent = {
   ppl: PPLParagraph,
@@ -119,8 +120,7 @@ export const Paragraphs = (props: ParagraphProps) => {
       paddingSize="none"
       hasBorder={false}
     >
-      {notebookType === NotebookType.AGENTIC &&
-      index < context.state.value.paragraphs.length - 1 ? null : (
+      {isAgenticRunBefore(notebookType, index, context.state.value.paragraphs.length) ? null : (
         <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
       )}
       {(() => {

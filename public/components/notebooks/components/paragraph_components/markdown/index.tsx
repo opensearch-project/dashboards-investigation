@@ -20,6 +20,7 @@ import { NotebookReactContext } from '../../../context_provider/context_provider
 import { NotebookType } from '../../../../../../common/types/notebooks';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
 import { useParagraphs } from '../../../../../hooks/use_paragraphs';
+import { isAgenticRunBefore } from '../utils';
 
 const inputPlaceholderString =
   'Type %md on the first line to define the input type. \nCode block starts here.';
@@ -68,9 +69,7 @@ export const MarkdownParagraph = ({
             id={`editorArea-${paragraphValue.id}`}
             className="editorArea"
             fullWidth
-            disabled={
-              !!isRunning || (notebookType === NotebookType.AGENTIC && idx < paragraphs.length - 1)
-            }
+            disabled={!!isRunning || isAgenticRunBefore(notebookType, idx, paragraphs.length)}
             onChange={(evt) => {
               paragraphState.updateInput({
                 inputText: evt.target.value,
@@ -99,7 +98,7 @@ export const MarkdownParagraph = ({
         )}
       </div>
       <EuiSpacer size="m" />
-      {notebookType === NotebookType.AGENTIC && idx < paragraphs.length - 1 ? null : (
+      {isAgenticRunBefore(notebookType, idx, paragraphs.length) ? null : (
         <EuiFlexGroup alignItems="center" gutterSize="s">
           <EuiFlexItem grow={false}>
             <EuiSmallButton

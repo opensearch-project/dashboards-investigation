@@ -30,6 +30,7 @@ import { getSystemPrompts } from '../../helpers/custom_modals/system_prompt_sett
 
 import { AgentsSelector } from './agents_selector';
 import { DeepResearchOutput } from './deep_research_output';
+import { isAgenticRunBefore } from '../utils';
 
 export const DeepResearchParagraph = ({
   idx,
@@ -135,10 +136,7 @@ export const DeepResearchParagraph = ({
               id={`editorArea-${paragraphValue.id}`}
               className="editorArea"
               fullWidth
-              disabled={
-                !!isRunning ||
-                (notebookType === NotebookType.AGENTIC && idx < paragraphs.length - 1)
-              }
+              disabled={!!isRunning || isAgenticRunBefore(notebookType, idx, paragraphs.length)}
               onChange={(evt) => {
                 paragraphState.updateInput({
                   inputText: evt.target.value,
@@ -167,7 +165,7 @@ export const DeepResearchParagraph = ({
         </div>
       </EuiCompressedFormRow>
       <EuiSpacer size="m" />
-      {notebookType === NotebookType.AGENTIC && idx < paragraphs.length - 1 ? null : (
+      {isAgenticRunBefore(notebookType, idx, paragraphs.length) ? null : (
         <EuiFlexGroup alignItems="center" gutterSize="s">
           <EuiFlexItem grow={false}>
             <EuiSmallButton

@@ -115,7 +115,6 @@ export function NotebookComponent() {
     isLoading,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
 
-  const notebookType = notebookContext.state.getContext().notebookType;
   const isSavedObjectNotebook = isValidUUID(openedNoteId);
   const paragraphs = paragraphsStates.map((item) => item.value);
 
@@ -388,10 +387,6 @@ export function NotebookComponent() {
     loadNotebookHook()
       .then(async (res) => {
         setBreadcrumbs(res.path);
-
-        if (res.context) {
-          notebookContext.state.updateContext(res.context);
-        }
 
         notebookContext.state.updateValue({
           paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
