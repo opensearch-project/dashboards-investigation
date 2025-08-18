@@ -75,14 +75,7 @@ const MultiVariantInputContent: React.FC = () => {
       case 'DEEP_RESEARCH_AGENT':
         return <NotebookInput placeholder="Ask question to trigger deep research agent" />;
       case 'VISUALIZATION':
-        return (
-          <VisualizationInput
-            onChange={(e) => {
-              console.log(e);
-            }}
-            showButtonGroup
-          />
-        );
+        return <></>;
       default:
         return <></>;
     }

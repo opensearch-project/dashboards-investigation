@@ -16,7 +16,6 @@ import {
   DEEP_RESEARCH_PARAGRAPH_TYPE,
 } from '../../../../../common/constants/notebooks';
 import { NotebookReactContext } from '../../context_provider/context_provider';
-import { createDashboardVizObject } from '../paragraph_components/visualization';
 
 interface InputContextValue<T extends InputType = InputType> {
   // States
@@ -233,10 +232,6 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         onSubmit(`%ppl\n${editorTextRef.current}`, 'CODE'); // FIXME
         break;
       case 'VISUALIZATION':
-        onSubmit(
-          !!input ? payload : JSON.stringify(createDashboardVizObject(payload)),
-          'VISUALIZATION'
-        ); // FIXME
         break;
       default:
     }
