@@ -80,6 +80,8 @@ export interface SummaryDataItem {
   divergence: number;
   topChanges: Array<{
     value: string;
+    baselinePercentage: number;
+    selectionPercentage: number;
   }>;
 }
 

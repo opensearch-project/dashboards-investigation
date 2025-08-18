@@ -99,9 +99,6 @@ export class DataDistributionDataService {
     const numberFields: string[] = [];
 
     const mappings = await this.getFields(this.index, this.dataSourceId);
-
-    console.log('mappings', mappings);
-
     const keywordFields = mappings
       .filter((field) => {
         if (field.esTypes && field.name && field.type) {
@@ -145,7 +142,6 @@ export class DataDistributionDataService {
     //   getFlattenedObject(data.selection[0] || data.baseline[0]),
     //   normalizedFields
     // );
-    // console.log('patternField', patternField);
 
     const usefulFields = normalizedFields.filter((field) => {
       const cardinality = fieldValueSets[field]?.size || 0;
@@ -225,7 +221,7 @@ export class DataDistributionDataService {
       selectionDist: Record<string, number>;
       baselineDist: Record<string, number>;
     }>,
-    maxResults: number = 30
+    maxResults: number = 10
   ): SummaryDataItem[] {
     // Only take the first N significant differences
     const topDifferences = differences.filter((diff) => diff.divergence > 0).slice(0, maxResults);
@@ -268,8 +264,8 @@ export class DataDistributionDataService {
         // return Math.abs(b.changePercentage) - Math.abs(a.changePercentage)
       });
 
-      // Take the top 30 largest changes
-      const topChanges = sortedChanges.slice(0, 30);
+      // Take the top 10 largest changes
+      const topChanges = sortedChanges.slice(0, 10);
 
       return {
         field,

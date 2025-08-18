@@ -3,16 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { SummaryDataItem } from '../../../../../common/types/notebooks';
+
 /**
  * Vega Lite specification for generating grouped bar charts for individual fields
  * @param {Object} fieldData
  * @returns {Object} - Vega-Lite Spec
  */
-function generateFieldBarChartSpec(fieldData) {
-  // Calculate the total number for each time period, used to calculate percentages
-  // const selectionTotal = fieldData.topChanges.reduce((sum, change) => sum + change.selectionCount, 0);
-  // const baselineTotal = fieldData.topChanges.reduce((sum, change) => sum + change.baselineCount, 0);
-
+function generateFieldBarChartSpec(fieldData: SummaryDataItem) {
   // Create a dataset and calculate the percentage
   const values = fieldData.topChanges.flatMap((change) => [
     {
@@ -48,7 +46,6 @@ function generateFieldBarChartSpec(fieldData) {
           type: 'point',
           on: 'mouseover',
           clear: 'mouseout',
-          nearest: true,
           encodings: ['x'],
           fields: ['value'],
         },
@@ -119,6 +116,6 @@ function generateFieldBarChartSpec(fieldData) {
  * @param {Array} comparisonData
  * @returns {Array}
  */
-export function generateAllFieldCharts(comparisonData) {
+export function generateAllFieldCharts(comparisonData: SummaryDataItem[]) {
   return comparisonData.map((fieldData) => generateFieldBarChartSpec(fieldData));
 }

@@ -5,17 +5,24 @@
 
 import React, { useContext, useMemo, useState, useEffect, useCallback } from 'react';
 import {
-  EuiAccordion,
+  EuiButtonIcon,
+  EuiFlexGrid,
   EuiFlexGroup,
   EuiFlexItem,
+  EuiLoadingSpinner,
+  EuiModal,
+  EuiModalBody,
+  EuiModalHeader,
   EuiPagination,
+  EuiPanel,
   EuiSpacer,
-  EuiStepsHorizontal,
+  EuiText,
+  EuiTitle,
 } from '@elastic/eui';
-import { EuiStepHorizontalProps } from '@elastic/eui/src/components/steps/step_horizontal';
 import { useObservable } from 'react-use';
 import { AnomalyVisualizationAnalysisOutputResult } from 'common/types/notebooks';
 import { NoteBookServices } from 'public/types';
+import { i18n } from '@osd/i18n';
 import { DataDistributionInput } from './embeddable/types';
 import { EmbeddableRenderer } from '../../../../../../../src/plugins/embeddable/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
@@ -23,8 +30,8 @@ import { generateAllFieldCharts } from './render_data_distribution_vega';
 import { DataDistributionDataService } from './data_distribution_data_service';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
-import './data_distribution_viz.scss';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import './data_distribution_viz.scss';
 
 const ITEMS_PER_PAGE = 3;
 
@@ -47,14 +54,15 @@ export const DataDistributionContainer = ({
   const { timeRange, timeField, index, dataSourceId, PPLFilters, filters } = topContextValue;
   const { saveParagraph } = useParagraphs();
   const [activePage, setActivePage] = useState(0);
-  const [specsLoading, setSpecsLoading] = useState(false);
+  const [fetchDataLoading, setFetchDataLoading] = useState(false);
   const [distributionLoading, setDistributionLoading] = useState(false);
+  const [distributionModelExpand, setDistributionModelExpand] = useState(false);
   const factory = embeddable.getEmbeddableFactory<DataDistributionInput>('vega_visualization');
+
   const dataDistributionSpecs = useMemo(() => {
     if (fieldComparison) {
       return generateAllFieldCharts(fieldComparison);
     }
-
     return [];
   }, [fieldComparison]);
 
@@ -62,36 +70,13 @@ export const DataDistributionContainer = ({
 
   const loadSpecsData = useCallback(async () => {
     try {
+      setFetchDataLoading(true);
+      setDistributionLoading(true);
       const response = await dataService.fetchComparisonData({ selectionFilters: filters });
-      setSpecsLoading(false);
+      setFetchDataLoading(false);
       const discoverFields = await dataService.discoverFields(response);
       const difference = await dataService.analyzeDifferences(response, discoverFields);
       const formatComparison = dataService.formatComparisonSummary(difference);
-      return formatComparison;
-    } catch (error) {
-      console.error('Error fetching or processing data:', error);
-    } finally {
-      setSpecsLoading(false);
-      setDistributionLoading(false);
-    }
-  }, [dataService, filters]);
-
-  useEffect(() => {
-    (async () => {
-      if (
-        fieldComparison ||
-        specsLoading ||
-        distributionLoading ||
-        !paragraph ||
-        paragraph.uiState?.isRunning
-      ) {
-        return;
-      }
-
-      setSpecsLoading(true);
-      setDistributionLoading(true);
-
-      const formatComparison = await loadSpecsData();
 
       if (paragraph) {
         await saveParagraph({
@@ -100,8 +85,31 @@ export const DataDistributionContainer = ({
           }),
         });
       }
+
+      return formatComparison;
+    } catch (error) {
+      console.error('Error fetching or processing data:', error);
+    } finally {
+      setFetchDataLoading(false);
+      setDistributionLoading(false);
+    }
+  }, [dataService, filters, paragraph, saveParagraph]);
+
+  useEffect(() => {
+    (async () => {
+      if (
+        fieldComparison ||
+        fetchDataLoading ||
+        distributionLoading ||
+        !paragraph ||
+        paragraph.uiState?.isRunning
+      ) {
+        return;
+      }
+
+      await loadSpecsData();
     })();
-  }, [loadSpecsData, fieldComparison, specsLoading, distributionLoading, paragraph, saveParagraph]);
+  }, [loadSpecsData, fieldComparison, fetchDataLoading, distributionLoading, paragraph]);
 
   const { paginatedSpecs, totalPages } = useMemo(() => {
     if (!dataDistributionSpecs?.length) {
@@ -131,30 +139,52 @@ export const DataDistributionContainer = ({
     PPLFilters
   );
 
-  const horizontalSteps: Array<Omit<EuiStepHorizontalProps, 'step'>> = [
-    {
-      title: 'Fetch data from index',
-      status: specsLoading ? 'loading' : 'complete',
-      onClick: () => {},
-    },
-    {
-      title: 'Analyze data distribution',
-      status: specsLoading ? undefined : distributionLoading ? 'loading' : 'complete',
-      onClick: () => {},
-    },
-  ];
+  const dataDistributionTitle = (
+    <EuiTitle size="s">
+      <h3>
+        {i18n.translate('notebook.data.distribution.paragraph.title', {
+          defaultMessage: '[Data distribution analysis]',
+        })}
+      </h3>
+    </EuiTitle>
+  );
 
-  const specsVis = !specsLoading && (
-    <EuiAccordion
-      id="accordion1"
-      buttonContent="Show the key field visualizations"
-      initialIsOpen={true}
-    >
-      <EuiSpacer size="m" />
+  const dataDistributionSubtitle = (
+    <EuiText size="s" color="subdued">
+      {i18n.translate('notebook.data.distribution.paragraph.subtitle', {
+        defaultMessage: '[Visualization the values for key fields associated with the alert]',
+      })}
+    </EuiText>
+  );
+
+  const dataDistributionLoadingSpinner = (fetchDataLoading || distributionLoading) && (
+    <EuiPanel hasShadow={false} borderRadius="l" paddingSize="s">
+      <EuiFlexGroup gutterSize="s" alignItems="center">
+        <EuiFlexItem grow={false}>
+          <EuiLoadingSpinner size="m" />
+        </EuiFlexItem>
+
+        <EuiFlexItem grow={false}>
+          <EuiText size="m">
+            {fetchDataLoading
+              ? i18n.translate('notebook.data.distribution.paragraph.loading.step1', {
+                  defaultMessage: 'Step 1/2: Fetching data from index',
+                })
+              : i18n.translate('notebook.data.distribution.paragraph.loading.step2', {
+                  defaultMessage: 'Step 2/2: Analyzing data distribution',
+                })}
+          </EuiText>
+        </EuiFlexItem>
+      </EuiFlexGroup>
+    </EuiPanel>
+  );
+
+  const specsVis = !fetchDataLoading && !distributionLoading && (
+    <EuiPanel hasShadow={false} borderRadius="l">
       <EuiFlexGroup>
         {paginatedSpecs.map((spec, specIndex) => {
           const uniqueKey = `${activePage * ITEMS_PER_PAGE + specIndex}`;
-          const uniqueId = `text2viz-${activePage * ITEMS_PER_PAGE + specIndex}`;
+          const uniqueId = `dis-id-${activePage * ITEMS_PER_PAGE + specIndex}`;
 
           return (
             <EuiFlexItem grow={false} key={uniqueKey} style={{ height: 300, width: 300 }}>
@@ -184,14 +214,63 @@ export const DataDistributionContainer = ({
           </EuiFlexItem>
         </EuiFlexGroup>
       )}
-    </EuiAccordion>
+    </EuiPanel>
+  );
+
+  const distributionModel = distributionModelExpand && (
+    <EuiModal onClose={() => setDistributionModelExpand(false)} style={{ minWidth: 1000 }}>
+      <EuiModalHeader>
+        <EuiFlexGroup direction="column" gutterSize="none">
+          <EuiFlexItem grow={false}>{dataDistributionTitle}</EuiFlexItem>
+          <EuiFlexItem grow={false}>{dataDistributionSubtitle}</EuiFlexItem>
+        </EuiFlexGroup>
+      </EuiModalHeader>
+      <EuiModalBody>
+        <EuiFlexGrid columns={3} gutterSize="m">
+          {dataDistributionSpecs.map((spec, specIndex) => {
+            const uniqueKey = `dis-modal-key-${specIndex}`;
+            const uniqueId = `dis-modal-id-${specIndex}`;
+
+            return (
+              <EuiFlexItem key={uniqueKey} style={{ height: 300 }}>
+                {factory && spec && (
+                  <EmbeddableRenderer
+                    factory={factory}
+                    input={{
+                      id: uniqueId,
+                      savedObjectId: '',
+                      visInput: { spec },
+                    }}
+                  />
+                )}
+              </EuiFlexItem>
+            );
+          })}
+        </EuiFlexGrid>
+      </EuiModalBody>
+    </EuiModal>
   );
 
   return (
     <>
-      <EuiStepsHorizontal steps={horizontalSteps} style={{ background: 'transparent' }} />
-      <EuiSpacer size="m" />
+      <EuiFlexGroup alignItems="center" gutterSize="none" justifyContent="spaceBetween">
+        <EuiFlexItem grow={false}>{dataDistributionTitle}</EuiFlexItem>
+        {dataDistributionSpecs.length > 0 && (
+          <EuiFlexItem grow={false} style={{ paddingRight: 32 }}>
+            <EuiButtonIcon
+              onClick={() => setDistributionModelExpand(true)}
+              iconType="expand"
+              aria-label="Next"
+              size="s"
+            />
+          </EuiFlexItem>
+        )}
+      </EuiFlexGroup>
+      {dataDistributionSubtitle}
+      <EuiSpacer size="s" />
+      {dataDistributionLoadingSpinner}
       {specsVis}
+      {distributionModel}
     </>
   );
 };
