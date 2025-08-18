@@ -4,27 +4,9 @@
  */
 
 import { schema } from '@osd/config-schema';
-import {
-  IOpenSearchDashboardsResponse,
-  IRouter,
-  OpenSearchClient,
-} from '../../../../../src/core/server';
+import { IOpenSearchDashboardsResponse, IRouter } from '../../../../../src/core/server';
 import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
 import { getOpenSearchClientTransport } from '../utils';
-
-// copy from dashboard assistant plugin, will refactor later
-export const getAgentIdByConfigName = async (
-  configName: string,
-  client: OpenSearchClient['transport']
-): Promise<string> => {
-  const path = `/_plugins/_ml/config/${configName}`;
-  const response = await client.request({
-    method: 'GET',
-    path,
-  });
-
-  return response.body.ml_configuration?.agent_id || response.body.configuration.agent_id;
-};
 
 export function registerLogPatternRoute(router: IRouter) {
   router.post(
@@ -51,20 +33,10 @@ export function registerLogPatternRoute(router: IRouter) {
           dataSourceId: request.body.dataSourceMDSId,
         });
 
-        // get agent id from ml config
-        let agentId = '';
-        try {
-          agentId = await getAgentIdByConfigName('log_pattern_analysis_agent', transport);
-        } catch (err) {
-          return response.custom({
-            statusCode: 404,
-          });
-        }
-        // -O_qPJgBuGx52Zf1bbQz
         const { body } = await transport.request(
           {
             method: 'POST',
-            path: `/_plugins/_ml/agents/${agentId}/_execute`,
+            path: `/_plugins/_ml/tools/_execute/LogPatternAnalysisTool`,
             body: {
               parameters: {
                 baseTimeRangeStart: request.body.baselineStartTime,
@@ -88,7 +60,6 @@ export function registerLogPatternRoute(router: IRouter) {
           body: body.inference_results[0].output[0].result,
         });
       } catch (error) {
-        console.error('Error analyzing log patterns:', error.body.error || error.message);
         return response.custom({
           statusCode: error.statusCode || 500,
           body: error.body.error || 'Error analyzing log patterns',

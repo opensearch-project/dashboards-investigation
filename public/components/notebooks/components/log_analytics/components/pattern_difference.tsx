@@ -18,6 +18,7 @@ import {
   EuiTitle,
 } from '@elastic/eui';
 import { LogPattern } from '../../../../../../common/types/log_pattern';
+import { errorKeywords } from './sequence_item';
 
 interface PatternDifferenceProps {
   patternMapDifference: LogPattern[];
@@ -58,7 +59,9 @@ export const PatternDifference: React.FC<PatternDifferenceProps> = ({ patternMap
 
     // Sort patterns without lift by selection (descending)
     const sortedWithoutLift = [...patternsWithoutLift].sort((a, b) => {
-      return Math.abs(b.selection || 0) - Math.abs(a.selection || 0);
+      const selectionA = errorKeywords.test(a.pattern) ? 1 : a.selection || 0;
+      const selectionB = errorKeywords.test(b.pattern) ? 1 : b.selection || 0;
+      return selectionB - selectionA;
     });
 
     // Take top 10 from each group
@@ -66,14 +69,14 @@ export const PatternDifference: React.FC<PatternDifferenceProps> = ({ patternMap
     const top10WithoutLift = sortedWithoutLift.slice(0, 10);
 
     // Combine the results: top 10 with lift first, then top 10 without lift
-    return [...top10WithLift, ...top10WithoutLift];
+    return [...top10WithoutLift, ...top10WithLift];
   };
 
   // Columns for pattern difference table
   const patternDiffColumns: Array<EuiTableFieldDataColumnType<LogPattern>> = [
     {
       field: 'pattern',
-      name: 'Log template',
+      name: 'Log pattern',
       render: (pattern: string) => (
         <EuiCodeBlock language="text" fontSize="s" paddingSize="s" transparentBackground>
           {pattern}
@@ -83,7 +86,7 @@ export const PatternDifference: React.FC<PatternDifferenceProps> = ({ patternMap
     },
     {
       field: 'selection',
-      name: 'Selection percent',
+      name: 'Selection',
       render: (count: number, record: LogPattern) => {
         const base = record.base || 0;
         const color = count > base ? 'danger' : 'success';
@@ -103,7 +106,7 @@ export const PatternDifference: React.FC<PatternDifferenceProps> = ({ patternMap
     },
     {
       field: 'base',
-      name: 'Baseline percent',
+      name: 'Baseline',
       render: (count: number) => {
         return (
           <EuiFlexGroup alignItems="center" gutterSize="xs">
