@@ -86,8 +86,14 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     if (!input?.inputText) return undefined;
 
     if (input.inputType === 'PPL' || input.inputType === 'SQL') {
+      // FIXME: remove this when the executing of a query is properly implemented
+      const cleanedQuery = input.inputText.replace(
+        /\s*\|\s*WHERE\s+`[^`]+`\s*>=\s*'[^']+'\s*AND\s*`[^`]+`\s*<=\s*'[^']+'/i,
+        ''
+      );
+
       return {
-        value: input.inputText,
+        value: cleanedQuery,
         query: '',
         queryLanguage: input.inputType as QueryLanguage,
         isPromptEditorMode: false,
@@ -230,7 +236,15 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         break;
       case 'PPL':
       case 'SQL':
-        onSubmit(`%ppl\n${editorTextRef.current}`, 'CODE'); // FIXME
+        // FIXME: remove this when the executing of a query is properly implemented
+        const timeBounds = data.query.timefilter.timefilter.calculateBounds({
+          from: (inputValue as QueryState).timeRange?.start!,
+          to: (inputValue as QueryState).timeRange?.end!,
+        });
+
+        const timeFieldName = (inputValue as QueryState).selectedIndex.timeFieldName;
+        const timeFilterQuery = `WHERE \`${timeFieldName}\` >= '${timeBounds.min?.toISOString()}' AND \`${timeFieldName}\` <= '${timeBounds.max?.toISOString()}'`;
+        onSubmit(`%ppl\n${editorTextRef.current} | ${timeFilterQuery}`, 'CODE');
         break;
       case 'VISUALIZATION':
         break;
