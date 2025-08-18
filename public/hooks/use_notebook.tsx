@@ -84,7 +84,9 @@ export const useNotebook = () => {
     });
 
     const promise = http.get<NotebookBackendType>(route).then(async (res) => {
-      let contextPayload = { ...res.context };
+      let contextPayload = {
+        ...res.context,
+      };
 
       if (
         !res.context?.indexInsight &&
@@ -99,6 +101,7 @@ export const useNotebook = () => {
       }
       return {
         ...res,
+        vizPrefix: res.vizPrefix || '',
         context: contextPayload,
       };
     });

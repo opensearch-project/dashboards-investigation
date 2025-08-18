@@ -377,7 +377,7 @@ export function NotebookComponent() {
         notebookContext.state.updateValue({
           dateCreated: res.dateCreated,
           path: res.path,
-          vizPrefix: res.vizPrefix || '',
+          vizPrefix: res.vizPrefix,
           paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
         });
         await setInitialGoal({
