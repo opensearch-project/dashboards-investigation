@@ -9,15 +9,15 @@ import {
 } from '../../../../../../../../src/plugins/embeddable/public';
 
 interface VisInput {
-  spec: Object;
+  spec: Record<string, any>;
   uiState?: string;
 }
 
-export interface BubbleUpInput extends SavedObjectEmbeddableInput {
+export interface DataDistributionInput extends SavedObjectEmbeddableInput {
   visInput?: VisInput;
 }
 
-export interface BubbleUpOutput extends EmbeddableOutput {
+export interface DataDistributionOutput extends EmbeddableOutput {
   editPath: string;
   editApp: string;
   editUrl: string;

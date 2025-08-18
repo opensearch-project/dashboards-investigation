@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import moment from 'moment';
 import { NotebookContext } from 'common/types/notebooks';
 import { OpenSearchClient, RequestHandlerContext, SavedObject } from '../../../../src/core/server';
 
@@ -25,6 +26,9 @@ export const getOpenSearchClientTransport = async ({
   return context.core.opensearch.client.asCurrentUser.transport;
 };
 
+const getTimezoneFullfilledDateString = (time: number): string =>
+  moment.utc(time).format('YYYY-MM-DD HH:mm:ss');
+
 export const getNotebookTopLevelContextPrompt = (
   notebookInfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>
 ) => {
@@ -45,7 +49,11 @@ export const getNotebookTopLevelContextPrompt = (
     ${timeField ? `**Time Field**: ${timeField}` : ''}
     ${
       timeRange
-        ? `**Time Period**: From ${timeRange?.selectionFrom} to ${timeRange.selectionTo}`
+        ? `
+          **Time Period the issue happens**: From ${getTimezoneFullfilledDateString(
+            timeRange.selectionFrom
+          )} to ${getTimezoneFullfilledDateString(timeRange.selectionTo)}
+        `
         : ''
     }
     ${filters ? `**Applied Filters**: ${JSON.stringify(filters, null, 2)}` : ''}

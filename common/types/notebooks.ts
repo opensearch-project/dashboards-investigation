@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { RefObject } from 'react';
-
 export interface OptionsType {
   baseUrl: string;
   payload?: any;
@@ -19,34 +17,8 @@ export interface OptionsType {
   ciphers?: string; // The TLS ciphers to support
 }
 
-export interface ParaType {
-  uniqueId: string;
-  isRunning: boolean;
-  inQueue: boolean;
-  showAddPara: boolean;
-  isVizualisation: boolean;
-  isDeepResearch: boolean;
-  isAnomalyVisualizationAnalysis: boolean;
-  isLogPattern: boolean;
-  vizObjectInput: string;
-  id: number;
-  inp: string;
-  lang: string;
-  editorLanguage: string;
-  typeOut: string[];
-  out: any[];
-  isOutputStale: boolean;
-  paraDivRef: RefObject<HTMLDivElement>;
-  visStartTime?: string;
-  visEndTime?: string;
-  visSavedObjId?: string;
-  dataSourceMDSId?: string;
-  dataSourceMDSLabel?: string;
-  viewMode?: 'input_only' | 'output_only' | 'view_both';
-}
-
 export enum NoteBookSource {
-  ALERTING = 'alert',
+  ALERTING = 'Alert',
 }
 
 export enum NotebookType {
@@ -103,8 +75,16 @@ export interface NotebookBackendType {
   vizPrefix?: string;
 }
 
+export interface SummaryDataItem {
+  field: string;
+  divergence: number;
+  topChanges: Array<{
+    value: string;
+  }>;
+}
+
 export interface AnomalyVisualizationAnalysisOutputResult {
-  fieldComparison: Array<Record<string, unknown>>;
+  fieldComparison: SummaryDataItem[];
 }
 
 export interface IndexInsightContent {

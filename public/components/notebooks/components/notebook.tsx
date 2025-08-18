@@ -45,11 +45,10 @@ import {
   NOTEBOOKS_API_PREFIX,
 } from '../../../../common/constants/notebooks';
 import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
-import { NotebookContext, ParaType } from '../../../../common/types/notebooks';
+import { NoteBookSource } from '../../../../common/types/notebooks';
 import { setNavBreadCrumbs } from '../../../../common/utils/set_nav_bread_crumbs';
 import { HeaderControlledComponentsWrapper } from '../../../plugin_helpers/plugin_headerControl';
 import { GenerateReportLoadingModal } from './helpers/custom_modals/reporting_loading_modal';
-import { defaultParagraphParser } from './helpers/default_parser';
 import { DeleteNotebookModal, getCustomModal, getDeleteModal } from './helpers/modal_containers';
 import {
   contextMenuCreateReportDefinition,
@@ -57,7 +56,6 @@ import {
   generateInContextReport,
 } from './helpers/reporting_context_menu_helper';
 import { Paragraphs } from './paragraph_components/paragraphs';
-import { ContextPanel } from './context_panel';
 import {
   NotebookContextProvider,
   NotebookReactContext,
@@ -70,6 +68,7 @@ import { useNotebook } from '../../../hooks/use_notebook';
 import { usePrecheck } from '../../../hooks/use_precheck';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { ToggleSystemPromptSettingModal } from './helpers/custom_modals/toggle_system_prompt_setting_modal';
+import { AlertPanel } from './alert_panel';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -92,20 +91,22 @@ export function NotebookComponent() {
     services: { http, notifications, chrome },
   } = useOpenSearchDashboards<NoteBookServices>();
 
-  const [selectedViewId] = useState('view_both');
   const [isReportingPluginInstalled, setIsReportingPluginInstalled] = useState(false);
   const [isReportingActionsPopoverOpen, setIsReportingActionsPopoverOpen] = useState(false);
   const [isReportingLoadingModalOpen, setIsReportingLoadingModalOpen] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
-  const [dataSourceMDSId, setDataSourceMDSId] = useState<string | undefined | null>(null);
-  const [context] = useState<NotebookContext | undefined>(undefined);
   const { createParagraph, deleteParagraph } = useParagraphs();
   const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start } = usePrecheck();
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
 
   const notebookContext = useContext(NotebookReactContext);
+  const { source } = useObservable(
+    notebookContext.state.value.context.getValue$(),
+    notebookContext.state.value.context.value
+  );
+
   const {
     dataSourceEnabled,
     id: openedNoteId,
@@ -117,27 +118,8 @@ export function NotebookComponent() {
 
   const isSavedObjectNotebook = isValidUUID(openedNoteId);
   const paragraphs = paragraphsStates.map((item) => item.value);
+  const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
-  // parse paragraphs based on backend
-  const parseParagraphs = useCallback(
-    (paragraphsProp: any[]): ParaType[] => {
-      try {
-        const newParsedPara = defaultParagraphParser(paragraphsProp || []);
-        newParsedPara.forEach((para: ParaType) => {
-          para.paraDivRef = React.createRef<HTMLDivElement>();
-        });
-        return newParsedPara;
-      } catch (err) {
-        notifications.toasts.addDanger(
-          'Error parsing paragraphs, please make sure you have the correct permission.'
-        );
-        return [];
-      }
-    },
-    [notifications.toasts]
-  );
-
-  const parsedPara = useMemo(() => parseParagraphs(paragraphs), [paragraphs, parseParagraphs]);
   const dataSourceMDSEnabled = useMemo(() => dataSourceEnabled && isSavedObjectNotebook, [
     dataSourceEnabled,
     isSavedObjectNotebook,
@@ -357,7 +339,7 @@ export function NotebookComponent() {
     setTimeout(() => {
       window.scrollTo({
         left: 0,
-        top: parsedPara[index].paraDivRef.current?.offsetTop,
+        top: paraDivRefs.current[index]?.offsetTop,
         behavior: 'smooth',
       });
     }, 0);
@@ -403,10 +385,6 @@ export function NotebookComponent() {
         console.error(err);
       });
   }, [loadNotebookHook, setBreadcrumbs, notifications.toasts, notebookContext.state, start]);
-
-  const handleSelectedDataSourceChange = (id: string | undefined) => {
-    setDataSourceMDSId(id);
-  };
 
   const checkIfReportingPluginIsInstalled = useCallback(() => {
     fetch('../api/status', {
@@ -681,21 +659,22 @@ export function NotebookComponent() {
               </EuiCallOut>
             </EuiFlexItem>
           )}
+          {source === NoteBookSource.ALERTING && <AlertPanel />}
+          <EuiSpacer />
           <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
             {isLoading ? (
               <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
             ) : null}
-            {/* Temporarily determine whether to display the context panel based on datasource id */}
-            {context?.dataSourceId && <ContextPanel />}
-            {isLoading ? null : parsedPara.length > 0 ? (
-              parsedPara.map((para: ParaType, index: number) => (
-                <div ref={parsedPara[index].paraDivRef} key={`para_div_${para.uniqueId}`}>
+            {isLoading ? null : paragraphsStates.length > 0 ? (
+              paragraphsStates.map((paragraphState, index: number) => (
+                <div
+                  ref={(ref) => (paraDivRefs.current[index] = ref)}
+                  key={`para_div_${paragraphState.value.id}`}
+                >
                   <Paragraphs
-                    para={para}
+                    paragraphState={paragraphState}
                     index={index}
-                    selectedViewId={selectedViewId}
                     deletePara={showDeleteParaModal}
-                    handleSelectedDataSourceChange={handleSelectedDataSourceChange}
                     scrollToPara={scrollToPara}
                   />
                 </div>
@@ -797,7 +776,7 @@ export function NotebookComponent() {
           </EuiPageContent>
         </EuiPageBody>
         <EuiSpacer />
-        <InputPanel onCreateParagraph={handleCreateParagraph} dataSourceId={dataSourceMDSId} />
+        <InputPanel onCreateParagraph={handleCreateParagraph} />
       </EuiPage>
       {isModalVisible && modalLayout}
     </>

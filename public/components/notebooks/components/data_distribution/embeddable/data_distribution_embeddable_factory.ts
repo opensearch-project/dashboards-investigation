@@ -9,10 +9,10 @@ import {
   EmbeddableFactoryDefinition,
   IContainer,
 } from '../../../../../../../../src/plugins/embeddable/public';
-import { BubbleUpEmbeddable } from './bubble_up_embeddable';
-import { BubbleUpInput } from './types';
+import { DataDistributionEmbeddable } from './data_distribution_embeddable';
+import { DataDistributionInput } from './types';
 
-export class BubbleUpEmbeddableFactory implements EmbeddableFactoryDefinition {
+export class DataDistributionEmbeddableFactory implements EmbeddableFactoryDefinition {
   public readonly type = 'vega_visualization';
 
   public async isEditable() {
@@ -25,7 +25,7 @@ export class BubbleUpEmbeddableFactory implements EmbeddableFactoryDefinition {
     });
   }
 
-  public async create(input: BubbleUpInput, parent?: IContainer) {
-    return new BubbleUpEmbeddable(input, parent);
+  public async create(input: DataDistributionInput, parent?: IContainer) {
+    return new DataDistributionEmbeddable(input, parent);
   }
 }

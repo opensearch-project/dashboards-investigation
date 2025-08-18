@@ -13,18 +13,17 @@ import {
   ExpressionsStart,
   IExpressionLoaderParams,
 } from '../../../../../../../../src/plugins/expressions/public';
-import { TimefilterContract, TimeRange } from '../../../../../../../../src/plugins/data/public';
-import { BubbleUpInput, BubbleUpOutput } from './types';
+import { TimeRange } from '../../../../../../../../src/plugins/data/public';
+import { DataDistributionInput, DataDistributionOutput } from './types';
 import { PersistedState } from '../../../../../../../../src/plugins/visualizations/public';
 import { getExpressions } from '../../../../../services';
 
 type ExpressionLoader = InstanceType<ExpressionsStart['ExpressionLoader']>;
 
-const escapeString = (data: string): string => {
-  return data.replace(/\\/g, `\\\\`).replace(/'/g, `\\'`);
-};
-
-export class BubbleUpEmbeddable extends Embeddable<BubbleUpInput, BubbleUpOutput> {
+export class DataDistributionEmbeddable extends Embeddable<
+  DataDistributionInput,
+  DataDistributionOutput
+> {
   public readonly type = 'vega_visualization';
   private handler?: ExpressionLoader;
   private domNode?: HTMLDivElement;
@@ -32,11 +31,11 @@ export class BubbleUpEmbeddable extends Embeddable<BubbleUpInput, BubbleUpOutput
   private timeRange?: TimeRange;
   private subscriptions: Subscription[] = [];
   private uiState: PersistedState;
-  private visInput?: BubbleUpInput['visInput'];
+  private visInput?: DataDistributionInput['visInput'];
 
   constructor(
     // timeFilter: TimefilterContract,
-    initialInput: BubbleUpInput,
+    initialInput: DataDistributionInput,
     parent?: IContainer
   ) {
     super(
@@ -136,7 +135,7 @@ export class BubbleUpEmbeddable extends Embeddable<BubbleUpInput, BubbleUpOutput
     const div = document.createElement('div');
     div.className = `visualize panel-content panel-content--fullWidth`;
     domNode.appendChild(div);
-    domNode.classList.add('bubble-up-viz-canvas');
+    domNode.classList.add('data-distribution-viz-canvas');
 
     this.domNode = div;
     super.render(this.domNode);

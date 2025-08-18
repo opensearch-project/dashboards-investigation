@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useContext, useMemo, useState, useEffect } from 'react';
+import React, { useContext, useMemo, useState, useEffect, useCallback } from 'react';
 import {
   EuiAccordion,
   EuiFlexGroup,
@@ -14,25 +14,24 @@ import {
 } from '@elastic/eui';
 import { EuiStepHorizontalProps } from '@elastic/eui/src/components/steps/step_horizontal';
 import { useObservable } from 'react-use';
-import { Observable } from 'rxjs';
 import { AnomalyVisualizationAnalysisOutputResult } from 'common/types/notebooks';
 import { NoteBookServices } from 'public/types';
-import { BubbleUpInput } from './embeddable/types';
+import { DataDistributionInput } from './embeddable/types';
 import { EmbeddableRenderer } from '../../../../../../../src/plugins/embeddable/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
-import { generateAllFieldCharts } from './render_bubble_vega';
-import { BubbleUpDataService } from './bubble_up_data_service';
+import { generateAllFieldCharts } from './render_data_distribution_vega';
+import { DataDistributionDataService } from './data_distribution_data_service';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
-import { ParagraphState, ParagraphStateValue } from '../../../../../common/state/paragraph_state';
-import './bubble_up_viz.scss';
+import { ParagraphState } from '../../../../../common/state/paragraph_state';
+import './data_distribution_viz.scss';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 const ITEMS_PER_PAGE = 3;
 
-export const BubbleUpContainer = ({
-  paragraph$,
+export const DataDistributionContainer = ({
+  paragraphState,
 }: {
-  paragraph$: Observable<ParagraphStateValue<AnomalyVisualizationAnalysisOutputResult>>;
+  paragraphState: ParagraphState<AnomalyVisualizationAnalysisOutputResult>;
 }) => {
   const {
     services: { embeddable },
@@ -42,7 +41,7 @@ export const BubbleUpContainer = ({
     context.state.value.context.getValue$(),
     context.state.value.context.value
   );
-  const paragraph = useObservable(paragraph$);
+  const paragraph = useObservable(paragraphState.getValue$());
   const { result } = ParagraphState.getOutput(paragraph)! || {};
   const { fieldComparison } = result! || {};
   const { timeRange, timeField, index, dataSourceId, PPLFilters, filters } = topContextValue;
@@ -50,64 +49,72 @@ export const BubbleUpContainer = ({
   const [activePage, setActivePage] = useState(0);
   const [specsLoading, setSpecsLoading] = useState(false);
   const [distributionLoading, setDistributionLoading] = useState(false);
-  const [bubbleUpSpecs, setBubbleUpSpecs] = useState<Array<Record<string, unknown>>>([]);
-  const factory = embeddable.getEmbeddableFactory<BubbleUpInput>('vega_visualization');
+  const factory = embeddable.getEmbeddableFactory<DataDistributionInput>('vega_visualization');
+  const dataDistributionSpecs = useMemo(() => {
+    if (fieldComparison) {
+      return generateAllFieldCharts(fieldComparison);
+    }
 
-  const dataService = useMemo(() => new BubbleUpDataService(), []);
+    return [];
+  }, [fieldComparison]);
+
+  const dataService = useMemo(() => new DataDistributionDataService(), []);
+
+  const loadSpecsData = useCallback(async () => {
+    try {
+      const response = await dataService.fetchComparisonData({ selectionFilters: filters });
+      setSpecsLoading(false);
+      const discoverFields = await dataService.discoverFields(response);
+      const difference = await dataService.analyzeDifferences(response, discoverFields);
+      const formatComparison = dataService.formatComparisonSummary(difference);
+      return formatComparison;
+    } catch (error) {
+      console.error('Error fetching or processing data:', error);
+    } finally {
+      setSpecsLoading(false);
+      setDistributionLoading(false);
+    }
+  }, [dataService, filters]);
 
   useEffect(() => {
-    const loadSpecsData = async () => {
-      if (specsLoading || distributionLoading || !paragraph) {
+    (async () => {
+      if (
+        fieldComparison ||
+        specsLoading ||
+        distributionLoading ||
+        !paragraph ||
+        paragraph.uiState?.isRunning
+      ) {
         return;
       }
+
       setSpecsLoading(true);
       setDistributionLoading(true);
 
-      if (fieldComparison && fieldComparison.length > 0) {
-        setBubbleUpSpecs(generateAllFieldCharts(fieldComparison));
-        setSpecsLoading(false);
-        setDistributionLoading(false);
-        return;
-      }
+      const formatComparison = await loadSpecsData();
 
-      try {
-        const response = await dataService.fetchComparisonData({ selectionFilters: filters });
-        setSpecsLoading(false);
-        const discoverFields = await dataService.discoverFields(response);
-        const difference = await dataService.analyzeDifferences(response, discoverFields);
-        const formatComparison = dataService.formatComparisonSummary(difference);
-        if (paragraph) {
-          await saveParagraph({
-            paragraphStateValue: ParagraphState.updateOutputResult(paragraph, {
-              fieldComparison: formatComparison,
-            }),
-          });
-        }
-        setBubbleUpSpecs(generateAllFieldCharts(formatComparison));
-        setDistributionLoading(false);
-      } catch (error) {
-        console.error('Error fetching or processing data:', error);
-      } finally {
-        setSpecsLoading(false);
+      if (paragraph) {
+        await saveParagraph({
+          paragraphStateValue: ParagraphState.updateOutputResult(paragraph, {
+            fieldComparison: formatComparison || [],
+          }),
+        });
       }
-    };
-
-    loadSpecsData();
-    // eslint-disable-next-line
-  }, [dataService, fieldComparison, paragraph]);
+    })();
+  }, [loadSpecsData, fieldComparison, specsLoading, distributionLoading, paragraph, saveParagraph]);
 
   const { paginatedSpecs, totalPages } = useMemo(() => {
-    if (!bubbleUpSpecs?.length) {
+    if (!dataDistributionSpecs?.length) {
       return { paginatedSpecs: [], totalPages: 0 };
     }
 
     const start = activePage * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
     return {
-      paginatedSpecs: bubbleUpSpecs.slice(start, end),
-      totalPages: Math.ceil(bubbleUpSpecs.length / ITEMS_PER_PAGE),
+      paginatedSpecs: dataDistributionSpecs.slice(start, end),
+      totalPages: Math.ceil(dataDistributionSpecs.length / ITEMS_PER_PAGE),
     };
-  }, [bubbleUpSpecs, activePage]);
+  }, [dataDistributionSpecs, activePage]);
 
   if (!context || !timeRange || !timeField || !index) {
     return null;
