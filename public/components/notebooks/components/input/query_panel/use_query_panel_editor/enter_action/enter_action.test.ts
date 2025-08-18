@@ -4,6 +4,16 @@
  */
 
 import { getEnterAction } from './enter_action';
+
+// Mock Monaco
+jest.mock('@osd/monaco', () => ({
+  monaco: {
+    KeyCode: {
+      Enter: 3,
+    },
+  },
+}));
+
 import { monaco } from '@osd/monaco';
 
 describe('getEnterAction', () => {

@@ -4,6 +4,19 @@
  */
 
 import { getCommandEnterAction } from './command_enter_action';
+
+// Mock Monaco
+jest.mock('@osd/monaco', () => ({
+  monaco: {
+    KeyMod: {
+      CtrlCmd: 2048,
+    },
+    KeyCode: {
+      Enter: 3,
+    },
+  },
+}));
+
 import { monaco } from '@osd/monaco';
 
 describe('getCommandEnterAction', () => {

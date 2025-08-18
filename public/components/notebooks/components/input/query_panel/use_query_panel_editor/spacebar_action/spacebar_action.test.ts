@@ -4,8 +4,18 @@
  */
 
 import { getSpacebarAction } from './spacebar_action';
-import { monaco } from '@osd/monaco';
 import { MutableRefObject } from 'react';
+
+// Mock Monaco
+jest.mock('@osd/monaco', () => ({
+  monaco: {
+    KeyCode: {
+      Space: 10,
+    },
+  },
+}));
+
+import { monaco } from '@osd/monaco';
 
 describe('getSpacebarAction', () => {
   let mockSetToPromptMode: jest.Mock;

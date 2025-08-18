@@ -4,6 +4,20 @@
  */
 
 import { getShiftEnterAction } from './shift_enter_action';
+
+// Mock Monaco
+jest.mock('@osd/monaco', () => ({
+  monaco: {
+    KeyMod: {
+      Shift: 1024,
+    },
+    KeyCode: {
+      Enter: 3,
+    },
+    Range: jest.fn(),
+  },
+}));
+
 import { monaco } from '@osd/monaco';
 
 describe('getShiftEnterAction', () => {

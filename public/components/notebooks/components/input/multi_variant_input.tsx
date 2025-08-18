@@ -112,6 +112,7 @@ const MultiVariantInputContent: React.FC = () => {
         input={getInputComponent()}
         isOpen={isParagraphSelectionOpen}
         closePopover={() => setIsPopoverOpen(false)}
+        data-test-subj="multiVariantInput"
       >
         <EuiSelectable
           options={paragraphOptions}

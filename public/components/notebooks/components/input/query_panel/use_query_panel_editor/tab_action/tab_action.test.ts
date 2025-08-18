@@ -4,6 +4,16 @@
  */
 
 import { getTabAction } from './tab_action';
+
+// Mock Monaco
+jest.mock('@osd/monaco', () => ({
+  monaco: {
+    KeyCode: {
+      Tab: 2,
+    },
+  },
+}));
+
 import { monaco } from '@osd/monaco';
 
 describe('getTabAction', () => {

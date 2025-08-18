@@ -4,8 +4,18 @@
  */
 
 import { getEscapeAction } from './escape_action';
-import { monaco } from '@osd/monaco';
 import { MutableRefObject } from 'react';
+
+// Mock Monaco
+jest.mock('@osd/monaco', () => ({
+  monaco: {
+    KeyCode: {
+      Escape: 9,
+    },
+  },
+}));
+
+import { monaco } from '@osd/monaco';
 
 describe('getEscapeAction', () => {
   let mockHandleEscape: jest.Mock;
