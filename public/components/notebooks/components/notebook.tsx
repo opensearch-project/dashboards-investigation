@@ -115,6 +115,10 @@ export function NotebookComponent() {
     dateCreated,
     isLoading,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
+  const { initialGoal } = useObservable(
+    notebookContext.state.value.context.getValue$(),
+    notebookContext.state.value.context.value
+  );
   const isSavedObjectNotebook = isValidUUID(openedNoteId);
   const paragraphs = paragraphsStates.map((item) => item.value);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -751,29 +755,31 @@ export function NotebookComponent() {
                           }
                         />
                       </EuiFlexItem>
-                      <EuiFlexItem grow={3}>
-                        <EuiCard
-                          icon={<EuiIcon size="xxl" type="inspect" />}
-                          title="Deep Research"
-                          description="Use deep research to analytics question."
-                          footer={
-                            <EuiSmallButton
-                              onClick={() =>
-                                createParagraph({
-                                  index: 0,
-                                  input: {
-                                    inputText: '',
-                                    inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
-                                  },
-                                })
-                              }
-                              style={{ marginBottom: 17 }}
-                            >
-                              Add deep research
-                            </EuiSmallButton>
-                          }
-                        />
-                      </EuiFlexItem>
+                      {initialGoal ? (
+                        <EuiFlexItem grow={3}>
+                          <EuiCard
+                            icon={<EuiIcon size="xxl" type="inspect" />}
+                            title="Deep Research"
+                            description="Use deep research to analytics question."
+                            footer={
+                              <EuiSmallButton
+                                onClick={() =>
+                                  createParagraph({
+                                    index: 0,
+                                    input: {
+                                      inputText: initialGoal,
+                                      inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
+                                    },
+                                  })
+                                }
+                                style={{ marginBottom: 17 }}
+                              >
+                                Add deep research
+                              </EuiSmallButton>
+                            }
+                          />
+                        </EuiFlexItem>
+                      ) : null}
                       <EuiFlexItem grow={2} />
                     </EuiFlexGroup>
                   )}

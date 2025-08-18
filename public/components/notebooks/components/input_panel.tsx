@@ -38,7 +38,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => 
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { dataSourceId } = useObservable(
+  const { dataSourceId, initialGoal } = useObservable(
     context.state.value.context.getValue$(),
     context.state.value.context.value
   );
@@ -72,13 +72,14 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onCreateParagraph }) => 
       label: 'Continue investigation',
       key: 'DEEP_RESEARCH_AGENT',
       'data-test-subj': 'paragraph-type-deep-research',
+      disabled: !initialGoal,
     },
     { label: 'SQL', key: 'SQL', 'data-test-subj': 'paragraph-type-sql' },
     {
       label: 'Ask AI',
       key: AI_RESPONSE_TYPE,
     },
-  ];
+  ].filter((item) => !item.disabled);
 
   const executeActionSelectionAgent = async (input: string, actions: ActionMetadata[]) => {
     try {
