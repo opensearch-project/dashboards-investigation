@@ -97,7 +97,10 @@ export const useNotebook = () => {
           indexInsight: await fetchIndexInsights(res.context.index, res.context?.dataSourceId),
         };
       }
-      return contextPayload;
+      return {
+        ...res,
+        context: contextPayload,
+      };
     });
 
     promise.finally(() => {

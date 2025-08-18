@@ -76,7 +76,7 @@ export const Paragraphs = (props: ParagraphProps) => {
           mapParagraphTypeToRenderComponent[getInputType(paragraphValue)] || OtherParagraph;
         return (
           <div key={paragraph.value.id} className={paraClass}>
-            <RenderComponent paragraphState={paragraph as ParagraphState<any>} />
+            <RenderComponent paragraphState={paragraph as ParagraphState<any, any>} />
           </div>
         );
       })()}
