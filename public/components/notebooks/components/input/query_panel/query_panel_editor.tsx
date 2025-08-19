@@ -16,13 +16,6 @@ import { QueryState } from '../types';
 
 import './query_panel_editor.scss';
 
-const DEFAULT_QUERY_STATE = {
-  value: '',
-  queryLanguage: 'PPL' as const,
-  isPromptEditorMode: false,
-  timeRange: { start: 'now-15m', end: 'now' },
-};
-
 export const QueryPanelEditor = () => {
   const { services } = useOpenSearchDashboards<NoteBookServices>();
   const {
@@ -36,16 +29,19 @@ export const QueryPanelEditor = () => {
   } = useInputContext();
 
   const queryState = inputValue as QueryState;
-  const { value, queryLanguage, isPromptEditorMode } = queryState || DEFAULT_QUERY_STATE;
+  const { value, queryLanguage, isPromptEditorMode } = queryState || {
+    value: '',
+    queryLanguage: 'PPL' as const,
+    isPromptEditorMode: false,
+  };
 
   useEffect(() => {
-    if (!queryState) {
-      handleInputChange({
-        ...DEFAULT_QUERY_STATE,
-        selectedIndex: services.data.query.queryString.getDefaultQuery().dataset,
-      });
+    const dataset = services.data.query.queryString.getDefaultQuery().dataset;
+    if (dataset && !(inputValue as QueryState)?.selectedIndex) {
+      services.data.query.queryString.setQuery({ dataset });
+      handleInputChange({ selectedIndex: dataset });
     }
-  }, [handleInputChange, queryState, services.data.query.queryString]);
+  }, [inputValue, handleInputChange, services.data.query.queryString]);
 
   useEffect(() => {
     services.data.dataViews.getDefault().then((res: any) => {
@@ -71,11 +67,11 @@ export const QueryPanelEditor = () => {
       handleSubmit();
     }, [handleSubmit]),
     handleEscape: useCallback(() => {
-      handleInputChange({ ...queryState, isPromptEditorMode: false });
-    }, [queryState, handleInputChange]),
+      handleInputChange({ isPromptEditorMode: false });
+    }, [handleInputChange]),
     handleSpaceBar: useCallback(() => {
-      handleInputChange({ ...queryState, isPromptEditorMode: true });
-    }, [queryState, handleInputChange]),
+      handleInputChange({ isPromptEditorMode: true });
+    }, [handleInputChange]),
     handleChange: () => {},
     isQueryEditorDirty: false,
     services,

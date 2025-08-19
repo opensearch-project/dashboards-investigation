@@ -44,22 +44,23 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
   const handleSelect = useCallback(
     (dataset) => {
       data.query.queryString.setQuery({ dataset });
-      handleInputChange({ ...queryState, selectedIndex: dataset });
+      handleInputChange({ selectedIndex: dataset });
     },
-    [data.query.queryString, queryState, handleInputChange]
+    [data.query.queryString, handleInputChange]
   );
 
   const handleTimeChange = useCallback(
     (props) => {
-      handleInputChange({ ...queryState, timeRange: props });
+      handleInputChange({ timeRange: props });
     },
-    [queryState, handleInputChange]
+    [handleInputChange]
   );
 
   return (
     <EuiPanel paddingSize="none" hasBorder={false} hasShadow={false}>
       <EuiFlexGroup className="notebookQueryPanelWidgets" gutterSize="none" dir="row">
         {prependWidget}
+        {prependWidget && <div className="notebookQueryPanelWidgets__verticalSeparator" />}
         <div className="notebookQueryPanelWidgets__datasetSelect">
           {/* <IndexSelect /> */}
           {/* FIXME dataset select cause unncessary http requests due to rerender */}
@@ -80,7 +81,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
           <EuiButtonEmpty iconType="play" size="s" aria-label="run button" onClick={handleSubmit}>
             Run
           </EuiButtonEmpty>
-          <div className="notebookQueryPanelWidgets__verticalSeparator" />
+          {appendWidget && <div className="notebookQueryPanelWidgets__verticalSeparator" />}
           {appendWidget}
         </EuiFlexGroup>
       </EuiFlexGroup>
