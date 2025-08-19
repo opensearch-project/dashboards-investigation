@@ -15,7 +15,6 @@ import {
   LOG_PATTERN_PARAGRAPH_TYPE,
   OBSERVABILITY_VISUALIZATION_TYPE,
 } from '../../../../../common/constants/notebooks';
-import { NotebookType } from '../../../../../common/types/notebooks';
 import { uiSettingsService } from '../../../../../common/utils';
 import { ParagraphActionPanel } from './paragraph_actions_panel';
 import { NotebookReactContext } from '../../context_provider/context_provider';
@@ -61,8 +60,6 @@ export const Paragraphs = (props: ParagraphProps) => {
   const paragraph = context.state.value.paragraphs[index];
   const paragraphValue = useObservable(paragraph.getValue$(), paragraph.value);
 
-  const notebookType = context.state.getContext().notebookType || NotebookType.CLASSIC;
-
   const paraClass = `notebooks-paragraph notebooks-paragraph-${
     uiSettingsService.get('theme:darkMode') ? 'dark' : 'light'
   }`;
@@ -74,7 +71,10 @@ export const Paragraphs = (props: ParagraphProps) => {
       paddingSize="none"
       hasBorder={false}
     >
-      {isAgenticRunBefore(notebookType, index, context.state.value.paragraphs.length) ? null : (
+      {isAgenticRunBefore({
+        notebookState: context.state,
+        id: paragraphValue.id,
+      }) ? null : (
         <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
       )}
       {(() => {

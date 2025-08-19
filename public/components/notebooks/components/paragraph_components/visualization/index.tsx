@@ -28,7 +28,6 @@ import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/ope
 import { OBSERVABILITY_VISUALIZATION_TYPE } from '../../../../../../common/constants/notebooks';
 import { isAgenticRunBefore } from '../utils';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
-import { NotebookType } from '../../../../../../common/types/notebooks';
 
 export const getPanelValue = (
   panelValue: DashboardContainerInput['panels'][number],
@@ -87,13 +86,7 @@ export const createDashboardVizObject = (value: VisualizationInputValue) => {
   return newVizObject;
 };
 
-export const VisualizationParagraph = ({
-  idx,
-  paragraphState,
-}: {
-  idx: number;
-  paragraphState: ParagraphState;
-}) => {
+export const VisualizationParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
   const endDate = useMemo(() => new Date(), []);
   const {
     services: {
@@ -103,8 +96,8 @@ export const VisualizationParagraph = ({
   } = useOpenSearchDashboards<NoteBookServices>();
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const context = useContext(NotebookReactContext);
-  const notebookType = context.state.getContext().notebookType || NotebookType.CLASSIC;
-  const paragraphs = context.state.value.paragraphs;
+  // const notebookType = context.state.getContext().notebookType || NotebookType.CLASSIC;
+  // const paragraphs = context.state.value.paragraphs;
   const inputJSON = useMemo(() => {
     let result: DashboardContainerInput = createDashboardVizObject({
       type: '',
@@ -197,7 +190,10 @@ export const VisualizationParagraph = ({
         }}
       />
       <EuiSpacer size="m" />
-      {isAgenticRunBefore(notebookType, idx, paragraphs.length) ? null : (
+      {isAgenticRunBefore({
+        notebookState: context.state,
+        id: paragraphValue.id,
+      }) ? null : (
         <EuiFlexGroup alignItems="center" gutterSize="s">
           <EuiFlexItem grow={false}>
             <EuiSmallButton

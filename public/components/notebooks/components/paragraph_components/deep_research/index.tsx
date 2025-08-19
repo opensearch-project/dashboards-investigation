@@ -18,7 +18,6 @@ import {
 import type { NoteBookServices } from 'public/types';
 import type { DeepResearchInputParameters, DeepResearchOutputResult } from 'common/types/notebooks';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
-import { NotebookType } from '../../../../../../common/types/notebooks';
 
 import { DataSourceSelectorProps } from '../../../../../../../../src/plugins/data_source_management/public/components/data_source_selector/data_source_selector';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
@@ -33,10 +32,8 @@ import { DeepResearchOutput } from './deep_research_output';
 import { isAgenticRunBefore } from '../utils';
 
 export const DeepResearchParagraph = ({
-  idx,
   paragraphState,
 }: {
-  idx: number;
   paragraphState: ParagraphState<
     DeepResearchOutputResult | { agent_id?: string } | string,
     DeepResearchInputParameters
@@ -47,8 +44,6 @@ export const DeepResearchParagraph = ({
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const context = useContext(NotebookReactContext);
-  const notebookType = context.state.getContext().notebookType || NotebookType.CLASSIC;
-  const paragraphs = context.state.value.paragraphs;
 
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const selectedDataSource = paragraphValue?.dataSourceMDSId;
@@ -136,7 +131,13 @@ export const DeepResearchParagraph = ({
               id={`editorArea-${paragraphValue.id}`}
               className="editorArea"
               fullWidth
-              disabled={!!isRunning || isAgenticRunBefore(notebookType, idx, paragraphs.length)}
+              disabled={
+                !!isRunning ||
+                isAgenticRunBefore({
+                  notebookState: context.state,
+                  id: paragraphValue.id,
+                })
+              }
               onChange={(evt) => {
                 paragraphState.updateInput({
                   inputText: evt.target.value,
@@ -165,7 +166,10 @@ export const DeepResearchParagraph = ({
         </div>
       </EuiCompressedFormRow>
       <EuiSpacer size="m" />
-      {isAgenticRunBefore(notebookType, idx, paragraphs.length) ? null : (
+      {isAgenticRunBefore({
+        notebookState: context.state,
+        id: paragraphValue.id,
+      }) ? null : (
         <EuiFlexGroup alignItems="center" gutterSize="s">
           <EuiFlexItem grow={false}>
             <EuiSmallButton

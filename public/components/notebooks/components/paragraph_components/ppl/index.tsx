@@ -25,7 +25,6 @@ import { useMemo } from 'react';
 import { useRef } from 'react';
 import { NoteBookServices } from 'public/types';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
-import { NotebookType } from '../../../../../../common/types/notebooks';
 import { ParagraphDataSourceSelector } from '../../data_source_selector';
 import {
   ParagraphState,
@@ -93,20 +92,12 @@ const getQueryOutputData = (queryObject: QueryObject) => {
 const inputPlaceholderString =
   'Type %sql or %ppl on the first line to define the input type. \nCode block starts here.';
 
-export const PPLParagraph = ({
-  idx,
-  paragraphState,
-}: {
-  idx: number;
-  paragraphState: ParagraphState;
-}) => {
+export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
   const {
     services: { http, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const context = useContext(NotebookReactContext);
-  const notebookType = context.state.getContext().notebookType || NotebookType.CLASSIC;
-  const paragraphs = context.state.value.paragraphs;
 
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const selectedDataSource = paragraphValue?.dataSourceMDSId;
@@ -253,7 +244,13 @@ export const PPLParagraph = ({
               id={`editorArea-${paragraphValue.id}`}
               className="editorArea"
               fullWidth
-              disabled={!!isRunning || isAgenticRunBefore(notebookType, idx, paragraphs.length)}
+              disabled={
+                !!isRunning ||
+                isAgenticRunBefore({
+                  notebookState: context.state,
+                  id: paragraphValue.id,
+                })
+              }
               isInvalid={!!errorMessage}
               onChange={(evt) => {
                 paragraphState.updateInput({
@@ -284,7 +281,10 @@ export const PPLParagraph = ({
         </div>
       </EuiCompressedFormRow>
       <EuiSpacer size="m" />
-      {isAgenticRunBefore(notebookType, idx, paragraphs.length) ? null : (
+      {isAgenticRunBefore({
+        notebookState: context.state,
+        id: paragraphValue.id,
+      }) ? null : (
         <EuiFlexGroup alignItems="center" gutterSize="s">
           <EuiFlexItem grow={false}>
             <EuiSmallButton
