@@ -25,7 +25,6 @@ interface LogInsightProps {
 
 export const LogInsight: React.FC<LogInsightProps> = ({ logInsights, isLoadingLogInsights }) => {
   const [openPopovers, setOpenPopovers] = useState<{ [key: string]: boolean }>({});
-  console.log('isLoadingLogInsights', isLoadingLogInsights);
 
   const togglePopover = (id: string) => {
     setOpenPopovers((prev) => ({
