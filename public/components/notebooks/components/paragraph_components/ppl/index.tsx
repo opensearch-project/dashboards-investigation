@@ -94,7 +94,7 @@ export const PPLParagraph = ({
     services: { http, notifications, contextService },
   } = useOpenSearchDashboards<NoteBookServices>();
 
-  const context = useContext(NotebookReactContext);
+  const { state } = useContext(NotebookReactContext);
 
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const { runParagraph, saveParagraph } = useParagraphs();

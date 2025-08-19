@@ -25,7 +25,7 @@ const inputPlaceholderString =
   'Type %md on the first line to define the input type. \nCode block starts here.';
 
 export const MarkdownParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
-  const context = useContext(NotebookReactContext);
+  const { state } = useContext(NotebookReactContext);
 
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const { runParagraph } = useParagraphs();
@@ -63,7 +63,7 @@ export const MarkdownParagraph = ({ paragraphState }: { paragraphState: Paragrap
             disabled={
               !!isRunning ||
               isAgenticRunBefore({
-                notebookState: context.state,
+                notebookState: state,
                 id: paragraphValue.id,
               })
             }
@@ -96,7 +96,7 @@ export const MarkdownParagraph = ({ paragraphState }: { paragraphState: Paragrap
       </div>
       <EuiSpacer size="m" />
       {isAgenticRunBefore({
-        notebookState: context.state,
+        notebookState: state,
         id: paragraphValue.id,
       }) ? null : (
         <EuiFlexGroup alignItems="center" gutterSize="s">
