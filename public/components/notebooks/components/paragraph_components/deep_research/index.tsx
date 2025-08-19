@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useContext } from 'react';
+import React, { useMemo, useEffect, useContext, useCallback } from 'react';
 import { useObservable } from 'react-use';
 import {
   EuiCodeBlock,
@@ -17,35 +17,35 @@ import {
 
 import type { NoteBookServices } from 'public/types';
 import type { DeepResearchInputParameters, DeepResearchOutputResult } from 'common/types/notebooks';
-import { NotebookReactContext } from '../../../context_provider/context_provider';
 
 import { DataSourceSelectorProps } from '../../../../../../../../src/plugins/data_source_management/public/components/data_source_selector/data_source_selector';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { dataSourceFilterFn } from '../../../../../../common/utils/shared';
-import { ParagraphState } from '../../../../../../common/state/paragraph_state';
+import {
+  ParagraphState,
+  ParagraphStateValue,
+} from '../../../../../../common/state/paragraph_state';
 import { useParagraphs } from '../../../../../hooks/use_paragraphs';
 import { ParagraphDataSourceSelector } from '../../data_source_selector';
 import { getSystemPrompts } from '../../helpers/custom_modals/system_prompt_setting_modal';
 
 import { AgentsSelector } from './agents_selector';
 import { DeepResearchOutput } from './deep_research_output';
+import { NotebookReactContext } from '../../../context_provider/context_provider';
+import { DEEP_RESEARCH_PARAGRAPH_TYPE } from '../../../../../../common/constants/notebooks';
 import { isAgenticRunBefore } from '../utils';
 
 export const DeepResearchParagraph = ({
   paragraphState,
 }: {
-  paragraphState: ParagraphState<
-    DeepResearchOutputResult | { agent_id?: string } | string,
-    DeepResearchInputParameters
-  >;
+  paragraphState: ParagraphState<DeepResearchOutputResult | string, DeepResearchInputParameters>;
 }) => {
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
-
-  const context = useContext(NotebookReactContext);
-
+  const { state } = useContext(NotebookReactContext);
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
+  const contextValue = useObservable(state.value.context.getValue$(), state.value.context.value);
   const selectedDataSource = paragraphValue?.dataSourceMDSId;
   const onSelectedDataSource: DataSourceSelectorProps['onSelectedDataSource'] = (event) => {
     paragraphState.updateValue({
@@ -54,9 +54,9 @@ export const DeepResearchParagraph = ({
   };
 
   const { runParagraph } = useParagraphs();
-  const rawOutputResult = paragraphValue.output?.[0]?.result;
+  const rawOutputResult = ParagraphState.getOutput(paragraphValue)?.result;
   // FIXME: Read paragraph out directly once all notebooks store object as output
-  const outputResult = useMemo<DeepResearchOutputResult | { agent_id?: string } | undefined>(() => {
+  const outputResult = useMemo<DeepResearchOutputResult | undefined>(() => {
     if (typeof rawOutputResult !== 'string' || typeof rawOutputResult === 'undefined') {
       return rawOutputResult;
     }
@@ -81,23 +81,46 @@ export const DeepResearchParagraph = ({
 
   const isRunning = paragraphValue.uiState?.isRunning;
 
-  const runParagraphHandler = async () => {
-    paragraphState.updateInput({
-      parameters: {
-        prompts: getSystemPrompts(),
-      },
-    });
-    await runParagraph({
-      id: paragraphValue.id,
-    });
-  };
+  const runParagraphHandler = useCallback(
+    async (inputPayload?: Partial<ParagraphStateValue['input']>) => {
+      paragraphState.updateInput({
+        ...inputPayload,
+        parameters: {
+          prompts: getSystemPrompts(),
+        },
+      });
+      await runParagraph({
+        id: paragraphValue.id,
+      });
+    },
+    [runParagraph, paragraphState, paragraphValue.id]
+  );
+
+  useEffect(() => {
+    if (
+      !paragraphValue.uiState?.isRunning &&
+      !paragraphValue.input.inputText &&
+      paragraphValue.input.inputType === DEEP_RESEARCH_PARAGRAPH_TYPE &&
+      contextValue.initialGoal &&
+      paragraphValue.input.parameters?.agentId &&
+      !outputResult?.taskId
+    ) {
+      // automatically run paragraph if there is initial goal
+      runParagraphHandler({
+        inputText: contextValue.initialGoal,
+      });
+    }
+  }, [contextValue, paragraphValue, outputResult, runParagraphHandler]);
+
+  const isDisabled =
+    !!contextValue.initialGoal && paragraphValue.input.inputType === DEEP_RESEARCH_PARAGRAPH_TYPE;
 
   return (
     <>
       <EuiFlexGroup style={{ marginTop: 0 }}>
         <EuiFlexItem>
           <ParagraphDataSourceSelector
-            disabled={!!isRunning}
+            disabled={!!isRunning || isDisabled}
             fullWidth={false}
             onSelectedDataSource={onSelectedDataSource}
             defaultOption={
@@ -117,14 +140,14 @@ export const DeepResearchParagraph = ({
                 },
               });
             }}
-            disabled={!!isRunning}
+            disabled={!!isRunning || isDisabled}
           />
         </EuiFlexItem>
       </EuiFlexGroup>
       <EuiSpacer size="s" />
       <EuiCompressedFormRow fullWidth={true}>
         <div style={{ width: '100%' }}>
-          {paragraphValue.uiState?.viewMode !== 'output_only' ? (
+          {!isDisabled ? (
             <EuiCompressedTextArea
               data-test-subj={`editorArea-${paragraphValue.id}`}
               placeholder="Ask a question"

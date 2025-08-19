@@ -84,12 +84,9 @@ export const useNotebook = () => {
     });
 
     const promise = http.get<NotebookBackendType>(route).then(async (res) => {
-      context.state.updateValue({
-        dateCreated: res.dateCreated,
-        path: res.path,
-        vizPrefix: res.vizPrefix || '',
-      });
-      if (res.context) context.state.updateContext(res.context);
+      let contextPayload = {
+        ...res.context,
+      };
 
       if (
         !res.context?.indexInsight &&
@@ -97,16 +94,16 @@ export const useNotebook = () => {
         res.context?.timeField &&
         res.context?.timeRange
       ) {
-        const resWithIndexInsight = {
-          ...res,
-          context: {
-            ...res.context,
-            indexInsight: await fetchIndexInsights(res.context.index, res.context?.dataSourceId),
-          },
+        contextPayload = {
+          ...contextPayload,
+          indexInsight: await fetchIndexInsights(res.context.index, res.context?.dataSourceId),
         };
-        return resWithIndexInsight;
       }
-      return res;
+      return {
+        ...res,
+        vizPrefix: res.vizPrefix || '',
+        context: contextPayload,
+      };
     });
 
     promise.finally(() => {

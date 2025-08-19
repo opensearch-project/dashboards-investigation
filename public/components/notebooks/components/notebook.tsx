@@ -98,7 +98,7 @@ export function NotebookComponent() {
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
   const { createParagraph, deleteParagraph } = useParagraphs();
   const { loadNotebook: loadNotebookHook } = useNotebook();
-  const { start } = usePrecheck();
+  const { start, setInitialGoal } = usePrecheck();
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
 
   const notebookContext = useContext(NotebookReactContext);
@@ -115,7 +115,10 @@ export function NotebookComponent() {
     dateCreated,
     isLoading,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
-
+  const { initialGoal } = useObservable(
+    notebookContext.state.value.context.getValue$(),
+    notebookContext.state.value.context.value
+  );
   const isSavedObjectNotebook = isValidUUID(openedNoteId);
   const paragraphs = paragraphsStates.map((item) => item.value);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -365,16 +368,27 @@ export function NotebookComponent() {
     [openedNoteId, chrome]
   );
 
-  const loadNotebook = useCallback(async () => {
+  useEffect(() => {
+    setBreadcrumbs(path);
+  }, [path, setBreadcrumbs]);
+
+  const loadNotebook = useCallback(() => {
     loadNotebookHook()
       .then(async (res) => {
-        setBreadcrumbs(res.path);
-
+        if (res.context) {
+          notebookContext.state.updateContext(res.context);
+        }
         notebookContext.state.updateValue({
+          dateCreated: res.dateCreated,
+          path: res.path,
+          vizPrefix: res.vizPrefix,
           paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
         });
+        await setInitialGoal({
+          context: notebookContext.state.value.context.value,
+        });
         await start({
-          context: res.context,
+          context: notebookContext.state.value.context.value,
           paragraphs: res.paragraphs,
         });
       })
@@ -384,7 +398,7 @@ export function NotebookComponent() {
         );
         console.error(err);
       });
-  }, [loadNotebookHook, setBreadcrumbs, notifications.toasts, notebookContext.state, start]);
+  }, [loadNotebookHook, notifications.toasts, notebookContext.state, start, setInitialGoal]);
 
   const checkIfReportingPluginIsInstalled = useCallback(() => {
     fetch('../api/status', {
@@ -419,10 +433,9 @@ export function NotebookComponent() {
   }, [notifications.toasts]);
 
   useEffect(() => {
-    setBreadcrumbs('');
     loadNotebook();
     checkIfReportingPluginIsInstalled();
-  }, [setBreadcrumbs, loadNotebook, checkIfReportingPluginIsInstalled]);
+  }, [loadNotebook, checkIfReportingPluginIsInstalled]);
 
   const reportingActionPanels: EuiContextMenuPanelDescriptor[] = [
     {
@@ -742,29 +755,31 @@ export function NotebookComponent() {
                           }
                         />
                       </EuiFlexItem>
-                      <EuiFlexItem grow={3}>
-                        <EuiCard
-                          icon={<EuiIcon size="xxl" type="inspect" />}
-                          title="Deep Research"
-                          description="Use deep research to analytics question."
-                          footer={
-                            <EuiSmallButton
-                              onClick={() =>
-                                createParagraph({
-                                  index: 0,
-                                  input: {
-                                    inputText: '',
-                                    inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
-                                  },
-                                })
-                              }
-                              style={{ marginBottom: 17 }}
-                            >
-                              Add deep research
-                            </EuiSmallButton>
-                          }
-                        />
-                      </EuiFlexItem>
+                      {initialGoal ? (
+                        <EuiFlexItem grow={3}>
+                          <EuiCard
+                            icon={<EuiIcon size="xxl" type="inspect" />}
+                            title="Deep Research"
+                            description="Use deep research to analytics question."
+                            footer={
+                              <EuiSmallButton
+                                onClick={() =>
+                                  createParagraph({
+                                    index: 0,
+                                    input: {
+                                      inputText: initialGoal,
+                                      inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
+                                    },
+                                  })
+                                }
+                                style={{ marginBottom: 17 }}
+                              >
+                                Add deep research
+                              </EuiSmallButton>
+                            }
+                          />
+                        </EuiFlexItem>
+                      ) : null}
                       <EuiFlexItem grow={2} />
                     </EuiFlexGroup>
                   )}

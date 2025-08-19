@@ -44,6 +44,7 @@ export interface NotebookContext {
   memoryId?: string;
   indexInsight?: IndexInsightContent;
   notebookType?: NotebookType;
+  initialGoal?: string;
 }
 
 export interface ParagraphBackendType<TOutputResult, TInputParameters = unknown> {
@@ -80,6 +81,8 @@ export interface SummaryDataItem {
   divergence: number;
   topChanges: Array<{
     value: string;
+    baselinePercentage: number;
+    selectionPercentage: number;
   }>;
 }
 

@@ -3,14 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  DeepResearchInputParameters,
-  DeepResearchOutputResult,
-  NotebookContext,
-  ParagraphBackendType,
-} from 'common/types/notebooks';
 import { useCallback, useRef } from 'react';
 import { combineLatest } from 'rxjs';
+import {
+  NotebookContext,
+  NoteBookSource,
+  ParagraphBackendType,
+} from '../../common/types/notebooks';
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import {
   ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
@@ -18,11 +17,23 @@ import {
   LOG_PATTERN_PARAGRAPH_TYPE,
 } from '../../common/constants/notebooks';
 import { useParagraphs } from './use_paragraphs';
-import { getSystemPrompts } from '../components/notebooks/components/helpers/custom_modals/system_prompt_setting_modal';
+import { useNotebook } from './use_notebook';
 
 export const usePrecheck = () => {
-  const { createParagraph, runParagraph } = useParagraphs();
+  const { updateNotebookContext } = useNotebook();
+  const { createParagraph } = useParagraphs();
   const deepResearchParaCreated = useRef(false);
+
+  const setInitialGoal = useCallback(
+    async (res: { context?: NotebookContext }) => {
+      if (res.context?.source === NoteBookSource.ALERTING && !res.context.initialGoal) {
+        await updateNotebookContext({
+          initialGoal: 'Why did the alert happen? Find the root cause and give some solutions.',
+        });
+      }
+    },
+    [updateNotebookContext]
+  );
 
   return {
     start: useCallback(
@@ -97,7 +108,7 @@ export const usePrecheck = () => {
           }
         }
 
-        if (paragraphStates.length) {
+        if (paragraphStates.length && res.context?.initialGoal) {
           const combinedObservable = combineLatest(
             paragraphStates.map((paragraphState) => paragraphState.getValue$())
           );
@@ -126,37 +137,20 @@ export const usePrecheck = () => {
               deepResearchParaCreated.current = true;
 
               subscription.unsubscribe();
-              const createdPERAgentParagraphState = await createParagraph({
+              await createParagraph({
                 index: totalParagraphLength + paragraphStates.length,
                 input: {
-                  inputText:
-                    'Why did the alert happen? Find the root cause and give some solutions.',
+                  inputText: '',
                   inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
                 },
                 dataSourceMDSId: res.context?.dataSourceId,
               });
-
-              if (createdPERAgentParagraphState) {
-                const perAgentSubscription = (createdPERAgentParagraphState as ParagraphState<
-                  DeepResearchOutputResult,
-                  DeepResearchInputParameters
-                >)
-                  .getValue$()
-                  .subscribe(async (value) => {
-                    if (value.input.parameters?.agentId) {
-                      perAgentSubscription.unsubscribe();
-                      createdPERAgentParagraphState.updateInput({
-                        parameters: { prompts: getSystemPrompts() },
-                      });
-                      await runParagraph({ index: totalParagraphLength + paragraphStates.length });
-                    }
-                  });
-              }
             }
           });
         }
       },
-      [createParagraph, runParagraph]
+      [createParagraph]
     ),
+    setInitialGoal,
   };
 };
