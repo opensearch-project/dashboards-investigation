@@ -58,4 +58,34 @@ export class MLService {
         method: 'GET',
       })
       .then(({ body }) => body);
+
+  analyzeLogPattern = ({
+    transport,
+    parameters,
+  }: {
+    transport: OpenSearchClient['transport'];
+    parameters: {
+      baseTimeRangeStart?: string;
+      baseTimeRangeEnd?: string;
+      selectionTimeRangeStart: string;
+      selectionTimeRangeEnd: string;
+      traceFieldName?: string;
+      timeField: string;
+      logFieldName: string;
+      index: string;
+    };
+  }) =>
+    transport
+      .request(
+        {
+          method: 'POST',
+          path: `/_plugins/_ml/tools/_execute/LogPatternAnalysisTool`,
+          body: { parameters },
+        },
+        {
+          requestTimeout: 300000,
+          maxRetries: 0,
+        }
+      )
+      .then(({ body }) => body);
 }

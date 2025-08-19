@@ -7,6 +7,7 @@ import { schema } from '@osd/config-schema';
 import { IOpenSearchDashboardsResponse, IRouter } from '../../../../../src/core/server';
 import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
 import { getOpenSearchClientTransport } from '../utils';
+import { getMLService } from '../../services/get_set';
 
 export function registerLogPatternRoute(router: IRouter) {
   router.post(
@@ -33,28 +34,19 @@ export function registerLogPatternRoute(router: IRouter) {
           dataSourceId: request.body.dataSourceMDSId,
         });
 
-        const { body } = await transport.request(
-          {
-            method: 'POST',
-            path: `/_plugins/_ml/tools/_execute/LogPatternAnalysisTool`,
-            body: {
-              parameters: {
-                baseTimeRangeStart: request.body.baselineStartTime,
-                baseTimeRangeEnd: request.body.baselineEndTime,
-                selectionTimeRangeStart: request.body.selectionStartTime,
-                selectionTimeRangeEnd: request.body.selectionEndTime,
-                traceFieldName: request.body.traceIdField,
-                timeField: request.body.timeField,
-                logFieldName: request.body.logMessageField,
-                index: request.body.indexName,
-              },
-            },
+        const body = await getMLService().analyzeLogPattern({
+          transport,
+          parameters: {
+            baseTimeRangeStart: request.body.baselineStartTime,
+            baseTimeRangeEnd: request.body.baselineEndTime,
+            selectionTimeRangeStart: request.body.selectionStartTime,
+            selectionTimeRangeEnd: request.body.selectionEndTime,
+            traceFieldName: request.body.traceIdField,
+            timeField: request.body.timeField,
+            logFieldName: request.body.logMessageField,
+            index: request.body.indexName,
           },
-          {
-            requestTimeout: 300000, // Set a timeout for the request
-            maxRetries: 0, // Disable retries to avoid delays
-          }
-        );
+        });
 
         return response.ok({
           body: body.inference_results[0].output[0].result,
