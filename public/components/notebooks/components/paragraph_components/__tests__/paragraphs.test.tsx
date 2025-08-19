@@ -41,6 +41,16 @@ jest.mock('../../../../../../public/services', () => ({
   })),
 }));
 
+// Mock Monaco editor completely
+jest.mock('@osd/monaco', () => ({
+  monaco: jest.fn(),
+}));
+
+jest.mock('../../../../../../../../src/plugins/opensearch_dashboards_react/public', () => ({
+  ...jest.requireActual('../../../../../../../../src/plugins/opensearch_dashboards_react/public'),
+  CodeEditor: () => <div data-test-subj="code-editor" />,
+}));
+
 const ContextAwareParagraphs = (
   props: ParagraphProps & {
     paragraphValues: ParagraphStateValue[];

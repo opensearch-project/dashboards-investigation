@@ -1,0 +1,77 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+.notebookQueryPanelWidgets {
+    display: flex;
+    overflow: hidden;
+
+
+    > :last-child {
+        margin-right: auto;
+    }
+
+    &__verticalSeparator {
+        width: 1px;
+        height: $ouiSizeS * 2;
+        background: $euiColorLightShade;
+        margin: $ouiSizeS $ouiSizeXXS;
+    }
+
+    &__datePicker {
+        margin-inline-start: 4px;
+
+        >* {
+            width: max-content;
+        }
+
+        * {
+            background-color: white;
+            border: none !important;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        .euiSuperDatePicker__prettyFormat {
+            display: block;
+        }
+
+        .euiDatePickerRange>* {
+            flex-grow: 0;
+        }
+
+        .euiDatePickerRange__delimeter {
+            margin-inline: 4px;
+        }
+
+        .euiSuperDatePicker__prettyFormatLink {
+            margin-inline-start: 8px;
+        }
+
+        .euiIcon--medium {
+            height: 12px;
+        }
+    }
+
+    &__datasetSelect {
+        flex-shrink: 1;
+        min-width: 0;
+
+        .datasetSelect {
+            width: unset;
+            max-width: 100%;
+        }
+
+        .datasetSelect__text {
+            width: auto;
+            max-width: unset;
+            font-weight: 400
+        }
+
+        .datasetSelect__button {
+            height: 32px
+        }
+
+    }
+}

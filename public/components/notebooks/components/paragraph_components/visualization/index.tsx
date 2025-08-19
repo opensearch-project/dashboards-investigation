@@ -95,7 +95,7 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
     },
   } = useOpenSearchDashboards<NoteBookServices>();
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
-  const context = useContext(NotebookReactContext);
+  const { state } = useContext(NotebookReactContext);
   const inputJSON = useMemo(() => {
     let result: DashboardContainerInput = createDashboardVizObject({
       type: '',
@@ -189,7 +189,7 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
       />
       <EuiSpacer size="m" />
       {isAgenticRunBefore({
-        notebookState: context.state,
+        notebookState: state,
         id: paragraphValue.id,
       }) ? null : (
         <EuiFlexGroup alignItems="center" gutterSize="s">

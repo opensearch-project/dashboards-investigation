@@ -11,9 +11,10 @@ interface SequenceItemProps {
   index: number;
 }
 
+export const errorKeywords = /\b(error|exception|failed|failure|panic|crash|fatal|abort|timeout|unavailable|denied|rejected|invalid|corrupt|broken|dead|kill)\b/gi;
+
 export const SequenceItem: React.FC<SequenceItemProps> = ({ item, index }) => {
   const hasErrorKeywords = (text: string): boolean => {
-    const errorKeywords = /\b(error|exception|failed|failure|panic|crash|fatal|abort|timeout|unavailable|denied|rejected|invalid|corrupt|broken|dead|kill)\b/gi;
     return errorKeywords.test(text);
   };
 
