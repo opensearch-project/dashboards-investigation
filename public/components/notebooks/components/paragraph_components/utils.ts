@@ -26,6 +26,11 @@ export const isAgenticRunBefore = (params: {
   const paragraphs = notebookState.value.paragraphs;
   const paragraphIndex = paragraphs.findIndex((p) => p.value.id === id);
 
+  // If paragraph ID not found, return false
+  if (paragraphIndex === -1) {
+    return false;
+  }
+
   // Get total paragraphs
   const totalParagraphs = paragraphs.length;
 
