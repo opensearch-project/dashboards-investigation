@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { EuiFlexGroup, EuiFlexItem, EuiPanel, EuiText, EuiBadge } from '@elastic/eui';
+import { EuiFlexGroup, EuiFlexItem, EuiPanel, EuiText } from '@elastic/eui';
 import { LogPatternAnalysisResult } from '../../../../../../common/types/log_pattern';
 
 interface SummaryStatisticsProps {
@@ -15,23 +15,18 @@ export const SummaryStatistics: React.FC<SummaryStatisticsProps> = ({ result }) 
   const stats = [
     {
       title: 'Log Insights',
-      value: result.logInsights?.length || 0,
+      value: result.logInsights?.length || '--',
       color: 'primary',
     },
     {
       title: 'Pattern Differences',
-      value: result.patternMapDifference?.length || 0,
+      value: result.patternMapDifference?.length || '--',
       color: 'accent',
     },
     {
       title: 'Exceptional Sequences',
-      value: Object.keys(result.EXCEPTIONAL || {}).length,
+      value: Object.keys(result.EXCEPTIONAL || {}).length || '--',
       color: 'danger',
-    },
-    {
-      title: 'Baseline Sequences',
-      value: Object.keys(result.BASE || {}).length,
-      color: 'hollow',
     },
   ];
 
@@ -39,11 +34,11 @@ export const SummaryStatistics: React.FC<SummaryStatisticsProps> = ({ result }) 
     <EuiFlexGroup>
       {stats.map((stat) => (
         <EuiFlexItem key={stat.title}>
-          <EuiPanel color="subdued" paddingSize="s">
-            <EuiText size="s" textAlign="center">
-              <strong>{stat.title}</strong>
+          <EuiPanel paddingSize="s" hasShadow={false}>
+            <EuiText size="s" textAlign="left">
+              {stat.title}
               <br />
-              <EuiBadge color={stat.color}>{stat.value}</EuiBadge>
+              <strong> {stat.value} </strong>
             </EuiText>
           </EuiPanel>
         </EuiFlexItem>

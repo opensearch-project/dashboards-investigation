@@ -5,7 +5,6 @@
 
 import React from 'react';
 import {
-  EuiAccordion,
   EuiBadge,
   EuiBasicTable,
   EuiCodeBlock,
@@ -13,18 +12,21 @@ import {
   EuiFlexGroup,
   EuiFlexItem,
   EuiIcon,
-  EuiSpacer,
   EuiTableFieldDataColumnType,
-  EuiTitle,
 } from '@elastic/eui';
 import { LogPattern } from '../../../../../../common/types/log_pattern';
 import { errorKeywords } from './sequence_item';
+import { LogAnalyticsLoadingPanel } from './log_analytics_loading_panel';
 
 interface PatternDifferenceProps {
   patternMapDifference: LogPattern[];
+  isLoadingPatternMapDifference: boolean;
 }
 
-export const PatternDifference: React.FC<PatternDifferenceProps> = ({ patternMapDifference }) => {
+export const PatternDifference: React.FC<PatternDifferenceProps> = ({
+  patternMapDifference,
+  isLoadingPatternMapDifference,
+}) => {
   // Function to sort and limit patternMapDifference to top 10 with lift and top 10 without lift
   const sortPatternMapDifference = (patterns: LogPattern[]) => {
     if (!patterns || patterns.length === 0) {
@@ -169,20 +171,11 @@ export const PatternDifference: React.FC<PatternDifferenceProps> = ({ patternMap
   };
 
   return (
-    <EuiAccordion
-      id="patternDifferences"
-      buttonContent={
-        <EuiTitle size="xs">
-          <h4>
-            <EuiIcon type="diff" />
-            &nbsp;Pattern Differences ({patternMapDifference?.length || 0})
-          </h4>
-        </EuiTitle>
-      }
+    <LogAnalyticsLoadingPanel
+      isLoading={isLoadingPatternMapDifference}
+      title="Pattern Difference Analysis"
       initialIsOpen={patternMapDifference && patternMapDifference.length > 0}
-    >
-      <EuiSpacer size="s" />
-      {renderSection()}
-    </EuiAccordion>
+      renderSection={renderSection}
+    />
   );
 };

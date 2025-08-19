@@ -69,6 +69,7 @@ import { usePrecheck } from '../../../hooks/use_precheck';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { ToggleSystemPromptSettingModal } from './helpers/custom_modals/toggle_system_prompt_setting_modal';
 import { AlertPanel } from './alert_panel';
+import { GlobalPanel } from './global_panel';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -674,6 +675,8 @@ export function NotebookComponent() {
           )}
           {source === NoteBookSource.ALERTING && <AlertPanel />}
           <EuiSpacer />
+          <GlobalPanel />
+          <EuiSpacer />
           <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
             {isLoading ? (
               <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
@@ -684,6 +687,7 @@ export function NotebookComponent() {
                   ref={(ref) => (paraDivRefs.current[index] = ref)}
                   key={`para_div_${paragraphState.value.id}`}
                 >
+                  {index > 0 && <EuiSpacer size="s" />}
                   <Paragraphs
                     paragraphState={paragraphState}
                     index={index}

@@ -5,26 +5,25 @@
 
 import React from 'react';
 import {
-  EuiAccordion,
   EuiBasicTable,
+  EuiCodeBlock,
   EuiEmptyPrompt,
-  EuiIcon,
-  EuiSpacer,
   EuiTableFieldDataColumnType,
   EuiText,
-  EuiTitle,
 } from '@elastic/eui';
 import { LogSequenceEntry } from '../../../../../../common/types/log_pattern';
 import { SequenceItem } from './sequence_item';
+import { LogAnalyticsLoadingPanel } from './log_analytics_loading_panel';
 
 interface LogSequenceProps {
   exceptionalSequences?: LogSequenceEntry;
   baselineSequences?: LogSequenceEntry;
+  isLoadingLogSequence: boolean;
 }
 
 export const LogSequence: React.FC<LogSequenceProps> = ({
   exceptionalSequences,
-  baselineSequences,
+  isLoadingLogSequence,
 }) => {
   // Helper function to convert map to array for table rendering
   const convertMapToSequenceArray = (
@@ -43,9 +42,9 @@ export const LogSequence: React.FC<LogSequenceProps> = ({
       field: 'traceId',
       name: 'Trace ID',
       render: (traceId: string) => (
-        <EuiText size="s" style={{ fontFamily: 'monospace' }}>
+        <EuiCodeBlock language="text" fontSize="s" paddingSize="s" transparentBackground>
           {traceId}
-        </EuiText>
+        </EuiCodeBlock>
       ),
       width: '30%',
     },
@@ -80,30 +79,14 @@ export const LogSequence: React.FC<LogSequenceProps> = ({
     },
   ];
 
-  const renderSection = (
-    title: string,
-    data: LogSequenceEntry[],
-    columns: Array<EuiTableFieldDataColumnType<LogSequenceEntry>>,
-    emptyMessage: string,
-    iconType: string,
-    iconColor?: string,
-    isOpen?: boolean
-  ) => {
+  const exceptionalArray = convertMapToSequenceArray(exceptionalSequences);
+
+  const renderSection = () => {
+    const title = 'Exceptional Sequences';
+    const emptyMessage = 'No exceptional log sequences detected during the analysis period.';
     return (
-      <EuiAccordion
-        id={title.toLowerCase().replace(/\s+/g, '')}
-        buttonContent={
-          <EuiTitle size="xs">
-            <h4>
-              <EuiIcon type={iconType} color={iconColor} />
-              &nbsp;{title} ({data.length})
-            </h4>
-          </EuiTitle>
-        }
-        initialIsOpen={isOpen || false}
-      >
-        <EuiSpacer size="s" />
-        {data.length === 0 ? (
+      <>
+        {exceptionalArray.length === 0 ? (
           <EuiEmptyPrompt
             iconType="search"
             title={<h4>No {title.toLowerCase()} found</h4>}
@@ -111,42 +94,22 @@ export const LogSequence: React.FC<LogSequenceProps> = ({
           />
         ) : (
           <EuiBasicTable
-            items={data}
-            columns={columns}
+            items={exceptionalArray}
+            columns={sequenceColumns}
             tableCaption={title}
             noItemsMessage={emptyMessage}
           />
         )}
-      </EuiAccordion>
+      </>
     );
   };
 
-  const exceptionalArray = convertMapToSequenceArray(exceptionalSequences);
-  const baselineArray = convertMapToSequenceArray(baselineSequences);
-
   return (
-    <>
-      {renderSection(
-        'Exceptional Sequences',
-        exceptionalArray,
-        sequenceColumns,
-        'No exceptional log sequences detected during the analysis period.',
-        'alert',
-        'danger',
-        exceptionalArray.length > 0
-      )}
-
-      <EuiSpacer size="m" />
-
-      {renderSection(
-        'Baseline Sequences',
-        baselineArray,
-        sequenceColumns,
-        'No baseline log sequences available for comparison.',
-        'timeline',
-        undefined,
-        false
-      )}
-    </>
+    <LogAnalyticsLoadingPanel
+      isLoading={isLoadingLogSequence}
+      title="Exceptional Sequences"
+      initialIsOpen={false}
+      renderSection={renderSection}
+    />
   );
 };

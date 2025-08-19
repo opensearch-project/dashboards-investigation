@@ -58,6 +58,28 @@ export const usePrecheck = () => {
         const totalParagraphLength = res.paragraphs.length;
         const paragraphStates: Array<ParagraphState<unknown>> = [];
 
+        if (!logPatternParaExists) {
+          const resContext = res.context as NotebookContext;
+          if (resContext?.timeRange && resContext?.index && resContext?.timeField) {
+            if (
+              resContext?.indexInsight?.is_log_index &&
+              resContext?.indexInsight?.log_message_field
+            ) {
+              const logPatternResult = await createParagraph({
+                index: totalParagraphLength + paragraphStates.length,
+                input: {
+                  inputText: '',
+                  inputType: LOG_PATTERN_PARAGRAPH_TYPE,
+                },
+                dataSourceMDSId: resContext?.dataSourceId,
+              });
+              if (logPatternResult) {
+                paragraphStates.push(logPatternResult);
+              }
+            }
+          }
+        }
+
         if (!anomalyAnalysisParaExists) {
           const resContext = res.context;
           if (
@@ -83,27 +105,6 @@ export const usePrecheck = () => {
             });
             if (anomalyAnalysisParagraphResult) {
               paragraphStates.push(anomalyAnalysisParagraphResult);
-            }
-          }
-        }
-        if (!logPatternParaExists) {
-          const resContext = res.context as NotebookContext;
-          if (resContext?.timeRange && resContext?.index && resContext?.timeField) {
-            if (
-              resContext?.indexInsight?.is_log_index &&
-              resContext?.indexInsight?.log_message_field
-            ) {
-              const logPatternResult = await createParagraph({
-                index: totalParagraphLength + paragraphStates.length,
-                input: {
-                  inputText: '',
-                  inputType: LOG_PATTERN_PARAGRAPH_TYPE,
-                },
-                dataSourceMDSId: resContext?.dataSourceId,
-              });
-              if (logPatternResult) {
-                paragraphStates.push(logPatternResult);
-              }
             }
           }
         }

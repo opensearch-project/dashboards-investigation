@@ -58,6 +58,10 @@ jest.mock('../alert_panel', () => ({
   AlertPanel: () => <div />,
 }));
 
+jest.mock('../global_panel.tsx', () => ({
+  GlobalPanel: () => <div />,
+}));
+
 jest.mock('../input_panel.tsx', () => ({
   InputPanel: () => <div />,
 }));
