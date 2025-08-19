@@ -64,7 +64,7 @@ export class InvestigationPlugin
     const appMountWithStartPage = () => async (params: AppMountParameters) => {
       const { Observability } = await import('./components/index');
       const services = await getServices();
-      return Observability(services, params!);
+      return Observability({ ...services, appMountService: params }, params!);
     };
 
     core.application.register({

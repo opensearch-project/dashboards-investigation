@@ -15,7 +15,7 @@ import { EmbeddableSetup, EmbeddableStart } from '../../../src/plugins/embeddabl
 import { NavigationPublicPluginStart } from '../../../src/plugins/navigation/public';
 import { VisualizationsSetup } from '../../../src/plugins/visualizations/public';
 import { ExpressionsStart } from '../../../src/plugins/expressions/public';
-import { CoreStart } from '../../../src/core/public';
+import { AppMountParameters, CoreStart } from '../../../src/core/public';
 import PPLService from './services/requests/ppl';
 
 export interface AppPluginStartDependencies {
@@ -40,6 +40,7 @@ export type NoteBookServices = CoreStart &
   AppPluginStartDependencies & {
     appName: string;
     pplService: PPLService;
+    appMountService?: AppMountParameters;
   };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface

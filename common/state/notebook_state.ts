@@ -15,6 +15,7 @@ export interface NotebookStateValue {
   context: TopContextState;
   dataSourceEnabled: boolean;
   dateCreated: string;
+  dateModified: string;
   isLoading: boolean;
   path: string;
   vizPrefix: string;
