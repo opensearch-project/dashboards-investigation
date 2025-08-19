@@ -44,7 +44,6 @@ import { MessageTraceFlyout } from './message_trace_flyout';
 import { PERAgentMemoryService } from './services/per_agent_memory_service';
 
 export const DeepResearchParagraph = ({
-  idx,
   paragraphState,
 }: {
   paragraphState: ParagraphState<DeepResearchOutputResult, DeepResearchInputParameters>;

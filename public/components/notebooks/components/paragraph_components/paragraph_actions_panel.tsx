@@ -17,7 +17,6 @@ import { useObservable } from 'react-use';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { NotebookType } from '../../../../../common/types/notebooks';
-import { isAgenticRunBefore } from './utils';
 
 export const ParagraphActionPanel = (props: {
   idx: number;
@@ -83,7 +82,7 @@ export const ParagraphActionPanel = (props: {
         },
         {
           name: 'Delete',
-          disabled: isAgenticRunBefore(notebookType, idx, paragraphStates.length),
+          disabled: idx <= paragraphStates.length - 1 || notebookType === NotebookType.AGENTIC,
           onClick: () => {
             setIsPopoverOpen(false);
             props.deletePara(idx);
