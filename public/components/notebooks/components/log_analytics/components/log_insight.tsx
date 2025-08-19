@@ -123,7 +123,7 @@ export const LogInsight: React.FC<LogInsightProps> = ({ logInsights, isLoadingLo
     <LogAnalyticsLoadingPanel
       isLoading={isLoadingLogInsights}
       title="Log Insights Analysis"
-      initialIsOpen={true}
+      initialIsOpen={false}
       renderSection={renderSection}
     />
   );

@@ -174,7 +174,7 @@ export const PatternDifference: React.FC<PatternDifferenceProps> = ({
     <LogAnalyticsLoadingPanel
       isLoading={isLoadingPatternMapDifference}
       title="Pattern Difference Analysis"
-      initialIsOpen={patternMapDifference && patternMapDifference.length > 0}
+      initialIsOpen={false}
       renderSection={renderSection}
     />
   );
