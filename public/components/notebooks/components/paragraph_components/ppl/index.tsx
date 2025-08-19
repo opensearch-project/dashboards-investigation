@@ -230,7 +230,11 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
       >
         <div style={{ width: '100%' }}>
           <MultiVariantInput
-            input={{ inputText: paragraphValue.input.inputText, inputType: 'PPL' }}
+            input={{
+              inputText: paragraphValue.input.inputText,
+              inputType: 'PPL',
+              paragraphId: paragraphValue.id,
+            }}
             onSubmit={(value) => {
               paragraphState.updateInput({
                 inputText: value,

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useContext } from 'react';
 import {
   EuiButtonEmpty,
   EuiFlexGroup,
@@ -19,6 +19,8 @@ import { useInputContext } from '../input_context';
 import { QueryState } from '../types';
 
 import './query_panel.scss';
+import { isAgenticRunBefore } from '../../paragraph_components/utils';
+import { NotebookReactContext } from '../../../../../../public/components/notebooks/context_provider/context_provider';
 
 interface QueryPanelProps {
   prependWidget?: React.ReactNode;
@@ -36,7 +38,8 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
       },
     },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { inputValue, handleInputChange, handleSubmit } = useInputContext();
+  const { inputValue, paragraphId, handleInputChange, handleSubmit } = useInputContext();
+  const { state } = useContext(NotebookReactContext);
 
   const queryState = inputValue as QueryState;
   const { timeRange } = queryState || {};
@@ -76,13 +79,18 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
             dateFormat={uiSettings!.get('dateFormat')}
           />
         </div>
-        <EuiFlexGroup gutterSize="none" dir="row" justifyContent="flexEnd">
-          <EuiButtonEmpty iconType="play" size="s" aria-label="run button" onClick={handleSubmit}>
-            Run
-          </EuiButtonEmpty>
-          <div className="notebookQueryPanelWidgets__verticalSeparator" />
-          {appendWidget}
-        </EuiFlexGroup>
+        {isAgenticRunBefore({
+          notebookState: state,
+          id: paragraphId,
+        }) ? null : (
+          <EuiFlexGroup gutterSize="none" dir="row" justifyContent="flexEnd">
+            <EuiButtonEmpty iconType="play" size="s" aria-label="run button" onClick={handleSubmit}>
+              Run
+            </EuiButtonEmpty>
+            <div className="notebookQueryPanelWidgets__verticalSeparator" />
+            {appendWidget}
+          </EuiFlexGroup>
+        )}
       </EuiFlexGroup>
       <EuiSpacer size="xs" />
       <QueryPanelEditor />

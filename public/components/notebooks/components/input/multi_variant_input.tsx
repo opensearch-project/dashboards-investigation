@@ -22,7 +22,7 @@ import { MarkDownInput } from './markdown_input';
 import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
 
 interface MultiVariantInputProps {
-  input?: { inputText: string; inputType: string };
+  input?: { inputText: string; inputType: string; paragraphId?: string };
   onSubmit?: (paragraphInput: any, inputType: string) => void;
 }
 

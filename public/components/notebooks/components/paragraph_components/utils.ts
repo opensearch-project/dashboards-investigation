@@ -15,7 +15,7 @@ import { NotebookType } from '../../../../../common/types/notebooks';
  */
 export const isAgenticRunBefore = (params: {
   notebookState: NotebookState;
-  id: string;
+  id: string | undefined;
 }): boolean => {
   const { notebookState, id } = params;
 
