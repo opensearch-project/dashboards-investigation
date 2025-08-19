@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { monaco } from '@osd/monaco';
 import { i18n } from '@osd/i18n';
+import { NoteBookServices } from 'public/types';
 import { promptEditorOptions, queryEditorOptions } from './editor_options';
 import { getCommandEnterAction } from './command_enter_action';
 import { getShiftEnterAction } from './shift_enter_action';
@@ -91,7 +92,7 @@ const languageConfiguration: LanguageConfiguration = {
 };
 
 interface UseQueryPanelEditorProps {
-  services: any;
+  services: NoteBookServices;
   promptModeIsAvailable: boolean;
   isPromptEditorMode: boolean;
   queryLanguage: string;
@@ -199,7 +200,6 @@ export const useQueryPanelEditor = ({
         return { suggestions: [], incomplete: false };
       }
       try {
-        // Get the effective language for autocomplete (PPL -> PPL_Simplified for explore app)
         const effectiveLanguage = isPromptModeRef.current ? 'AI' : queryLanguage;
 
         // Get the current dataset from Query Service to avoid stale closure values
@@ -219,7 +219,7 @@ export const useQueryPanelEditor = ({
           indexPattern: currentDataView,
           datasetType: currentDataset?.type,
           position,
-          services: services as any, // ExploreServices storage type incompatible with IDataPluginServices.DataStorage
+          services: services as any, // NotebookServices storage type incompatible with IDataPluginServices.DataStorage
         });
 
         // current completion item range being given as last 'word' at pos

@@ -23,7 +23,7 @@ import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
 
 interface MultiVariantInputProps {
   input?: { inputText: string; inputType: string };
-  onSubmit: (paragraphInput: any, inputType: string) => void;
+  onSubmit?: (paragraphInput: any, inputType: string) => void;
 }
 
 const MultiVariantInputContent: React.FC = () => {

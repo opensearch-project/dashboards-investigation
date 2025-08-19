@@ -16,6 +16,7 @@ import {
   DEEP_RESEARCH_PARAGRAPH_TYPE,
 } from '../../../../../common/constants/notebooks';
 import { NotebookReactContext } from '../../context_provider/context_provider';
+import { useParagraphs } from '../../../../../public/hooks/use_paragraphs';
 
 interface InputContextValue<T extends InputType = InputType> {
   // States
@@ -69,7 +70,7 @@ const InputContext = createContext<InputContextValue | undefined>(undefined);
 
 interface InputProviderProps {
   children: ReactNode;
-  onSubmit: (paragraphInput: string, inputType: string) => void;
+  onSubmit?: (paragraphInput: string, inputType: string) => void;
   input?: { inputText: string; inputType: string };
 }
 
@@ -77,6 +78,11 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
   const {
     services: { http, data },
   } = useOpenSearchDashboards<NoteBookServices>();
+  const { createParagraph } = useParagraphs();
+  const paragraphs = useObservable(
+    useContext(NotebookReactContext).state.getValue$(),
+    useContext(NotebookReactContext).state.value
+  ).paragraphs.map((item) => item.value);
 
   const [currInputType, setCurrInputType] = useState<InputType>(
     (input?.inputType as InputType) || AI_RESPONSE_TYPE
@@ -98,7 +104,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         queryLanguage: input.inputType as QueryLanguage,
         isPromptEditorMode: false,
         timeRange: { start: 'now-15m', end: 'now' },
-        selectedIndex: data.query.queryString.getDefaultQuery(),
+        selectedIndex: data.query.queryString.getDefaultQuery().dataset,
       } as InputValueType<typeof currInputType>;
     }
 
@@ -118,6 +124,8 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
       ? inputValue.value
       : (inputValue as string) || ''
   );
+
+  const isParagraph = !!input;
 
   const handleInputChange = (value: Partial<InputValueType<typeof currInputType>>) => {
     if (currInputType === 'PPL' || currInputType === 'SQL') {
@@ -147,12 +155,6 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     context.state.value.context.value
   );
 
-  const { isLoading, onAskAISubmit } = useInputSubmit({
-    http,
-    dataSourceId,
-    onSubmit,
-  });
-
   const paragraphOptions = [
     {
       key: AI_RESPONSE_TYPE,
@@ -164,7 +166,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     {
       key: 'DEEP_RESEARCH_AGENT',
       icon: 'generate',
-      label: 'Deep research',
+      label: 'Continue investigation',
       'data-test-subj': 'paragraph-type-deep-research',
       disabled: !initialGoal,
     },
@@ -176,6 +178,24 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
       'data-test-subj': 'paragraph-type-visualization',
     },
   ].filter((item) => !item.disabled);
+
+  const handleCreateParagraph = async (paragraphInput: string | object, inputType: string) => {
+    // Add paragraph at the end
+    await createParagraph({
+      index: paragraphs.length,
+      input: {
+        inputText:
+          typeof paragraphInput === 'object' ? JSON.stringify(paragraphInput) : paragraphInput,
+        inputType,
+      },
+    });
+  };
+
+  const { isLoading, onAskAISubmit } = useInputSubmit({
+    http,
+    dataSourceId,
+    onSubmit: handleCreateParagraph,
+  });
 
   const handleParagraphSelection = async (options: EuiSelectableOption[]) => {
     const selectedOption = options.find((option) => option.checked === 'on');
@@ -212,7 +232,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
           paragraphInput = '';
       }
 
-      onSubmit(paragraphInput, inputType);
+      handleCreateParagraph(paragraphInput, inputType);
 
       setIsParagraphSelectionOpen(false);
       handleInputChange('');
@@ -223,15 +243,16 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     if (!payload && !inputValue) {
       return;
     }
+    const submitFn = isParagraph && onSubmit ? onSubmit : handleCreateParagraph;
     switch (currInputType) {
       case AI_RESPONSE_TYPE:
         onAskAISubmit(inputValue as string, () => setInputValue(''));
         break;
       case 'DEEP_RESEARCH_AGENT':
-        onSubmit(inputValue as string, DEEP_RESEARCH_PARAGRAPH_TYPE);
+        submitFn(inputValue as string, DEEP_RESEARCH_PARAGRAPH_TYPE);
         break;
       case 'MARKDOWN':
-        onSubmit(`%md ${inputValue}`, currInputType);
+        submitFn(`%md ${inputValue}`, currInputType);
         setInputValue('');
         break;
       case 'PPL':
@@ -243,8 +264,10 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         });
 
         const timeFieldName = (inputValue as QueryState).selectedIndex.timeFieldName;
-        const timeFilterQuery = `WHERE \`${timeFieldName}\` >= '${timeBounds.min?.toISOString()}' AND \`${timeFieldName}\` <= '${timeBounds.max?.toISOString()}'`;
-        onSubmit(`%ppl\n${editorTextRef.current} | ${timeFilterQuery}`, 'CODE');
+        const timeFilterQuery = timeFieldName
+          ? ` | WHERE \`${timeFieldName}\` >= '${timeBounds.min?.toISOString()}' AND \`${timeFieldName}\` <= '${timeBounds.max?.toISOString()}'`
+          : '';
+        submitFn(`%ppl\n${editorTextRef.current}${timeFilterQuery}`, 'CODE');
         break;
       case 'VISUALIZATION':
         break;
@@ -283,7 +306,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     editorTextRef,
     dataView,
     isLoading,
-    isParagraph: !!input,
+    isParagraph,
     paragraphOptions,
     setCurrInputType: handleSetCurrInputType,
     setIsPopoverOpen: setIsParagraphSelectionOpen,

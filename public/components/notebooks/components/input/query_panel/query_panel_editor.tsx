@@ -16,6 +16,13 @@ import { QueryState } from '../types';
 
 import './query_panel_editor.scss';
 
+const DEFAULT_QUERY_STATE = {
+  value: '',
+  queryLanguage: 'PPL' as const,
+  isPromptEditorMode: false,
+  timeRange: { start: 'now-15m', end: 'now' },
+};
+
 export const QueryPanelEditor = () => {
   const { services } = useOpenSearchDashboards<NoteBookServices>();
   const {
@@ -29,11 +36,16 @@ export const QueryPanelEditor = () => {
   } = useInputContext();
 
   const queryState = inputValue as QueryState;
-  const { value, queryLanguage, isPromptEditorMode } = queryState || {
-    value: '',
-    queryLanguage: 'PPL' as const,
-    isPromptEditorMode: false,
-  };
+  const { value, queryLanguage, isPromptEditorMode } = queryState || DEFAULT_QUERY_STATE;
+
+  useEffect(() => {
+    if (!queryState) {
+      handleInputChange({
+        ...DEFAULT_QUERY_STATE,
+        selectedIndex: services.data.query.queryString.getDefaultQuery().dataset,
+      });
+    }
+  }, [handleInputChange, queryState, services.data.query.queryString]);
 
   useEffect(() => {
     services.data.dataViews.getDefault().then((res: any) => {
@@ -54,7 +66,7 @@ export const QueryPanelEditor = () => {
     isPromptEditorMode,
     queryLanguage,
     // FIXME when no need %ppl
-    userQueryString: value.startsWith('%ppl\n') ? value.slice(5) : value,
+    userQueryString: value.startsWith('%ppl') ? value.slice(5) : value,
     handleRun: useCallback(() => {
       handleSubmit();
     }, [handleSubmit]),

@@ -7,11 +7,7 @@ import React from 'react';
 import { EuiPanel } from '@elastic/eui';
 import { MultiVariantInput } from './input/multi_variant_input';
 
-interface InputPanelProps {
-  onSubmit: (paragraphInput: string, inputType: string) => Promise<void>;
-}
-
-export const InputPanel: React.FC<InputPanelProps> = ({ onSubmit }) => {
+export const InputPanel: React.FC = () => {
   return (
     <div
       style={{
@@ -24,7 +20,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onSubmit }) => {
       }}
     >
       <EuiPanel grow borderRadius="xl" hasBorder hasShadow paddingSize="s">
-        <MultiVariantInput onSubmit={onSubmit} />
+        <MultiVariantInput />
       </EuiPanel>
     </div>
   );

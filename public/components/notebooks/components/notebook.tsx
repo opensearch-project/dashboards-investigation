@@ -120,7 +120,6 @@ export function NotebookComponent() {
     notebookContext.state.value.context.value
   );
   const isSavedObjectNotebook = isValidUUID(openedNoteId);
-  const paragraphs = paragraphsStates.map((item) => item.value);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const dataSourceMDSEnabled = useMemo(() => dataSourceEnabled && isSavedObjectNotebook, [
@@ -598,18 +597,6 @@ export function NotebookComponent() {
     </EuiFlexGroup>
   );
 
-  const handleCreateParagraph = async (paragraphInput: string | object, inputType: string) => {
-    // Add paragraph at the end
-    await createParagraph({
-      index: paragraphs.length,
-      input: {
-        inputText:
-          typeof paragraphInput === 'object' ? JSON.stringify(paragraphInput) : paragraphInput,
-        inputType,
-      },
-    });
-  };
-
   const reportingTopButton = !isSavedObjectNotebook ? (
     <EuiFlexItem grow={false}>
       <EuiSmallButton
@@ -792,7 +779,7 @@ export function NotebookComponent() {
           </EuiPageContent>
         </EuiPageBody>
         <EuiSpacer />
-        <InputPanel onSubmit={handleCreateParagraph} />
+        <InputPanel />
       </EuiPage>
       {isModalVisible && modalLayout}
     </>
