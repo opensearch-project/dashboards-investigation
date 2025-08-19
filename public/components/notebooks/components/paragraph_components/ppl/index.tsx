@@ -97,7 +97,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
     services: { http, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
 
-  const context = useContext(NotebookReactContext);
+  const { state } = useContext(NotebookReactContext);
 
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const selectedDataSource = paragraphValue?.dataSourceMDSId;
@@ -247,7 +247,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
               disabled={
                 !!isRunning ||
                 isAgenticRunBefore({
-                  notebookState: context.state,
+                  notebookState: state,
                   id: paragraphValue.id,
                 })
               }
@@ -282,7 +282,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
       </EuiCompressedFormRow>
       <EuiSpacer size="m" />
       {isAgenticRunBefore({
-        notebookState: context.state,
+        notebookState: state,
         id: paragraphValue.id,
       }) ? null : (
         <EuiFlexGroup alignItems="center" gutterSize="s">

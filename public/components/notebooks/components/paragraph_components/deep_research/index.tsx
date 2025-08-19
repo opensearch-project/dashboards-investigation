@@ -157,7 +157,7 @@ export const DeepResearchParagraph = ({
               disabled={
                 !!isRunning ||
                 isAgenticRunBefore({
-                  notebookState: context.state,
+                  notebookState: state,
                   id: paragraphValue.id,
                 })
               }
@@ -190,7 +190,7 @@ export const DeepResearchParagraph = ({
       </EuiCompressedFormRow>
       <EuiSpacer size="m" />
       {isAgenticRunBefore({
-        notebookState: context.state,
+        notebookState: state,
         id: paragraphValue.id,
       }) ? null : (
         <EuiFlexGroup alignItems="center" gutterSize="s">

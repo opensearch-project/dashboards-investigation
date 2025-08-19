@@ -96,8 +96,6 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
   } = useOpenSearchDashboards<NoteBookServices>();
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const context = useContext(NotebookReactContext);
-  // const notebookType = context.state.getContext().notebookType || NotebookType.CLASSIC;
-  // const paragraphs = context.state.value.paragraphs;
   const inputJSON = useMemo(() => {
     let result: DashboardContainerInput = createDashboardVizObject({
       type: '',
