@@ -52,7 +52,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
 
   const handleTimeChange = useCallback(
     (props) => {
-      handleInputChange({ timeRange: props });
+      handleInputChange({ timeRange: { from: props.start, to: props.end } });
     },
     [handleInputChange]
   );
@@ -70,8 +70,8 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
         <div className="notebookQueryPanelWidgets__verticalSeparator" />
         <div className="notebookQueryPanelWidgets__datePicker">
           <EuiSuperDatePicker
-            start={timeRange?.start}
-            end={timeRange?.end}
+            start={timeRange?.from}
+            end={timeRange?.to}
             onTimeChange={handleTimeChange}
             compressed
             showUpdateButton={false}

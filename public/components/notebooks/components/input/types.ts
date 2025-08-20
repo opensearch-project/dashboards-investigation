@@ -2,8 +2,8 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
-import { DurationRange } from '@elastic/eui/src/components/date_picker/types';
 import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
+import { TimeRange } from '../../../../../../../src/plugins/data/common';
 
 export type InputType =
   | 'PPL'
@@ -20,7 +20,7 @@ export interface QueryState {
   query?: string;
   queryLanguage: QueryLanguage;
   isPromptEditorMode: boolean;
-  timeRange?: DurationRange;
+  timeRange?: TimeRange;
   selectedIndex?: any;
 }
 

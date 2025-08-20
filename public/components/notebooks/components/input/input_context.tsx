@@ -8,7 +8,6 @@ import { useObservable } from 'react-use';
 import type { monaco } from '@osd/monaco';
 import { NoteBookServices } from 'public/types';
 import { EuiSelectableOption } from '@elastic/eui';
-import { DurationRange } from '@elastic/eui/src/components/date_picker/types';
 import { InputType, QueryLanguage, QueryState, InputValueType, InputTypeOption } from './types';
 import { useInputSubmit } from './use_input_submit';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
@@ -22,6 +21,7 @@ import {
   QueryAssistParameters,
   QueryAssistResponse,
 } from '../../../../../../../src/plugins/query_enhancements/common/query_assist';
+import { formatTimePickerDate, TimeRange } from '../../../../../../../src/plugins/data/common';
 
 const TIME_FILTER_QUERY_REGEX = /\s*\|\s*WHERE\s+`[^`]+`\s*>=\s*'[^']+'\s*AND\s*`[^`]+`\s*<=\s*'[^']+'/i;
 
@@ -111,7 +111,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         query: '',
         queryLanguage: input.inputType as QueryLanguage,
         isPromptEditorMode: false, // FIXME
-        timeRange: { start: 'now-15m', end: 'now' },
+        timeRange: { from: 'now-15m', to: 'now' },
         selectedIndex: data.query.queryString.getDefaultQuery().dataset, // FIXME
       } as InputValueType<typeof currInputType>;
     }
@@ -259,26 +259,25 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
 
   const submitFn = isInputMountedInParagraph && onSubmit ? onSubmit : handleCreateParagraph;
 
-  const calculateTimeFilterQuery = (
+  const calculateQueryWithTimeFilter = (
     query: string,
-    timeRange: DurationRange,
+    timeRange: TimeRange,
     selectedIndex: any
   ) => {
     if (TIME_FILTER_QUERY_REGEX.test(query)) {
-      return '';
+      return query;
     }
-    // FIXME: remove this when the executing of a query is properly implemented
-    const timeBounds = data.query.timefilter.timefilter.calculateBounds({
-      from: timeRange?.start!,
-      to: timeRange?.end!,
-    });
 
+    const { fromDate, toDate } = formatTimePickerDate(timeRange, TIME_FILTER_FORMAT);
     const timeFieldName = selectedIndex.timeFieldName;
-    return timeFieldName
-      ? ` | WHERE \`${timeFieldName}\` >= '${timeBounds.min!.format(
-          TIME_FILTER_FORMAT
-        )}' AND \`${timeFieldName}\` <= '${timeBounds.max!.format(TIME_FILTER_FORMAT)}'`
+    const whereCommand = timeFieldName
+      ? `WHERE \`${timeFieldName}\` >= '${fromDate}' AND \`${timeFieldName}\` <= '${toDate}'`
       : '';
+
+    // Append time filter where command after the first command
+    const commands = query.split('|');
+    commands.splice(1, 0, whereCommand);
+    return commands.map((cmd) => cmd.trim()).join(' | ');
   };
 
   const handleCallAgent = async () => {
@@ -297,8 +296,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
 
     handleInputChange({ query });
 
-    const timeFilterQuery = calculateTimeFilterQuery(query, timeRange!, selectedIndex);
-    submitFn(`%ppl\n${query}${timeFilterQuery}`, 'CODE');
+    submitFn(`%ppl\n${calculateQueryWithTimeFilter(query, timeRange!, selectedIndex)}`, 'CODE');
   };
 
   const handleSubmit = (payload?: any) => {
@@ -326,9 +324,14 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
           // TODO: run generated query if the query is not dirty
           handleCallAgent();
         } else {
-          const inputQuery = editorTextRef.current;
-          const timeFilterQuery = calculateTimeFilterQuery(inputQuery, timeRange!, selectedIndex);
-          submitFn(`%ppl\n${inputQuery}${timeFilterQuery}`, 'CODE');
+          submitFn(
+            `%ppl\n${calculateQueryWithTimeFilter(
+              editorTextRef.current,
+              timeRange!,
+              selectedIndex
+            )}`,
+            'CODE'
+          );
         }
         break;
       case 'VISUALIZATION':
@@ -349,7 +352,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         query: '',
         queryLanguage: type as QueryLanguage,
         isPromptEditorMode: false,
-        timeRange: { start: 'now-15m', end: 'now' },
+        timeRange: { from: 'now-15m', to: 'now' },
         selectedIndex: data.query.queryString.getDefaultQuery().dataset,
       });
     } else {
