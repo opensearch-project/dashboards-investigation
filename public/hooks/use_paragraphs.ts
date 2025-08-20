@@ -11,6 +11,7 @@ import { NotebookReactContext } from '../components/notebooks/context_provider/c
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
+import { getContextServiceSetup } from '../services';
 
 export const useParagraphs = () => {
   const context = useContext(NotebookReactContext);
@@ -18,6 +19,7 @@ export const useParagraphs = () => {
     services: { notifications, http },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { id } = context.state.value;
+  const contextService = getContextServiceSetup();
 
   const createParagraph = useCallback(
     <TInput>(props: {
@@ -198,6 +200,7 @@ export const useParagraphs = () => {
           context.state.updateValue({
             paragraphs: newParagraphs,
           });
+          contextService.deleteParagraphContext(id, paragraph.id);
           return _res;
         })
         .catch((err) => {

@@ -4,7 +4,13 @@
  */
 
 import React from 'react';
-import { AppMountParameters, CoreSetup, CoreStart, Plugin } from '../../../src/core/public';
+import {
+  AppMountParameters,
+  CoreSetup,
+  CoreStart,
+  Plugin,
+  PluginInitializerContext,
+} from '../../../src/core/public';
 import {
   investigationNotebookID,
   investigationNotebookPluginOrder,
@@ -36,15 +42,20 @@ import { Notebook, NotebookProps } from './components/notebooks/components/noteb
 import { NOTEBOOK_APP_NAME } from '../common/constants/notebooks';
 import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opensearch_dashboards_react/public';
 import { paragraphRegistry } from './paragraphs';
+import { ContextService } from './services/context_service';
+import { setContextServiceSetup } from './services';
 
 export class InvestigationPlugin
   implements
     Plugin<InvestigationSetup, InvestigationStart, SetupDependencies, AppPluginStartDependencies> {
   private paragraphService: ParagraphService;
+  private contextService: ContextService;
 
   constructor() {
     this.paragraphService = new ParagraphService();
+    this.contextService = new ContextService();
   }
+
   public setup(
     core: CoreSetup<AppPluginStartDependencies>,
     setupDeps: SetupDependencies
@@ -62,6 +73,10 @@ export class InvestigationPlugin
     paragraphRegistry.forEach(({ types, item }) => {
       paragraphServiceSetup.register(types, item);
     });
+    this.contextService.init();
+    const contextServiceSetup = this.contextService.setup();
+
+    setContextServiceSetup(contextServiceSetup);
 
     const getServices = async () => {
       const [coreStart, depsStart] = await core.getStartServices();

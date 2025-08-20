@@ -53,7 +53,7 @@ function QueryDataGrid(props: QueryDataGridProps) {
     return ({ rowIndex, columnId }: RenderCellValueProps) => {
       return dataValues.hasOwnProperty(rowIndex) ? dataValues[rowIndex][columnId] : null;
     };
-  }, []);
+  }, [dataValues]);
 
   const getUpdatedVisibleColumns = () => {
     const updatedVisibleColumns = [];
