@@ -152,5 +152,13 @@ describe('PPL Parse Service', () => {
         "source=logs | eval `current_time()` = '2023-01-01 12:00:00' | where time >= DATE_SUB('2023-01-01', INTERVAL 2 DAY)  | head 10"
       );
     });
+
+    it('should return correct fromClause', () => {
+      const query =
+        'source=logs | eval `current_time()` = NOW() | where time >= DATE_SUB(CURRENT_DATE(), INTERVAL 2 DAY)  | head 10';
+      const result = parsePPLQuery(query);
+
+      expect(result.fromClause?.text).toBe('source=logs');
+    });
   });
 });

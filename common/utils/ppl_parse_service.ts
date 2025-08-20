@@ -8,16 +8,27 @@ import {
   OpenSearchPPLParser,
   OpenSearchPPLParserVisitor,
 } from '@osd/antlr-grammar';
-import { EvalFunctionCallContext } from '@osd/antlr-grammar/target/opensearch_ppl/.generated/OpenSearchPPLParser';
+import {
+  EvalFunctionCallContext,
+  FromClauseContext,
+} from '@osd/antlr-grammar/target/opensearch_ppl/.generated/OpenSearchPPLParser';
 import { CharStream, CommonTokenStream } from 'antlr4ng';
 import moment from 'moment';
 
 export interface ParsedPPLQuery {
   pplWithAbsoluteTime: string;
+  fromClause?: { start: number; stop: number; text: string };
 }
 
 // ParseTreeListener
 class PPLQueryParserVisitor extends OpenSearchPPLParserVisitor<void> {
+  private query: string;
+
+  constructor(query: string) {
+    super();
+    this.query = query;
+  }
+
   public result: ParsedPPLQuery = {
     pplWithAbsoluteTime: '',
   };
@@ -72,6 +83,15 @@ class PPLQueryParserVisitor extends OpenSearchPPLParserVisitor<void> {
       });
     }
   };
+
+  visitFromClause = (ctx: FromClauseContext) => {
+    if (!ctx.start || !ctx.stop) return;
+    this.result.fromClause = {
+      start: ctx.start.start,
+      stop: ctx.stop.stop,
+      text: this.query.substring(ctx.start.start, ctx.stop.stop + 1),
+    };
+  };
 }
 
 export function parsePPLQuery(query: string): ParsedPPLQuery {
@@ -81,7 +101,7 @@ export function parsePPLQuery(query: string): ParsedPPLQuery {
   const parser = new OpenSearchPPLParser(tokenStream);
   const tree = parser.root();
 
-  const listener = new PPLQueryParserVisitor();
+  const listener = new PPLQueryParserVisitor(query);
   tree.accept(listener);
 
   // Apply replacements from end to start to maintain positions
