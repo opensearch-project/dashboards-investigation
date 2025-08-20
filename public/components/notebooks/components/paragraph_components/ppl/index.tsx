@@ -39,6 +39,7 @@ import { getInputType } from '../../../../../../common/utils/paragraph';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { callOpenSearchCluster } from '../../../../../plugin_helpers/plugin_proxy_call';
 import { MultiVariantInput } from '../../input/multi_variant_input';
+import { parsePPLQuery } from '../../../../../../common/utils';
 
 interface QueryObject {
   schema?: any[];
@@ -159,6 +160,16 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
   }, [paragraphValue, loadQueryResultsFromInput, searchQuery]);
 
   const runParagraphHandler = async () => {
+    const queryType = paragraphValue.input.inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
+    const inputQuery = paragraphValue.input.inputText.substring(4);
+    if (queryType === '_ppl' && inputQuery.trim()) {
+      const pplWithAbsoluteTime = parsePPLQuery(inputQuery).pplWithAbsoluteTime;
+      if (pplWithAbsoluteTime !== inputQuery) {
+        paragraphState.updateInput({
+          inputText: `%ppl\n${pplWithAbsoluteTime}`,
+        });
+      }
+    }
     await saveParagraph({
       paragraphStateValue: paragraphState.getBackendValue(),
     });

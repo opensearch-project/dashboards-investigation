@@ -4,3 +4,4 @@
  */
 
 export * from './core_services';
+export * from './ppl_parse_service';
