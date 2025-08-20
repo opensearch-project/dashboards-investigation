@@ -57,8 +57,10 @@ export const QueryPanelEditor = () => {
 
   useEffect(() => {
     // TODO: consider move this to global state
-    getPromptModeIsAvailable(services).then(setPromptModeIsAvailable);
-  }, [services, dataSourceId]);
+    if (queryState.selectedIndex) {
+      getPromptModeIsAvailable(services).then(setPromptModeIsAvailable);
+    }
+  }, [services, dataSourceId, queryState.selectedIndex]);
 
   const {
     isFocused,
