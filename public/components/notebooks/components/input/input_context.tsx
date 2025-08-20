@@ -49,6 +49,8 @@ interface InputContextValue<T extends InputType = InputType> {
 
   paragraphOptions: InputTypeOption[];
 
+  dataSourceId: string | undefined;
+
   // Actions
   // Update the current state of input variant type
   setCurrInputType: (type: InputType) => void;
@@ -357,6 +359,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     isLoading,
     isParagraph,
     paragraphOptions,
+    dataSourceId,
     setCurrInputType: handleSetCurrInputType,
     setIsPopoverOpen: setIsParagraphSelectionOpen,
     handleInputChange,
