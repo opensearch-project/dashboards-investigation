@@ -127,6 +127,15 @@ jest.mock('../../../../../public/services', () => ({
       getDefaultDataSourceId$: jest.fn(() => new mockBehaviorSubject()),
     },
   })),
+
+  getContextServiceSetup: jest.fn(() => ({
+    getParagraphContext: jest.fn(),
+    setParagraphContext: jest.fn(),
+    deleteParagraphContext: jest.fn(),
+    getAllParagraphsByNotebook: jest.fn(),
+    deleteAllParagraphsByNotebook: jest.fn(),
+    getParagraphContextByParagraphId: jest.fn(),
+  })),
 }));
 
 const ContextAwareNotebook = (props: NotebookProps & { dataSourceEnabled?: boolean }) => {
