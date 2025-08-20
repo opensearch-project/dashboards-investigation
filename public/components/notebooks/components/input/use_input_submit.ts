@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
 import { isEmpty } from 'lodash';
 import { CoreStart } from '../../../../../../../src/core/public';
 import { ActionMetadata, actionsMetadata } from '../../../../../common/constants/actions';
@@ -14,11 +13,15 @@ interface UseInputSubmitProps {
   http: CoreStart['http'];
   dataSourceId: string | undefined | null;
   onSubmit: (paragraphInput: string, inputType: string) => void;
+  setIsLoading: (loading: boolean) => void;
 }
 
-export const useInputSubmit = ({ http, dataSourceId, onSubmit }: UseInputSubmitProps) => {
-  const [isLoading, setIsLoading] = useState(false);
-
+export const useInputSubmit = ({
+  http,
+  dataSourceId,
+  onSubmit,
+  setIsLoading,
+}: UseInputSubmitProps) => {
   const executeActionSelectionAgent = async (input: string, actions: ActionMetadata[]) => {
     try {
       const {
@@ -96,7 +99,6 @@ export const useInputSubmit = ({ http, dataSourceId, onSubmit }: UseInputSubmitP
   };
 
   return {
-    isLoading,
     onAskAISubmit,
   };
 };

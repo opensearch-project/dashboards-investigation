@@ -7,6 +7,7 @@ import React, { useCallback } from 'react';
 import {
   EuiButtonEmpty,
   EuiFlexGroup,
+  EuiLoadingSpinner,
   EuiPanel,
   EuiSpacer,
   EuiSuperDatePicker,
@@ -36,7 +37,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
       },
     },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { inputValue, handleInputChange, handleSubmit } = useInputContext();
+  const { inputValue, handleInputChange, handleSubmit, isLoading } = useInputContext();
 
   const queryState = inputValue as QueryState;
   const { timeRange } = queryState || {};
@@ -77,8 +78,15 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
             dateFormat={uiSettings!.get('dateFormat')}
           />
         </div>
-        <EuiFlexGroup gutterSize="none" dir="row" justifyContent="flexEnd">
-          <EuiButtonEmpty iconType="play" size="s" aria-label="run button" onClick={handleSubmit}>
+        <EuiFlexGroup gutterSize="none" dir="row" justifyContent="flexEnd" alignItems="center">
+          {isLoading && <EuiLoadingSpinner size="m" />}
+          <EuiButtonEmpty
+            iconType={isLoading ? undefined : 'play'}
+            size="s"
+            aria-label="run button"
+            onClick={handleSubmit}
+            disabled={isLoading}
+          >
             Run
           </EuiButtonEmpty>
           {appendWidget && <div className="notebookQueryPanelWidgets__verticalSeparator" />}

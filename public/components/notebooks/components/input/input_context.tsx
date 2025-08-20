@@ -45,7 +45,7 @@ interface InputContextValue<T extends InputType = InputType> {
   isLoading: boolean;
 
   // If the input is located in an exising paragraph but not in input panel
-  isParagraph: boolean;
+  isInputMountedInParagraph: boolean;
 
   paragraphOptions: InputTypeOption[];
 
@@ -124,6 +124,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
   );
   const [isParagraphSelectionOpen, setIsParagraphSelectionOpen] = useState(false);
   const [dataView, setDataView] = useState<any>(undefined);
+  const [isLoading, setIsLoading] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -186,6 +187,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
   ].filter((item) => !item.disabled);
 
   const handleCreateParagraph = async (paragraphInput: string | object, inputType: string) => {
+    setIsLoading(true);
     // Add paragraph at the end
     await createParagraph({
       index: paragraphs.length,
@@ -195,12 +197,15 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         inputType,
       },
     });
+
+    setIsLoading(false);
   };
 
-  const { isLoading, onAskAISubmit } = useInputSubmit({
+  const { onAskAISubmit } = useInputSubmit({
     http,
     dataSourceId,
     onSubmit: handleCreateParagraph,
+    setIsLoading,
   });
 
   const handleCancel = () => {
@@ -250,9 +255,9 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     }
   };
 
-  const isParagraph = !!input;
+  const isInputMountedInParagraph = !!input;
 
-  const submitFn = isParagraph && onSubmit ? onSubmit : handleCreateParagraph;
+  const submitFn = isInputMountedInParagraph && onSubmit ? onSubmit : handleCreateParagraph;
 
   const calculateTimeFilterQuery = (
     query: string,
@@ -301,6 +306,8 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
       return;
     }
 
+    setIsLoading(true);
+
     switch (currInputType) {
       case AI_RESPONSE_TYPE:
         onAskAISubmit(inputValue as string, () => setInputValue(''));
@@ -328,6 +335,8 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         break;
       default:
     }
+
+    setIsLoading(false);
   };
 
   const handleSetCurrInputType = (type: InputType) => {
@@ -357,7 +366,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     editorTextRef,
     dataView,
     isLoading,
-    isParagraph,
+    isInputMountedInParagraph,
     paragraphOptions,
     dataSourceId,
     setCurrInputType: handleSetCurrInputType,

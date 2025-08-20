@@ -56,11 +56,8 @@ export const QueryPanelEditor = () => {
   }, [setDataView, services.data.dataViews]);
 
   useEffect(() => {
-    if (dataSourceId) {
-      // Only check t2ppl when there is data source id in global
-      // TODO: consider move this to global state
-      getPromptModeIsAvailable(services).then(setPromptModeIsAvailable);
-    }
+    // TODO: consider move this to global state
+    getPromptModeIsAvailable(services).then(setPromptModeIsAvailable);
   }, [services, dataSourceId]);
 
   const {

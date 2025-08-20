@@ -19,13 +19,9 @@ export const getPromptModeIsAvailable = async (services: NoteBookServices): Prom
       return false;
     }
 
-    const res = await firstValueFrom(
+    return await firstValueFrom(
       queryAssistExtension.isEnabled$({} as QueryEditorExtensionDependencies)
     );
-
-    console.log('getPromptModeIsAvailable', res);
-
-    return res;
   } catch (error) {
     return false;
   }
