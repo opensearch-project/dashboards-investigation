@@ -160,13 +160,14 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
   }, [paragraphValue, loadQueryResultsFromInput, searchQuery]);
 
   const runParagraphHandler = async () => {
-    const queryType = paragraphValue.input.inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
-    const inputQuery = paragraphValue.input.inputText.substring(4);
+    const inputText = paragraphState.getBackendValue().input.inputText;
+    const queryType = inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
+    const inputQuery = inputText.substring(4);
     if (queryType === '_ppl' && inputQuery.trim()) {
       const pplWithAbsoluteTime = parsePPLQuery(inputQuery).pplWithAbsoluteTime;
       if (pplWithAbsoluteTime !== inputQuery) {
         paragraphState.updateInput({
-          inputText: `%ppl\n${pplWithAbsoluteTime}`,
+          inputText: `%ppl${pplWithAbsoluteTime}`,
         });
       }
     }
