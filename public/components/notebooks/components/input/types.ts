@@ -20,7 +20,7 @@ export interface QueryState {
   query?: string;
   queryLanguage: QueryLanguage;
   isPromptEditorMode: boolean;
-  timeRange?: TimeRange;
+  timeRange: TimeRange;
   selectedIndex?: any;
 }
 

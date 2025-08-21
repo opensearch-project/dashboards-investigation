@@ -47,16 +47,18 @@ interface InputContextValue<T extends InputType = InputType> {
   // If the input is located in an exising paragraph but not in input panel
   isInputMountedInParagraph: boolean;
 
+  // All the availble paragraph options that are used to determine input variant
   paragraphOptions: InputTypeOption[];
 
+  // Data source ID from notebook context
   dataSourceId: string | undefined;
 
   // Actions
   // Update the current state of input variant type
-  setCurrInputType: (type: InputType) => void;
+  handleSetCurrInputType: (type: T) => void;
 
   // Update the selectable popover TODO: if can be removed
-  setIsPopoverOpen: (open: boolean) => void;
+  setIsParagraphSelectionOpen: (open: boolean) => void;
 
   // Update the user input value
   handleInputChange: (value: Partial<InputValueType<T>>) => void;
@@ -107,7 +109,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
       const cleanedQuery = input.inputText.replace(TIME_FILTER_QUERY_REGEX, '');
 
       return {
-        value: cleanedQuery,
+        value: cleanedQuery || '',
         query: '',
         queryLanguage: input.inputType as QueryLanguage,
         isPromptEditorMode: false, // FIXME
@@ -186,6 +188,11 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     },
   ].filter((item) => !item.disabled);
 
+  const handleCancel = () => {
+    setInputValue(undefined);
+    setCurrInputType(AI_RESPONSE_TYPE);
+  };
+
   const handleCreateParagraph = async (paragraphInput: string | object, inputType: string) => {
     setIsLoading(true);
     // Add paragraph at the end
@@ -198,6 +205,8 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
       },
     });
 
+    handleCancel();
+
     setIsLoading(false);
   };
 
@@ -207,10 +216,6 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     onSubmit: handleCreateParagraph,
     setIsLoading,
   });
-
-  const handleCancel = () => {
-    setCurrInputType(AI_RESPONSE_TYPE);
-  };
 
   const handleParagraphSelection = async (options: EuiSelectableOption[]) => {
     const selectedOption = options.find((option) => option.checked === 'on');
@@ -225,6 +230,10 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         case 'PPL':
           inputType = 'CODE';
           paragraphInput = '%ppl\n';
+          break;
+        case 'SQL':
+          inputType = 'CODE';
+          paragraphInput = '%sql\n';
           break;
         case 'MARKDOWN':
           inputType = 'CODE';
@@ -280,13 +289,11 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     return commands.map((cmd) => cmd.trim()).join(' | ');
   };
 
-  const handleCallAgent = async () => {
-    const { queryLanguage, timeRange, selectedIndex } = inputValue as QueryState;
-
+  const handleGenerateQuery = async () => {
     const params: QueryAssistParameters = {
       question: editorTextRef.current,
       index: data.query.queryString.getQuery().dataset?.title!,
-      language: queryLanguage,
+      language: (inputValue as QueryState).queryLanguage,
       dataSourceId,
     };
 
@@ -296,50 +303,48 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
 
     handleInputChange({ query });
 
-    submitFn(`%ppl\n${calculateQueryWithTimeFilter(query, timeRange!, selectedIndex)}`, 'CODE');
+    return query;
   };
 
-  const handleSubmit = (payload?: any) => {
+  const handleSubmit = async (payload?: any) => {
     if (!payload && !inputValue) {
       return;
     }
 
     setIsLoading(true);
 
-    switch (currInputType) {
-      case AI_RESPONSE_TYPE:
-        onAskAISubmit(inputValue as string, () => setInputValue(''));
-        break;
-      case 'DEEP_RESEARCH_AGENT':
-        submitFn(inputValue as string, DEEP_RESEARCH_PARAGRAPH_TYPE);
-        break;
-      case 'MARKDOWN':
-        submitFn(`%md ${inputValue}`, currInputType);
-        setInputValue('');
-        break;
-      case 'PPL':
-      case 'SQL':
-        const { timeRange, selectedIndex, isPromptEditorMode } = inputValue as QueryState;
-        if (isPromptEditorMode) {
-          // TODO: run generated query if the query is not dirty
-          handleCallAgent();
-        } else {
+    try {
+      switch (currInputType) {
+        case AI_RESPONSE_TYPE:
+          onAskAISubmit(inputValue as string, () => setInputValue(''));
+          break;
+        case 'DEEP_RESEARCH_AGENT':
+          submitFn(inputValue as string, DEEP_RESEARCH_PARAGRAPH_TYPE);
+          break;
+        case 'MARKDOWN':
+          submitFn(`%md ${inputValue}`, currInputType);
+          setInputValue('');
+          break;
+        case 'SQL':
+          submitFn(`%sql\n${editorTextRef.current}`, 'CODE');
+          break;
+        case 'PPL':
+          const { timeRange, selectedIndex, isPromptEditorMode } = inputValue as QueryState;
+          const query = isPromptEditorMode ? await handleGenerateQuery() : editorTextRef.current;
           submitFn(
-            `%ppl\n${calculateQueryWithTimeFilter(
-              editorTextRef.current,
-              timeRange!,
-              selectedIndex
-            )}`,
+            `%ppl\n${calculateQueryWithTimeFilter(query, timeRange, selectedIndex)}`,
             'CODE'
           );
-        }
-        break;
-      case 'VISUALIZATION':
-        break;
-      default:
+          break;
+        case 'VISUALIZATION':
+          break;
+        default:
+      }
+    } catch (err) {
+      console.log('error while execute the input', err);
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   const handleSetCurrInputType = (type: InputType) => {
@@ -372,8 +377,8 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     isInputMountedInParagraph,
     paragraphOptions,
     dataSourceId,
-    setCurrInputType: handleSetCurrInputType,
-    setIsPopoverOpen: setIsParagraphSelectionOpen,
+    handleSetCurrInputType,
+    setIsParagraphSelectionOpen,
     handleInputChange,
     handleCancel,
     handleSubmit,

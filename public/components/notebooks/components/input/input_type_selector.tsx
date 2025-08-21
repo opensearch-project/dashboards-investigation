@@ -38,7 +38,7 @@ export const InputTypeSelector: React.FC<InputTypeSelectorProps> = ({
     closePopover();
   };
 
-  const icon = paragraphOptions.find((type) => type.key === current)?.icon || 'pencil';
+  const icon = paragraphOptions.find((type) => type.key === current)?.icon || 'compass';
 
   return (
     <EuiPopover
