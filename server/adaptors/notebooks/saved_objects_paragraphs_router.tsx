@@ -62,7 +62,7 @@ export function createParagraph<T>({
       dateModified: new Date().toISOString(),
       input: finalInput,
       output: outputObjects,
-      ...(dataSourceMDSId ? { dataSourceMDSId } : {}),
+      dataSourceMDSId,
     };
 
     return newParagraph;
