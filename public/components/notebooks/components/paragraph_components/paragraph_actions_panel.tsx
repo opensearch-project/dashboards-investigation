@@ -79,7 +79,6 @@ export const ParagraphActionPanel = (props: {
         },
         {
           name: 'Delete',
-          disabled: idx <= paragraphStates.length - 1 || notebookType === NotebookType.AGENTIC,
           onClick: () => {
             setIsPopoverOpen(false);
             props.deletePara(idx);
