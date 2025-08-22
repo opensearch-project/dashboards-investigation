@@ -95,10 +95,11 @@ function QueryDataGrid(props: QueryDataGridProps) {
         sorting={{ columns: sortingColumns, onSort }}
         pagination={{
           ...pagination,
-          pageSizeOptions: [10, 20, 50],
+          pageSizeOptions: [10, 20, 50, Math.ceil(rowCount / 10)],
           onChangeItemsPerPage,
           onChangePage,
         }}
+        height={450}
       />
     </div>
   );
