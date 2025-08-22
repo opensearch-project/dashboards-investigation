@@ -36,6 +36,7 @@ import {
 interface QueryPanelProps {
   prependWidget?: React.ReactNode;
   appendWidget?: React.ReactNode;
+  isDisabled?: boolean;
 }
 
 export const QUERY_PANEL_INITIAL_STATE = {
@@ -51,7 +52,11 @@ export const QUERY_PANEL_INITIAL_STATE = {
   noDatePicker: false,
 };
 
-export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWidget }) => {
+export const QueryPanel: React.FC<QueryPanelProps> = ({
+  prependWidget,
+  appendWidget,
+  isDisabled,
+}) => {
   const {
     services,
     services: {
@@ -239,7 +244,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
             size="s"
             aria-label="run button"
             onClick={handleRunQuery}
-            disabled={isQueryPanelLoading}
+            disabled={isQueryPanelLoading || isDisabled}
           >
             Run
           </EuiButtonEmpty>

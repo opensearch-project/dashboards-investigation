@@ -14,6 +14,7 @@ import { getInputType } from '../../../../../common/utils/paragraph';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NoteBookServices } from '../../../../types';
+import { isAgenticRunBefore } from './utils';
 
 export interface ParagraphProps {
   paragraphState: ParagraphState<unknown>;
@@ -45,7 +46,12 @@ export const Paragraphs = (props: ParagraphProps) => {
       paddingSize="none"
       hasBorder={false}
     >
-      {<ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />}
+      {isAgenticRunBefore({
+        notebookState: context.state,
+        id: paragraphValue.id,
+      }) ? null : (
+        <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
+      )}
       {ParagraphComponent && (
         <div key={paragraph.value.id} className={paraClass}>
           <ParagraphComponent paragraphState={paragraph} />

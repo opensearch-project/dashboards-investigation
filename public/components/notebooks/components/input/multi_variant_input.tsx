@@ -23,7 +23,9 @@ interface MultiVariantInputProps<TParameters = unknown> {
   onSubmit: (input: ParagraphInputType<TParameters>) => void;
 }
 
-const MultiVariantInputContent: React.FC = () => {
+const MultiVariantInputContent: React.FC<MultiVariantInputContentProps> = ({
+  isDisabled = false,
+}) => {
   const {
     currInputType,
     isParagraphSelectionOpen,
@@ -113,9 +115,10 @@ const MultiVariantInputContent: React.FC = () => {
 };
 
 export const MultiVariantInput: React.FC<MultiVariantInputProps> = (props) => {
+  const { isDisabled = false, ...restProps } = props;
   return (
-    <InputProvider onSubmit={props.onSubmit} input={props.input}>
-      <MultiVariantInputContent />
+    <InputProvider onSubmit={restProps.onSubmit} input={restProps.input}>
+      <MultiVariantInputContent isDisabled={isDisabled} />
     </InputProvider>
   );
 };
