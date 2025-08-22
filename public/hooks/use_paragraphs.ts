@@ -29,7 +29,7 @@ export const useParagraphs = () => {
         noteId: context.state.value.id,
         input: props.input,
         paragraphIndex: props.index,
-        ...(props.dataSourceMDSId ? { dataSourceMDSId: props.dataSourceMDSId } : {}),
+        dataSourceMDSId: props.dataSourceMDSId,
       };
 
       return http

@@ -122,9 +122,7 @@ export const DeepResearchParagraph = ({
             disabled={!!isRunning || isDisabled}
             fullWidth={false}
             onSelectedDataSource={onSelectedDataSource}
-            defaultOption={
-              selectedDataSource !== undefined ? [{ id: selectedDataSource }] : undefined
-            }
+            selectedDataSourceId={selectedDataSource}
             dataSourceFilter={dataSourceFilterFn}
           />
         </EuiFlexItem>

@@ -166,7 +166,7 @@ export const usePrecheck = () => {
                 noDatePicker: true,
               },
             },
-            dataSourceMDSId: res.context.dataSourceId,
+            dataSourceMDSId: res.context.dataSourceId || '',
           });
           if (createdPPLParagraph) {
             runParagraph({

@@ -196,9 +196,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
             disabled={!!isRunning}
             fullWidth={false}
             onSelectedDataSource={onSelectedDataSource}
-            defaultOption={
-              selectedDataSource !== undefined ? [{ id: selectedDataSource }] : undefined
-            }
+            selectedDataSourceId={selectedDataSource}
             dataSourceFilter={dataSourceFilterFn}
           />
         </EuiFlexItem>
