@@ -3,20 +3,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { createContext, useContext, useState, useRef, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  ReactNode,
+  useMemo,
+  useCallback,
+} from 'react';
 import { useObservable } from 'react-use';
 import type { monaco } from '@osd/monaco';
 import { NoteBookServices } from 'public/types';
 import { EuiSelectableOption } from '@elastic/eui';
-import { InputType, QueryLanguage, QueryState, InputValueType, InputTypeOption } from './types';
-import { useInputSubmit } from './use_input_submit';
-import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+// import { useAgentSelectSubmit } from './use_agent_select_submit';
 import {
-  AI_RESPONSE_TYPE,
-  DEEP_RESEARCH_PARAGRAPH_TYPE,
-} from '../../../../../common/constants/notebooks';
+  InputType,
+  QueryLanguage,
+  QueryState,
+  InputValueType,
+  InputTypeOption,
+  ParagraphInputType,
+} from './types';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
 import { NotebookReactContext } from '../../context_provider/context_provider';
-import { useParagraphs } from '../../../../../public/hooks/use_paragraphs';
 import {
   QueryAssistParameters,
   QueryAssistResponse,
@@ -70,7 +81,7 @@ interface InputContextValue<T extends InputType = InputType> {
   handleSubmit: (payload?: any) => void;
 
   // Handle open the popover for creating blank
-  handleParagraphSelection: (options: EuiSelectableOption[]) => Promise<void>;
+  handleParagraphSelection: (options: EuiSelectableOption[]) => void;
 
   // For query editor
   editorRef: React.MutableRefObject<monaco.editor.IStandaloneCodeEditor | null>;
@@ -83,23 +94,14 @@ const InputContext = createContext<InputContextValue | undefined>(undefined);
 
 interface InputProviderProps<TParameters = unknown> {
   children: ReactNode;
-  onSubmit?: (paragraphInput: string, inputType: string) => void;
-  input?: {
-    inputText: string;
-    inputType: string;
-    parameters?: TParameters;
-  };
+  onSubmit: (input: ParagraphInputType<TParameters>) => void;
+  input?: ParagraphInputType<TParameters>;
 }
 
 export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit, input }) => {
   const {
     services: { http, data },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { createParagraph } = useParagraphs();
-  const paragraphs = useObservable(
-    useContext(NotebookReactContext).state.getValue$(),
-    useContext(NotebookReactContext).state.value
-  ).paragraphs.map((item) => item.value);
 
   const [currInputType, setCurrInputType] = useState<InputType>(
     (input?.inputType as InputType) || AI_RESPONSE_TYPE
@@ -112,12 +114,17 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
       // FIXME: remove this when the executing of a query is properly implemented
       const cleanedQuery = input.inputText.replace(TIME_FILTER_QUERY_REGEX, '');
 
+      const { timeRange, question } = (input.parameters as any) || {};
+
       return {
-        value: cleanedQuery || '',
-        query: '',
+        // Use natural language question as input text if is t2ppl
+        value: question || cleanedQuery || '',
+        // Set generated query if is t2ppl
+        query: question ? cleanedQuery.replace(TIME_FILTER_QUERY_REGEX, '') : '',
         queryLanguage: input.inputType as QueryLanguage,
-        isPromptEditorMode: false, // FIXME
-        timeRange: { from: 'now-15m', to: 'now' },
+        // If question is defined, indicate the user executed t2ppl previously
+        isPromptEditorMode: !!question,
+        timeRange,
         selectedIndex: data.query.queryString.getDefaultQuery().dataset, // FIXME
         parameters: input.parameters,
       } as InputValueType<typeof currInputType>;
@@ -169,99 +176,58 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     context.state.value.context.value
   );
 
-  const paragraphOptions = [
-    {
-      key: AI_RESPONSE_TYPE,
-      icon: 'chatLeft',
-      label: 'Ask AI',
-      'data-test-subj': 'paragraph-type-nl',
-    },
-    { key: 'PPL', icon: 'compass', label: 'Query', 'data-test-subj': 'paragraph-type-ppl' },
-    {
-      key: 'DEEP_RESEARCH_AGENT',
-      icon: 'generate',
-      label: 'Continue investigation',
-      'data-test-subj': 'paragraph-type-deep-research',
-      disabled: !initialGoal,
-    },
-    { key: 'MARKDOWN', icon: 'pencil', label: 'Note', 'data-test-subj': 'paragraph-type-markdown' },
-    {
-      label: 'Visualization',
-      key: 'VISUALIZATION',
-      icon: 'lineChart',
-      'data-test-subj': 'paragraph-type-visualization',
-    },
-  ].filter((item) => !item.disabled);
+  const paragraphOptions = useMemo(
+    () =>
+      [
+        {
+          key: AI_RESPONSE_TYPE,
+          icon: 'chatLeft',
+          label: 'Ask AI',
+          'data-test-subj': 'paragraph-type-nl',
+        },
+        { key: 'PPL', icon: 'compass', label: 'Query', 'data-test-subj': 'paragraph-type-ppl' },
+        {
+          key: 'DEEP_RESEARCH_AGENT',
+          icon: 'generate',
+          label: 'Continue investigation',
+          'data-test-subj': 'paragraph-type-deep-research',
+          disabled: !initialGoal,
+        },
+        {
+          key: 'MARKDOWN',
+          icon: 'pencil',
+          label: 'Note',
+          'data-test-subj': 'paragraph-type-markdown',
+        },
+        {
+          label: 'Visualization',
+          key: 'VISUALIZATION',
+          icon: 'lineChart',
+          'data-test-subj': 'paragraph-type-visualization',
+        },
+      ].filter((item) => !item.disabled),
+    [initialGoal]
+  );
 
-  const handleCancel = () => {
-    setInputValue(undefined);
+  const handleCancel = useCallback(() => {
+    setInputValue('');
     setCurrInputType(AI_RESPONSE_TYPE);
-  };
+  }, []);
 
-  const handleCreateParagraph = async (paragraphInput: string | object, inputType: string) => {
-    setIsLoading(true);
-    // Add paragraph at the end
-    await createParagraph({
-      index: paragraphs.length,
-      input: {
-        inputText:
-          typeof paragraphInput === 'object' ? JSON.stringify(paragraphInput) : paragraphInput,
-        inputType,
-      },
-    });
+  // const { handleAgentSelectSubmit } = useAgentSelectSubmit({
+  //   http,
+  //   dataSourceId,
+  //   onSubmit,
+  //   setIsLoading,
+  // });
 
-    handleCancel();
-
-    setIsLoading(false);
-  };
-
-  const { onAskAISubmit } = useInputSubmit({
-    http,
-    dataSourceId,
-    onSubmit: handleCreateParagraph,
-    setIsLoading,
-  });
-
-  const handleParagraphSelection = async (options: EuiSelectableOption[]) => {
+  const handleParagraphSelection = (options: EuiSelectableOption[]) => {
     const selectedOption = options.find((option) => option.checked === 'on');
     if (selectedOption) {
       const paragraphType = selectedOption.key as InputType;
 
-      // Determine paragraph type and input content
-      let inputType = 'CODE';
-      let paragraphInput = '';
-
-      switch (paragraphType) {
-        case 'PPL':
-          inputType = 'CODE';
-          paragraphInput = '%ppl\n';
-          break;
-        case 'SQL':
-          inputType = 'CODE';
-          paragraphInput = '%sql\n';
-          break;
-        case 'MARKDOWN':
-          inputType = 'CODE';
-          paragraphInput = '%md\n';
-          break;
-        case 'VISUALIZATION':
-          inputType = 'VISUALIZATION';
-          paragraphInput = '';
-          break;
-        case 'DEEP_RESEARCH_AGENT':
-          inputType = DEEP_RESEARCH_PARAGRAPH_TYPE;
-          paragraphInput = '';
-          break;
-        case AI_RESPONSE_TYPE:
-          inputType = AI_RESPONSE_TYPE;
-          paragraphInput = '';
-          break;
-        default:
-          inputType = 'CODE';
-          paragraphInput = '';
-      }
-
-      handleCreateParagraph(paragraphInput, inputType);
+      // Create empty paragraph
+      onSubmit({ inputText: '', inputType: paragraphType });
 
       setIsParagraphSelectionOpen(false);
       handleInputChange('');
@@ -271,29 +237,26 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
 
   const isInputMountedInParagraph = !!input;
 
-  const submitFn = isInputMountedInParagraph && onSubmit ? onSubmit : handleCreateParagraph;
+  const calculateQueryWithTimeFilter = useCallback(
+    (query: string, timeRange: TimeRange, selectedIndex: any) => {
+      const queryState = inputValue as QueryState;
+      if (TIME_FILTER_QUERY_REGEX.test(query) || queryState?.parameters?.noDatePicker) {
+        return query;
+      }
 
-  const calculateQueryWithTimeFilter = (
-    query: string,
-    timeRange: TimeRange,
-    selectedIndex: any
-  ) => {
-    const queryState = inputValue as QueryState;
-    if (TIME_FILTER_QUERY_REGEX.test(query) || queryState.parameters?.noDatePicker) {
-      return query;
-    }
+      const { fromDate, toDate } = formatTimePickerDate(timeRange, TIME_FILTER_FORMAT);
+      const timeFieldName = selectedIndex.timeFieldName;
+      const whereCommand = timeFieldName
+        ? `WHERE \`${timeFieldName}\` >= '${fromDate}' AND \`${timeFieldName}\` <= '${toDate}'`
+        : '';
 
-    const { fromDate, toDate } = formatTimePickerDate(timeRange, TIME_FILTER_FORMAT);
-    const timeFieldName = selectedIndex.timeFieldName;
-    const whereCommand = timeFieldName
-      ? `WHERE \`${timeFieldName}\` >= '${fromDate}' AND \`${timeFieldName}\` <= '${toDate}'`
-      : '';
-
-    // Append time filter where command after the first command
-    const commands = query.split('|');
-    commands.splice(1, 0, whereCommand);
-    return commands.map((cmd) => cmd.trim()).join(' | ');
-  };
+      // Append time filter where command after the first command
+      const commands = query.split('|');
+      commands.splice(1, 0, whereCommand);
+      return commands.map((cmd) => cmd.trim()).join(' | ');
+    },
+    [inputValue]
+  );
 
   const handleGenerateQuery = async () => {
     const params: QueryAssistParameters = {
@@ -312,7 +275,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     return query;
   };
 
-  const handleSubmit = async (payload?: any) => {
+  const handleSubmit = async (payload?: unknown) => {
     if (!payload && !inputValue) {
       return;
     }
@@ -321,31 +284,27 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
 
     try {
       switch (currInputType) {
-        case AI_RESPONSE_TYPE:
-          onAskAISubmit(inputValue as string, () => setInputValue(''));
-          break;
-        case 'DEEP_RESEARCH_AGENT':
-          submitFn(inputValue as string, DEEP_RESEARCH_PARAGRAPH_TYPE);
-          break;
-        case 'MARKDOWN':
-          submitFn(`%md ${inputValue}`, currInputType);
-          setInputValue('');
-          break;
         case 'SQL':
-          submitFn(`%sql\n${editorTextRef.current}`, 'CODE');
+          onSubmit({ inputText: editorTextRef.current, inputType: 'SQL' });
           break;
         case 'PPL':
+          // Specially handle PPL to insert timerange and natural language information
           const { timeRange, selectedIndex, isPromptEditorMode } = inputValue as QueryState;
           const query = isPromptEditorMode ? await handleGenerateQuery() : editorTextRef.current;
-          submitFn(
-            `%ppl\n${calculateQueryWithTimeFilter(query, timeRange, selectedIndex)}`,
-            'CODE'
-          );
-          break;
-        case 'VISUALIZATION':
+          onSubmit({
+            inputText: calculateQueryWithTimeFilter(query, timeRange, selectedIndex),
+            inputType: 'PPL',
+            parameters: {
+              timeRange,
+              ...(isPromptEditorMode && { question: editorTextRef.current }),
+            },
+          });
           break;
         default:
+          onSubmit({ inputText: inputValue as string, inputType: currInputType });
       }
+
+      if (!isInputMountedInParagraph) handleCancel();
     } catch (err) {
       console.log('error while execute the input', err);
     } finally {
