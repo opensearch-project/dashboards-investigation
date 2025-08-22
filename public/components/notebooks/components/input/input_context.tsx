@@ -81,10 +81,14 @@ interface InputContextValue<T extends InputType = InputType> {
 
 const InputContext = createContext<InputContextValue | undefined>(undefined);
 
-interface InputProviderProps {
+interface InputProviderProps<TParameters = unknown> {
   children: ReactNode;
   onSubmit?: (paragraphInput: string, inputType: string) => void;
-  input?: { inputText: string; inputType: string };
+  input?: {
+    inputText: string;
+    inputType: string;
+    parameters?: TParameters;
+  };
 }
 
 export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit, input }) => {
@@ -115,6 +119,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         isPromptEditorMode: false, // FIXME
         timeRange: { from: 'now-15m', to: 'now' },
         selectedIndex: data.query.queryString.getDefaultQuery().dataset, // FIXME
+        parameters: input.parameters,
       } as InputValueType<typeof currInputType>;
     }
 
@@ -273,7 +278,8 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     timeRange: TimeRange,
     selectedIndex: any
   ) => {
-    if (TIME_FILTER_QUERY_REGEX.test(query)) {
+    const queryState = inputValue as QueryState;
+    if (TIME_FILTER_QUERY_REGEX.test(query) || queryState.parameters?.noDatePicker) {
       return query;
     }
 

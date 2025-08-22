@@ -244,6 +244,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
             input={{
               inputText: inputQuery,
               inputType: getInputType(paragraphValue).toUpperCase(),
+              parameters: paragraphValue.input.parameters,
             }}
             onSubmit={(value) => {
               paragraphState.updateInput({

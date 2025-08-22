@@ -15,13 +15,15 @@ import {
   ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   LOG_PATTERN_PARAGRAPH_TYPE,
+  PPL_PARAGRAPH_TYPE,
 } from '../../common/constants/notebooks';
 import { useParagraphs } from './use_paragraphs';
 import { useNotebook } from './use_notebook';
+import { getInputType } from '../../common/utils/paragraph';
 
 export const usePrecheck = () => {
   const { updateNotebookContext } = useNotebook();
-  const { createParagraph } = useParagraphs();
+  const { createParagraph, runParagraph } = useParagraphs();
   const deepResearchParaCreated = useRef(false);
 
   const setInitialGoal = useCallback(
@@ -149,8 +151,31 @@ export const usePrecheck = () => {
             }
           });
         }
+
+        if (
+          res.context?.source === NoteBookSource.DISCOVER &&
+          !res.paragraphs.find((paragraph) => getInputType(paragraph) === PPL_PARAGRAPH_TYPE) &&
+          res.context.variables?.pplQuery
+        ) {
+          const createdPPLParagraph = await createParagraph({
+            index: res.paragraphs.length + paragraphStates.length,
+            input: {
+              inputText: `%ppl ${res.context.variables?.pplQuery}`,
+              inputType: 'CODE',
+              parameters: {
+                noDatePicker: true,
+              },
+            },
+            dataSourceMDSId: res.context.dataSourceId,
+          });
+          if (createdPPLParagraph) {
+            runParagraph({
+              id: createdPPLParagraph.value.id,
+            });
+          }
+        }
       },
-      [createParagraph]
+      [createParagraph, runParagraph]
     ),
     setInitialGoal,
   };

@@ -22,6 +22,9 @@ export interface QueryState {
   isPromptEditorMode: boolean;
   timeRange: TimeRange;
   selectedIndex?: any;
+  parameters?: {
+    noDatePicker?: boolean;
+  };
 }
 
 export type InputValueType<T extends InputType> = T extends 'PPL' | 'SQL' ? QueryState : string;
