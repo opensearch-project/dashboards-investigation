@@ -27,6 +27,7 @@ import { VisualizationParagraph } from './visualization';
 import { OtherParagraph } from './other';
 import { DataDistributionContainer } from '../data_distribution/data_distribution_container';
 import { LogPatternContainer } from '../log_analytics/log_pattern_container';
+import { isAgenticRunBefore } from './utils';
 
 /**
  * TODO: Use paragraph service to maintain the relationships
@@ -70,13 +71,21 @@ export const Paragraphs = (props: ParagraphProps) => {
       paddingSize="none"
       hasBorder={false}
     >
-      {<ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />}
+      {isAgenticRunBefore({
+        notebookState: context.state,
+        id: paragraphValue.id,
+      }) ? null : (
+        <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
+      )}
       {(() => {
         const RenderComponent =
           mapParagraphTypeToRenderComponent[getInputType(paragraphValue)] || OtherParagraph;
         return (
           <div key={paragraph.value.id} className={paraClass}>
-            <RenderComponent paragraphState={paragraph as ParagraphState<any, any>} />
+            <RenderComponent
+              paragraphState={paragraph as ParagraphState<any, any>}
+              notebookState={context.state}
+            />
           </div>
         );
       })()}

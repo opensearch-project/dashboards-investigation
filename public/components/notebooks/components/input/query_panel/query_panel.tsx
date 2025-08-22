@@ -24,9 +24,14 @@ import './query_panel.scss';
 interface QueryPanelProps {
   prependWidget?: React.ReactNode;
   appendWidget?: React.ReactNode;
+  isDisabled?: boolean;
 }
 
-export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWidget }) => {
+export const QueryPanel: React.FC<QueryPanelProps> = ({
+  prependWidget,
+  appendWidget,
+  isDisabled,
+}) => {
   const {
     services: {
       appName,
@@ -85,7 +90,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
             size="s"
             aria-label="run button"
             onClick={handleSubmit}
-            disabled={isLoading}
+            disabled={isLoading || isDisabled}
           >
             Run
           </EuiButtonEmpty>

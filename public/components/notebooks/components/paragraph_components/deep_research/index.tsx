@@ -33,6 +33,7 @@ import { AgentsSelector } from './agents_selector';
 import { DeepResearchOutput } from './deep_research_output';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
 import { DEEP_RESEARCH_PARAGRAPH_TYPE } from '../../../../../../common/constants/notebooks';
+import { isAgenticRunBefore } from '../utils';
 
 export const DeepResearchParagraph = ({
   paragraphState,
@@ -153,7 +154,13 @@ export const DeepResearchParagraph = ({
               id={`editorArea-${paragraphValue.id}`}
               className="editorArea"
               fullWidth
-              disabled={!!isRunning}
+              disabled={
+                !!isRunning ||
+                isAgenticRunBefore({
+                  notebookState: state,
+                  id: paragraphValue.id,
+                })
+              }
               onChange={(evt) => {
                 paragraphState.updateInput({
                   inputText: evt.target.value,
@@ -182,18 +189,23 @@ export const DeepResearchParagraph = ({
         </div>
       </EuiCompressedFormRow>
       <EuiSpacer size="m" />
-      <EuiFlexGroup alignItems="center" gutterSize="s">
-        <EuiFlexItem grow={false}>
-          <EuiSmallButton
-            data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
-            onClick={() => {
-              runParagraphHandler();
-            }}
-          >
-            {outputResult && 'taskId' in outputResult ? 'Refresh' : 'Run'}
-          </EuiSmallButton>
-        </EuiFlexItem>
-      </EuiFlexGroup>
+      {isAgenticRunBefore({
+        notebookState: state,
+        id: paragraphValue.id,
+      }) ? null : (
+        <EuiFlexGroup alignItems="center" gutterSize="s">
+          <EuiFlexItem grow={false}>
+            <EuiSmallButton
+              data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
+              onClick={() => {
+                runParagraphHandler();
+              }}
+            >
+              {outputResult && 'taskId' in outputResult ? 'Refresh' : 'Run'}
+            </EuiSmallButton>
+          </EuiFlexItem>
+        </EuiFlexGroup>
+      )}
       <EuiSpacer size="m" />
       {outputResult && 'taskId' in outputResult && (
         <DeepResearchOutput

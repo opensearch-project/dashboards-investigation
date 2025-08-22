@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useContext } from 'react';
 import {
   EuiFlexGroup,
   EuiFlexItem,
@@ -26,6 +26,8 @@ import { DashboardContainerInput } from '../../../../../../../../src/plugins/das
 import { ViewMode } from '../../../../../../../../src/plugins/embeddable/public';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { OBSERVABILITY_VISUALIZATION_TYPE } from '../../../../../../common/constants/notebooks';
+import { isAgenticRunBefore } from '../utils';
+import { NotebookReactContext } from '../../../context_provider/context_provider';
 
 export const getPanelValue = (
   panelValue: DashboardContainerInput['panels'][number],
@@ -93,6 +95,7 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
     },
   } = useOpenSearchDashboards<NoteBookServices>();
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
+  const { state } = useContext(NotebookReactContext);
   const inputJSON = useMemo(() => {
     let result: DashboardContainerInput = createDashboardVizObject({
       type: '',
@@ -185,20 +188,25 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
         }}
       />
       <EuiSpacer size="m" />
-      <EuiFlexGroup alignItems="center" gutterSize="s">
-        <EuiFlexItem grow={false}>
-          <EuiSmallButton
-            data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
-            onClick={() => {
-              runParagraph({
-                id: paragraphValue.id,
-              });
-            }}
-          >
-            {ParagraphState.getOutput(paragraphValue)?.result !== '' ? 'Refresh' : 'Run'}
-          </EuiSmallButton>
-        </EuiFlexItem>
-      </EuiFlexGroup>
+      {isAgenticRunBefore({
+        notebookState: state,
+        id: paragraphValue.id,
+      }) ? null : (
+        <EuiFlexGroup alignItems="center" gutterSize="s">
+          <EuiFlexItem grow={false}>
+            <EuiSmallButton
+              data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
+              onClick={() => {
+                runParagraph({
+                  id: paragraphValue.id,
+                });
+              }}
+            >
+              {ParagraphState.getOutput(paragraphValue)?.result !== '' ? 'Refresh' : 'Run'}
+            </EuiSmallButton>
+          </EuiFlexItem>
+        </EuiFlexGroup>
+      )}
       <EuiSpacer size="m" />
       {isRunning ? (
         <EuiLoadingContent />

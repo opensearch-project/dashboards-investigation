@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useContext } from 'react';
 import {
   EuiCodeBlock,
   EuiCompressedTextArea,
@@ -16,13 +16,17 @@ import {
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import MarkdownRender from '@nteract/markdown';
+import { NotebookReactContext } from '../../../context_provider/context_provider';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
 import { useParagraphs } from '../../../../../hooks/use_paragraphs';
+import { isAgenticRunBefore } from '../utils';
 
 const inputPlaceholderString =
   'Type %md on the first line to define the input type. \nCode block starts here.';
 
 export const MarkdownParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
+  const { state } = useContext(NotebookReactContext);
+
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const { runParagraph } = useParagraphs();
 
@@ -56,7 +60,13 @@ export const MarkdownParagraph = ({ paragraphState }: { paragraphState: Paragrap
             id={`editorArea-${paragraphValue.id}`}
             className="editorArea"
             fullWidth
-            disabled={!!isRunning}
+            disabled={
+              !!isRunning ||
+              isAgenticRunBefore({
+                notebookState: state,
+                id: paragraphValue.id,
+              })
+            }
             onChange={(evt) => {
               paragraphState.updateInput({
                 inputText: evt.target.value,
@@ -85,18 +95,23 @@ export const MarkdownParagraph = ({ paragraphState }: { paragraphState: Paragrap
         )}
       </div>
       <EuiSpacer size="m" />
-      <EuiFlexGroup alignItems="center" gutterSize="s">
-        <EuiFlexItem grow={false}>
-          <EuiSmallButton
-            data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
-            onClick={() => {
-              runParagraphHandler();
-            }}
-          >
-            {ParagraphState.getOutput(paragraphValue)?.result !== '' ? 'Refresh' : 'Run'}
-          </EuiSmallButton>
-        </EuiFlexItem>
-      </EuiFlexGroup>
+      {isAgenticRunBefore({
+        notebookState: state,
+        id: paragraphValue.id,
+      }) ? null : (
+        <EuiFlexGroup alignItems="center" gutterSize="s">
+          <EuiFlexItem grow={false}>
+            <EuiSmallButton
+              data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
+              onClick={() => {
+                runParagraphHandler();
+              }}
+            >
+              {ParagraphState.getOutput(paragraphValue)?.result !== '' ? 'Refresh' : 'Run'}
+            </EuiSmallButton>
+          </EuiFlexItem>
+        </EuiFlexGroup>
+      )}
       <EuiSpacer size="m" />
       {isRunning ? (
         <EuiLoadingContent />

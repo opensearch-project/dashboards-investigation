@@ -22,11 +22,18 @@ import { MarkDownInput } from './markdown_input';
 import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
 
 interface MultiVariantInputProps {
-  input?: { inputText: string; inputType: string };
+  input?: { inputText: string; inputType: string; paragraphId?: string };
   onSubmit?: (paragraphInput: any, inputType: string) => void;
+  isDisabled?: boolean;
 }
 
-const MultiVariantInputContent: React.FC = () => {
+interface MultiVariantInputContentProps {
+  isDisabled?: boolean;
+}
+
+const MultiVariantInputContent: React.FC<MultiVariantInputContentProps> = ({
+  isDisabled = false,
+}) => {
   const {
     currInputType,
     isParagraphSelectionOpen,
@@ -68,7 +75,13 @@ const MultiVariantInputContent: React.FC = () => {
       case AI_RESPONSE_TYPE:
         return <NotebookInput placeholder="Type % to show paragraph options" />;
       case 'PPL':
-        return <QueryPanel prependWidget={getInputTypeSelector()} appendWidget={getInputMenu()} />;
+        return (
+          <QueryPanel
+            prependWidget={getInputTypeSelector()}
+            appendWidget={getInputMenu()}
+            isDisabled={isDisabled}
+          />
+        );
       case 'MARKDOWN':
         return <MarkDownInput />;
       case 'DEEP_RESEARCH_AGENT':
@@ -127,9 +140,10 @@ const MultiVariantInputContent: React.FC = () => {
 };
 
 export const MultiVariantInput: React.FC<MultiVariantInputProps> = (props) => {
+  const { isDisabled = false, ...restProps } = props;
   return (
-    <InputProvider onSubmit={props.onSubmit} input={props.input}>
-      <MultiVariantInputContent />
+    <InputProvider onSubmit={restProps.onSubmit} input={restProps.input}>
+      <MultiVariantInputContent isDisabled={isDisabled} />
     </InputProvider>
   );
 };
