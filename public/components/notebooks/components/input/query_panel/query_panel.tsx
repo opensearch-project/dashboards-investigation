@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useContext } from 'react';
+import React, { useCallback } from 'react';
 import {
   EuiButtonEmpty,
   EuiFlexGroup,
@@ -20,15 +20,18 @@ import { useInputContext } from '../input_context';
 import { QueryState } from '../types';
 
 import './query_panel.scss';
-import { isAgenticRunBefore } from '../../paragraph_components/utils';
-import { NotebookReactContext } from '../../../../../../public/components/notebooks/context_provider/context_provider';
 
 interface QueryPanelProps {
   prependWidget?: React.ReactNode;
   appendWidget?: React.ReactNode;
+  isDisabled?: boolean;
 }
 
-export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWidget }) => {
+export const QueryPanel: React.FC<QueryPanelProps> = ({
+  prependWidget,
+  appendWidget,
+  isDisabled,
+}) => {
   const {
     services: {
       appName,
@@ -39,8 +42,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
       },
     },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { inputValue, paragraphId, handleInputChange, handleSubmit, isLoading } = useInputContext();
-  const { state } = useContext(NotebookReactContext);
+  const { inputValue, handleInputChange, handleSubmit, isLoading } = useInputContext();
 
   const queryState = inputValue as QueryState;
   const { timeRange } = queryState || {};
@@ -81,25 +83,20 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
             dateFormat={uiSettings!.get('dateFormat')}
           />
         </div>
-        {isAgenticRunBefore({
-          notebookState: state,
-          id: paragraphId,
-        }) ? null : (
-          <EuiFlexGroup gutterSize="none" dir="row" justifyContent="flexEnd" alignItems="center">
-            {isLoading && <EuiLoadingSpinner size="m" />}
-            <EuiButtonEmpty
-              iconType={isLoading ? undefined : 'play'}
-              size="s"
-              aria-label="run button"
-              onClick={handleSubmit}
-              disabled={isLoading}
-            >
-              Run
-            </EuiButtonEmpty>
-            {appendWidget && <div className="notebookQueryPanelWidgets__verticalSeparator" />}
-            {appendWidget}
-          </EuiFlexGroup>
-        )}
+        <EuiFlexGroup gutterSize="none" dir="row" justifyContent="flexEnd" alignItems="center">
+          {isLoading && <EuiLoadingSpinner size="m" />}
+          <EuiButtonEmpty
+            iconType={isLoading ? undefined : 'play'}
+            size="s"
+            aria-label="run button"
+            onClick={handleSubmit}
+            disabled={isLoading || isDisabled}
+          >
+            Run
+          </EuiButtonEmpty>
+          {appendWidget && <div className="notebookQueryPanelWidgets__verticalSeparator" />}
+          {appendWidget}
+        </EuiFlexGroup>
       </EuiFlexGroup>
       <EuiSpacer size="xs" />
       <QueryPanelEditor />

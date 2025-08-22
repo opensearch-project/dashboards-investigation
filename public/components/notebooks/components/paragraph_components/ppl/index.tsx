@@ -22,6 +22,7 @@ import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { useRef } from 'react';
 import { NoteBookServices } from 'public/types';
+import { NotebookState } from 'common/state/notebook_state';
 import { ParagraphDataSourceSelector } from '../../data_source_selector';
 import {
   ParagraphState,
@@ -40,6 +41,7 @@ import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/ope
 import { callOpenSearchCluster } from '../../../../../plugin_helpers/plugin_proxy_call';
 import { MultiVariantInput } from '../../input/multi_variant_input';
 import { parsePPLQuery } from '../../../../../../common/utils';
+import { isAgenticRunBefore } from '../utils';
 
 interface QueryObject {
   schema?: any[];
@@ -87,7 +89,13 @@ const getQueryOutputData = (queryObject: QueryObject) => {
   return data;
 };
 
-export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
+export const PPLParagraph = ({
+  paragraphState,
+  notebookState,
+}: {
+  paragraphState: ParagraphState;
+  notebookState: NotebookState;
+}) => {
   const {
     services: { http, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
@@ -256,6 +264,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
               });
               runParagraphHandler();
             }}
+            isDisabled={isAgenticRunBefore({ notebookState, id: paragraphValue.id })}
           />
         </div>
       </EuiCompressedFormRow>
