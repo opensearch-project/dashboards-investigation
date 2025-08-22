@@ -32,7 +32,7 @@ const MultiVariantInputContent: React.FC = () => {
     isParagraphSelectionOpen,
     setCurrInputType,
     setIsPopoverOpen,
-    isParagraph,
+    isInputMountedInParagraph,
     handleParagraphSelection,
   } = useInputContext();
 
@@ -43,7 +43,7 @@ const MultiVariantInputContent: React.FC = () => {
   };
 
   const getInputMenu = () => {
-    if (isParagraph) {
+    if (isInputMountedInParagraph) {
       return null;
     }
     return (

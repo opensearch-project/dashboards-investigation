@@ -5,25 +5,25 @@
 
 import React, { useState } from 'react';
 import {
-  EuiAccordion,
   EuiBadge,
   EuiBasicTable,
   EuiButtonIcon,
   EuiCodeBlock,
   EuiEmptyPrompt,
-  EuiIcon,
   EuiPopover,
   EuiSpacer,
   EuiTableFieldDataColumnType,
   EuiTitle,
 } from '@elastic/eui';
 import { LogPattern } from '../../../../../../common/types/log_pattern';
+import { LogAnalyticsLoadingPanel } from './log_analytics_loading_panel';
 
 interface LogInsightProps {
   logInsights: LogPattern[];
+  isLoadingLogInsights: boolean;
 }
 
-export const LogInsight: React.FC<LogInsightProps> = ({ logInsights }) => {
+export const LogInsight: React.FC<LogInsightProps> = ({ logInsights, isLoadingLogInsights }) => {
   const [openPopovers, setOpenPopovers] = useState<{ [key: string]: boolean }>({});
 
   const togglePopover = (id: string) => {
@@ -119,20 +119,11 @@ export const LogInsight: React.FC<LogInsightProps> = ({ logInsights }) => {
   };
 
   return (
-    <EuiAccordion
-      id="logInsights"
-      buttonContent={
-        <EuiTitle size="xs">
-          <h4>
-            <EuiIcon type="inspect" />
-            &nbsp;Log Insights ({logInsights?.length || 0})
-          </h4>
-        </EuiTitle>
-      }
-      initialIsOpen={true}
-    >
-      <EuiSpacer size="s" />
-      {renderSection()}
-    </EuiAccordion>
+    <LogAnalyticsLoadingPanel
+      isLoading={isLoadingLogInsights}
+      title="Log Insights Analysis"
+      initialIsOpen={false}
+      renderSection={renderSection}
+    />
   );
 };

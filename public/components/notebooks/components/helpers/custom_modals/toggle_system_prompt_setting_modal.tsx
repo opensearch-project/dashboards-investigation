@@ -14,7 +14,12 @@ export const ToggleSystemPromptSettingModal = () => {
   return (
     <>
       <EuiToolTip
-        content={<FormattedMessage id="notebook.editButton.tooltip" defaultMessage="Edit name" />}
+        content={
+          <FormattedMessage
+            id="notebook.systemPromptSettingButton.tooltip"
+            defaultMessage="Edit system prompt"
+          />
+        }
       >
         <EuiButtonIcon
           display="base"

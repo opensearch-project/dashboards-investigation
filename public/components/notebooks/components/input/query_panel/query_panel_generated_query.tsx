@@ -28,7 +28,6 @@ export const QueryPanelGeneratedQuery = () => {
     editorRef.current?.setValue(query);
 
     handleInputChange({
-      ...queryState,
       query: undefined,
       value: query,
       isPromptEditorMode: false,

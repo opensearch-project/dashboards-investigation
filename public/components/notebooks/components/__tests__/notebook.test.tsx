@@ -26,6 +26,7 @@ import {
   notificationServiceMock,
   savedObjectsServiceMock,
 } from '../../../../../../../src/core/public/mocks';
+import { navigationPluginMock } from '../../../../../../../src/plugins/navigation/public/mocks';
 import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
 import { OpenSearchDashboardsContextProvider } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
@@ -56,6 +57,10 @@ jest.mock('../data_distribution/data_distribution_container', () => ({
 
 jest.mock('../alert_panel', () => ({
   AlertPanel: () => <div />,
+}));
+
+jest.mock('../global_panel.tsx', () => ({
+  GlobalPanel: () => <div />,
 }));
 
 jest.mock('../input_panel.tsx', () => ({
@@ -141,6 +146,7 @@ const ContextAwareNotebook = (props: NotebookProps & { dataSourceEnabled?: boole
         chrome: chromeServiceMock.createStartContract(),
         savedObjects: savedObjectsServiceMock.createStartContract(),
         notifications: notificationServiceMock.createStartContract(),
+        navigation: navigationPluginMock.createStartContract(),
       }}
     >
       <Notebook {...props} />
@@ -158,6 +164,7 @@ describe('<Notebook /> spec', () => {
   history.push = jest.fn();
   const defaultProps: NotebookProps = {
     openedNoteId: '458e1320-3f05-11ef-bd29-e58626f102c0',
+    showPageHeader: true,
   };
 
   it('Renders the empty component', async () => {
@@ -447,5 +454,13 @@ describe('<Notebook /> spec', () => {
     });
 
     expect(httpClient.delete).toHaveBeenCalledWith(`${NOTEBOOKS_API_PREFIX}/note/mock-id`);
+  });
+
+  it('should not show notebook header', async () => {
+    httpClient.get = jest.fn(() => Promise.resolve((emptyNotebook as unknown) as HttpResponse));
+
+    const utils = render(<ContextAwareNotebook {...defaultProps} showPageHeader={false} />);
+
+    expect(utils.queryByTestId('notebookTitle')).toBeNull();
   });
 });

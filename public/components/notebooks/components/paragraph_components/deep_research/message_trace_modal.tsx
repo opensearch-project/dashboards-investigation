@@ -131,18 +131,38 @@ export const MessageTraceModal = ({
         } else if (messageCreateTime) {
           durationStr = getTimeGapFromDates(moment(messageCreateTime), moment(traceCreateTime));
         }
+        let reason: string = input;
+        let responseJson;
+        if (isFromLLM) {
+          try {
+            responseJson = JSON.parse(response);
+          } catch (e) {
+            console.error('Failed to parse json', e);
+          }
+          if (
+            responseJson?.stopReason === 'tool_use' &&
+            responseJson?.output?.message?.content?.[0].text
+          ) {
+            reason = responseJson.output.message.content[0].text;
+          }
+        }
         return (
           <React.Fragment key={traceMessageId}>
             <EuiAccordion
               id={`trace-${index}`}
-              buttonContent={`Step ${index + 1} - ${isFromLLM ? input : `Execute ${origin}`} ${
+              buttonContent={`Step ${index + 1} - ${isFromLLM ? reason : `Execute ${origin}`} ${
                 durationStr ? `Duration (${durationStr})` : ''
               }`}
               paddingSize="l"
             >
               <EuiText className="markdown-output-text" size="s">
                 {isFromLLM ? (
-                  renderTraceString({ text: response, fallback: 'No response' })
+                  renderTraceString({
+                    text: responseJson?.output?.message?.content
+                      ? JSON.stringify(responseJson.output.message.content)
+                      : response,
+                    fallback: 'No response',
+                  })
                 ) : (
                   <>
                     <EuiAccordion

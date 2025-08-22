@@ -17,6 +17,15 @@ import {
 } from '../../../../../common/constants/notebooks';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { useParagraphs } from '../../../../../public/hooks/use_paragraphs';
+import {
+  QueryAssistParameters,
+  QueryAssistResponse,
+} from '../../../../../../../src/plugins/query_enhancements/common/query_assist';
+import { formatTimePickerDate, TimeRange } from '../../../../../../../src/plugins/data/common';
+
+const TIME_FILTER_QUERY_REGEX = /\s*\|\s*WHERE\s+`[^`]+`\s*>=\s*'[^']+'\s*AND\s*`[^`]+`\s*<=\s*'[^']+'/i;
+
+const TIME_FILTER_FORMAT = 'YYYY-MM-DD HH:mm:ss.SSS';
 
 interface InputContextValue<T extends InputType = InputType> {
   // States
@@ -39,9 +48,11 @@ interface InputContextValue<T extends InputType = InputType> {
   paragraphId: string | undefined;
 
   // If the input is located in an exising paragraph but not in input panel
-  isParagraph: boolean;
+  isInputMountedInParagraph: boolean;
 
   paragraphOptions: InputTypeOption[];
+
+  dataSourceId: string | undefined;
 
   // Actions
   // Update the current state of input variant type
@@ -96,18 +107,15 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
 
     if (input.inputType === 'PPL' || input.inputType === 'SQL') {
       // FIXME: remove this when the executing of a query is properly implemented
-      const cleanedQuery = input.inputText.replace(
-        /\s*\|\s*WHERE\s+`[^`]+`\s*>=\s*'[^']+'\s*AND\s*`[^`]+`\s*<=\s*'[^']+'/i,
-        ''
-      );
+      const cleanedQuery = input.inputText.replace(TIME_FILTER_QUERY_REGEX, '');
 
       return {
         value: cleanedQuery,
         query: '',
         queryLanguage: input.inputType as QueryLanguage,
-        isPromptEditorMode: false,
-        timeRange: { start: 'now-15m', end: 'now' },
-        selectedIndex: data.query.queryString.getDefaultQuery().dataset,
+        isPromptEditorMode: false, // FIXME
+        timeRange: { from: 'now-15m', to: 'now' },
+        selectedIndex: data.query.queryString.getDefaultQuery().dataset, // FIXME
       } as InputValueType<typeof currInputType>;
     }
 
@@ -119,6 +127,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
   );
   const [isParagraphSelectionOpen, setIsParagraphSelectionOpen] = useState(false);
   const [dataView, setDataView] = useState<any>(undefined);
+  const [isLoading, setIsLoading] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -127,8 +136,6 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
       ? inputValue.value
       : (inputValue as string) || ''
   );
-
-  const isParagraph = !!input;
 
   const handleInputChange = (value: Partial<InputValueType<typeof currInputType>>) => {
     if (currInputType === 'PPL' || currInputType === 'SQL') {
@@ -183,6 +190,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
   ].filter((item) => !item.disabled);
 
   const handleCreateParagraph = async (paragraphInput: string | object, inputType: string) => {
+    setIsLoading(true);
     // Add paragraph at the end
     await createParagraph({
       index: paragraphs.length,
@@ -192,13 +200,20 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         inputType,
       },
     });
+
+    setIsLoading(false);
   };
 
-  const { isLoading, onAskAISubmit } = useInputSubmit({
+  const { onAskAISubmit } = useInputSubmit({
     http,
     dataSourceId,
     onSubmit: handleCreateParagraph,
+    setIsLoading,
   });
+
+  const handleCancel = () => {
+    setCurrInputType(AI_RESPONSE_TYPE);
+  };
 
   const handleParagraphSelection = async (options: EuiSelectableOption[]) => {
     const selectedOption = options.find((option) => option.checked === 'on');
@@ -239,14 +254,61 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
 
       setIsParagraphSelectionOpen(false);
       handleInputChange('');
+      handleCancel();
     }
+  };
+
+  const isInputMountedInParagraph = !!input;
+
+  const submitFn = isInputMountedInParagraph && onSubmit ? onSubmit : handleCreateParagraph;
+
+  const calculateQueryWithTimeFilter = (
+    query: string,
+    timeRange: TimeRange,
+    selectedIndex: any
+  ) => {
+    if (TIME_FILTER_QUERY_REGEX.test(query)) {
+      return query;
+    }
+
+    const { fromDate, toDate } = formatTimePickerDate(timeRange, TIME_FILTER_FORMAT);
+    const timeFieldName = selectedIndex.timeFieldName;
+    const whereCommand = timeFieldName
+      ? `WHERE \`${timeFieldName}\` >= '${fromDate}' AND \`${timeFieldName}\` <= '${toDate}'`
+      : '';
+
+    // Append time filter where command after the first command
+    const commands = query.split('|');
+    commands.splice(1, 0, whereCommand);
+    return commands.map((cmd) => cmd.trim()).join(' | ');
+  };
+
+  const handleCallAgent = async () => {
+    const { queryLanguage, timeRange, selectedIndex } = inputValue as QueryState;
+
+    const params: QueryAssistParameters = {
+      question: editorTextRef.current,
+      index: data.query.queryString.getQuery().dataset?.title!,
+      language: queryLanguage,
+      dataSourceId,
+    };
+
+    const { query } = await http.post<QueryAssistResponse>('/api/enhancements/assist/generate', {
+      body: JSON.stringify(params),
+    });
+
+    handleInputChange({ query });
+
+    submitFn(`%ppl\n${calculateQueryWithTimeFilter(query, timeRange!, selectedIndex)}`, 'CODE');
   };
 
   const handleSubmit = (payload?: any) => {
     if (!payload && !inputValue) {
       return;
     }
-    const submitFn = isParagraph && onSubmit ? onSubmit : handleCreateParagraph;
+
+    setIsLoading(true);
+
     switch (currInputType) {
       case AI_RESPONSE_TYPE:
         onAskAISubmit(inputValue as string, () => setInputValue(''));
@@ -260,26 +322,27 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         break;
       case 'PPL':
       case 'SQL':
-        // FIXME: remove this when the executing of a query is properly implemented
-        const timeBounds = data.query.timefilter.timefilter.calculateBounds({
-          from: (inputValue as QueryState).timeRange?.start!,
-          to: (inputValue as QueryState).timeRange?.end!,
-        });
-
-        const timeFieldName = (inputValue as QueryState).selectedIndex.timeFieldName;
-        const timeFilterQuery = timeFieldName
-          ? ` | WHERE \`${timeFieldName}\` >= '${timeBounds.min?.toISOString()}' AND \`${timeFieldName}\` <= '${timeBounds.max?.toISOString()}'`
-          : '';
-        submitFn(`%ppl\n${editorTextRef.current}${timeFilterQuery}`, 'CODE');
+        const { timeRange, selectedIndex, isPromptEditorMode } = inputValue as QueryState;
+        if (isPromptEditorMode) {
+          // TODO: run generated query if the query is not dirty
+          handleCallAgent();
+        } else {
+          submitFn(
+            `%ppl\n${calculateQueryWithTimeFilter(
+              editorTextRef.current,
+              timeRange!,
+              selectedIndex
+            )}`,
+            'CODE'
+          );
+        }
         break;
       case 'VISUALIZATION':
         break;
       default:
     }
-  };
 
-  const handleCancel = () => {
-    setCurrInputType(AI_RESPONSE_TYPE);
+    setIsLoading(false);
   };
 
   const handleSetCurrInputType = (type: InputType) => {
@@ -292,8 +355,8 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         query: '',
         queryLanguage: type as QueryLanguage,
         isPromptEditorMode: false,
-        timeRange: { start: 'now-15m', end: 'now' },
-        selectedIndex: data.query.queryString.getDefaultQuery(),
+        timeRange: { from: 'now-15m', to: 'now' },
+        selectedIndex: data.query.queryString.getDefaultQuery().dataset,
       });
     } else {
       setInputValue('');
@@ -310,8 +373,9 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     dataView,
     isLoading,
     paragraphId: input?.paragraphId,
-    isParagraph,
+    isInputMountedInParagraph,
     paragraphOptions,
+    dataSourceId,
     setCurrInputType: handleSetCurrInputType,
     setIsPopoverOpen: setIsParagraphSelectionOpen,
     handleInputChange,

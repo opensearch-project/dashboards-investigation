@@ -81,7 +81,7 @@ export const Main: React.FC = () => {
             exact
             path="/:id"
             render={(props) => {
-              return <Notebook openedNoteId={props.match.params.id} />;
+              return <Notebook openedNoteId={props.match.params.id} showPageHeader />;
             }}
           />
         </Switch>

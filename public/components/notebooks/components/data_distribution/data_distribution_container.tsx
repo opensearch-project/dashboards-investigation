@@ -252,7 +252,7 @@ export const DataDistributionContainer = ({
   );
 
   return (
-    <>
+    <EuiPanel hasBorder={false} hasShadow={false} paddingSize="none">
       <EuiFlexGroup alignItems="center" gutterSize="none" justifyContent="spaceBetween">
         <EuiFlexItem grow={false}>{dataDistributionTitle}</EuiFlexItem>
         {dataDistributionSpecs.length > 0 && (
@@ -271,6 +271,6 @@ export const DataDistributionContainer = ({
       {dataDistributionLoadingSpinner}
       {specsVis}
       {distributionModal}
-    </>
+    </EuiPanel>
   );
 };

@@ -4,21 +4,12 @@
  */
 
 import React, { useContext, useEffect, useState, useMemo } from 'react';
-import {
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiPanel,
-  EuiText,
-  EuiSpacer,
-  EuiCallOut,
-  EuiProgress,
-  EuiLoadingSpinner,
-  EuiIcon,
-} from '@elastic/eui';
+import { EuiPanel, EuiText, EuiSpacer, EuiCallOut, EuiTitle } from '@elastic/eui';
 import moment from 'moment';
 import { useObservable } from 'react-use';
 import { LogPatternAnalysisResult } from 'common/types/log_pattern';
 import { NoteBookServices } from 'public/types';
+import { i18n } from '@osd/i18n';
 import {
   LogPatternAnalysisParams,
   LogPatternService,
@@ -32,17 +23,23 @@ import { PatternDifference } from './components/pattern_difference';
 import { LogSequence } from './components/log_sequence';
 import { SummaryStatistics } from './components/summary_statistics';
 
+const LOG_INSIGHTS_ANALYSIS = 'Log Insights Analysis';
+const PATTERN_DIFFERENCE_ANALYSIS = 'Pattern Difference Analysis';
+const LOG_SEQUENCE_ANALYSIS = 'Log Sequence Analysis';
+
 interface LogPatternContainerProps {
   paragraphState: ParagraphState<LogPatternAnalysisResult>;
 }
 
 interface LoadingStatus {
   isLoading: boolean;
+  isLoadingLogInsights: boolean;
+  isLoadingPatternMapDifference: boolean;
+  isLoadingLogSequence: boolean;
   completedRequests: number;
   totalRequests: number;
   currentlyRunning: string[];
   completedSteps: string[];
-  progress: number;
 }
 
 export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragraphState }) => {
@@ -51,11 +48,13 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
   } = useOpenSearchDashboards<NoteBookServices>();
   const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({
     isLoading: false,
+    isLoadingLogInsights: false,
+    isLoadingPatternMapDifference: false,
+    isLoadingLogSequence: false,
     completedRequests: 0,
     totalRequests: 0,
     currentlyRunning: [],
     completedSteps: [],
-    progress: 0,
   });
   const [error, setError] = useState<string | null>(null);
   const paragraph = useObservable(paragraphState.getValue$());
@@ -126,7 +125,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
     // Define all API requests
     const apiRequests = [
       {
-        name: 'Log Insights Analysis',
+        name: LOG_INSIGHTS_ANALYSIS,
         params: apiRequestsParam,
         resultKey: 'logInsights' as keyof LogPatternAnalysisResult,
       },
@@ -134,7 +133,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
 
     if (baselineFrom && baselineTo) {
       apiRequests.push({
-        name: 'Pattern Difference Analysis',
+        name: PATTERN_DIFFERENCE_ANALYSIS,
         params: {
           baselineStartTime: moment(baselineFrom).toISOString(),
           baselineEndTime: moment(baselineTo).toISOString(),
@@ -146,7 +145,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
 
     if (memoizedContextValues?.indexInsight?.trace_id_field) {
       apiRequests.push({
-        name: 'Log Sequence Analysis',
+        name: LOG_SEQUENCE_ANALYSIS,
         params: {
           baselineStartTime: moment(baselineFrom).toISOString(),
           baselineEndTime: moment(baselineTo).toISOString(),
@@ -164,11 +163,13 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
           setResult(memoizedParaOut);
           setLoadingStatus({
             isLoading: false,
+            isLoadingLogInsights: false,
+            isLoadingPatternMapDifference: false,
+            isLoadingLogSequence: false,
             completedRequests: apiRequests.length,
             totalRequests: apiRequests.length,
             currentlyRunning: [],
             completedSteps: apiRequests.map((req) => req.name),
-            progress: 100,
           });
           setHasData(true);
           return;
@@ -182,14 +183,44 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
     // Initialize loading status
     setLoadingStatus({
       isLoading: true,
+      isLoadingLogInsights: apiRequests.some((request) => request.name === LOG_INSIGHTS_ANALYSIS),
+      isLoadingPatternMapDifference: apiRequests.some(
+        (request) => request.name === PATTERN_DIFFERENCE_ANALYSIS
+      ),
+      isLoadingLogSequence: apiRequests.some((request) => request.name === LOG_SEQUENCE_ANALYSIS),
       completedRequests: 0,
       totalRequests: apiRequests.length,
       currentlyRunning: [], // Will be updated as each request starts
       completedSteps: [],
-      progress: 0,
     });
     setError(null);
     setHasData(false);
+
+    const updateLoadingStatus = (requestName: string, isSuccess: boolean) => {
+      setLoadingStatus((prevStatus) => {
+        const completedRequests = prevStatus.completedRequests + 1;
+        const newCompletedSteps = [
+          ...prevStatus.completedSteps,
+          isSuccess ? requestName : `${requestName} (failed)`,
+        ];
+
+        return {
+          ...prevStatus,
+          isLoadingLogInsights:
+            requestName === LOG_INSIGHTS_ANALYSIS ? false : prevStatus.isLoadingLogInsights,
+          isLoadingPatternMapDifference:
+            requestName === PATTERN_DIFFERENCE_ANALYSIS
+              ? false
+              : prevStatus.isLoadingPatternMapDifference,
+          isLoadingLogSequence:
+            requestName === LOG_SEQUENCE_ANALYSIS ? false : prevStatus.isLoadingLogSequence,
+          completedRequests,
+          currentlyRunning: [],
+          completedSteps: newCompletedSteps,
+          isLoading: completedRequests < apiRequests.length,
+        };
+      });
+    };
 
     const fetchLogPatternAnalysis = async () => {
       const logPatternService = new LogPatternService(http);
@@ -228,21 +259,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
           });
 
           // Update loading status
-          setLoadingStatus((prevStatus) => {
-            const completedRequests = prevStatus.completedRequests + 1;
-            const newCompletedSteps = [...prevStatus.completedSteps, request.name];
-            const progress = Math.round((completedRequests / apiRequests.length) * 100);
-
-            return {
-              ...prevStatus,
-              completedRequests,
-              currentlyRunning: [],
-              completedSteps: newCompletedSteps,
-              progress,
-              isLoading: completedRequests < apiRequests.length,
-            };
-          });
-
+          updateLoadingStatus(request.name, true);
           setHasData(true);
         } catch (err) {
           if (err.response?.status === 404) {
@@ -251,20 +268,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
           }
 
           // Update loading status even for failed requests
-          setLoadingStatus((prevStatus) => {
-            const completedRequests = prevStatus.completedRequests + 1;
-            const newCompletedSteps = [...prevStatus.completedSteps, `${request.name} (failed)`];
-            const progress = Math.round((completedRequests / apiRequests.length) * 100);
-
-            return {
-              ...prevStatus,
-              completedRequests,
-              currentlyRunning: [],
-              completedSteps: newCompletedSteps,
-              progress,
-              isLoading: completedRequests < apiRequests.length,
-            };
-          });
+          updateLoadingStatus(request.name, false);
         }
       }
     };
@@ -295,60 +299,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
     saveParagraph,
   ]);
 
-  // Loading status rendering UI - now shows parallel progress
-  const renderLoadingStatus = () => {
-    if (!loadingStatus.isLoading && !hasData) return null;
-
-    return (
-      <EuiPanel color="subdued" paddingSize="s">
-        <EuiFlexGroup direction="column" alignItems="center" gutterSize="s">
-          <EuiFlexItem grow={false}>
-            <EuiFlexGroup alignItems="center" gutterSize="s">
-              <EuiFlexItem grow={false}>
-                {loadingStatus.isLoading ? (
-                  <EuiLoadingSpinner size="m" />
-                ) : (
-                  <EuiIcon type="check" color="success" />
-                )}
-              </EuiFlexItem>
-              <EuiFlexItem grow={false}>
-                <EuiText size="s">
-                  <strong>
-                    {loadingStatus.isLoading
-                      ? `Analyzing... (${loadingStatus.completedRequests}/${loadingStatus.totalRequests})`
-                      : 'Analysis Complete'}
-                  </strong>
-                </EuiText>
-              </EuiFlexItem>
-            </EuiFlexGroup>
-          </EuiFlexItem>
-
-          <EuiFlexItem grow={false}>
-            <div style={{ width: '300px' }}>
-              <EuiProgress value={loadingStatus.progress} max={100} color="primary" size="s" />
-            </div>
-          </EuiFlexItem>
-
-          {loadingStatus.currentlyRunning.length > 0 && (
-            <EuiFlexItem grow={false}>
-              <EuiText size="xs" color="subdued">
-                Running: {loadingStatus.currentlyRunning.join(', ')}
-              </EuiText>
-            </EuiFlexItem>
-          )}
-
-          {loadingStatus.completedSteps.length > 0 && (
-            <EuiFlexItem grow={false}>
-              <EuiText size="xs" color="success">
-                Completed: {loadingStatus.completedSteps.join(', ')}
-              </EuiText>
-            </EuiFlexItem>
-          )}
-        </EuiFlexGroup>
-      </EuiPanel>
-    );
-  };
-
   if (error) {
     return (
       <EuiCallOut title="Error" color="danger">
@@ -360,7 +310,12 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
   if (!hasData && !loadingStatus.isLoading) {
     return (
       <EuiCallOut title="No results" color="primary">
-        <p>No log pattern analysis results available. Run the analysis to see results.</p>
+        <p>
+          {i18n.translate('notebook.log.sequence.paragraph.no.result', {
+            defaultMessage:
+              'No log pattern analysis results available. Run the analysis to see results.',
+          })}
+        </p>
       </EuiCallOut>
     );
   }
@@ -369,70 +324,52 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
     <EuiPanel hasBorder={false} hasShadow={false} paddingSize="none">
       {context?.index && context?.timeRange && (
         <>
-          <EuiSpacer size="xs" />
+          <EuiTitle size="s">
+            <h3>
+              {i18n.translate('notebook.log.sequence.paragraph.title', {
+                defaultMessage: 'Log sequence analysis',
+              })}
+            </h3>
+          </EuiTitle>
           <EuiText size="s" color="subdued">
-            Analyzing log patterns from <strong>{context.index}</strong> index by comparing two
-            times periods:
+            {i18n.translate('notebook.log.sequence.paragraph.subtitle', {
+              defaultMessage:
+                'Analyzing log patterns from {index} index by comparing two time periods',
+              values: {
+                index: context.index,
+              },
+            })}
           </EuiText>
-          <EuiSpacer size="xs" />
-          <EuiFlexGroup direction="column" gutterSize="xs">
-            <EuiFlexItem>
-              <EuiText size="s" color="subdued">
-                <>
-                  <span role="img" aria-label="magnifying glass">
-                    🔍
-                  </span>{' '}
-                  <strong>Investigation Period:</strong>{' '}
-                  {moment(context.timeRange.selectionFrom).format('MMM DD, YYYY HH:mm')} to{' '}
-                  {moment(context.timeRange.selectionTo).format('MMM DD, YYYY HH:mm')}
-                  <span style={{ marginLeft: '8px', fontStyle: 'italic' }}>
-                    (the time range you want to investigate)
-                  </span>
-                </>
-              </EuiText>
-            </EuiFlexItem>
-            <EuiFlexItem>
-              <EuiText size="s" color="subdued">
-                <span role="img" aria-label="bar chart">
-                  📊
-                </span>{' '}
-                <strong>Baseline Period:</strong>{' '}
-                {moment(context.timeRange.baselineFrom).format('MMM DD, YYYY HH:mm')} to{' '}
-                {moment(context.timeRange.baselineTo).format('MMM DD, YYYY HH:mm')}
-                <span style={{ marginLeft: '8px', fontStyle: 'italic' }}>
-                  (normal period for comparison to identify anomalies)
-                </span>
-              </EuiText>
-            </EuiFlexItem>
-          </EuiFlexGroup>
         </>
       )}
       <EuiSpacer size="m" />
 
-      {/* Loading Status */}
-      {renderLoadingStatus()}
-      {(loadingStatus.isLoading || hasData) && <EuiSpacer size="m" />}
-
       {/* Summary Statistics */}
-      {hasData && (
-        <>
-          <SummaryStatistics result={result} />
-          <EuiSpacer size="l" />
+      <SummaryStatistics result={result} />
+      <EuiSpacer size="m" />
 
-          {/* Log Insights Section */}
-          <LogInsight logInsights={result.logInsights || []} />
+      {/* Log Insights Section */}
+      <LogInsight
+        logInsights={result.logInsights || []}
+        isLoadingLogInsights={loadingStatus.isLoadingLogInsights}
+      />
 
-          <EuiSpacer size="m" />
+      <EuiSpacer size="s" />
 
-          {/* Pattern Differences Section */}
-          <PatternDifference patternMapDifference={result.patternMapDifference || []} />
+      {/* Pattern Differences Section */}
+      <PatternDifference
+        patternMapDifference={result.patternMapDifference || []}
+        isLoadingPatternMapDifference={loadingStatus.isLoadingPatternMapDifference}
+      />
 
-          <EuiSpacer size="m" />
+      <EuiSpacer size="s" />
 
-          {/* Log Sequences Section */}
-          <LogSequence exceptionalSequences={result.EXCEPTIONAL} baselineSequences={result.BASE} />
-        </>
-      )}
+      {/* Log Sequences Section */}
+      <LogSequence
+        exceptionalSequences={result.EXCEPTIONAL}
+        baselineSequences={result.BASE}
+        isLoadingLogSequence={loadingStatus.isLoadingLogSequence}
+      />
     </EuiPanel>
   );
 };

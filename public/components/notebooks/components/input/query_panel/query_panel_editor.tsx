@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import classNames from 'classnames';
 import { NoteBookServices } from 'public/types';
 import {
@@ -13,15 +13,9 @@ import {
 import { useInputContext } from '../input_context';
 import { useQueryPanelEditor } from './use_query_panel_editor/use_query_panel_editor';
 import { QueryState } from '../types';
+import { getPromptModeIsAvailable } from './get_prompt_mode_is_available';
 
 import './query_panel_editor.scss';
-
-const DEFAULT_QUERY_STATE = {
-  value: '',
-  queryLanguage: 'PPL' as const,
-  isPromptEditorMode: false,
-  timeRange: { start: 'now-15m', end: 'now' },
-};
 
 export const QueryPanelEditor = () => {
   const { services } = useOpenSearchDashboards<NoteBookServices>();
@@ -30,28 +24,43 @@ export const QueryPanelEditor = () => {
     editorRef,
     editorTextRef,
     inputValue,
+    dataSourceId,
     setDataView,
     handleSubmit,
     handleInputChange,
   } = useInputContext();
+  const [promptModeIsAvailable, setPromptModeIsAvailable] = useState(false);
 
   const queryState = inputValue as QueryState;
-  const { value, queryLanguage, isPromptEditorMode } = queryState || DEFAULT_QUERY_STATE;
+  const { value, queryLanguage, isPromptEditorMode } = queryState || {
+    value: '',
+    queryLanguage: 'PPL' as const,
+    isPromptEditorMode: false,
+  };
 
   useEffect(() => {
-    if (!queryState) {
-      handleInputChange({
-        ...DEFAULT_QUERY_STATE,
-        selectedIndex: services.data.query.queryString.getDefaultQuery().dataset,
-      });
+    if (!(inputValue as QueryState)?.selectedIndex) {
+      const dataset = services.data.query.queryString.getDefaultQuery().dataset;
+      if (dataset) {
+        // Set dataset to the default
+        services.data.query.queryString.setQuery({ dataset });
+        handleInputChange({ selectedIndex: dataset });
+      }
     }
-  }, [handleInputChange, queryState, services.data.query.queryString]);
+  }, [inputValue, handleInputChange, services.data.query.queryString]);
 
   useEffect(() => {
     services.data.dataViews.getDefault().then((res: any) => {
       setDataView(res);
     });
   }, [setDataView, services.data.dataViews]);
+
+  useEffect(() => {
+    // TODO: consider move this to global state
+    if (queryState.selectedIndex) {
+      getPromptModeIsAvailable(services).then(setPromptModeIsAvailable);
+    }
+  }, [services, dataSourceId, queryState.selectedIndex]);
 
   const {
     isFocused,
@@ -62,7 +71,7 @@ export const QueryPanelEditor = () => {
     showPlaceholder,
     ...editorProps
   } = useQueryPanelEditor({
-    promptModeIsAvailable: true,
+    promptModeIsAvailable,
     isPromptEditorMode,
     queryLanguage,
     // FIXME when no need %ppl
@@ -71,11 +80,11 @@ export const QueryPanelEditor = () => {
       handleSubmit();
     }, [handleSubmit]),
     handleEscape: useCallback(() => {
-      handleInputChange({ ...queryState, isPromptEditorMode: false });
-    }, [queryState, handleInputChange]),
+      handleInputChange({ isPromptEditorMode: false });
+    }, [handleInputChange]),
     handleSpaceBar: useCallback(() => {
-      handleInputChange({ ...queryState, isPromptEditorMode: true });
-    }, [queryState, handleInputChange]),
+      handleInputChange({ isPromptEditorMode: true });
+    }, [handleInputChange]),
     handleChange: () => {},
     isQueryEditorDirty: false,
     services,

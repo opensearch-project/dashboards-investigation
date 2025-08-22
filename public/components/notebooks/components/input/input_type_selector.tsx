@@ -25,11 +25,11 @@ export const InputTypeSelector: React.FC<InputTypeSelectorProps> = ({
   current,
   onInputTypeChange,
 }) => {
-  const { isLoading, isParagraph, paragraphOptions } = useInputContext();
+  const { isLoading, isInputMountedInParagraph, paragraphOptions } = useInputContext();
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
-  const isDisabled = isLoading || isParagraph;
+  const isDisabled = isLoading || isInputMountedInParagraph;
 
   const onButtonClick = () => !isDisabled && setIsPopoverOpen((isOpen) => !isOpen);
   const closePopover = () => setIsPopoverOpen(false);
