@@ -32,7 +32,10 @@ import { getSystemPrompts } from '../../helpers/custom_modals/system_prompt_sett
 import { AgentsSelector } from './agents_selector';
 import { DeepResearchOutput } from './deep_research_output';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
-import { DEEP_RESEARCH_PARAGRAPH_TYPE } from '../../../../../../common/constants/notebooks';
+import {
+  AI_RESPONSE_TYPE,
+  DEEP_RESEARCH_PARAGRAPH_TYPE,
+} from '../../../../../../common/constants/notebooks';
 
 export const DeepResearchParagraph = ({
   paragraphState,
@@ -94,6 +97,20 @@ export const DeepResearchParagraph = ({
     },
     [runParagraph, paragraphState, paragraphValue.id]
   );
+
+  useEffect(() => {
+    if (
+      !paragraphValue.uiState?.isRunning &&
+      paragraphValue.input.inputType === AI_RESPONSE_TYPE &&
+      paragraphValue.input.parameters?.agentId &&
+      !outputResult?.taskId
+    ) {
+      // automatically run ai response paragraph when create initially
+      runParagraphHandler({
+        inputText: paragraphValue.input.inputText,
+      });
+    }
+  }, [paragraphValue, outputResult, runParagraphHandler]);
 
   useEffect(() => {
     if (
@@ -198,7 +215,7 @@ export const DeepResearchParagraph = ({
           outputResult={outputResult}
           dataSourceId={selectedDataSource}
           http={http}
-          input={paragraphValue.input.parameters || paragraphValue.input}
+          input={paragraphValue.input.parameters || (paragraphValue.input as any)}
         />
       )}
     </>

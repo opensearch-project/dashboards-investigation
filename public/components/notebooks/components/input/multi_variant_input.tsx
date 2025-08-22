@@ -20,10 +20,11 @@ import { InputProvider, useInputContext } from './input_context';
 import { NotebookInput } from './notebook_input';
 import { MarkDownInput } from './markdown_input';
 import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
+import { ParagraphInputType } from './types';
 
 interface MultiVariantInputProps<TParameters = unknown> {
-  input?: { inputText: string; inputType: string; parameters?: TParameters };
-  onSubmit?: (paragraphInput: any, inputType: string) => void;
+  input?: ParagraphInputType<TParameters>;
+  onSubmit: (input: ParagraphInputType<TParameters>) => void;
 }
 
 const MultiVariantInputContent: React.FC = () => {
