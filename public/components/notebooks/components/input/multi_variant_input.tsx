@@ -21,8 +21,8 @@ import { NotebookInput } from './notebook_input';
 import { MarkDownInput } from './markdown_input';
 import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
 
-interface MultiVariantInputProps<IInput = unknown> {
-  input?: { inputText: string; inputType: string; parameters?: IInput };
+interface MultiVariantInputProps<TParameters = unknown> {
+  input?: { inputText: string; inputType: string; parameters?: TParameters };
   onSubmit?: (paragraphInput: any, inputType: string) => void;
 }
 
