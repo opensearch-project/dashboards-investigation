@@ -43,8 +43,11 @@ export type NoteBookServices = CoreStart &
     appMountService?: AppMountParameters;
   };
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface InvestigationSetup {}
+export interface InvestigationSetup {
+  ui: {
+    getNotebook: (props: { openedNoteId: string }) => Promise<React.ReactElement>;
+  };
+}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface InvestigationStart {}
