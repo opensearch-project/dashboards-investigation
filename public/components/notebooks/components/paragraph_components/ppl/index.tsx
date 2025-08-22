@@ -120,24 +120,6 @@ export const PPLParagraph = ({
   const notebookId = context.state.value.id;
   const contextService = getContextServiceSetup();
 
-  // Load context for the paragraph when the component mounts
-  useEffect(() => {
-    const loadInitialContext = async () => {
-      try {
-        const data = await contextService.getParagraphContext(notebookId, paragraphValue.id);
-        if (data) {
-          setQueryObject(data.context as QueryObject);
-          previousRunQueryRef.current = searchQuery;
-        }
-        setContextLoaded(true);
-      } catch (err) {
-        notifications.toasts.addDanger('Fail to load paragraph context');
-      }
-    };
-    loadInitialContext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paragraphValue.id, contextService, notebookId]);
-
   const loadQueryResultsFromInput = useCallback(
     async (paragraph: ParagraphStateValue) => {
       const queryType = paragraph.input.inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
@@ -194,14 +176,42 @@ export const PPLParagraph = ({
   );
 
   useEffect(() => {
-    // ensure that the context is loaded before loadQueryResultsFromInput
-    if (paragraphValue.uiState?.isRunning || !contextLoaded) {
+    const loadInitialContext = async () => {
+      try {
+        const data = await contextService.getParagraphContext(notebookId, paragraphValue.id);
+        if (data) {
+          setQueryObject(data.context as QueryObject);
+          previousRunQueryRef.current = searchQuery;
+        }
+        setContextLoaded(true);
+      } catch (err) {
+        notifications.toasts.addDanger('Fail to load paragraph context');
+        setContextLoaded(true);
+      }
+    };
+
+    if (!contextLoaded) {
+      // Load context for the paragraph when the component mounts
+      loadInitialContext();
+      return;
+    }
+
+    if (paragraphValue.uiState?.isRunning) {
       return;
     }
     if (searchQuery && searchQuery !== previousRunQueryRef.current) {
       loadQueryResultsFromInput(paragraphValue);
     }
-  }, [paragraphValue, loadQueryResultsFromInput, searchQuery, contextLoaded]);
+  }, [
+    paragraphValue.id,
+    contextService,
+    notebookId,
+    paragraphValue,
+    loadQueryResultsFromInput,
+    searchQuery,
+    contextLoaded,
+    notifications.toasts,
+  ]);
 
   const runParagraphHandler = async () => {
     const inputText = paragraphState.getBackendValue().input.inputText;
