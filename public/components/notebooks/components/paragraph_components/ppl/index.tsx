@@ -180,9 +180,9 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
   };
 
   // FIXME: when properly store input language
-  const inputText = paragraphValue.input.inputText.split('\n', 2);
-  const inputLanguage = inputText[0] || 'PPL';
-  const inputQuery = inputText[1] || '';
+  const inputQuery = paragraphValue.input.inputText.startsWith('%')
+    ? paragraphValue.input.inputText.substring(5)
+    : paragraphValue.input.inputText;
 
   const columns = useMemo(() => createQueryColumns(queryObject.schema || []), [queryObject.schema]);
   const data = useMemo(() => getQueryOutputData(queryObject), [queryObject]);
@@ -243,7 +243,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
           <MultiVariantInput
             input={{
               inputText: inputQuery,
-              inputType: inputLanguage === '%ppl' ? 'PPL' : 'SQL',
+              inputType: getInputType(paragraphValue).toUpperCase(),
             }}
             onSubmit={(value) => {
               paragraphState.updateInput({
