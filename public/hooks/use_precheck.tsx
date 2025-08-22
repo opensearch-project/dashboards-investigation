@@ -6,6 +6,7 @@
 import { useCallback, useRef } from 'react';
 import { combineLatest } from 'rxjs';
 import {
+  IndexInsightContent,
   NotebookContext,
   NoteBookSource,
   ParagraphBackendType,
@@ -70,11 +71,40 @@ export const usePrecheck = () => {
                 input: {
                   inputText: '',
                   inputType: LOG_PATTERN_PARAGRAPH_TYPE,
+                  parameters: {
+                    index: resContext.index,
+                  },
                 },
                 dataSourceMDSId: resContext?.dataSourceId,
               });
               if (logPatternResult) {
                 paragraphStates.push(logPatternResult);
+              }
+            } else {
+              const relatedLogIndex = resContext?.indexInsight?.related_indexes?.find(
+                (relatedIndex: IndexInsightContent) => {
+                  return relatedIndex.is_log_index && relatedIndex.log_message_field;
+                }
+              );
+
+              if (relatedLogIndex) {
+                const logPatternResult = await createParagraph({
+                  index: totalParagraphLength + paragraphStates.length,
+                  input: {
+                    inputText: '',
+                    inputType: LOG_PATTERN_PARAGRAPH_TYPE,
+                    parameters: {
+                      // assuming the related log index share same time field
+                      timeField: resContext.timeField,
+                      index: relatedLogIndex.index_name,
+                      insight: relatedLogIndex,
+                    },
+                  },
+                  dataSourceMDSId: resContext?.dataSourceId,
+                });
+                if (logPatternResult) {
+                  paragraphStates.push(logPatternResult);
+                }
               }
             }
           }

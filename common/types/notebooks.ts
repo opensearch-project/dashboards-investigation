@@ -91,9 +91,11 @@ export interface AnomalyVisualizationAnalysisOutputResult {
 }
 
 export interface IndexInsightContent {
+  index_name: string;
   is_log_index: boolean;
   log_message_field?: string;
   trace_id_field?: string;
+  related_indexes?: IndexInsightContent[];
 }
 
 export interface IndexInsightBody {

@@ -5,7 +5,12 @@
 
 import { useContext, useCallback } from 'react';
 import { NoteBookServices } from 'public/types';
-import { IndexInsight, NotebookBackendType, NotebookContext } from 'common/types/notebooks';
+import {
+  IndexInsight,
+  IndexInsightContent,
+  NotebookBackendType,
+  NotebookContext,
+} from 'common/types/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { useParagraphs } from './use_paragraphs';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
@@ -59,6 +64,7 @@ export const useNotebook = () => {
 
         if (indexInsightResponse?.index_insight && indexInsightResponse.index_insight?.content) {
           const content = JSON.parse(indexInsightResponse.index_insight.content);
+          addIndexCorrelation(content);
           await updateNotebookContext({
             indexInsight: content,
           });
@@ -67,6 +73,40 @@ export const useNotebook = () => {
       } catch (error) {
         console.error('Error fetching index insights:', error);
         throw error;
+      }
+
+      function addIndexCorrelation(content: IndexInsightContent) {
+        // dummy data for index relationship
+        if (!content.related_indexes) {
+          if (/ss4o_metrics.*/.test(index)) {
+            content.related_indexes = [
+              { index_name: 'ss4o_logs*', is_log_index: true, log_message_field: 'body' },
+              {
+                index_name: 'otel-v1-apm-span*',
+                is_log_index: false,
+              },
+            ];
+          } else if (/ss4o_logs.*/.test(index)) {
+            content.related_indexes = [
+              {
+                index_name: 'ss4o_metrics*',
+                is_log_index: false,
+              },
+              {
+                index_name: 'otel-v1-apm-span*',
+                is_log_index: false,
+              },
+            ];
+          } else if (/otel-v1-apm-span.*/.test(index)) {
+            content.related_indexes = [
+              { index_name: 'ss4o_logs*', is_log_index: true, log_message_field: 'body' },
+              {
+                index_name: 'ss4o_metrics*',
+                is_log_index: false,
+              },
+            ];
+          }
+        }
       }
     },
     [updateNotebookContext, http]
