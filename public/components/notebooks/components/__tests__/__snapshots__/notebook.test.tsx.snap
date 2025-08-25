@@ -209,13 +209,6 @@ exports[`<Notebook /> spec Renders the empty component 1`] = `
       />
     </div>
     <div
-      class="euiSpacer euiSpacer--l"
-    />
-    <div />
-    <div
-      class="euiSpacer euiSpacer--l"
-    />
-    <div
       class="euiPanel euiPanel--paddingLarge euiPanel--borderRadiusMedium euiPanel--plain euiPanel--hasShadow euiPageContent euiPageContent--horizontalCenter"
       role="main"
       style="width: 900px;"

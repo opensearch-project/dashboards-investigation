@@ -40,7 +40,7 @@ import { callOpenSearchCluster } from '../../../../../plugin_helpers/plugin_prox
 import { MultiVariantInput } from '../../input/multi_variant_input';
 import { parsePPLQuery } from '../../../../../../common/utils';
 
-interface QueryObject {
+export interface QueryObject {
   schema?: any[];
   datarows?: any[];
   error?: { body: { reason: string } };

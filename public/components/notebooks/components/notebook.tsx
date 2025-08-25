@@ -231,10 +231,14 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               </EuiCallOut>
             </EuiFlexItem>
           )}
-          {source === NoteBookSource.ALERTING && <AlertPanel />}
-          <EuiSpacer />
-          <GlobalPanel />
-          <EuiSpacer />
+          {source === NoteBookSource.ALERTING && (
+            <>
+              <AlertPanel />
+              <EuiSpacer />
+              <GlobalPanel />
+              <EuiSpacer />
+            </>
+          )}
           <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
             {isLoading ? (
               <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
