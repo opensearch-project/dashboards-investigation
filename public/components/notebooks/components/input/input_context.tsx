@@ -41,8 +41,7 @@ interface InputContextValue<T extends InputType = InputType> {
   // If the input submit is triggered and is loading
   isLoading: boolean;
 
-  // Current paragraph Id
-  paragraphId: string | undefined;
+  disabled: boolean | undefined;
 
   // If the input is located in an exising paragraph but not in input panel
   isInputMountedInParagraph: boolean;

@@ -313,7 +313,6 @@ export const PPLParagraph = ({
               });
               runParagraphHandler();
             }}
-            isDisabled={isAgenticRunBefore({ notebookState, id: paragraphValue.id })}
           />
         </div>
       </EuiCompressedFormRow>

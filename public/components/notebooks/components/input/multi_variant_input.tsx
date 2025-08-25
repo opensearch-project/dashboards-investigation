@@ -24,7 +24,7 @@ interface MultiVariantInputProps<TParameters = unknown> {
 }
 
 const MultiVariantInputContent: React.FC<MultiVariantInputContentProps> = ({
-  isDisabled = false,
+  disabled = false,
 }) => {
   const {
     currInputType,
@@ -115,10 +115,9 @@ const MultiVariantInputContent: React.FC<MultiVariantInputContentProps> = ({
 };
 
 export const MultiVariantInput: React.FC<MultiVariantInputProps> = (props) => {
-  const { isDisabled = false, ...restProps } = props;
   return (
-    <InputProvider onSubmit={restProps.onSubmit} input={restProps.input}>
-      <MultiVariantInputContent isDisabled={isDisabled} />
+    <InputProvider onSubmit={props.onSubmit} input={props.input}>
+      <MultiVariantInputContent disabled={props.input?.disabled} />
     </InputProvider>
   );
 };
