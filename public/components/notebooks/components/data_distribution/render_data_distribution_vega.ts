@@ -3,41 +3,64 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SummaryDataItem } from '../../../../../common/types/notebooks';
+import { NoteBookSource, SummaryDataItem } from '../../../../../common/types/notebooks';
 
 /**
  * Vega Lite specification for generating grouped bar charts for individual fields
  * @param {Object} fieldData
  * @returns {Object} - Vega-Lite Spec
  */
-function generateFieldBarChartSpec(fieldData: SummaryDataItem) {
-  // Create a dataset and calculate the percentage
-  const values = fieldData.topChanges.flatMap((change) => [
-    {
+function generateChartSpec(fieldData: SummaryDataItem, isComparison = true) {
+  // Prepare data
+  const values = fieldData.topChanges.flatMap((change: Record<string, any>) => {
+    const baseItem = {
       value: String(change.value || 'null'),
-      // count: change.baselineCount,
-      percentage: change.baselinePercentage,
-      baselinePercentage: change.baselinePercentage,
-      SelectionPercentage: change.selectionPercentage,
-      type: 'Baseline',
-      // total: baselineTotal
-    },
-    {
-      value: String(change.value || 'null'),
-      // count: change.selectionCount,
-      percentage: change.selectionPercentage,
-      baselinePercentage: change.baselinePercentage,
-      SelectionPercentage: change.selectionPercentage,
-      type: 'Selection',
-      // total: selectionTotal
-    },
-  ]);
+      selectionPercentage: change.selectionPercentage,
+    };
+
+    if (!isComparison) {
+      return [
+        {
+          ...baseItem,
+          percentage: change.selectionPercentage,
+          type: 'Selection',
+        },
+      ];
+    }
+
+    return [
+      {
+        ...baseItem,
+        percentage: change.baselinePercentage,
+        baselinePercentage: change.baselinePercentage,
+        type: 'Baseline',
+      },
+      {
+        ...baseItem,
+        percentage: change.selectionPercentage,
+        baselinePercentage: change.baselinePercentage,
+        type: 'Selection',
+      },
+    ];
+  });
+
+  // Define colors and tooltips
+  const colorDomain = isComparison ? ['Baseline', 'Selection'] : ['Selection'];
+  const colorRange = isComparison ? ['#5470C6', '#FCCE2D'] : ['#FCCE2D'];
+  const tooltipFields = isComparison
+    ? [
+        { field: 'value', type: 'nominal', title: 'value' },
+        { field: 'baselinePercentage', type: 'quantitative', title: 'Baseline', format: '.2%' },
+        { field: 'selectionPercentage', type: 'quantitative', title: 'Selection', format: '.2%' },
+      ]
+    : [
+        { field: 'value', type: 'nominal', title: 'value' },
+        { field: 'percentage', type: 'quantitative', title: 'Selection', format: '.2%' },
+      ];
 
   return {
     $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-    title: {
-      text: fieldData.field,
-    },
+    title: { text: fieldData.field },
     data: { values },
     params: [
       {
@@ -85,8 +108,8 @@ function generateFieldBarChartSpec(fieldData: SummaryDataItem) {
         type: 'nominal',
         title: null,
         scale: {
-          domain: ['Baseline', 'Selection'],
-          range: ['#5470C6', '#FCCE2D'],
+          domain: colorDomain,
+          range: colorRange,
         },
         legend: {
           orient: 'top',
@@ -97,14 +120,7 @@ function generateFieldBarChartSpec(fieldData: SummaryDataItem) {
         condition: { param: 'highlight', value: 1 },
         value: 0.5,
       },
-      tooltip: [
-        { field: 'value', type: 'nominal', title: 'value' },
-        // { field: "count", type: "quantitative", title: "count" },
-        // { field: "total", type: "quantitative", title: "total" },
-        { field: 'baselinePercentage', type: 'quantitative', title: 'Baseline', format: '.2%' },
-        { field: 'SelectionPercentage', type: 'quantitative', title: 'Selection', format: '.2%' },
-        // { field: "type", type: "nominal", title: "type" }
-      ],
+      tooltip: tooltipFields,
     },
     config: {
       view: { stroke: 'transparent' },
@@ -116,6 +132,7 @@ function generateFieldBarChartSpec(fieldData: SummaryDataItem) {
  * @param {Array} comparisonData
  * @returns {Array}
  */
-export function generateAllFieldCharts(comparisonData: SummaryDataItem[]) {
-  return comparisonData.map((fieldData) => generateFieldBarChartSpec(fieldData));
+export function generateAllFieldCharts(comparisonData: SummaryDataItem[], source?: NoteBookSource) {
+  const isComparison = source !== NoteBookSource.DISCOVER;
+  return comparisonData.map((fieldData) => generateChartSpec(fieldData, isComparison));
 }

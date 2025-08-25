@@ -10,3 +10,10 @@
       overflow: unset;
     }
   }
+
+  // TODO: The ID selector will affect all tooltips in Vega, and it will need to be moved to `src/plugins/vis_type_vega/public/_vega_vis.scss`
+  /* Prevent tooltip flashing */
+  #vega-opensearch-dashboards-tooltip {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }

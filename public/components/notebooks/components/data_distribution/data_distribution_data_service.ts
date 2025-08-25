@@ -4,8 +4,11 @@
  */
 
 import { firstValueFrom, getFlattenedObject } from '@osd/std';
-import { NotebookContext, SummaryDataItem } from 'common/types/notebooks';
-import moment from 'moment';
+import {
+  NotebookContext,
+  NoteBookSource,
+  SummaryDataItem,
+} from '../../../../../common/types/notebooks';
 import {
   DataPublicPluginStart,
   ISearchStart,
@@ -13,89 +16,121 @@ import {
   OSD_FIELD_TYPES,
 } from '../../../../../../../src/plugins/data/public';
 import { getClient, getData, getSearch } from '../../../../services';
-import { HttpSetup } from '../../../../../../../src/core/public';
-
-const longTextFields = ['message', 'body'];
-const DEFAULT_PPL_QUERY_DATE_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+import { callOpenSearchCluster } from '../../../../plugin_helpers/plugin_proxy_call';
+import { QueryObject } from '../paragraph_components/ppl';
 
 export class DataDistributionDataService {
   private readonly search: ISearchStart;
   private readonly data: DataPublicPluginStart;
-  private baseCount: number;
-  private selectCount: number;
-  private logPatternField: string = '';
   private dataSourceId: string | undefined;
   private index: string = '';
-  private selectionFrom: number = NaN;
-  private selectionTo: number = NaN;
-  private baselineFrom: number = NaN;
-  private baselineTo: number = NaN;
   private timeField: string = '';
   private numberFields: string[] = [];
-  private pplFilter: string[] = [];
+  private source?: NoteBookSource;
 
   constructor() {
     this.data = getData();
     this.search = getSearch();
-    this.baseCount = 1;
-    this.selectCount = 1;
   }
 
   public setConfig(
     dataSourceId: string | undefined,
     index: string,
-    selectionFrom: number,
-    selectionTo: number,
-    baselineFrom: number,
-    baselineTo: number,
     timeField: string,
-    pplFilter?: string[]
+    source?: NoteBookSource
   ) {
-    this.dataSourceId = dataSourceId;
-    this.index = index;
-    this.selectionFrom = selectionFrom;
-    this.selectionTo = selectionTo;
-    this.baselineFrom = baselineFrom;
-    this.baselineTo = baselineTo;
-    this.timeField = timeField;
-    this.pplFilter = pplFilter || [];
+    Object.assign(this, { dataSourceId, index, timeField, source });
   }
 
   public async fetchComparisonData(props: {
+    timeRange:
+      | {
+          selectionFrom: number;
+          selectionTo: number;
+          baselineFrom: number;
+          baselineTo: number;
+        }
+      | undefined;
     selectionFilters?: NotebookContext['filters'];
     size?: number;
   }): Promise<{
     selection: Array<Record<string, any>>;
     baseline: Array<Record<string, any>>;
   }> {
-    const { size = 1000, selectionFilters } = props;
+    const { timeRange, size = 1000, selectionFilters } = props;
+    if (!timeRange) {
+      throw new Error('Time range is not defined');
+    }
 
     const [selectionData, baselineData] = await Promise.all([
       this.fetchIndexData(
-        new Date(this.selectionFrom),
-        new Date(this.selectionTo),
+        new Date(timeRange.selectionFrom),
+        new Date(timeRange.selectionTo),
         size,
         selectionFilters
       ),
-      this.fetchIndexData(new Date(this.baselineFrom), new Date(this.baselineTo), size),
+      this.fetchIndexData(new Date(timeRange.baselineFrom), new Date(timeRange.baselineTo), size),
     ]);
 
-    this.baseCount = baselineData.length;
-    this.selectCount = selectionData.length;
+    if (selectionData.length === 0) {
+      throw new Error('No data found for the selection time range');
+    } else if (baselineData.length === 0) {
+      throw new Error('No data found for the baseline time range');
+    }
 
     return {
-      selection: selectionData,
-      baseline: baselineData,
+      selection: selectionData.map((row) => getFlattenedObject(row)),
+      baseline: baselineData.map((row) => getFlattenedObject(row)),
     };
   }
 
-  public async discoverFields(data: {
+  public async getComparisonDataDistribution(data: {
     selection: Array<Record<string, any>>;
     baseline: Array<Record<string, any>>;
-  }): Promise<string[]> {
+  }): Promise<SummaryDataItem[]> {
     const combineData = Object.values(data).flat();
+    const usefulFields = await this.getUsefulFields(combineData);
+    const differences = this.analyzeDifferences(data, usefulFields);
+    return this.formatComparisonSummary(differences, 10);
+  }
+
+  public async getSingleDataDistribution(
+    data: Array<Record<string, any>>
+  ): Promise<SummaryDataItem[]> {
+    const usefulFields = await this.getUsefulFields(data);
+    const differences = this.analyzeDifferences({ selection: data, baseline: [] }, usefulFields);
+    return this.formatComparisonSummary(differences, 30);
+  }
+
+  public async fetchPPlData(pplQuery: string): Promise<Array<Record<string, any>>> {
+    if (!pplQuery) {
+      throw new Error('No ppl query found from discovery');
+    }
+
+    const searchQuery = pplQuery;
+    const response = await callOpenSearchCluster({
+      http: getClient(),
+      dataSourceId: this.dataSourceId,
+      request: {
+        path: `/_plugins/_ppl`,
+        method: 'POST',
+        body: JSON.stringify({
+          query: searchQuery,
+        }),
+      },
+    });
+
+    const pplData = formatPPLQueryData(response);
+
+    if (pplData.length === 0) {
+      throw new Error(`No data found for the ppl query: ${pplQuery}`);
+    }
+    return pplData;
+  }
+
+  private async getUsefulFields(data: Array<Record<string, any>>): Promise<string[]> {
     const fieldValueSets: Record<string, Set<any>> = {};
-    const maxCardinality = Math.max(5, Math.floor(combineData.length / 4));
+    const maxCardinality = Math.max(5, Math.floor(data.length / 4));
     const numberFields: string[] = [];
 
     const mappings = await this.getFields(this.index, this.dataSourceId);
@@ -128,7 +163,7 @@ export class DataDistributionDataService {
     });
 
     // Get unique value for fields
-    combineData.forEach((doc) => {
+    data.forEach((doc) => {
       normalizedFields.forEach((field) => {
         const value = getFlattenedObject(doc)?.[field];
         if (value !== null && value !== undefined) {
@@ -138,11 +173,6 @@ export class DataDistributionDataService {
     });
     this.numberFields = numberFields;
 
-    // const patternField = this.getLogPatternField(
-    //   getFlattenedObject(data.selection[0] || data.baseline[0]),
-    //   normalizedFields
-    // );
-
     const usefulFields = normalizedFields.filter((field) => {
       const cardinality = fieldValueSets[field]?.size || 0;
       if (/id$/i.test(field)) {
@@ -151,10 +181,6 @@ export class DataDistributionDataService {
       if (numberFields.includes(field)) {
         return true;
       }
-      // Retain log pattern field
-      // if (patternField === field) {
-      //   return true;
-      // }
       return cardinality <= maxCardinality && cardinality > 0;
     });
 
@@ -165,26 +191,23 @@ export class DataDistributionDataService {
    * @param comparisonData
    * @param fieldsToAnalyze
    */
-  public async analyzeDifferences(
+  private analyzeDifferences(
     comparisonData: {
       selection: Array<Record<string, any>>;
       baseline: Array<Record<string, any>>;
     },
-    fieldsToAnalyze: string[]
-  ): Promise<
-    Array<{
-      field: string;
-      divergence: number;
-      selectionDist: Record<string, number>;
-      baselineDist: Record<string, number>;
-    }>
-  > {
-    const results = [];
-    for (const field of fieldsToAnalyze) {
+    fields: string[]
+  ): Array<{
+    field: string;
+    divergence: number;
+    selectionDist: Record<string, number>;
+    baselineDist: Record<string, number>;
+  }> {
+    const results = fields.map((field) => {
       // Calculate the distribution of baseline and selection
       let selectionDist = this.calculateFieldDistribution(comparisonData.selection, field);
       let baselineDist = this.calculateFieldDistribution(comparisonData.baseline, field);
-      let divergence;
+
       if (this.numberFields.includes(field)) {
         const { groupedSelectionDist, groupedBaselineDist } = this.groupNumericKeys(
           selectionDist,
@@ -192,29 +215,21 @@ export class DataDistributionDataService {
         );
         selectionDist = groupedSelectionDist;
         baselineDist = groupedBaselineDist;
-        divergence = this.calculateMaxDifference(groupedSelectionDist, groupedBaselineDist);
-      } else if (this.logPatternField === field) {
-        const logPatternDist = await this.getLogPattern();
-        selectionDist = logPatternDist.selectionLogPatternDist;
-        baselineDist = logPatternDist.baselineLogPatternDist;
-        divergence = this.calculateMaxDifference(selectionDist, baselineDist);
-      } else {
-        divergence = this.calculateMaxDifference(selectionDist, baselineDist);
       }
-
-      results.push({
+      const divergence = this.calculateMaxDifference(selectionDist, baselineDist);
+      return {
         field,
         divergence,
         selectionDist,
         baselineDist,
-      });
-    }
+      };
+    });
 
     // Sort in descending order by divergence
     return results.sort((a, b) => b.divergence - a.divergence);
   }
 
-  public formatComparisonSummary(
+  private formatComparisonSummary(
     differences: Array<{
       field: string;
       divergence: number;
@@ -225,47 +240,32 @@ export class DataDistributionDataService {
   ): SummaryDataItem[] {
     // Only take the first N significant differences
     const topDifferences = differences.filter((diff) => diff.divergence > 0).slice(0, maxResults);
+    const sourceFromDis = this.source === NoteBookSource.DISCOVER;
 
     return topDifferences.map((diff) => {
       const { field, divergence, selectionDist, baselineDist } = diff;
 
       // Calculate the changes in all fields
       const allKeys = [...new Set([...Object.keys(selectionDist), ...Object.keys(baselineDist)])];
-
-      const selectionTotal = this.selectCount;
-      const baselineTotal = this.baseCount;
-
       const changes = allKeys.map((value) => {
-        const selectionCount = selectionDist[value] || 0;
-        const baselineCount = baselineDist[value] || 0;
-
-        const selectionPercentage = selectionCount / selectionTotal;
-        const baselinePercentage = baselineCount / baselineTotal;
-
-        let changePercentage = 0;
-        if (baselinePercentage > 0 && selectionPercentage > 0) {
-          changePercentage =
-            ((selectionPercentage - baselinePercentage) / baselinePercentage) * 100;
-        } else {
-          changePercentage = Infinity; // From zero to non-zero is infinite variation
-        }
+        const selectionPercentage = selectionDist[value] || 0;
+        const baselinePercentage = baselineDist[value] || 0;
 
         return {
           value,
           selectionPercentage: Number(selectionPercentage.toFixed(2)),
-          baselinePercentage: Number(baselinePercentage.toFixed(2)),
-          changePercentage,
+          ...(!sourceFromDis ? { baselinePercentage: Number(baselinePercentage.toFixed(2)) } : {}),
         };
       });
 
-      // Sort by percentage change (absolute value)
-      const sortedChanges = changes.sort((a, b) => {
-        return b.baselinePercentage - a.baselinePercentage;
-        // return Math.abs(b.changePercentage) - Math.abs(a.changePercentage)
-      });
-
       // Take the top 10 largest changes
-      const topChanges = sortedChanges.slice(0, 10);
+      const topChanges = changes
+        .sort((a, b) =>
+          sourceFromDis
+            ? b.selectionPercentage - a.selectionPercentage
+            : (b.baselinePercentage || 0) - (a.baselinePercentage || 0)
+        )
+        .slice(0, 10);
 
       return {
         field,
@@ -317,7 +317,6 @@ export class DataDistributionDataService {
       );
       return response.rawResponse.hits.hits.map((hit) => hit._source);
     } catch (error) {
-      console.error('Error fetching index data:', error);
       throw error;
     }
   }
@@ -336,19 +335,23 @@ export class DataDistributionDataService {
    * @param data
    * @param field
    */
-  public calculateFieldDistribution(data: any, field: string): Record<string, number> {
-    const distribution: Record<string, number> = {};
-    data.forEach((hit: any) => {
-      // const value = this.getNestedValue(hit, field);
-      const value = getFlattenedObject(hit)[field];
+  private calculateFieldDistribution(
+    data: Array<Record<string, any>>,
+    field: string
+  ): Record<string, number> {
+    const distribution = data.reduce<Record<string, number>>((acc, hit) => {
+      const value = hit?.[field];
 
       if (value !== undefined && value !== null) {
         const strValue = String(value);
-        distribution[strValue] = (distribution[strValue] || 0) + 1;
+        acc[strValue] = (acc[strValue] || 0) + 1;
       }
-    });
+      return acc;
+    }, {});
 
-    return distribution;
+    return Object.fromEntries(
+      Object.entries(distribution).map(([key, count]) => [key, count / data.length])
+    );
   }
 
   /**
@@ -358,7 +361,7 @@ export class DataDistributionDataService {
    * @param numGroups The default number of groups to create is 5
    * @returns Objects containing the distribution of grouped selection groups and benchmark groups
    */
-  public groupNumericKeys(
+  private groupNumericKeys(
     selectionDist: Record<string, number>,
     baselineDist: Record<string, number>,
     numGroups: number = 5
@@ -367,12 +370,12 @@ export class DataDistributionDataService {
     groupedBaselineDist: Record<string, number>;
   } {
     // Merge all keys and convert them to numerical values
-    const allKeys = new Set([...Object.keys(selectionDist), ...Object.keys(baselineDist)]);
+    const allKeys = Array.from(
+      new Set([...Object.keys(selectionDist), ...Object.keys(baselineDist)])
+    );
 
-    if (allKeys.size > 30 && Array.from(allKeys).every((key) => !isNaN(Number(key)))) {
-      const numericKeys = Array.from(allKeys)
-        .filter((key) => !isNaN(Number(key)))
-        .map((key) => Number(key));
+    if (allKeys.length > 10 && allKeys.every((key) => !isNaN(Number(key)))) {
+      const numericKeys = allKeys.map((key) => Number(key));
 
       const min = Math.min(...numericKeys);
       const max = Math.max(...numericKeys);
@@ -425,141 +428,44 @@ export class DataDistributionDataService {
     };
   }
 
-  public calculateMaxDifference(
+  private calculateMaxDifference(
     selectionDist: Record<string, number>,
     baselineDist: Record<string, number>
   ): number {
     // Merge all unique fields
-    const allKeys = [...new Set([...Object.keys(selectionDist), ...Object.keys(baselineDist)])];
-    const total1 = this.selectCount;
-    const total2 = this.baseCount;
+    const allKeys = new Set([...Object.keys(selectionDist), ...Object.keys(baselineDist)]);
 
-    // Transfer count to probability
-    const selectionDistProb: Record<string, number> = {};
-    const baselineDistProb: Record<string, number> = {};
+    // Calculate Max distribution difference
+    let maxDiff = -Infinity;
     allKeys.forEach((key) => {
-      selectionDistProb[key] = (selectionDist[key] || 0) / total1;
-      baselineDistProb[key] = (baselineDist[key] || 0) / total2;
+      const diff = (selectionDist[key] || 0) - (baselineDist[key] || 0);
+      maxDiff = Math.max(maxDiff, diff);
     });
 
-    // Calculate JS Divergence
-    let maxDifference = -Infinity;
-    allKeys.forEach((key) => {
-      const diff = selectionDistProb[key] - baselineDistProb[key];
-      // let a;
-      // if (baselineDistProb[key] === 0) {
-      //   a = 0.01
-      // } else {
-      //   a = baselineDistProb[key]
-      // }
-      // console.log('selectionDistProb[key]', selectionDistProb[key])
-      // console.log('baselineDistProb[key]', baselineDistProb[key])
-
-      // const diff = (selectionDistProb[key] - baselineDistProb[key]) / a;
-
-      maxDifference = maxDifference > diff ? maxDifference : diff;
-    });
-
-    return maxDifference;
+    return maxDiff;
   }
+}
 
-  private getLogPatternField(sampleData: Record<string, any>, discoverFields: string[]): string {
-    const logPatternFields = discoverFields.filter((field) =>
-      longTextFields.some((longTextField) => field.includes(longTextField))
-    );
-    if (logPatternFields.length > 0) {
-      let longestField = '';
-      let maxLength = 0;
-
-      logPatternFields.forEach((field) => {
-        if (sampleData?.[field]?.length > maxLength) {
-          maxLength = sampleData?.[field].length;
-          longestField = field;
-        }
-      });
-      if (longestField) {
-        this.logPatternField = longestField;
-        console.log('longestField', longestField);
-        return longestField;
+const formatPPLQueryData = (queryObject: QueryObject) => {
+  if (!queryObject.datarows || !queryObject.schema) {
+    return [];
+  }
+  const data = [];
+  let index = 0;
+  let schemaIndex = 0;
+  for (index = 0; index < queryObject.datarows.length; ++index) {
+    const datarowValue: Record<string, unknown> = {};
+    for (schemaIndex = 0; schemaIndex < queryObject.schema.length; ++schemaIndex) {
+      const columnName = queryObject.schema[schemaIndex].name;
+      if (typeof queryObject.datarows[index][schemaIndex] === 'object') {
+        datarowValue[columnName] = queryObject.datarows[index][schemaIndex];
+      } else if (typeof queryObject.datarows[index][schemaIndex] === 'boolean') {
+        datarowValue[columnName] = queryObject.datarows[index][schemaIndex].toString();
+      } else {
+        datarowValue[columnName] = queryObject.datarows[index][schemaIndex];
       }
     }
-    return '';
+    data.push(datarowValue);
   }
-
-  private async getLogPattern() {
-    const selectionEndTime = moment.utc(this.selectionTo).format(DEFAULT_PPL_QUERY_DATE_FORMAT);
-    const baselineEndTime = moment.utc(this.baselineTo).format(DEFAULT_PPL_QUERY_DATE_FORMAT);
-    const baselineStartTime = moment.utc(this.baselineFrom).format(DEFAULT_PPL_QUERY_DATE_FORMAT);
-
-    const basePPL = `source=${this.index}`;
-
-    const suffixPPL =
-      `patterns ${this.logPatternField} method=brain | ` +
-      `where isnotnull(patterns_field) and patterns_field != '' | ` +
-      `stats count() as count  by patterns_field | ` +
-      `sort - count | head 5`;
-
-    const basePPLWithFilters = this.pplFilter.reduce((acc, filter) => {
-      return `${acc} | where ${filter}`;
-    }, basePPL);
-
-    const selectionPPL =
-      `${basePPLWithFilters} | ` +
-      `where ${this.timeField} >= TIMESTAMP('${baselineEndTime}') and ` +
-      `${this.timeField} <= TIMESTAMP('${selectionEndTime}') | ` +
-      `${suffixPPL}`;
-    const baselinePPL =
-      `${basePPL} | ` +
-      `where ${this.timeField} >= TIMESTAMP('${baselineStartTime}') and ` +
-      `${this.timeField} <= TIMESTAMP('${baselineEndTime}') | ` +
-      `${suffixPPL}`;
-
-    const selectionLogPattern = await searchQuery(
-      getClient(),
-      '_plugins/_ppl',
-      'POST',
-      this.dataSourceId,
-      JSON.stringify({ query: selectionPPL })
-    );
-
-    const baselineLogPattern = await searchQuery(
-      getClient(),
-      '_plugins/_ppl',
-      'POST',
-      this.dataSourceId,
-      JSON.stringify({ query: baselinePPL })
-    );
-
-    return {
-      selectionLogPatternDist: this.convertToRecord(selectionLogPattern.body.datarows),
-      baselineLogPatternDist: this.convertToRecord(baselineLogPattern.body.datarows),
-    };
-  }
-
-  private convertToRecord(data: Array<[number, string]>): Record<string, number> {
-    return data.reduce((result, [count, message]) => {
-      result[message] = count;
-      return result;
-    }, {} as Record<string, number>);
-  }
-}
-
-export async function searchQuery(
-  httpClient: HttpSetup,
-  path: string,
-  method: string,
-  dataSourceId: string | undefined,
-  query: string
-) {
-  return await httpClient.post(`/api/console/proxy`, {
-    query: {
-      path,
-      method,
-      dataSourceId,
-    },
-    body: query,
-    prependBasePath: true,
-    asResponse: true,
-    withLongNumeralsSupport: true,
-  });
-}
+  return data.map((row) => getFlattenedObject(row));
+};

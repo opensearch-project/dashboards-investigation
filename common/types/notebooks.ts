@@ -96,7 +96,7 @@ export interface SummaryDataItem {
   divergence: number;
   topChanges: Array<{
     value: string;
-    baselinePercentage: number;
+    baselinePercentage?: number;
     selectionPercentage: number;
   }>;
 }

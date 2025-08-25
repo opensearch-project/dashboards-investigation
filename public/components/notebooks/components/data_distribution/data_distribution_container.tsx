@@ -6,6 +6,7 @@
 import React, { useContext, useMemo, useState, useEffect, useCallback } from 'react';
 import {
   EuiButtonIcon,
+  EuiCallOut,
   EuiFlexGrid,
   EuiFlexGroup,
   EuiFlexItem,
@@ -20,9 +21,13 @@ import {
   EuiTitle,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
-import { AnomalyVisualizationAnalysisOutputResult } from 'common/types/notebooks';
-import { NoteBookServices } from 'public/types';
 import { i18n } from '@osd/i18n';
+import {
+  AnomalyVisualizationAnalysisOutputResult,
+  NoteBookSource,
+  SummaryDataItem,
+} from '../../../../../common/types/notebooks';
+import { NoteBookServices } from '../../../../types';
 import { DataDistributionInput } from './embeddable/types';
 import { EmbeddableRenderer } from '../../../../../../../src/plugins/embeddable/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
@@ -41,7 +46,7 @@ export const DataDistributionContainer = ({
   paragraphState: ParagraphState<AnomalyVisualizationAnalysisOutputResult>;
 }) => {
   const {
-    services: { embeddable },
+    services: { embeddable, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
   const context = useContext(NotebookReactContext);
   const topContextValue = useObservable(
@@ -51,53 +56,64 @@ export const DataDistributionContainer = ({
   const paragraph = useObservable(paragraphState.getValue$());
   const { result } = ParagraphState.getOutput(paragraph)! || {};
   const { fieldComparison } = result! || {};
-  const { timeRange, timeField, index, dataSourceId, PPLFilters, filters } = topContextValue;
+  const { timeRange, timeField, index, dataSourceId, filters, source, variables } = topContextValue;
   const { saveParagraph } = useParagraphs();
   const [activePage, setActivePage] = useState(0);
   const [fetchDataLoading, setFetchDataLoading] = useState(false);
   const [distributionLoading, setDistributionLoading] = useState(false);
   const [distributionModalExpand, setDistributionModalExpand] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const factory = embeddable.getEmbeddableFactory<DataDistributionInput>('vega_visualization');
 
   const dataDistributionSpecs = useMemo(() => {
     if (fieldComparison) {
-      return generateAllFieldCharts(fieldComparison);
+      return generateAllFieldCharts(fieldComparison, source);
     }
     return [];
-  }, [fieldComparison]);
+  }, [fieldComparison, source]);
 
   const dataService = useMemo(() => new DataDistributionDataService(), []);
 
-  const loadSpecsData = useCallback(async () => {
+  const loadDataDistribution = useCallback(async () => {
     try {
       setFetchDataLoading(true);
       setDistributionLoading(true);
-      const response = await dataService.fetchComparisonData({ selectionFilters: filters });
-      setFetchDataLoading(false);
-      const discoverFields = await dataService.discoverFields(response);
-      const difference = await dataService.analyzeDifferences(response, discoverFields);
-      const formatComparison = dataService.formatComparisonSummary(difference);
+
+      let dataDistribution: SummaryDataItem[];
+
+      if (source === NoteBookSource.DISCOVER) {
+        const pplData = await dataService.fetchPPlData(variables?.['pplQuery'] as string);
+        setFetchDataLoading(false);
+        dataDistribution = await dataService.getSingleDataDistribution(pplData);
+      } else {
+        const comparisonData = await dataService.fetchComparisonData({
+          timeRange,
+          selectionFilters: filters,
+        });
+        setFetchDataLoading(false);
+        dataDistribution = await dataService.getComparisonDataDistribution(comparisonData);
+      }
 
       if (paragraph) {
         await saveParagraph({
           paragraphStateValue: ParagraphState.updateOutputResult(paragraph, {
-            fieldComparison: formatComparison || [],
+            fieldComparison: dataDistribution || [],
           }),
         });
       }
-
-      return formatComparison;
-    } catch (error) {
-      console.error('Error fetching or processing data:', error);
+    } catch (err) {
+      setError(err.message);
+      notifications.toasts.addDanger(`Initialize data distribution failed: ${err.message}`);
     } finally {
       setFetchDataLoading(false);
       setDistributionLoading(false);
     }
-  }, [dataService, filters, paragraph, saveParagraph]);
+  }, [dataService, filters, paragraph, saveParagraph, notifications, source, timeRange, variables]);
 
   useEffect(() => {
     (async () => {
       if (
+        error ||
         fieldComparison ||
         fetchDataLoading ||
         distributionLoading ||
@@ -107,9 +123,16 @@ export const DataDistributionContainer = ({
         return;
       }
 
-      await loadSpecsData();
+      await loadDataDistribution();
     })();
-  }, [loadSpecsData, fieldComparison, fetchDataLoading, distributionLoading, paragraph]);
+  }, [
+    loadDataDistribution,
+    fieldComparison,
+    fetchDataLoading,
+    distributionLoading,
+    paragraph,
+    error,
+  ]);
 
   const { paginatedSpecs, totalPages } = useMemo(() => {
     if (!dataDistributionSpecs?.length) {
@@ -128,16 +151,7 @@ export const DataDistributionContainer = ({
     return null;
   }
 
-  dataService.setConfig(
-    dataSourceId,
-    index,
-    timeRange.selectionFrom,
-    timeRange.selectionTo,
-    timeRange.baselineFrom,
-    timeRange.baselineTo,
-    timeField,
-    PPLFilters
-  );
+  dataService.setConfig(dataSourceId, index, timeField, source);
 
   const dataDistributionTitle = (
     <EuiTitle size="s">
@@ -152,7 +166,10 @@ export const DataDistributionContainer = ({
   const dataDistributionSubtitle = (
     <EuiText size="s" color="subdued">
       {i18n.translate('notebook.data.distribution.paragraph.subtitle', {
-        defaultMessage: 'Visualization the values for key fields associated with the alert',
+        defaultMessage: 'Visualization the values for key fields associated with the {source}',
+        values: {
+          source: source === NoteBookSource.DISCOVER ? 'discover' : 'alert',
+        },
       })}
     </EuiText>
   );
@@ -268,9 +285,17 @@ export const DataDistributionContainer = ({
       </EuiFlexGroup>
       {dataDistributionSubtitle}
       <EuiSpacer size="s" />
-      {dataDistributionLoadingSpinner}
-      {specsVis}
-      {distributionModal}
+      {error ? (
+        <EuiCallOut title="Error" color="danger">
+          <p>{error}</p>
+        </EuiCallOut>
+      ) : (
+        <>
+          {dataDistributionLoadingSpinner}
+          {specsVis}
+          {distributionModal}
+        </>
+      )}
     </EuiPanel>
   );
 };
