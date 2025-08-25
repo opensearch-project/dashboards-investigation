@@ -15,7 +15,7 @@ import {
   EuiTableFieldDataColumnType,
 } from '@elastic/eui';
 import { LogPattern } from '../../../../../../common/types/log_pattern';
-import { errorKeywords } from './sequence_item';
+import { errorKeywords } from '../../../../../../common/constants/notebooks';
 import { LogAnalyticsLoadingPanel } from './log_analytics_loading_panel';
 
 interface PatternDifferenceProps {
@@ -23,57 +23,57 @@ interface PatternDifferenceProps {
   isLoadingPatternMapDifference: boolean;
 }
 
+// Function to sort and limit patternMapDifference to top 10 with lift and top 10 without lift
+export const sortPatternMapDifference = (patterns: LogPattern[]) => {
+  if (!patterns || patterns.length === 0) {
+    return patterns;
+  }
+
+  // Separate patterns into those with lift and those without lift
+  const patternsWithLift = patterns.filter(
+    (pattern) =>
+      pattern.lift !== null &&
+      pattern.lift !== undefined &&
+      !isNaN(pattern.lift) &&
+      pattern.lift !== 0
+  );
+
+  const patternsWithoutLift = patterns.filter(
+    (pattern) =>
+      pattern.lift === null ||
+      pattern.lift === undefined ||
+      isNaN(pattern.lift) ||
+      pattern.lift === 0
+  );
+
+  // Sort patterns with lift by lift (descending), then by selection
+  const sortedWithLift = [...patternsWithLift].sort((a, b) => {
+    const liftDiff = Math.abs(b.lift || 0) - Math.abs(a.lift || 0);
+    if (liftDiff !== 0) {
+      return liftDiff;
+    }
+    return Math.abs(b.selection || 0) - Math.abs(a.selection || 0);
+  });
+
+  // Sort patterns without lift by selection (descending)
+  const sortedWithoutLift = [...patternsWithoutLift].sort((a, b) => {
+    const selectionA = errorKeywords.test(a.pattern) ? 1 : a.selection || 0;
+    const selectionB = errorKeywords.test(b.pattern) ? 1 : b.selection || 0;
+    return selectionB - selectionA;
+  });
+
+  // Take top 10 from each group
+  const top10WithLift = sortedWithLift.slice(0, 10);
+  const top10WithoutLift = sortedWithoutLift.slice(0, 10);
+
+  // Combine the results: top 10 with lift first, then top 10 without lift
+  return [...top10WithoutLift, ...top10WithLift];
+};
+
 export const PatternDifference: React.FC<PatternDifferenceProps> = ({
   patternMapDifference,
   isLoadingPatternMapDifference,
 }) => {
-  // Function to sort and limit patternMapDifference to top 10 with lift and top 10 without lift
-  const sortPatternMapDifference = (patterns: LogPattern[]) => {
-    if (!patterns || patterns.length === 0) {
-      return patterns;
-    }
-
-    // Separate patterns into those with lift and those without lift
-    const patternsWithLift = patterns.filter(
-      (pattern) =>
-        pattern.lift !== null &&
-        pattern.lift !== undefined &&
-        !isNaN(pattern.lift) &&
-        pattern.lift !== 0
-    );
-
-    const patternsWithoutLift = patterns.filter(
-      (pattern) =>
-        pattern.lift === null ||
-        pattern.lift === undefined ||
-        isNaN(pattern.lift) ||
-        pattern.lift === 0
-    );
-
-    // Sort patterns with lift by lift (descending), then by selection
-    const sortedWithLift = [...patternsWithLift].sort((a, b) => {
-      const liftDiff = Math.abs(b.lift || 0) - Math.abs(a.lift || 0);
-      if (liftDiff !== 0) {
-        return liftDiff;
-      }
-      return Math.abs(b.selection || 0) - Math.abs(a.selection || 0);
-    });
-
-    // Sort patterns without lift by selection (descending)
-    const sortedWithoutLift = [...patternsWithoutLift].sort((a, b) => {
-      const selectionA = errorKeywords.test(a.pattern) ? 1 : a.selection || 0;
-      const selectionB = errorKeywords.test(b.pattern) ? 1 : b.selection || 0;
-      return selectionB - selectionA;
-    });
-
-    // Take top 10 from each group
-    const top10WithLift = sortedWithLift.slice(0, 10);
-    const top10WithoutLift = sortedWithoutLift.slice(0, 10);
-
-    // Combine the results: top 10 with lift first, then top 10 without lift
-    return [...top10WithoutLift, ...top10WithLift];
-  };
-
   // Columns for pattern difference table
   const patternDiffColumns: Array<EuiTableFieldDataColumnType<LogPattern>> = [
     {
@@ -162,7 +162,7 @@ export const PatternDifference: React.FC<PatternDifferenceProps> = ({
 
     return (
       <EuiBasicTable
-        items={sortPatternMapDifference(patternMapDifference)}
+        items={patternMapDifference}
         columns={patternDiffColumns}
         tableCaption="Pattern Differences"
         noItemsMessage="No significant pattern differences found between baseline and selection periods."

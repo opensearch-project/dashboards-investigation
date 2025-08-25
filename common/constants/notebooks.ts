@@ -28,6 +28,9 @@ export const ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE = 'ANOMALY_ANALYSIS';
 export const PPL_PARAGRAPH_TYPE = 'ppl';
 export const DEEP_RESEARCH_PARAGRAPH_TYPE = 'DEEP_RESEARCH';
 
+// common log errors
+export const errorKeywords = /\b(error|exception|failed|failure|panic|crash|fatal|abort|timeout|unavailable|denied|rejected|invalid|corrupt|broken|dead|kill)\b/gi;
+
 // Prompts from ml commons (https://github.com/opensearch-project/ml-commons/blob/main/ml-algorithms/src/main/java/org/opensearch/ml/engine/algorithms/agent/PromptTemplate.java)
 const PLANNER_RESPONSIBILITY = `
             You are a thoughtful and analytical planner agent in a plan-execute-reflect framework. Your job is to design a clear, step-by-step plan for a given objective.

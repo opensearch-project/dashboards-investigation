@@ -19,7 +19,7 @@ import { ParagraphState } from '../../../../../common/state/paragraph_state';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { LogInsight } from './components/log_insight';
-import { PatternDifference } from './components/pattern_difference';
+import { PatternDifference, sortPatternMapDifference } from './components/pattern_difference';
 import { LogSequence } from './components/log_sequence';
 import { SummaryStatistics } from './components/summary_statistics';
 import { IndexInsightContent } from '../../../../../common/types/notebooks';
@@ -289,6 +289,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
       !paragraph?.uiState?.isRunning
     ) {
       if (paragraph) {
+        result.patternMapDifference = sortPatternMapDifference(result.patternMapDifference || []);
         saveParagraph({
           paragraphStateValue: ParagraphState.updateOutputResult(paragraph, result),
         });

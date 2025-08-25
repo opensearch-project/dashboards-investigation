@@ -76,7 +76,7 @@ export const useNotebook = () => {
       }
 
       function addIndexCorrelation(content: IndexInsightContent) {
-        // dummy data for index relationship
+        // FIXME to replace with real data
         if (!content.related_indexes) {
           if (/ss4o_metrics.*/.test(index)) {
             content.related_indexes = [
