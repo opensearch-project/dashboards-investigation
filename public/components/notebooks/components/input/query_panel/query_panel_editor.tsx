@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import classNames from 'classnames';
 import { NoteBookServices } from 'public/types';
 import {
@@ -13,23 +13,21 @@ import {
 import { useInputContext } from '../input_context';
 import { useQueryPanelEditor } from './use_query_panel_editor/use_query_panel_editor';
 import { QueryState } from '../types';
-import { getPromptModeIsAvailable } from './get_prompt_mode_is_available';
 
 import './query_panel_editor.scss';
 
-export const QueryPanelEditor = () => {
+export const QueryPanelEditor: React.FC<{ promptModeIsAvailable: boolean }> = ({
+  promptModeIsAvailable,
+}) => {
   const { services } = useOpenSearchDashboards<NoteBookServices>();
   const {
     dataView,
     editorRef,
     editorTextRef,
     inputValue,
-    dataSourceId,
-    setDataView,
     handleSubmit,
     handleInputChange,
   } = useInputContext();
-  const [promptModeIsAvailable, setPromptModeIsAvailable] = useState(false);
 
   const queryState = inputValue as QueryState;
   const { value, queryLanguage, isPromptEditorMode } = queryState || {
@@ -37,30 +35,6 @@ export const QueryPanelEditor = () => {
     queryLanguage: 'PPL' as const,
     isPromptEditorMode: false,
   };
-
-  useEffect(() => {
-    if (!(inputValue as QueryState)?.selectedIndex) {
-      const dataset = services.data.query.queryString.getDefaultQuery().dataset;
-      if (dataset) {
-        // Set dataset to the default
-        services.data.query.queryString.setQuery({ dataset });
-        handleInputChange({ selectedIndex: dataset });
-      }
-    }
-  }, [inputValue, handleInputChange, services.data.query.queryString]);
-
-  useEffect(() => {
-    services.data.dataViews.getDefault().then((res: any) => {
-      setDataView(res);
-    });
-  }, [setDataView, services.data.dataViews]);
-
-  useEffect(() => {
-    // TODO: consider move this to global state
-    if (queryState.selectedIndex) {
-      getPromptModeIsAvailable(services).then(setPromptModeIsAvailable);
-    }
-  }, [services, dataSourceId, queryState.selectedIndex]);
 
   const {
     isFocused,
@@ -71,11 +45,11 @@ export const QueryPanelEditor = () => {
     showPlaceholder,
     ...editorProps
   } = useQueryPanelEditor({
-    promptModeIsAvailable,
+    promptModeIsAvailable: queryLanguage === 'SQL' ? false : promptModeIsAvailable,
     isPromptEditorMode,
     queryLanguage,
-    // FIXME when no need %ppl
-    userQueryString: value.startsWith('%ppl') ? value.slice(5) : value,
+    // FIXME when no need %ppl and %sql
+    userQueryString: value.startsWith('%ppl') || value.startsWith('%sql') ? value.slice(5) : value,
     handleRun: useCallback(() => {
       handleSubmit();
     }, [handleSubmit]),

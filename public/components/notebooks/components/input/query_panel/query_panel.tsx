@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   EuiButtonEmpty,
   EuiFlexGroup,
@@ -20,6 +20,8 @@ import { useInputContext } from '../input_context';
 import { QueryState } from '../types';
 
 import './query_panel.scss';
+import { getPromptModeIsAvailable } from './get_prompt_mode_is_available';
+import { LanguageToggle } from './language_toggle';
 
 interface QueryPanelProps {
   prependWidget?: React.ReactNode;
@@ -28,6 +30,7 @@ interface QueryPanelProps {
 
 export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWidget }) => {
   const {
+    services,
     services: {
       appName,
       uiSettings,
@@ -37,10 +40,43 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
       },
     },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { inputValue, handleInputChange, handleSubmit, isLoading } = useInputContext();
+  const {
+    inputValue,
+    dataSourceId,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    setDataView,
+  } = useInputContext();
 
-  const queryState = inputValue as QueryState;
-  const { timeRange } = queryState || {};
+  const [promptModeIsAvailable, setPromptModeIsAvailable] = useState(false);
+
+  const queryState = inputValue as QueryState | undefined;
+  const { timeRange, queryLanguage } = queryState || {};
+
+  useEffect(() => {
+    if (inputValue && !(inputValue as QueryState)?.selectedIndex) {
+      const dataset = services.data.query.queryString.getDefaultQuery().dataset;
+      if (dataset) {
+        // Set dataset to the default
+        services.data.query.queryString.setQuery({ dataset });
+        handleInputChange({ selectedIndex: dataset });
+      }
+    }
+  }, [inputValue, handleInputChange, services.data.query.queryString]);
+
+  useEffect(() => {
+    services.data.dataViews.getDefault().then((res: any) => {
+      setDataView(res);
+    });
+  }, [setDataView, services.data.dataViews]);
+
+  useEffect(() => {
+    // TODO: consider move this to global state
+    if (queryState?.selectedIndex) {
+      getPromptModeIsAvailable(services).then(setPromptModeIsAvailable);
+    }
+  }, [services, dataSourceId, queryState?.selectedIndex]);
 
   const handleSelect = useCallback(
     (dataset) => {
@@ -59,25 +95,34 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
 
   return (
     <EuiPanel paddingSize="none" hasBorder={false} hasShadow={false}>
-      <EuiFlexGroup className="notebookQueryPanelWidgets" gutterSize="none" dir="row">
+      <EuiFlexGroup
+        className="notebookQueryPanelWidgets"
+        gutterSize="none"
+        dir="row"
+        alignItems="center"
+      >
         {prependWidget}
-        {prependWidget && <div className="notebookQueryPanelWidgets__verticalSeparator" />}
+        <LanguageToggle promptModeIsAvailable={promptModeIsAvailable} />
         <div className="notebookQueryPanelWidgets__datasetSelect">
           {/* <IndexSelect /> */}
           {/* FIXME dataset select cause unncessary http requests due to rerender */}
           <DatasetSelect onSelect={handleSelect} appName={appName} />
         </div>
-        <div className="notebookQueryPanelWidgets__verticalSeparator" />
-        <div className="notebookQueryPanelWidgets__datePicker">
-          <EuiSuperDatePicker
-            start={timeRange?.from}
-            end={timeRange?.to}
-            onTimeChange={handleTimeChange}
-            compressed
-            showUpdateButton={false}
-            dateFormat={uiSettings!.get('dateFormat')}
-          />
-        </div>
+        {queryLanguage === 'PPL' && (
+          <>
+            <div className="notebookQueryPanelWidgets__verticalSeparator" />
+            <div className="notebookQueryPanelWidgets__datePicker">
+              <EuiSuperDatePicker
+                start={timeRange?.from}
+                end={timeRange?.to}
+                onTimeChange={handleTimeChange}
+                compressed
+                showUpdateButton={false}
+                dateFormat={uiSettings!.get('dateFormat')}
+              />
+            </div>
+          </>
+        )}
         <EuiFlexGroup gutterSize="none" dir="row" justifyContent="flexEnd" alignItems="center">
           {isLoading && <EuiLoadingSpinner size="m" />}
           <EuiButtonEmpty
@@ -94,7 +139,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
         </EuiFlexGroup>
       </EuiFlexGroup>
       <EuiSpacer size="xs" />
-      <QueryPanelEditor />
+      <QueryPanelEditor promptModeIsAvailable={promptModeIsAvailable} />
       <QueryPanelGeneratedQuery />
     </EuiPanel>
   );

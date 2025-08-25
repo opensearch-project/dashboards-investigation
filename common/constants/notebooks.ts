@@ -67,12 +67,14 @@ const PLAN_EXECUTE_REFLECT_RESPONSE_FORMAT =
   'Example 2 - When you have the final result:\n' +
   '{\n' +
   '\t"steps": [],\n' +
-  '\t"result": "This is an example result\n with escaped special characters"\n' +
+  '\t"result": "This is an example result\\n with escaped special characters"\n' +
   '}\n' +
   'Important rules for the response:\n' +
   '1. Do not use commas within individual steps \n' +
-  '2. Do not add any content before or after the JSON \n' +
-  '3. Only respond with a pure JSON object \n\n';
+  '2. **CRITICAL: For tool parameters use commas without spaces (e.g., "param1,param2,param3") - This rule must be followed exactly** \n' +
+  '3. For individual steps that call a specific tool, include all required parameters \n' +
+  '4. Do not add any content before or after the JSON \n' +
+  '5. Only respond with a pure JSON object \n\n';
 const FINAL_RESULT_RESPONSE_INSTRUCTIONS = `
             When you deliver your final result, include a comprehensive report. This report must:
 
@@ -102,6 +104,7 @@ export const EXECUTOR_SYSTEM_PROMPT = `
             - Avoid making assumptions and relying on implicit knowledge.
             - Your response must be self-contained and ready for the planner to use without modification. Never end with a question.
             - Break complex searches into simpler queries when appropriate.
+            - When using SearchIndexTool with OpenSearch DSL, always use string values for numeric timestamps or minimum_should_match (e.g., "1704067200000" for milliseconds or "1704067200" for seconds instead of numeric values like 1704067200000).
   `;
 
 export const NOTEBOOK_APP_NAME = 'investigate-notebook';

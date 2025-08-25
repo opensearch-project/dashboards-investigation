@@ -30,15 +30,19 @@ const MultiVariantInputContent: React.FC = () => {
   const {
     currInputType,
     isParagraphSelectionOpen,
-    setCurrInputType,
-    setIsPopoverOpen,
+    setIsParagraphSelectionOpen,
+    handleSetCurrInputType,
     isInputMountedInParagraph,
     handleParagraphSelection,
   } = useInputContext();
 
   const getInputTypeSelector = () => {
     return (
-      <InputTypeSelector allowSelect current={currInputType} onInputTypeChange={setCurrInputType} />
+      <InputTypeSelector
+        allowSelect
+        current={currInputType}
+        onInputTypeChange={handleSetCurrInputType}
+      />
     );
   };
 
@@ -68,6 +72,7 @@ const MultiVariantInputContent: React.FC = () => {
       case AI_RESPONSE_TYPE:
         return <NotebookInput placeholder="Type % to show paragraph options" />;
       case 'PPL':
+      case 'SQL':
         return <QueryPanel prependWidget={getInputTypeSelector()} appendWidget={getInputMenu()} />;
       case 'MARKDOWN':
         return <MarkDownInput />;
@@ -95,7 +100,7 @@ const MultiVariantInputContent: React.FC = () => {
 
   return (
     <>
-      {currInputType !== 'PPL' && (
+      {currInputType !== 'PPL' && currInputType !== 'SQL' && (
         <>
           <EuiFlexGroup dir="row" gutterSize="none" justifyContent="spaceBetween">
             {getInputTypeSelector()}
@@ -110,7 +115,7 @@ const MultiVariantInputContent: React.FC = () => {
         repositionOnScroll
         input={getInputComponent()}
         isOpen={isParagraphSelectionOpen}
-        closePopover={() => setIsPopoverOpen(false)}
+        closePopover={() => setIsParagraphSelectionOpen(false)}
         data-test-subj="multiVariantInput"
       >
         <EuiSelectable

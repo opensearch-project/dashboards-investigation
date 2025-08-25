@@ -54,6 +54,16 @@ export const DEFAULT_DATA = {
   },
 };
 
+const sqlModePlaceholder = i18n.translate(
+  'notebook.queryPanel.queryPanelEditor.sqlModePlaceholder',
+  {
+    defaultMessage: 'Search using {symbol} SQL',
+    values: {
+      symbol: '</>',
+    },
+  }
+);
+
 const enabledPromptPlaceholder = i18n.translate(
   'notebook.queryPanel.queryPanelEditor.enabledPromptPlaceholder',
   {
@@ -336,12 +346,16 @@ export const useQueryPanelEditor = ({
   }, [isQueryMode]);
 
   const placeholder = useMemo(() => {
+    if (queryLanguage === 'SQL') {
+      return sqlModePlaceholder;
+    }
+
     if (!promptModeIsAvailable) {
       return disabledPromptPlaceholder;
     }
 
     return isPromptMode ? promptModePlaceholder : enabledPromptPlaceholder;
-  }, [isPromptMode, promptModeIsAvailable]);
+  }, [isPromptMode, promptModeIsAvailable, queryLanguage]);
 
   const onEditorClick = useCallback(() => {
     editorRef.current?.focus();
