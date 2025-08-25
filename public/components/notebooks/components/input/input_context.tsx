@@ -329,7 +329,6 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         setInputValue('');
         break;
       case 'PPL':
-      case 'SQL':
         const { timeRange, selectedIndex, isPromptEditorMode } = inputValue as QueryState;
         if (isPromptEditorMode) {
           // TODO: run generated query if the query is not dirty
@@ -343,6 +342,25 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
           const finalQuery = appendHeadIfNeeded(queryWithTimeFilter);
 
           submitFn(`%ppl\n${finalQuery}`, 'CODE');
+        }
+        break;
+      case 'SQL':
+        const {
+          timeRange: sqlTimeRange,
+          selectedIndex: sqlSelectedIndex,
+          isPromptEditorMode: sqlIsPromptEditorMode,
+        } = inputValue as QueryState;
+        if (sqlIsPromptEditorMode) {
+          // TODO: run generated query if the query is not dirty
+          handleCallAgent();
+        } else {
+          const queryWithTimeFilter = calculateQueryWithTimeFilter(
+            editorTextRef.current,
+            sqlTimeRange!,
+            sqlSelectedIndex
+          );
+
+          submitFn(`%sql\n${queryWithTimeFilter}`, 'CODE');
         }
         break;
       case 'VISUALIZATION':
