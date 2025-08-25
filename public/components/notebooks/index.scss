@@ -38,6 +38,9 @@
     .notebookHeaderActionMenu {
       opacity: 1;
     }
+    .notebookDataDistributionParaExpandButton {
+      opacity: 1;
+    }
   }
 }
 
@@ -48,6 +51,11 @@
   z-index: 100;
   margin: 0;
   right: 0;
+}
+
+.notebookDataDistributionParaExpandButton {
+  opacity: 0;
+  padding-right: 32px;
 }
 
 .notebooks-paragraph-dark .markdown-body {

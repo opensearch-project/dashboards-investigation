@@ -273,7 +273,7 @@ export const DataDistributionContainer = ({
       <EuiFlexGroup alignItems="center" gutterSize="none" justifyContent="spaceBetween">
         <EuiFlexItem grow={false}>{dataDistributionTitle}</EuiFlexItem>
         {dataDistributionSpecs.length > 0 && (
-          <EuiFlexItem grow={false} style={{ paddingRight: 32 }}>
+          <EuiFlexItem grow={false} className="notebookDataDistributionParaExpandButton">
             <EuiButtonIcon
               onClick={() => setDistributionModalExpand(true)}
               iconType="expand"
