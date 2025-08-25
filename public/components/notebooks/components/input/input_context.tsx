@@ -44,8 +44,7 @@ interface InputContextValue<T extends InputType = InputType> {
   // If the input submit is triggered and is loading
   isLoading: boolean;
 
-  // Current paragraph Id
-  paragraphId: string | undefined;
+  disabled: boolean | undefined;
 
   // If the input is located in an exising paragraph but not in input panel
   isInputMountedInParagraph: boolean;
@@ -85,7 +84,7 @@ const InputContext = createContext<InputContextValue | undefined>(undefined);
 interface InputProviderProps {
   children: ReactNode;
   onSubmit?: (paragraphInput: string, inputType: string) => void;
-  input?: { inputText: string; inputType: string; paragraphId?: string };
+  input?: { inputText: string; inputType: string; disabled: boolean };
 }
 
 export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit, input }) => {
@@ -372,7 +371,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     editorTextRef,
     dataView,
     isLoading,
-    paragraphId: input?.paragraphId,
+    disabled: input?.disabled,
     isInputMountedInParagraph,
     paragraphOptions,
     dataSourceId,

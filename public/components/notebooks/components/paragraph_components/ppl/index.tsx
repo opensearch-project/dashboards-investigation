@@ -253,7 +253,7 @@ export const PPLParagraph = ({
             input={{
               inputText: paragraphValue.input.inputText,
               inputType: 'PPL',
-              paragraphId: paragraphValue.id,
+              disabled: isAgenticRunBefore({ notebookState, id: paragraphValue.id }),
             }}
             onSubmit={(value) => {
               paragraphState.updateInput({
@@ -264,7 +264,6 @@ export const PPLParagraph = ({
               });
               runParagraphHandler();
             }}
-            isDisabled={isAgenticRunBefore({ notebookState, id: paragraphValue.id })}
           />
         </div>
       </EuiCompressedFormRow>
