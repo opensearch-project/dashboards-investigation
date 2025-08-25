@@ -2,6 +2,7 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+import { ParagraphBackendType } from 'common/types/notebooks';
 import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
 import { TimeRange } from '../../../../../../../src/plugins/data/common';
 
@@ -36,3 +37,5 @@ export interface InputTypeOption {
   'data-test-subj': string;
   disabled?: boolean;
 }
+
+export type ParagraphInputType<TParameters = unknown> = ParagraphBackendType<TParameters>['input'];

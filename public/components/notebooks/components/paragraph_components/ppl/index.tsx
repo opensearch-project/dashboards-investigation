@@ -162,6 +162,19 @@ export const PPLParagraph = ({
     }
   }, [paragraphValue, loadQueryResultsFromInput, searchQuery]);
 
+  useEffect(() => {
+    if (
+      !paragraphValue.uiState?.isRunning &&
+      // Check if the ouput is default data structure
+      paragraphValue.output?.[0].outputType === 'MARKDOWN' &&
+      paragraphValue.output?.[0].result === ''
+    ) {
+      runParagraph({
+        id: paragraphValue.id,
+      });
+    }
+  }, [paragraphValue, runParagraph]);
+
   const runParagraphHandler = async () => {
     const inputText = paragraphState.getBackendValue().input.inputText;
     const queryType = inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
@@ -249,9 +262,10 @@ export const PPLParagraph = ({
               inputType: getInputType(paragraphValue).toUpperCase(),
               parameters: paragraphValue.input.parameters,
             }}
-            onSubmit={(value) => {
+            onSubmit={({ inputText, inputType, parameters }) => {
               paragraphState.updateInput({
-                inputText: value,
+                inputText: inputType === 'SQL' ? `%sql\n${inputText}` : `%ppl\n${inputText}`,
+                parameters,
               });
               paragraphState.updateUIState({
                 isOutputStale: true,

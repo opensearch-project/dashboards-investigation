@@ -48,9 +48,7 @@ export const QueryPanelEditor: React.FC<{ promptModeIsAvailable: boolean }> = ({
     promptModeIsAvailable: queryLanguage === 'SQL' ? false : promptModeIsAvailable,
     isPromptEditorMode,
     queryLanguage,
-    // FIXME when no need %ppl and %sql
-    userQueryString:
-      value?.startsWith('%ppl') || value?.startsWith('%sql') ? value.slice(5) : value,
+    userQueryString: value,
     handleRun: useCallback(() => {
       handleSubmit();
     }, [handleSubmit]),
