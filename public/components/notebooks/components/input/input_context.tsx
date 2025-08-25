@@ -292,7 +292,18 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     // Append time filter where command after the first command
     const commands = query.split('|');
     commands.splice(1, 0, whereCommand);
+
     return commands.map((cmd) => cmd.trim()).join(' | ');
+  };
+
+  // Regular expression to check for head or limit clauses
+  const HEAD_LIMIT_REGEX = /\|\s*(head|limit)\s+\d+/i;
+
+  const appendHeadIfNeeded = (query: string) => {
+    if (!HEAD_LIMIT_REGEX.test(query)) {
+      return `${query} | head 500`;
+    }
+    return query;
   };
 
   const handleGenerateQuery = async () => {
@@ -337,10 +348,9 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         case 'PPL':
           const { timeRange, selectedIndex, isPromptEditorMode } = inputValue as QueryState;
           const query = isPromptEditorMode ? await handleGenerateQuery() : editorTextRef.current;
-          submitFn(
-            `%ppl\n${calculateQueryWithTimeFilter(query, timeRange, selectedIndex)}`,
-            'CODE'
-          );
+          const queryWithTimeFilter = calculateQueryWithTimeFilter(query, timeRange, selectedIndex);
+          const finalQuery = appendHeadIfNeeded(queryWithTimeFilter);
+          submitFn(`%ppl\n${finalQuery}`, 'CODE');
           break;
         case 'VISUALIZATION':
           break;
