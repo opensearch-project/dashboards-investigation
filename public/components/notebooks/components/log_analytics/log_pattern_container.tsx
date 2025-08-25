@@ -19,16 +19,20 @@ import { ParagraphState } from '../../../../../common/state/paragraph_state';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { LogInsight } from './components/log_insight';
-import { PatternDifference } from './components/pattern_difference';
+import { PatternDifference, sortPatternMapDifference } from './components/pattern_difference';
 import { LogSequence } from './components/log_sequence';
 import { SummaryStatistics } from './components/summary_statistics';
+import { IndexInsightContent } from '../../../../../common/types/notebooks';
 
 const LOG_INSIGHTS_ANALYSIS = 'Log Insights Analysis';
 const PATTERN_DIFFERENCE_ANALYSIS = 'Pattern Difference Analysis';
 const LOG_SEQUENCE_ANALYSIS = 'Log Sequence Analysis';
 
 interface LogPatternContainerProps {
-  paragraphState: ParagraphState<LogPatternAnalysisResult>;
+  paragraphState: ParagraphState<
+    LogPatternAnalysisResult,
+    { index: string; timeField: string; insight: IndexInsightContent }
+  >;
 }
 
 interface LoadingStatus {
@@ -76,8 +80,8 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
     if (!context) return null;
     return {
       dataSourceId: context.dataSourceId,
-      index: context.index,
-      timeField: context.timeField,
+      index: paragraph?.input.parameters?.index || context.index,
+      timeField: paragraph?.input.parameters?.timeField || context.timeField,
       timeRange: context.timeRange
         ? {
             selectionFrom: context.timeRange.selectionFrom,
@@ -86,9 +90,9 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
             baselineTo: context.timeRange.baselineTo,
           }
         : null,
-      indexInsight: context.indexInsight,
+      indexInsight: paragraph?.input.parameters?.insight || context.indexInsight,
     };
-  }, [context]);
+  }, [context, paragraph?.input.parameters]);
 
   // Memoize para.out to prevent array reference changes
   const memoizedParaOut = useMemo(() => {
@@ -285,6 +289,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
       !paragraph?.uiState?.isRunning
     ) {
       if (paragraph) {
+        result.patternMapDifference = sortPatternMapDifference(result.patternMapDifference || []);
         saveParagraph({
           paragraphStateValue: ParagraphState.updateOutputResult(paragraph, result),
         });
@@ -336,7 +341,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
               defaultMessage:
                 'Analyzing log patterns from {index} index by comparing two time periods',
               values: {
-                index: context.index,
+                index: memoizedContextValues?.index,
               },
             })}
           </EuiText>

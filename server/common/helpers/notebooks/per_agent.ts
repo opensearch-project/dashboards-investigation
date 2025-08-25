@@ -92,15 +92,15 @@ export const executePERAgentInParagraph = async ({
 
       ## PLANNING GUIDANCE
       \${parameters.planner_prompt}
-      
+
       ## OBJECTIVE
       Your job is to fulfill user's requirements and answer their questions effectively. User Input:
       \`\`\`\${parameters.user_prompt}\`\`\`
-      
+
       ## PREVIOUS CONTEXT
       The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research
       [\${parameters.context}]
-      
+
       Remember: Respond only in JSON format following the required schema.`,
     planner_with_history_template: `
       ## AVAILABLE TOOLS
@@ -108,19 +108,19 @@ export const executePERAgentInParagraph = async ({
 
       ## PLANNING GUIDANCE
       \${parameters.planner_prompt}
-      
+
       ## OBJECTIVE
       The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively. User Input:
       \`\`\`\${parameters.user_prompt}\`\`\`
-      
+
       ## PREVIOUS CONTEXT
       The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research
       [\${parameters.context}]
-      
+
       ## CURRENT PROGRESS
       You have already completed the following steps in the current plan. Consider these when determining next actions:
       [\${parameters.completed_steps}]
-      
+
       Remember: Respond only in JSON format following the required schema.`,
 
     reflect_prompt_template: `
@@ -129,26 +129,26 @@ export const executePERAgentInParagraph = async ({
 
       ## PLANNING GUIDANCE
       \`\`\`\${parameters.planner_prompt}\`\`\`
-      
+
       ## OBJECTIVE
       The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively. User Input:
       \${parameters.user_prompt}
-      
+
       ## ORIGINAL PLAN
       This was the initially created plan to address the objective:
       [\${parameters.steps}]
-      
+
       ## PREVIOUS CONTEXT
       The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research without doing the same thing again:
       [\${parameters.context}]
-      
+
       ## CURRENT PROGRESS
       You have already completed the following steps from the original plan. Consider these when determining next actions:
       [\${parameters.completed_steps}]
-      
+
       ## REFLECTION GUIDELINE
       \${parameters.reflect_prompt}
-      
+
       Remember: Respond only in JSON format following the required schema.`,
     context,
     system_prompt: customizedPrompts?.systemPrompt ?? undefined,
@@ -229,6 +229,7 @@ export const generateContextPromptFromParagraphs = async ({
         });
       })
   );
+
   return [getNotebookTopLevelContextPrompt(notebookInfo), ...allContext]
     .filter((item) => item)
     .map((item) => item)

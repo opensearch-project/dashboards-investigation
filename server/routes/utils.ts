@@ -40,7 +40,7 @@ export const getNotebookTopLevelContextPrompt = (
 
   return `
     Step: Top level context for investigation.
-    Step Result: 
+    Step Result:
     You are an AI assistant helping with root cause analysis based on log data. I'm investigating an issue in a system and need your analytical expertise.
 
     ## Context Information
@@ -48,24 +48,22 @@ export const getNotebookTopLevelContextPrompt = (
     ${index ? `**Relevant Index name**: ${index}` : ''}
     ${timeField ? `**Time Field**: ${timeField}` : ''}
     ${
-      timeRange
-        ? `
-          **Time Period the issue happens**: From ${getTimezoneFullfilledDateString(
+      timeRange?.selectionFrom && timeRange.selectionTo
+        ? `**Time Period the issue happens**: From ${getTimezoneFullfilledDateString(
             timeRange.selectionFrom
           )} to ${getTimezoneFullfilledDateString(timeRange.selectionTo)}
         `
         : ''
     }
+    ${
+      timeRange?.baselineFrom && timeRange.baselineTo
+        ? `**Time Period as baseline**: From ${getTimezoneFullfilledDateString(
+            timeRange.baselineFrom
+          )} to ${getTimezoneFullfilledDateString(timeRange.baselineTo)}
+        `
+        : ''
+    }
     ${filters ? `**Applied Filters**: ${JSON.stringify(filters, null, 2)}` : ''}
     ${variables ? `**Variables**: ${JSON.stringify(variables, null, 2)}` : ''}
-
-    ## Request
-    Based on the information above, please help me analyze the following:
-    1. What potential root causes could explain the observed behavior?
-    2. What patterns or anomalies should I look for in the data?
-    3. What additional data or metrics might be useful to collect?
-    4. What are the next steps you recommend for this investigation?
-
-    Please provide your analysis, focusing on technical insights that could help resolve this issue.
   `;
 };
