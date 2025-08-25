@@ -111,47 +111,6 @@ export const usePrecheck = () => {
           }
         }
 
-        if (paragraphStates.length && res.context?.initialGoal) {
-          const combinedObservable = combineLatest(
-            paragraphStates.map((paragraphState) => paragraphState.getValue$())
-          );
-          const subscription = combinedObservable.subscribe(async (paragraphValues) => {
-            const anomalyAnalysisPara = paragraphValues.find(
-              (p) => p.input?.inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE
-            );
-            const logPatternPara = paragraphValues.find(
-              (p) => p.input?.inputType === LOG_PATTERN_PARAGRAPH_TYPE
-            );
-
-            const hasResult = (para?: ParagraphStateValue<unknown>) =>
-              !para?.uiState?.isRunning &&
-              para?.output?.[0]?.result &&
-              para.output[0].result !== '';
-            const hasAnomalyResult = hasResult(anomalyAnalysisPara);
-            const hasLogPatternResult = hasResult(logPatternPara);
-
-            const shouldCreate =
-              !deepResearchParaCreated.current &&
-              ((anomalyAnalysisPara && logPatternPara && hasAnomalyResult && hasLogPatternResult) ||
-                (anomalyAnalysisPara && !logPatternPara && hasAnomalyResult) ||
-                (!anomalyAnalysisPara && logPatternPara && hasLogPatternResult));
-
-            if (shouldCreate) {
-              deepResearchParaCreated.current = true;
-
-              subscription.unsubscribe();
-              await createParagraph({
-                index: totalParagraphLength + paragraphStates.length,
-                input: {
-                  inputText: '',
-                  inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
-                },
-                dataSourceMDSId: res.context?.dataSourceId,
-              });
-            }
-          });
-        }
-
         if (
           res.context?.source === NoteBookSource.DISCOVER &&
           !res.paragraphs.find((paragraph) => getInputType(paragraph) === PPL_PARAGRAPH_TYPE) &&
@@ -172,7 +131,39 @@ export const usePrecheck = () => {
             runParagraph({
               id: createdPPLParagraph.value.id,
             });
+
+            paragraphStates.push(createdPPLParagraph);
           }
+        }
+
+        if (paragraphStates.length && res.context?.initialGoal) {
+          const combinedObservable = combineLatest(
+            paragraphStates.map((paragraphState) => paragraphState.getValue$())
+          );
+          const subscription = combinedObservable.subscribe(async (paragraphValues) => {
+            const hasResult = (para?: ParagraphStateValue<unknown>) =>
+              !para?.uiState?.isRunning &&
+              ((para?.output?.[0]?.result && para.output[0].result !== '') ||
+                para?.fullfilledOutput);
+
+            const shouldCreate =
+              !deepResearchParaCreated.current &&
+              paragraphValues.every((paragraphValue) => hasResult(paragraphValue));
+
+            if (shouldCreate) {
+              deepResearchParaCreated.current = true;
+
+              subscription.unsubscribe();
+              await createParagraph({
+                index: totalParagraphLength + paragraphStates.length,
+                input: {
+                  inputText: '',
+                  inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
+                },
+                dataSourceMDSId: res.context?.dataSourceId,
+              });
+            }
+          });
         }
       },
       [createParagraph, runParagraph]
