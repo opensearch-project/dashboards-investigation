@@ -17,6 +17,7 @@ import { VisualizationsSetup } from '../../../src/plugins/visualizations/public'
 import { ExpressionsStart } from '../../../src/plugins/expressions/public';
 import { AppMountParameters, CoreStart } from '../../../src/core/public';
 import PPLService from './services/requests/ppl';
+import { ContextServiceSetup } from './services/context_service';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -41,6 +42,7 @@ export type NoteBookServices = CoreStart &
     appName: string;
     pplService: PPLService;
     appMountService?: AppMountParameters;
+    contextService: ContextServiceSetup;
   };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface

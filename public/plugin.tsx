@@ -41,7 +41,6 @@ import { Notebook, NotebookProps } from './components/notebooks/components/noteb
 import { NOTEBOOK_APP_NAME } from '../common/constants/notebooks';
 import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opensearch_dashboards_react/public';
 import { ContextService } from './services/context_service';
-import { setContextServiceSetup } from './services';
 
 export class InvestigationPlugin
   implements
@@ -52,20 +51,17 @@ export class InvestigationPlugin
     this.contextService = new ContextService();
   }
 
-  public setup(
+  public async setup(
     core: CoreSetup<AppPluginStartDependencies>,
     setupDeps: SetupDependencies
-  ): InvestigationSetup {
+  ): Promise<InvestigationSetup> {
     uiSettingsService.init(core.uiSettings, core.notifications);
     setOSDHttp(core.http);
     core.getStartServices().then(([coreStart]) => {
       setOSDSavedObjectsClient(coreStart.savedObjects.client);
     });
 
-    this.contextService.init();
-    const contextServiceSetup = this.contextService.setup();
-
-    setContextServiceSetup(contextServiceSetup);
+    const contextServiceSetup = await this.contextService.setup();
 
     const getServices = async () => {
       const [coreStart, depsStart] = await core.getStartServices();
@@ -76,6 +72,7 @@ export class InvestigationPlugin
         appName: NOTEBOOK_APP_NAME,
         pplService,
         savedObjects: coreStart.savedObjects,
+        contextService: contextServiceSetup,
       };
       return services;
     };

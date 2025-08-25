@@ -9,7 +9,6 @@ import { DataSourceManagementPluginSetup } from '../../../../src/plugins/data_so
 import { EmbeddableStart } from '../../../../src/plugins/embeddable/public';
 import { ExpressionsStart } from '../../../../src/plugins/expressions/public';
 import { createGetterSetter } from '../../../../src/plugins/opensearch_dashboards_utils/common';
-import { ContextServiceSetup } from './context_service';
 
 export const [getExpressions, setExpressions] = createGetterSetter<ExpressionsStart>('Expressions');
 export const [getData, setData] = createGetterSetter<DataPublicPluginStart>('Data');
@@ -20,9 +19,6 @@ export const [getDataSourceManagementSetup, setDataSourceManagementSetup] = crea
   | { enabled: false; dataSourceManagement: undefined }
 >('DataSourceManagementSetup');
 export const [getClient, setClient] = createGetterSetter<CoreStart['http']>('http');
-export const [getContextServiceSetup, setContextServiceSetup] = createGetterSetter<
-  ContextServiceSetup
->('ContextServiceSetup');
 
 // Export services
 export { LogPatternService } from './requests/log_pattern';
