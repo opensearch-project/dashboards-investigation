@@ -38,6 +38,11 @@ export const Main: React.FC = () => {
 
   // Deletes existing notebooks
   const deleteNotebook = async (notebookList: string[], toastMessage?: string) => {
+    const result = {
+      succeeded: [] as string[],
+      failed: [] as string[],
+    };
+
     const deleteNotebookFn = (id: string) => {
       const isValid = isValidUUID(id);
       const route = isValid
@@ -49,22 +54,37 @@ export const Main: React.FC = () => {
     };
 
     const promises = notebookList.map((id) =>
-      deleteNotebookFn(id).catch((err) => {
-        notifications.toasts.addDanger(
-          'Error deleting notebook, please make sure you have the correct permission.'
-        );
-        console.error(err.body.message);
-      })
+      deleteNotebookFn(id)
+        .then(() => {
+          result.succeeded.push(id);
+        })
+        .catch((err) => {
+          result.failed.push(id);
+          console.error(err.body.message);
+        })
     );
 
-    Promise.allSettled(promises)
+    return Promise.allSettled(promises)
       .then(() => {
-        const message =
-          toastMessage || `Notebook${notebookList.length > 1 ? 's' : ''} successfully deleted!`;
-        notifications.toasts.addSuccess(message);
+        if (result.succeeded.length > 0) {
+          const successMessage =
+            toastMessage ||
+            `${result.succeeded.length} notebook${
+              result.succeeded.length > 1 ? 's' : ''
+            } successfully deleted!`;
+          notifications.toasts.addSuccess(successMessage);
+        }
+
+        if (result.failed.length > 0) {
+          notifications.toasts.addDanger(
+            `Error deleting ${result.failed.length} notebook${
+              result.failed.length > 1 ? 's' : ''
+            }, please make sure you have the correct permission.`
+          );
+        }
       })
       .catch((err) => {
-        console.error('Error in deleting multiple notebooks', err);
+        notifications.toasts.addDanger('Error in deleting multiple notebooks', err);
       });
   };
 

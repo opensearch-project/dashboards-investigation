@@ -9,6 +9,7 @@ import {
   EuiFlexItem,
   EuiInMemoryTable,
   EuiLink,
+  EuiLoadingSpinner,
   EuiOverlayMask,
   EuiPage,
   EuiPageBody,
@@ -49,7 +50,7 @@ import { NoteBookServices } from '../../../types';
 import { NotebookType } from '../../../../common/types/notebooks';
 
 interface NoteTableProps {
-  deleteNotebook: (noteList: string[], toastMessage?: string) => void;
+  deleteNotebook: (noteList: string[], toastMessage?: string) => Promise<void>;
 }
 
 export function NoteTable({ deleteNotebook }: NoteTableProps) {
@@ -154,18 +155,21 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
   );
 
   const onDelete = async () => {
-    const toastMessage = `Notebook${
-      selectedNotebooks.length > 1 ? 's' : ' "' + selectedNotebooks[0].path + '"'
-    } successfully deleted!`;
-    await deleteNotebook(
-      selectedNotebooks.map((note) => note.id),
-      toastMessage
-    );
-    setNotebooks((prevState) =>
-      prevState.filter((notebook) => !selectedNotebooks.includes(notebook))
-    );
-    closeModal();
+    setLoading(true);
+    try {
+      await deleteNotebook(selectedNotebooks.map((note) => note.id));
+      await fetchNotebooks();
+    } finally {
+      closeModal();
+      setLoading(false);
+    }
   };
+
+  const loadingModal = (
+    <EuiOverlayMask>
+      <EuiLoadingSpinner size="xl" />
+    </EuiOverlayMask>
+  );
 
   const createNote = useCallback(() => {
     setModalLayout(
@@ -415,6 +419,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
             </EuiPageHeader>
           )}
           <EuiPageContent id="notebookArea" paddingSize="m">
+            {loading && loadingModal}
             {newNavigation ? (
               <HeaderControlledComponentsWrapper
                 description={{

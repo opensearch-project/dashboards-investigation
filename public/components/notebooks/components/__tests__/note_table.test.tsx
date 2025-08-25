@@ -202,7 +202,7 @@ describe('<NoteTable /> spec', () => {
 
     // Assert that the deleteNotebook function is called
     expect(deleteNotebook).toHaveBeenCalledTimes(1);
-    expect(deleteNotebook).toHaveBeenCalledWith(['id-1'], expect.any(String));
+    expect(deleteNotebook).toHaveBeenCalledWith(['id-1']);
   });
 
   it('adds sample notebooks', async () => {
