@@ -48,10 +48,18 @@ export const getNotebookTopLevelContextPrompt = (
     ${index ? `**Relevant Index name**: ${index}` : ''}
     ${timeField ? `**Time Field**: ${timeField}` : ''}
     ${
-      timeRange
+      timeRange?.selectionFrom && timeRange.selectionTo
         ? `**Time Period the issue happens**: From ${getTimezoneFullfilledDateString(
             timeRange.selectionFrom
           )} to ${getTimezoneFullfilledDateString(timeRange.selectionTo)}
+        `
+        : ''
+    }
+    ${
+      timeRange?.baselineFrom && timeRange.baselineTo
+        ? `**Time Period as baseline**: From ${getTimezoneFullfilledDateString(
+            timeRange.baselineFrom
+          )} to ${getTimezoneFullfilledDateString(timeRange.baselineTo)}
         `
         : ''
     }

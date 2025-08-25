@@ -9,6 +9,7 @@ import { ParagraphRegistryItem } from '../services/paragraph_service';
 export const LogPatternParagraph: ParagraphRegistryItem<LogPatternAnalysisResult> = {
   getContext: async ({ paragraph }) => {
     const { logInsights, patternMapDifference, EXCEPTIONAL } = paragraph.output?.[0].result! || {};
+    const index = paragraph.input.parameters?.index || '';
 
     const percent = (value: number | undefined) => {
       return value !== undefined ? `${(value * 100).toFixed(2)}%` : 'N/A';
@@ -47,7 +48,7 @@ export const LogPatternParagraph: ParagraphRegistryItem<LogPatternAnalysisResult
         : '- No exceptional sequence detected';
 
     return `
-      Step: Initial analysis by using Log pattern/sequence method
+      Step: Initial analysis by using Log pattern/sequence method for index ${index}
       Step Result:
       ## Log pattern/sequence analysis
 

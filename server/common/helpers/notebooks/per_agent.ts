@@ -230,17 +230,7 @@ export const generateContextPromptFromParagraphs = async ({
       })
   );
 
-  const objective = `
-    ## Request
-    Based on the information above, please help me analyze the following:
-    1. What potential root causes could explain the observed behavior?
-    2. What patterns or anomalies should I look for in the data?
-    3. What additional data or metrics might be useful to collect?
-    4. What are the next steps you recommend for this investigation?
-
-    Please provide your analysis, focusing on technical insights that could help resolve this issue.`;
-
-  return [getNotebookTopLevelContextPrompt(notebookInfo), ...allContext, objective]
+  return [getNotebookTopLevelContextPrompt(notebookInfo), ...allContext]
     .filter((item) => item)
     .map((item) => item)
     .join('\n');
