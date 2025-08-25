@@ -18,6 +18,7 @@ import { ExpressionsStart } from '../../../src/plugins/expressions/public';
 import { AppMountParameters, CoreStart } from '../../../src/core/public';
 import PPLService from './services/requests/ppl';
 import { ParagraphServiceSetup } from './services/paragraph_service';
+import { ContextServiceSetup } from './services/context_service';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -43,6 +44,7 @@ export type NoteBookServices = CoreStart &
     pplService: PPLService;
     appMountService?: AppMountParameters;
     paragraphService: ParagraphServiceSetup;
+    contextService: ContextServiceSetup;
   };
 
 export interface InvestigationSetup {

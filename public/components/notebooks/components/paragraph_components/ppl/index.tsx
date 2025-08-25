@@ -17,9 +17,10 @@ import {
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import { useEffect } from 'react';
+import { useState } from 'react';
+import { useEffectOnce } from 'react-use';
 import { useCallback } from 'react';
 import { useMemo } from 'react';
-import { useRef } from 'react';
 import { useContext } from 'react';
 import { NoteBookServices } from 'public/types';
 import { ParagraphDataSourceSelector } from '../../data_source_selector';
@@ -40,7 +41,6 @@ import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/ope
 import { callOpenSearchCluster } from '../../../../../plugin_helpers/plugin_proxy_call';
 import { MultiVariantInput } from '../../input/multi_variant_input';
 import { parsePPLQuery } from '../../../../../../common/utils';
-import { getContextServiceSetup } from '../../../../../services';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
 
 export interface QueryObject {
@@ -95,7 +95,7 @@ export const PPLParagraph = ({
   paragraphState: ParagraphState<string, unknown, QueryObject>;
 }) => {
   const {
-    services: { http, notifications },
+    services: { http, notifications, contextService },
   } = useOpenSearchDashboards<NoteBookServices>();
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const selectedDataSource = paragraphValue?.dataSourceMDSId;
@@ -105,7 +105,7 @@ export const PPLParagraph = ({
     });
   };
   const { runParagraph, saveParagraph } = useParagraphs();
-  const queryObject = paragraphValue.fullfilledOutput;
+  const [queryObject, setQueryObject] = useState<QueryObject>({});
   const errorMessage = useMemo(() => {
     if (queryObject?.error) {
       return queryObject.error.body.reason;
@@ -113,20 +113,16 @@ export const PPLParagraph = ({
 
     return '';
   }, [queryObject]);
-  const previousRunQueryRef = useRef<string>('');
-  const searchQuery = ParagraphState.getOutput(paragraphValue)?.result || '';
 
   const context = useContext(NotebookReactContext);
   const notebookId = context.state.value.id;
-  const contextService = getContextServiceSetup();
 
   const loadQueryResultsFromInput = useCallback(
     async (paragraph: ParagraphStateValue) => {
       const queryType = paragraph.input.inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
-      paragraphState.updateUIState({
-        isRunning: true,
-      });
-      previousRunQueryRef.current = searchQuery;
+
+      const currentSearchQuery = ParagraphState.getOutput(paragraph)?.result || '';
+
       await callOpenSearchCluster({
         http,
         dataSourceId: paragraph.dataSourceMDSId,
@@ -134,17 +130,16 @@ export const PPLParagraph = ({
           path: `/_plugins/${queryType}`,
           method: 'POST',
           body: JSON.stringify({
-            query: searchQuery,
+            query: currentSearchQuery,
           }),
         },
       })
         .then((response) => {
           paragraphState.updateFullfilledOutput(response);
           setQueryObject(response);
-          // set or update the context for the paragraph
           return contextService.setParagraphContext({
             notebookId,
-            paragraphId: paragraphValue.id,
+            paragraphId: paragraph.id,
             context: response,
           });
         })
@@ -157,61 +152,25 @@ export const PPLParagraph = ({
               },
             },
           });
-        })
-        .finally(() => {
-          paragraphState.updateUIState({
-            isRunning: false,
-          });
         });
     },
-    [
-      paragraphState,
-      searchQuery,
-      http,
-      notifications.toasts,
-      contextService,
-      paragraphValue.id,
-      notebookId,
-    ]
+    [http, notifications.toasts, contextService, notebookId]
   );
 
-  useEffect(() => {
+  useEffectOnce(() => {
     const loadInitialContext = async () => {
       try {
         const data = await contextService.getParagraphContext(notebookId, paragraphValue.id);
         if (data) {
           setQueryObject(data.context as QueryObject);
-          previousRunQueryRef.current = searchQuery;
         }
-        setContextLoaded(true);
       } catch (err) {
         notifications.toasts.addDanger('Fail to load paragraph context');
-        setContextLoaded(true);
       }
     };
 
-    if (!contextLoaded) {
-      // Load context for the paragraph when the component mounts
-      loadInitialContext();
-      return;
-    }
-
-    if (paragraphValue.uiState?.isRunning) {
-      return;
-    }
-    if (searchQuery && searchQuery !== previousRunQueryRef.current) {
-      loadQueryResultsFromInput(paragraphValue);
-    }
-  }, [
-    paragraphValue.id,
-    contextService,
-    notebookId,
-    paragraphValue,
-    loadQueryResultsFromInput,
-    searchQuery,
-    contextLoaded,
-    notifications.toasts,
-  ]);
+    loadInitialContext();
+  });
 
   const runParagraphHandler = async () => {
     const inputText = paragraphState.getBackendValue().input.inputText;
@@ -231,6 +190,8 @@ export const PPLParagraph = ({
     await runParagraph({
       id: paragraphValue.id,
     });
+
+    await loadQueryResultsFromInput(paragraphState.value);
   };
 
   // FIXME: when properly store input language

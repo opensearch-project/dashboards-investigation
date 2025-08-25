@@ -18,13 +18,12 @@ export interface ContextServiceSetup {
   deleteParagraphContext: (notebookId: string, paragraphId: string) => Promise<boolean>;
   getAllParagraphsByNotebook: (notebookId: string) => Promise<ParagraphContext[] | []>;
   deleteAllParagraphsByNotebook: (notebookId: string) => Promise<boolean>;
-  getParagraphContextByParagraphId: (paragraphId: string) => Promise<ParagraphContext | null>;
 }
 
 export class ContextService {
   private db: IDBDatabase | null = null;
 
-  async init() {
+  private async init() {
     return new Promise<void>((resolve, reject) => {
       const request = indexedDB.open('NotebookContextDB');
 
@@ -36,7 +35,6 @@ export class ContextService {
           });
           // create index for notebookId and paragraphId to allow querying by notebook
           store.createIndex('notebookId', 'notebookId', { unique: false });
-          store.createIndex('paragraphId', 'paragraphId', { unique: true });
         }
       };
 
@@ -56,7 +54,11 @@ export class ContextService {
     });
   }
 
-  setup = (): ContextServiceSetup => {
+  setup = async (): Promise<ContextServiceSetup> => {
+    if (!this.db) {
+      await this.init();
+    }
+
     const getParagraphContext = async (
       notebookId: string,
       paragraphId: string
@@ -65,15 +67,6 @@ export class ContextService {
       const store = transaction.objectStore('contexts');
       const req = store.get([notebookId, paragraphId]);
 
-      const result = await this.handleRequest(req);
-      return (result as ParagraphContext) ?? null;
-    };
-
-    const getParagraphContextByParagraphId = async (paragraphId: string) => {
-      const transaction = this.db!.transaction('contexts', 'readonly');
-      const store = transaction.objectStore('contexts');
-      const index = store.index('paragraphId');
-      const req = index.get(paragraphId);
       const result = await this.handleRequest(req);
       return (result as ParagraphContext) ?? null;
     };
@@ -145,7 +138,6 @@ export class ContextService {
       deleteParagraphContext,
       getAllParagraphsByNotebook,
       deleteAllParagraphsByNotebook,
-      getParagraphContextByParagraphId,
     };
   };
 }

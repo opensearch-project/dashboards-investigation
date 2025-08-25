@@ -4,40 +4,35 @@
  */
 
 import { ContextService, ParagraphContext } from './context_service';
-import { indexedDB } from 'fake-indexeddb';
+import { indexedDB, IDBKeyRange } from 'fake-indexeddb';
 
 describe('ContextService', () => {
   let contextService: ContextService;
 
   beforeEach(() => {
     global.indexedDB = indexedDB;
+    global.IDBKeyRange = IDBKeyRange;
     contextService = new ContextService();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  describe('init', () => {
-    it('should initialize IndexedDB successfully', async () => {
-      await contextService.init();
-      expect((contextService as any).db).toBeDefined();
+  afterEach(async () => {
+    // Close and delete the database to ensure clean state
+    if ((contextService as any).db) {
+      (contextService as any).db.close();
+    }
+    const deleteReq = indexedDB.deleteDatabase('NotebookContextDB');
+    await new Promise((resolve) => {
+      deleteReq.onsuccess = () => resolve(true);
+      deleteReq.onerror = () => resolve(true);
     });
+    jest.clearAllMocks();
   });
 
   describe('setup methods', () => {
     let setup: any;
 
     beforeEach(async () => {
-      await contextService.init();
-      setup = contextService.setup();
-      const tx = (contextService as any).db.transaction('contexts', 'readwrite');
-      const store = tx.objectStore('contexts');
-      await new Promise((resolve, reject) => {
-        const req = store.clear();
-        req.onsuccess = () => resolve(true);
-        req.onerror = () => reject(req.error);
-      });
+      setup = await contextService.setup();
     });
 
     describe('getParagraphContext', () => {
