@@ -16,13 +16,15 @@ import {
   ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   LOG_PATTERN_PARAGRAPH_TYPE,
+  PPL_PARAGRAPH_TYPE,
 } from '../../common/constants/notebooks';
 import { useParagraphs } from './use_paragraphs';
 import { useNotebook } from './use_notebook';
+import { getInputType } from '../../common/utils/paragraph';
 
 export const usePrecheck = () => {
   const { updateNotebookContext } = useNotebook();
-  const { createParagraph } = useParagraphs();
+  const { createParagraph, runParagraph } = useParagraphs();
   const deepResearchParaCreated = useRef(false);
 
   const setInitialGoal = useCallback(
@@ -139,30 +141,44 @@ export const usePrecheck = () => {
           }
         }
 
+        if (
+          res.context?.source === NoteBookSource.DISCOVER &&
+          !res.paragraphs.find((paragraph) => getInputType(paragraph) === PPL_PARAGRAPH_TYPE) &&
+          res.context.variables?.pplQuery
+        ) {
+          const createdPPLParagraph = await createParagraph({
+            index: res.paragraphs.length + paragraphStates.length,
+            input: {
+              inputText: `%ppl ${res.context.variables?.pplQuery}`,
+              inputType: 'CODE',
+              parameters: {
+                noDatePicker: true,
+              },
+            },
+            dataSourceMDSId: res.context.dataSourceId || '',
+          });
+          if (createdPPLParagraph) {
+            runParagraph({
+              id: createdPPLParagraph.value.id,
+            });
+
+            paragraphStates.push(createdPPLParagraph);
+          }
+        }
+
         if (paragraphStates.length && res.context?.initialGoal) {
           const combinedObservable = combineLatest(
             paragraphStates.map((paragraphState) => paragraphState.getValue$())
           );
           const subscription = combinedObservable.subscribe(async (paragraphValues) => {
-            const anomalyAnalysisPara = paragraphValues.find(
-              (p) => p.input?.inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE
-            );
-            const logPatternPara = paragraphValues.find(
-              (p) => p.input?.inputType === LOG_PATTERN_PARAGRAPH_TYPE
-            );
-
             const hasResult = (para?: ParagraphStateValue<unknown>) =>
               !para?.uiState?.isRunning &&
-              para?.output?.[0]?.result &&
-              para.output[0].result !== '';
-            const hasAnomalyResult = hasResult(anomalyAnalysisPara);
-            const hasLogPatternResult = hasResult(logPatternPara);
+              ((para?.output?.[0]?.result && para.output[0].result !== '') ||
+                para?.fullfilledOutput);
 
             const shouldCreate =
               !deepResearchParaCreated.current &&
-              ((anomalyAnalysisPara && logPatternPara && hasAnomalyResult && hasLogPatternResult) ||
-                (anomalyAnalysisPara && !logPatternPara && hasAnomalyResult) ||
-                (!anomalyAnalysisPara && logPatternPara && hasLogPatternResult));
+              paragraphValues.every((paragraphValue) => hasResult(paragraphValue));
 
             if (shouldCreate) {
               deepResearchParaCreated.current = true;
@@ -180,7 +196,7 @@ export const usePrecheck = () => {
           });
         }
       },
-      [createParagraph]
+      [createParagraph, runParagraph]
     ),
     setInitialGoal,
   };

@@ -108,7 +108,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
           {/* FIXME dataset select cause unncessary http requests due to rerender */}
           <DatasetSelect onSelect={handleSelect} appName={appName} />
         </div>
-        {queryLanguage === 'PPL' && (
+        {queryLanguage === 'PPL' && queryState?.parameters?.noDatePicker ? null : (
           <>
             <div className="notebookQueryPanelWidgets__verticalSeparator" />
             <div className="notebookQueryPanelWidgets__datePicker">

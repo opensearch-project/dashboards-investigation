@@ -11,7 +11,7 @@ export interface ParagraphStateValue<
   TInputParameters = unknown,
   TFullfilledOutput = {}
 > extends ParagraphBackendType<TOutputResult, TInputParameters> {
-  fullfilledOutput?: Partial<TFullfilledOutput>; // this is the fullfilled output, like PPL query result / PER agent response
+  fullfilledOutput?: TFullfilledOutput; // this is the fullfilled output, like PPL query result / PER agent response
   uiState?: Partial<{
     viewMode: 'input_only' | 'output_only' | 'view_both';
     inQueue?: boolean;
@@ -116,7 +116,7 @@ export class ParagraphState<
   updateFullfilledOutput(fullfilledOutput: Partial<TFullfilledOutput>) {
     this.updateValue({
       fullfilledOutput: {
-        ...this.value.fullfilledOutput,
+        ...(this.value.fullfilledOutput as TFullfilledOutput),
         ...fullfilledOutput,
       },
     });

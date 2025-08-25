@@ -16,7 +16,6 @@ import {
   EuiText,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
-import { useState } from 'react';
 import { useEffect } from 'react';
 import { useCallback } from 'react';
 import { useMemo } from 'react';
@@ -87,7 +86,11 @@ const getQueryOutputData = (queryObject: QueryObject) => {
   return data;
 };
 
-export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
+export const PPLParagraph = ({
+  paragraphState,
+}: {
+  paragraphState: ParagraphState<string, unknown, QueryObject>;
+}) => {
   const {
     services: { http, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
@@ -99,9 +102,9 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
     });
   };
   const { runParagraph, saveParagraph } = useParagraphs();
-  const [queryObject, setQueryObject] = useState<QueryObject>({});
+  const queryObject = paragraphValue.fullfilledOutput;
   const errorMessage = useMemo(() => {
-    if (queryObject && queryObject.error) {
+    if (queryObject?.error) {
       return queryObject.error.body.reason;
     }
 
@@ -129,11 +132,11 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
         },
       })
         .then((response) => {
-          setQueryObject(response);
+          paragraphState.updateFullfilledOutput(response);
         })
         .catch((err) => {
           notifications.toasts.addDanger('Error getting query output');
-          setQueryObject({
+          paragraphState.updateFullfilledOutput({
             error: {
               body: {
                 reason: err.message,
@@ -184,8 +187,10 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
     ? paragraphValue.input.inputText.substring(5)
     : paragraphValue.input.inputText;
 
-  const columns = useMemo(() => createQueryColumns(queryObject.schema || []), [queryObject.schema]);
-  const data = useMemo(() => getQueryOutputData(queryObject), [queryObject]);
+  const columns = useMemo(() => createQueryColumns(queryObject?.schema || []), [
+    queryObject?.schema,
+  ]);
+  const data = useMemo(() => getQueryOutputData(queryObject ?? {}), [queryObject]);
   const isRunning = paragraphValue.uiState?.isRunning;
 
   return (
@@ -196,9 +201,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
             disabled={!!isRunning}
             fullWidth={false}
             onSelectedDataSource={onSelectedDataSource}
-            defaultOption={
-              selectedDataSource !== undefined ? [{ id: selectedDataSource }] : undefined
-            }
+            selectedDataSourceId={selectedDataSource}
             dataSourceFilter={dataSourceFilterFn}
           />
         </EuiFlexItem>
@@ -244,6 +247,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
             input={{
               inputText: inputQuery,
               inputType: getInputType(paragraphValue).toUpperCase(),
+              parameters: paragraphValue.input.parameters,
             }}
             onSubmit={(value) => {
               paragraphState.updateInput({
@@ -270,7 +274,7 @@ export const PPLParagraph = ({ paragraphState }: { paragraphState: ParagraphStat
               </EuiText>
               <EuiSpacer />
               <QueryDataGridMemo
-                rowCount={queryObject.datarows?.length || 0}
+                rowCount={queryObject?.datarows?.length || 0}
                 queryColumns={columns}
                 dataValues={data}
               />

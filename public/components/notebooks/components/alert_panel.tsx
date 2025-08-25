@@ -36,7 +36,7 @@ export const AlertPanel = () => {
     return null;
   }
 
-  const alert = variables.alert as Record<string, any>;
+  const alert = variables.alert;
   const dateFormat = uiSettings.get('dateFormat');
   const startTime = alert?.start_time ? moment(alert?.start_time).format(dateFormat) : '-';
   const lastNotificationTime = alert?.last_notification_time

@@ -19,6 +19,7 @@ export interface OptionsType {
 
 export enum NoteBookSource {
   ALERTING = 'Alert',
+  DISCOVER = 'Discover',
 }
 
 export enum NotebookType {
@@ -40,7 +41,21 @@ export interface NotebookContext {
   filters?: Array<Record<string, any>>; // For phase 1, we only support DSL filter
   summary?: string;
   PPLFilters?: string[];
-  variables?: Record<string, unknown>;
+  variables?: {
+    // used for source type: Discover
+    pplQuery?: string;
+    // used for source type: Alert
+    alert?: {
+      start_time: string;
+      last_notification_time: string;
+      severity: string;
+      monitor_id: string;
+      alertNumber: number;
+      trigger_name: string;
+      monitor_name: string;
+    };
+    [key: string]: unknown;
+  };
   memoryId?: string;
   indexInsight?: IndexInsightContent;
   notebookType?: NotebookType;
