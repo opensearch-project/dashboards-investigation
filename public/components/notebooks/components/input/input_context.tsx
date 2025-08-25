@@ -259,19 +259,12 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
 
   const submitFn = isInputMountedInParagraph && onSubmit ? onSubmit : handleCreateParagraph;
 
-  // Regular expression to check for head or limit clauses
-  const HEAD_LIMIT_REGEX = /\|\s*(head|limit)\s+\d+/i;
-
   const calculateQueryWithTimeFilter = (
     query: string,
     timeRange: TimeRange,
     selectedIndex: any
   ) => {
     if (TIME_FILTER_QUERY_REGEX.test(query)) {
-      if (!HEAD_LIMIT_REGEX.test(query)) {
-        // Add head 500 at the end if not present
-        return `${query} | head 500`;
-      }
       return query;
     }
 
@@ -285,14 +278,17 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     const commands = query.split('|');
     commands.splice(1, 0, whereCommand);
 
-    const hasHeadOrLimit = commands.some((cmd) => /\s*(head|limit)\s+\d+/i.test(cmd.trim()));
-
-    // Add head 500 at the end if not present
-    if (!hasHeadOrLimit) {
-      commands.push('head 500');
-    }
-
     return commands.map((cmd) => cmd.trim()).join(' | ');
+  };
+
+  // Regular expression to check for head or limit clauses
+  const HEAD_LIMIT_REGEX = /\|\s*(head|limit)\s+\d+/i;
+
+  const appendHeadIfNeeded = (query: string) => {
+    if (!HEAD_LIMIT_REGEX.test(query)) {
+      return `${query} | head 500`;
+    }
+    return query;
   };
 
   const handleCallAgent = async () => {
@@ -339,14 +335,14 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
           // TODO: run generated query if the query is not dirty
           handleCallAgent();
         } else {
-          submitFn(
-            `%ppl\n${calculateQueryWithTimeFilter(
-              editorTextRef.current,
-              timeRange!,
-              selectedIndex
-            )}`,
-            'CODE'
+          const queryWithTimeFilter = calculateQueryWithTimeFilter(
+            editorTextRef.current,
+            timeRange!,
+            selectedIndex
           );
+          const finalQuery = appendHeadIfNeeded(queryWithTimeFilter);
+
+          submitFn(`%ppl\n${finalQuery}`, 'CODE');
         }
         break;
       case 'VISUALIZATION':
