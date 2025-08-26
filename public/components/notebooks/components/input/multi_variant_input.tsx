@@ -14,13 +14,13 @@ import {
 } from '@elastic/eui';
 import autosize from 'autosize';
 import { useEffectOnce } from 'react-use';
+import { ParagraphInputType } from 'common/types/notebooks';
 import { InputTypeSelector } from './input_type_selector';
 import { QueryPanel } from './query_panel';
 import { InputProvider, useInputContext } from './input_context';
 import { NotebookInput } from './notebook_input';
 import { MarkDownInput } from './markdown_input';
 import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
-import { ParagraphInputType } from './types';
 
 interface MultiVariantInputProps<TParameters = unknown> {
   input?: ParagraphInputType<TParameters>;

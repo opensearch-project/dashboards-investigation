@@ -81,6 +81,8 @@ export interface ParagraphBackendType<TOutputResult, TInputParameters = unknown>
   dataSourceMDSId?: string;
 }
 
+export type ParagraphInputType<TParameters = unknown> = ParagraphBackendType<TParameters>['input'];
+
 export interface NotebookBackendType {
   name: string;
   dateCreated: string;

@@ -16,15 +16,9 @@ import { useObservable } from 'react-use';
 import type { monaco } from '@osd/monaco';
 import { NoteBookServices } from 'public/types';
 import { EuiSelectableOption } from '@elastic/eui';
+import { ParagraphInputType } from 'common/types/notebooks';
 // import { useAgentSelectSubmit } from './use_agent_select_submit';
-import {
-  InputType,
-  QueryLanguage,
-  QueryState,
-  InputValueType,
-  InputTypeOption,
-  ParagraphInputType,
-} from './types';
+import { InputType, QueryLanguage, QueryState, InputValueType, InputTypeOption } from './types';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
 import { NotebookReactContext } from '../../context_provider/context_provider';
@@ -120,7 +114,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         // Use natural language question as input text if is t2ppl
         value: question || cleanedQuery || '',
         // Set generated query if is t2ppl
-        query: question ? cleanedQuery.replace(TIME_FILTER_QUERY_REGEX, '') : '',
+        query: question ? cleanedQuery : '',
         queryLanguage: input.inputType as QueryLanguage,
         // If question is defined, indicate the user executed t2ppl previously
         isPromptEditorMode: !!question,

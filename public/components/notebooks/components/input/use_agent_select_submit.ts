@@ -4,16 +4,16 @@
  */
 
 import { isEmpty } from 'lodash';
+import { ParagraphInputType } from 'common/types/notebooks';
 import { CoreStart } from '../../../../../../../src/core/public';
 import { ActionMetadata, actionsMetadata } from '../../../../../common/constants/actions';
 import { executeMLCommonsAgent, getMLCommonsConfig } from '../../../../utils/ml_commons_apis';
 import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
-import { ParagraphInputType } from './types';
 
-interface AgentSelectSubmitHookProps {
+interface AgentSelectSubmitHookProps<TParameters = unknown> {
   http: CoreStart['http'];
   dataSourceId: string | undefined | null;
-  onSubmit: (input: ParagraphInputType) => void;
+  onSubmit: (input: ParagraphInputType<TParameters>) => void;
   setIsLoading: (loading: boolean) => void;
 }
 

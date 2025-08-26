@@ -6,13 +6,13 @@
 import React, { useCallback, useContext } from 'react';
 import { useObservable } from 'react-use';
 import { EuiPanel } from '@elastic/eui';
+import { ParagraphInputType } from 'common/types/notebooks';
 import { MultiVariantInput } from './input/multi_variant_input';
-import { ParagraphInputType } from './input/types';
 import { useParagraphs } from '../../../../public/hooks/use_paragraphs';
 import { NotebookReactContext } from '../context_provider/context_provider';
 
 export const InputPanel: React.FC = () => {
-  const { createParagraph } = useParagraphs();
+  const { createParagraph, runParagraph } = useParagraphs();
 
   const context = useContext(NotebookReactContext);
   const notebookState = useObservable(context.state.getValue$(), context.state.value);
@@ -41,18 +41,27 @@ export const InputPanel: React.FC = () => {
           break;
       }
 
-      // Add paragraph at the end
-      await createParagraph({
-        index: paragraphs.length,
-        input: {
-          inputText: typedInputText,
-          inputType: createInputType,
-          parameters,
-        },
-        dataSourceMDSId: dataSourceId,
-      });
+      try {
+        // Add paragraph at the end
+        const createParagraphRes = await createParagraph({
+          index: paragraphs.length,
+          input: {
+            inputText: typedInputText,
+            inputType: createInputType,
+            parameters,
+          },
+          dataSourceMDSId: dataSourceId,
+        });
+        if (createParagraphRes) {
+          await runParagraph({
+            id: createParagraphRes.value.id,
+          });
+        }
+      } catch (err) {
+        console.log(`Error while creating paragraph ${err}`);
+      }
     },
-    [paragraphs.length, dataSourceId, createParagraph]
+    [paragraphs.length, dataSourceId, createParagraph, runParagraph]
   );
 
   return (
