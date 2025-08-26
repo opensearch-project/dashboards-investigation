@@ -22,3 +22,4 @@ export const [getClient, setClient] = createGetterSetter<CoreStart['http']>('htt
 
 // Export services
 export { LogPatternService } from './requests/log_pattern';
+export { ParagraphService } from './paragraph_service';

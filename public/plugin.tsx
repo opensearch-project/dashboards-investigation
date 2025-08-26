@@ -30,14 +30,38 @@ import {
   setEmbeddable,
   setExpressions,
   setSearch,
+  ParagraphService,
 } from './services';
 import { Notebook, NotebookProps } from './components/notebooks/components/notebook';
-import { NOTEBOOK_APP_NAME } from '../common/constants/notebooks';
+import {
+  AI_RESPONSE_TYPE,
+  DASHBOARDS_VISUALIZATION_TYPE,
+  DATA_DISTRIBUTION_PARAGRAPH_TYPE,
+  DEEP_RESEARCH_PARAGRAPH_TYPE,
+  LOG_PATTERN_PARAGRAPH_TYPE,
+  NOTEBOOK_APP_NAME,
+  OBSERVABILITY_VISUALIZATION_TYPE,
+  OTHER_PARAGRAPH_TYPE,
+} from '../common/constants/notebooks';
 import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opensearch_dashboards_react/public';
+import {
+  DataDistributionParagraphItem,
+  LogPatternParagraphItem,
+  MarkdownParagraphItem,
+  OtherParagraphItem,
+  PERAgentParagraphItem,
+  PPLParagraphItem,
+  VisualizationParagraphItem,
+} from './paragraphs';
 
 export class InvestigationPlugin
   implements
     Plugin<InvestigationSetup, InvestigationStart, SetupDependencies, AppPluginStartDependencies> {
+  private paragraphService: ParagraphService;
+
+  constructor() {
+    this.paragraphService = new ParagraphService();
+  }
   public setup(
     core: CoreSetup<AppPluginStartDependencies>,
     setupDeps: SetupDependencies
@@ -48,6 +72,29 @@ export class InvestigationPlugin
       setOSDSavedObjectsClient(coreStart.savedObjects.client);
     });
 
+    // Setup paragraph service
+    const paragraphServiceSetup = this.paragraphService.setup();
+
+    // Register paragraph types
+    paragraphServiceSetup.register(OTHER_PARAGRAPH_TYPE, OtherParagraphItem);
+    paragraphServiceSetup.register(DATA_DISTRIBUTION_PARAGRAPH_TYPE, DataDistributionParagraphItem);
+    paragraphServiceSetup.register(LOG_PATTERN_PARAGRAPH_TYPE, LogPatternParagraphItem);
+    paragraphServiceSetup.register(
+      [DEEP_RESEARCH_PARAGRAPH_TYPE, AI_RESPONSE_TYPE],
+      PERAgentParagraphItem
+    );
+    paragraphServiceSetup.register(
+      [
+        DASHBOARDS_VISUALIZATION_TYPE.toUpperCase(),
+        OBSERVABILITY_VISUALIZATION_TYPE.toUpperCase(),
+        DASHBOARDS_VISUALIZATION_TYPE,
+        OBSERVABILITY_VISUALIZATION_TYPE,
+      ],
+      VisualizationParagraphItem
+    );
+    paragraphServiceSetup.register(['ppl', 'sql'], PPLParagraphItem);
+    paragraphServiceSetup.register('md', MarkdownParagraphItem);
+
     const getServices = async () => {
       const [coreStart, depsStart] = await core.getStartServices();
       const pplService: PPLService = new PPLService(core.http);
@@ -57,6 +104,7 @@ export class InvestigationPlugin
         appName: NOTEBOOK_APP_NAME,
         pplService,
         savedObjects: coreStart.savedObjects,
+        paragraphService: paragraphServiceSetup,
       };
       return services;
     };

@@ -7,43 +7,13 @@ import { EuiPanel } from '@elastic/eui';
 import React from 'react';
 import { useContext } from 'react';
 import { useObservable } from 'react-use';
-import {
-  AI_RESPONSE_TYPE,
-  ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
-  DASHBOARDS_VISUALIZATION_TYPE,
-  DEEP_RESEARCH_PARAGRAPH_TYPE,
-  LOG_PATTERN_PARAGRAPH_TYPE,
-  OBSERVABILITY_VISUALIZATION_TYPE,
-} from '../../../../../common/constants/notebooks';
 import { uiSettingsService } from '../../../../../common/utils';
 import { ParagraphActionPanel } from './paragraph_actions_panel';
 import { NotebookReactContext } from '../../context_provider/context_provider';
-import { PPLParagraph } from './ppl';
 import { getInputType } from '../../../../../common/utils/paragraph';
-import { MarkdownParagraph } from './markdown';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
-import { DeepResearchParagraph } from './deep_research';
-import { VisualizationParagraph } from './visualization';
-import { OtherParagraph } from './other';
-import { DataDistributionContainer } from '../data_distribution/data_distribution_container';
-import { LogPatternContainer } from '../log_analytics/log_pattern_container';
-
-/**
- * TODO: Use paragraph service to maintain the relationships
- */
-const mapParagraphTypeToRenderComponent = {
-  ppl: PPLParagraph,
-  sql: PPLParagraph,
-  md: MarkdownParagraph,
-  [DEEP_RESEARCH_PARAGRAPH_TYPE]: DeepResearchParagraph,
-  [AI_RESPONSE_TYPE]: DeepResearchParagraph,
-  [DASHBOARDS_VISUALIZATION_TYPE.toUpperCase()]: VisualizationParagraph,
-  [OBSERVABILITY_VISUALIZATION_TYPE.toUpperCase()]: VisualizationParagraph,
-  [DASHBOARDS_VISUALIZATION_TYPE]: VisualizationParagraph,
-  [OBSERVABILITY_VISUALIZATION_TYPE]: VisualizationParagraph,
-  [ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE]: DataDistributionContainer,
-  [LOG_PATTERN_PARAGRAPH_TYPE]: LogPatternContainer,
-};
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { NoteBookServices } from '../../../../types';
 
 export interface ParagraphProps {
   paragraphState: ParagraphState<unknown>;
@@ -58,6 +28,9 @@ export const Paragraphs = (props: ParagraphProps) => {
   const context = useContext(NotebookReactContext);
   const paragraph = context.state.value.paragraphs[index];
   const paragraphValue = useObservable(paragraph.getValue$(), paragraph.value);
+  const {
+    services: { paragraphService },
+  } = useOpenSearchDashboards<NoteBookServices>();
 
   const paraClass = `notebooks-paragraph notebooks-paragraph-${
     uiSettingsService.get('theme:darkMode') ? 'dark' : 'light'
@@ -72,8 +45,12 @@ export const Paragraphs = (props: ParagraphProps) => {
     >
       {<ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />}
       {(() => {
-        const RenderComponent =
-          mapParagraphTypeToRenderComponent[getInputType(paragraphValue)] || OtherParagraph;
+        const RenderComponent = paragraphService.getParagraphRegistry(getInputType(paragraphValue))
+          ?.renderParagraph;
+        if (!RenderComponent) {
+          return null;
+        }
+
         return (
           <div key={paragraph.value.id} className={paraClass}>
             <RenderComponent paragraphState={paragraph as ParagraphState<any, any>} />

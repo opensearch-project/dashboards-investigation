@@ -24,9 +24,10 @@ export const OPENSEARCH_NOTEBOOKS_API = {
 
 // Paragraph types
 export const LOG_PATTERN_PARAGRAPH_TYPE = 'LOG_PATTERN';
-export const ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE = 'ANOMALY_ANALYSIS';
+export const DATA_DISTRIBUTION_PARAGRAPH_TYPE = 'ANOMALY_ANALYSIS';
 export const PPL_PARAGRAPH_TYPE = 'ppl';
 export const DEEP_RESEARCH_PARAGRAPH_TYPE = 'DEEP_RESEARCH';
+export const OTHER_PARAGRAPH_TYPE = 'OTHER';
 
 // Prompts from ml commons (https://github.com/opensearch-project/ml-commons/blob/main/ml-algorithms/src/main/java/org/opensearch/ml/engine/algorithms/agent/PromptTemplate.java)
 const PLANNER_RESPONSIBILITY = `

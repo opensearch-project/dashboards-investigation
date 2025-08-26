@@ -12,7 +12,7 @@ import {
 } from '../../common/types/notebooks';
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import {
-  ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+  DATA_DISTRIBUTION_PARAGRAPH_TYPE,
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   LOG_PATTERN_PARAGRAPH_TYPE,
   PPL_PARAGRAPH_TYPE,
@@ -50,9 +50,7 @@ export const usePrecheck = () => {
           // if the paragraph is a query, load the query output
           if (res.paragraphs[index].input.inputType === LOG_PATTERN_PARAGRAPH_TYPE) {
             logPatternParaExists = true;
-          } else if (
-            res.paragraphs[index].input.inputType === ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE
-          ) {
+          } else if (res.paragraphs[index].input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE) {
             anomalyAnalysisParaExists = true;
           }
         }
@@ -101,7 +99,7 @@ export const usePrecheck = () => {
               index: totalParagraphLength + paragraphStates.length,
               input: {
                 inputText: newParaContent || '',
-                inputType: ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+                inputType: DATA_DISTRIBUTION_PARAGRAPH_TYPE,
               },
               dataSourceMDSId: resContext?.dataSourceId,
             });

@@ -5,7 +5,7 @@
 
 import {
   AI_RESPONSE_TYPE,
-  ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+  DATA_DISTRIBUTION_PARAGRAPH_TYPE,
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   LOG_PATTERN_PARAGRAPH_TYPE,
   PPL_PARAGRAPH_TYPE,
@@ -52,7 +52,7 @@ export class ObservabilityPlugin
     setParagraphServiceSetup(paragraphServiceSetup);
 
     paragraphServiceSetup.register(
-      ANOMALY_VISUALIZATION_ANALYSIS_PARAGRAPH_TYPE,
+      DATA_DISTRIBUTION_PARAGRAPH_TYPE,
       AnomalyVisualizationAnalysisParagraph
     );
     paragraphServiceSetup.register(PPL_PARAGRAPH_TYPE, PPLParagraph);

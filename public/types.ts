@@ -17,6 +17,7 @@ import { VisualizationsSetup } from '../../../src/plugins/visualizations/public'
 import { ExpressionsStart } from '../../../src/plugins/expressions/public';
 import { AppMountParameters, CoreStart } from '../../../src/core/public';
 import PPLService from './services/requests/ppl';
+import { ParagraphServiceSetup } from './services/paragraph_service';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -41,6 +42,7 @@ export type NoteBookServices = CoreStart &
     appName: string;
     pplService: PPLService;
     appMountService?: AppMountParameters;
+    paragraphService: ParagraphServiceSetup;
   };
 
 export interface InvestigationSetup {
