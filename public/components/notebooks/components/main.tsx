@@ -64,28 +64,24 @@ export const Main: React.FC = () => {
         })
     );
 
-    return Promise.allSettled(promises)
-      .then(() => {
-        if (result.succeeded.length > 0) {
-          const successMessage =
-            toastMessage ||
-            `${result.succeeded.length} notebook${
-              result.succeeded.length > 1 ? 's' : ''
-            } successfully deleted!`;
-          notifications.toasts.addSuccess(successMessage);
-        }
+    return Promise.allSettled(promises).then(() => {
+      if (result.succeeded.length > 0) {
+        const successMessage =
+          toastMessage ||
+          `${result.succeeded.length} notebook${
+            result.succeeded.length > 1 ? 's' : ''
+          } successfully deleted!`;
+        notifications.toasts.addSuccess(successMessage);
+      }
 
-        if (result.failed.length > 0) {
-          notifications.toasts.addDanger(
-            `Error deleting ${result.failed.length} notebook${
-              result.failed.length > 1 ? 's' : ''
-            }, please make sure you have the correct permission.`
-          );
-        }
-      })
-      .catch((err) => {
-        notifications.toasts.addDanger('Error in deleting multiple notebooks', err);
-      });
+      if (result.failed.length > 0) {
+        notifications.toasts.addDanger(
+          `Error deleting ${result.failed.length} notebook${
+            result.failed.length > 1 ? 's' : ''
+          }, please make sure you have the correct permission.`
+        );
+      }
+    });
   };
 
   return (
