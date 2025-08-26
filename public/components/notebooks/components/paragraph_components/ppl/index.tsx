@@ -16,8 +16,6 @@ import {
   EuiText,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
-import { useEffect } from 'react';
-import { useState } from 'react';
 import { useEffectOnce } from 'react-use';
 import { useCallback } from 'react';
 import { useMemo } from 'react';
@@ -105,7 +103,7 @@ export const PPLParagraph = ({
     });
   };
   const { runParagraph, saveParagraph } = useParagraphs();
-  const [queryObject, setQueryObject] = useState<QueryObject>({});
+  const queryObject = paragraphValue.fullfilledOutput;
   const errorMessage = useMemo(() => {
     if (queryObject?.error) {
       return queryObject.error.body.reason;
@@ -136,7 +134,6 @@ export const PPLParagraph = ({
       })
         .then((response) => {
           paragraphState.updateFullfilledOutput(response);
-          setQueryObject(response);
           return contextService.setParagraphContext({
             notebookId,
             paragraphId: paragraph.id,
@@ -154,7 +151,7 @@ export const PPLParagraph = ({
           });
         });
     },
-    [http, notifications.toasts, contextService, notebookId]
+    [http, notifications.toasts, contextService, notebookId, paragraphState]
   );
 
   useEffectOnce(() => {
@@ -162,8 +159,10 @@ export const PPLParagraph = ({
       try {
         const data = await contextService.getParagraphContext(notebookId, paragraphValue.id);
         if (data) {
-          setQueryObject(data.context as QueryObject);
+          paragraphState.updateFullfilledOutput(data.context as QueryObject);
+          return;
         }
+        await loadQueryResultsFromInput(paragraphValue);
       } catch (err) {
         notifications.toasts.addDanger('Fail to load paragraph context');
       }
