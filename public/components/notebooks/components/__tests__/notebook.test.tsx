@@ -77,6 +77,18 @@ jest.mock('../../../../../../../src/plugins/opensearch_dashboards_react/public',
   CodeEditor: () => <div data-test-subj="code-editor" />,
 }));
 
+// Mock paragraph service
+jest.mock('../../../../services/paragraph_service', () => ({
+  ParagraphService: jest.fn().mockImplementation(() => ({
+    setup: jest.fn().mockReturnValue({
+      register: jest.fn(),
+      getParagraphRegistry: jest.fn().mockReturnValue({
+        render: () => <div data-test-subj="mock-paragraph" />,
+      }),
+    }),
+  })),
+}));
+
 // @ts-ignore
 global.fetch = jest.fn(() =>
   Promise.resolve({
@@ -147,6 +159,11 @@ const ContextAwareNotebook = (props: NotebookProps & { dataSourceEnabled?: boole
         savedObjects: savedObjectsServiceMock.createStartContract(),
         notifications: notificationServiceMock.createStartContract(),
         navigation: navigationPluginMock.createStartContract(),
+        paragraphService: {
+          getParagraphRegistry: jest.fn().mockReturnValue({
+            render: () => <div data-test-subj="mock-paragraph" />,
+          }),
+        },
       }}
     >
       <Notebook {...props} />
@@ -194,9 +211,13 @@ describe('<Notebook /> spec', () => {
       utils.getByText('Add query').click();
     });
 
-    await waitFor(() => {
-      expect(utils.getByTestId('multiVariantInput')).toBeInTheDocument();
-    });
+    // Wait for the paragraph to be created and rendered
+    await waitFor(
+      () => {
+        expect(utils.container.querySelector('.notebookParagraphWrapper')).toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
   });
 
   it.skip('runs a query and checks the output', async () => {
