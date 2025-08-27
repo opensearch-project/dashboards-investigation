@@ -9,8 +9,12 @@ import {
   EuiFlexGroup,
   EuiLoadingSpinner,
   EuiPanel,
+  EuiPopover,
+  EuiSmallButtonIcon,
   EuiSpacer,
   EuiSuperDatePicker,
+  EuiSwitch,
+  EuiText,
 } from '@elastic/eui';
 import { NoteBookServices } from 'public/types';
 import { QueryPanelEditor } from './query_panel_editor';
@@ -22,6 +26,7 @@ import { QueryState } from '../types';
 import './query_panel.scss';
 import { getPromptModeIsAvailable } from './get_prompt_mode_is_available';
 import { LanguageToggle } from './language_toggle';
+import { IndexSelector } from './index_selector.tsx/index_selector';
 
 interface QueryPanelProps {
   prependWidget?: React.ReactNode;
@@ -31,14 +36,7 @@ interface QueryPanelProps {
 export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWidget }) => {
   const {
     services,
-    services: {
-      appName,
-      uiSettings,
-      data,
-      data: {
-        ui: { DatasetSelect },
-      },
-    },
+    services: { uiSettings },
   } = useOpenSearchDashboards<NoteBookServices>();
   const {
     inputValue,
@@ -46,45 +44,18 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
     handleInputChange,
     handleSubmit,
     isLoading,
-    setDataView,
   } = useInputContext();
 
   const [promptModeIsAvailable, setPromptModeIsAvailable] = useState(false);
+  const [isQueryPanelMenuOpen, setIsQueryPanelMenuOpen] = useState(false);
 
   const queryState = inputValue as QueryState | undefined;
   const { timeRange, queryLanguage } = queryState || {};
 
   useEffect(() => {
-    if (inputValue && !(inputValue as QueryState)?.selectedIndex) {
-      const dataset = services.data.query.queryString.getDefaultQuery().dataset;
-      if (dataset) {
-        // Set dataset to the default
-        services.data.query.queryString.setQuery({ dataset });
-        handleInputChange({ selectedIndex: dataset });
-      }
-    }
-  }, [inputValue, handleInputChange, services.data.query.queryString]);
-
-  useEffect(() => {
-    services.data.dataViews.getDefault().then((res: any) => {
-      setDataView(res);
-    });
-  }, [setDataView, services.data.dataViews]);
-
-  useEffect(() => {
     // TODO: consider move this to global state
-    if (queryState?.selectedIndex) {
-      getPromptModeIsAvailable(services).then(setPromptModeIsAvailable);
-    }
-  }, [services, dataSourceId, queryState?.selectedIndex]);
-
-  const handleSelect = useCallback(
-    (dataset) => {
-      data.query.queryString.setQuery({ dataset });
-      handleInputChange({ selectedIndex: dataset });
-    },
-    [data.query.queryString, handleInputChange]
-  );
+    getPromptModeIsAvailable(services, dataSourceId).then(setPromptModeIsAvailable);
+  }, [services, dataSourceId]);
 
   const handleTimeChange = useCallback(
     (props) => {
@@ -103,12 +74,10 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
       >
         {prependWidget}
         <LanguageToggle promptModeIsAvailable={promptModeIsAvailable} />
-        <div className="notebookQueryPanelWidgets__datasetSelect">
-          {/* <IndexSelect /> */}
-          {/* FIXME dataset select cause unncessary http requests due to rerender */}
-          <DatasetSelect onSelect={handleSelect} appName={appName} />
+        <div className="notebookQueryPanelWidgets__indexSelectorWrapper">
+          <IndexSelector />
         </div>
-        {queryLanguage === 'PPL' && queryState?.parameters?.noDatePicker ? null : (
+        {queryLanguage === 'PPL' && !queryState?.noDatePicker && (
           <>
             <div className="notebookQueryPanelWidgets__verticalSeparator" />
             <div className="notebookQueryPanelWidgets__datePicker">
@@ -134,6 +103,38 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
           >
             Run
           </EuiButtonEmpty>
+          <div className="notebookQueryPanelWidgets__verticalSeparator" />
+          <EuiPopover
+            panelPaddingSize="none"
+            button={
+              <EuiSmallButtonIcon
+                aria-label="Open input menu"
+                iconType="boxesHorizontal"
+                onClick={() => setIsQueryPanelMenuOpen(true)}
+              />
+            }
+            closePopover={() => setIsQueryPanelMenuOpen(false)}
+            isOpen={isQueryPanelMenuOpen}
+          >
+            {queryLanguage === 'PPL' ? (
+              <EuiFlexGroup
+                gutterSize="none"
+                dir="row"
+                alignItems="center"
+                style={{ gap: 8, padding: 8 }}
+              >
+                <EuiSwitch
+                  showLabel={false}
+                  label=""
+                  checked={Boolean((inputValue as QueryState)?.noDatePicker)}
+                  onChange={(e) => handleInputChange({ noDatePicker: e.target.checked })}
+                />
+                <EuiText size="s">Disable Time Filter</EuiText>
+              </EuiFlexGroup>
+            ) : (
+              <></>
+            )}
+          </EuiPopover>
           {appendWidget && <div className="notebookQueryPanelWidgets__verticalSeparator" />}
           {appendWidget}
         </EuiFlexGroup>

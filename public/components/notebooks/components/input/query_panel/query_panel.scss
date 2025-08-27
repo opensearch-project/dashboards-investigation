@@ -54,24 +54,8 @@
         }
     }
 
-    &__datasetSelect {
+    &__indexSelectorWrapper {
         flex-shrink: 1;
         min-width: 0;
-
-        .datasetSelect {
-            width: unset;
-            max-width: 100%;
-        }
-
-        .datasetSelect__text {
-            width: auto;
-            max-width: unset;
-            font-weight: 400
-        }
-
-        .datasetSelect__button {
-            height: 32px
-        }
-
     }
 }

@@ -40,6 +40,9 @@ import { callOpenSearchCluster } from '../../../../../plugin_helpers/plugin_prox
 import { MultiVariantInput } from '../../input/multi_variant_input';
 import { parsePPLQuery } from '../../../../../../common/utils';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
+import { formatTimePickerDate, TimeRange } from '../../../../../../../../src/plugins/data/common';
+
+const PPL_TIME_FILTER_REGEX = /\s*\|\s*WHERE\s+`[^`]+`\s*>=?\s*'[^']+'\s*AND\s*`[^`]+`\s*<=?\s*'[^']+'/i;
 
 export interface QueryObject {
   schema?: any[];
@@ -115,6 +118,31 @@ export const PPLParagraph = ({
   const context = useContext(NotebookReactContext);
   const notebookId = context.state.value.id;
 
+  const addTimeRangeFilter = useCallback((query: string, params: any) => {
+    if (params.noDatePicker || !params.timeField || PPL_TIME_FILTER_REGEX.test(query)) {
+      /**
+       * Do not concatenate the time filter query string if:
+       * 1. The date picker is disabled by the query panel component
+       * 2. The time field is not selected by the user
+       * 3. The query already exists an absolute time filter query string
+       */
+      return query;
+    }
+
+    const { timeRange, timeField } = params as { timeRange: TimeRange; timeField: string };
+
+    const { fromDate, toDate } = formatTimePickerDate(timeRange, 'YYYY-MM-DD HH:mm:ss.SSS');
+    const timeFieldName = timeField;
+    const whereCommand = timeFieldName
+      ? `WHERE \`${timeFieldName}\` >= '${fromDate}' AND \`${timeFieldName}\` <= '${toDate}'`
+      : '';
+
+    // Append time filter where command after the first command
+    const commands = query.split('|');
+    commands.splice(1, 0, whereCommand);
+    return commands.map((cmd) => cmd.trim()).join(' | ');
+  }, []);
+
   const loadQueryResultsFromInput = useCallback(
     async (paragraph: ParagraphStateValue) => {
       const queryType = paragraph.input.inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
@@ -128,7 +156,7 @@ export const PPLParagraph = ({
           path: `/_plugins/${queryType}`,
           method: 'POST',
           body: JSON.stringify({
-            query: currentSearchQuery,
+            query: addTimeRangeFilter(currentSearchQuery, paragraph.input.parameters as any),
           }),
         },
       })
@@ -193,10 +221,18 @@ export const PPLParagraph = ({
     await loadQueryResultsFromInput(paragraphState.value);
   };
 
-  // FIXME: when properly store input language
-  const inputQuery = paragraphValue.input.inputText.startsWith('%')
-    ? paragraphValue.input.inputText.substring(5)
-    : paragraphValue.input.inputText;
+  const inputQuery = useMemo(
+    () =>
+      paragraphValue.input.inputText.startsWith('%')
+        ? paragraphValue.input.inputText.substring(5)
+        : paragraphValue.input.inputText,
+    [paragraphValue.input.inputText]
+  );
+
+  const inputQueryWithTimeFilter = useMemo(
+    () => addTimeRangeFilter(inputQuery, paragraphValue.input.parameters as any),
+    [inputQuery, paragraphValue.input.parameters, addTimeRangeFilter]
+  );
 
   const columns = useMemo(() => createQueryColumns(queryObject?.schema || []), [
     queryObject?.schema,
@@ -282,7 +318,7 @@ export const PPLParagraph = ({
           {columns.length && data.length ? (
             <div>
               <EuiText className="wrapAll" data-test-subj="queryOutputText">
-                <b>{inputQuery}</b>
+                <b>{inputQueryWithTimeFilter}</b>
               </EuiText>
               <EuiSpacer />
               <QueryDataGridMemo

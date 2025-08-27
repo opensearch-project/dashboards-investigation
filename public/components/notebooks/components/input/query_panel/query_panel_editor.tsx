@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import classNames from 'classnames';
 import { NoteBookServices } from 'public/types';
 import {
@@ -21,7 +21,6 @@ export const QueryPanelEditor: React.FC<{ promptModeIsAvailable: boolean }> = ({
 }) => {
   const { services } = useOpenSearchDashboards<NoteBookServices>();
   const {
-    dataView,
     editorRef,
     editorTextRef,
     inputValue,
@@ -30,11 +29,17 @@ export const QueryPanelEditor: React.FC<{ promptModeIsAvailable: boolean }> = ({
   } = useInputContext();
 
   const queryState = inputValue as QueryState;
-  const { value, queryLanguage, isPromptEditorMode } = queryState || {
+  const { value, queryLanguage, isPromptEditorMode, selectedIndex } = queryState || {
     value: '',
     queryLanguage: 'PPL' as const,
     isPromptEditorMode: false,
   };
+
+  const selectedIndexRef = useRef<any>();
+
+  useEffect(() => {
+    selectedIndexRef.current = selectedIndex;
+  }, [selectedIndex]);
 
   const {
     isFocused,
@@ -53,7 +58,7 @@ export const QueryPanelEditor: React.FC<{ promptModeIsAvailable: boolean }> = ({
       handleSubmit();
     }, [handleSubmit]),
     handleEscape: useCallback(() => {
-      handleInputChange({ isPromptEditorMode: false });
+      handleInputChange({ isPromptEditorMode: false, query: '' });
     }, [handleInputChange]),
     handleSpaceBar: useCallback(() => {
       handleInputChange({ isPromptEditorMode: true });
@@ -63,7 +68,7 @@ export const QueryPanelEditor: React.FC<{ promptModeIsAvailable: boolean }> = ({
     services,
     editorRef,
     editorTextRef,
-    datasetId: dataView?.id,
+    selectedIndexRef,
   });
   return (
     // Suppressing below as this should only happen for click events.

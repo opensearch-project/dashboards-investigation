@@ -40,44 +40,23 @@ const MultiVariantInputContent: React.FC = () => {
     handleParagraphSelection,
   } = useInputContext();
 
-  const getInputTypeSelector = () => {
-    return (
-      <InputTypeSelector
-        allowSelect
-        current={currInputType}
-        onInputTypeChange={handleSetCurrInputType}
-      />
-    );
-  };
-
-  const getInputMenu = () => {
-    if (isInputMountedInParagraph) {
-      return null;
-    }
-    return (
-      <EuiPopover
-        panelPaddingSize="none"
-        button={
-          <EuiSmallButtonIcon
-            aria-label="Open input menu"
-            iconType="boxesHorizontal"
-            onClick={() => {}}
-          />
-        }
-        closePopover={() => {}}
-      >
-        TODO
-      </EuiPopover>
-    );
-  };
-
   const getInputComponent = () => {
     switch (currInputType) {
       case AI_RESPONSE_TYPE:
         return <NotebookInput placeholder="Type % to show paragraph options" />;
       case 'PPL':
       case 'SQL':
-        return <QueryPanel prependWidget={getInputTypeSelector()} appendWidget={getInputMenu()} />;
+        return (
+          <QueryPanel
+            prependWidget={
+              <InputTypeSelector
+                allowSelect
+                current={currInputType}
+                onInputTypeChange={handleSetCurrInputType}
+              />
+            }
+          />
+        );
       case 'MARKDOWN':
         return <MarkDownInput />;
       case DEEP_RESEARCH_PARAGRAPH_TYPE:
@@ -105,10 +84,29 @@ const MultiVariantInputContent: React.FC = () => {
   return (
     <>
       {currInputType !== 'PPL' && currInputType !== 'SQL' && (
+        // Input type selector for query panel is a part of the component already
         <>
           <EuiFlexGroup dir="row" gutterSize="none" justifyContent="spaceBetween">
-            {getInputTypeSelector()}
-            {getInputMenu()}
+            <InputTypeSelector
+              allowSelect
+              current={currInputType}
+              onInputTypeChange={handleSetCurrInputType}
+            />
+            {!isInputMountedInParagraph && (
+              <EuiPopover
+                panelPaddingSize="none"
+                button={
+                  <EuiSmallButtonIcon
+                    aria-label="Open input menu"
+                    iconType="boxesHorizontal"
+                    onClick={() => {}}
+                  />
+                }
+                closePopover={() => {}}
+              >
+                TODO
+              </EuiPopover>
+            )}
           </EuiFlexGroup>
           <EuiSpacer size="xs" />
         </>

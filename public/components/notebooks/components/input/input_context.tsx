@@ -29,11 +29,6 @@ import {
   QueryAssistParameters,
   QueryAssistResponse,
 } from '../../../../../../../src/plugins/query_enhancements/common/query_assist';
-import { formatTimePickerDate, TimeRange } from '../../../../../../../src/plugins/data/common';
-
-const TIME_FILTER_QUERY_REGEX = /\s*\|\s*WHERE\s+`[^`]+`\s*>=\s*'[^']+'\s*AND\s*`[^`]+`\s*<=\s*'[^']+'/i;
-
-const TIME_FILTER_FORMAT = 'YYYY-MM-DD HH:mm:ss.SSS';
 
 interface InputContextValue<T extends InputType = InputType> {
   // States
@@ -75,7 +70,7 @@ interface InputContextValue<T extends InputType = InputType> {
   handleCancel: () => void;
 
   // Submit and execute the current input state
-  handleSubmit: (payload?: any) => void;
+  handleSubmit: () => void;
 
   // Handle open the popover for creating blank
   handleParagraphSelection: (options: EuiSelectableOption[]) => void;
@@ -83,8 +78,6 @@ interface InputContextValue<T extends InputType = InputType> {
   // For query editor
   editorRef: React.MutableRefObject<monaco.editor.IStandaloneCodeEditor | null>;
   editorTextRef: React.MutableRefObject<string>;
-  dataView: any;
-  setDataView: (view: any) => void;
 }
 
 const InputContext = createContext<InputContextValue | undefined>(undefined);
@@ -97,7 +90,7 @@ interface InputProviderProps<TParameters = unknown> {
 
 export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit, input }) => {
   const {
-    services: { http, data },
+    services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [currInputType, setCurrInputType] = useState<InputType>(
@@ -109,21 +102,25 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
 
     if (input.inputType === 'PPL' || input.inputType === 'SQL') {
       // FIXME: remove this when the executing of a query is properly implemented
-      const cleanedQuery = input.inputText.replace(TIME_FILTER_QUERY_REGEX, '');
-
-      const { timeRange, question } = (input.parameters as any) || {};
+      const queryString = input.inputText;
+      const { timeRange, question, indexName, timeField, noDatePicker } =
+        (input.parameters as any) || {};
 
       return {
         // Use natural language question as input text if is t2ppl
-        value: question || cleanedQuery || '',
+        value: question || queryString || '',
         // Set generated query if is t2ppl
-        query: question ? cleanedQuery : '',
+        query: question ? queryString : '',
         queryLanguage: input.inputType as QueryLanguage,
         // If question is defined, indicate the user executed t2ppl previously
         isPromptEditorMode: !!question,
         timeRange,
-        selectedIndex: data.query.queryString.getDefaultQuery().dataset, // FIXME
-        parameters: input.parameters,
+        selectedIndex: {
+          title: indexName || '',
+          fields: [],
+          timeField,
+        },
+        noDatePicker,
       } as InputValueType<typeof currInputType>;
     }
 
@@ -134,7 +131,6 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     getInitialInputValue()
   );
   const [isParagraphSelectionOpen, setIsParagraphSelectionOpen] = useState(false);
-  const [dataView, setDataView] = useState<any>(undefined);
   const [isLoading, setIsLoading] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -234,32 +230,21 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
 
   const isInputMountedInParagraph = !!input;
 
-  const calculateQueryWithTimeFilter = useCallback(
-    (query: string, timeRange: TimeRange, selectedIndex: any) => {
-      const queryState = inputValue as QueryState;
-      if (TIME_FILTER_QUERY_REGEX.test(query) || queryState?.parameters?.noDatePicker) {
-        return query;
-      }
-
-      const { fromDate, toDate } = formatTimePickerDate(timeRange, TIME_FILTER_FORMAT);
-      const timeFieldName = selectedIndex.timeFieldName;
-      const whereCommand = timeFieldName
-        ? `WHERE \`${timeFieldName}\` >= '${fromDate}' AND \`${timeFieldName}\` <= '${toDate}'`
-        : '';
-
-      // Append time filter where command after the first command
-      const commands = query.split('|');
-      commands.splice(1, 0, whereCommand);
-      return commands.map((cmd) => cmd.trim()).join(' | ');
-    },
-    [inputValue]
-  );
-
   const handleGenerateQuery = async () => {
+    const {
+      queryLanguage,
+      selectedIndex: { title },
+    } = inputValue as QueryState;
+
+    if (input?.inputText && editorTextRef.current === (input?.parameters as any)?.question) {
+      // Don't regenerate PPL query if the input NL question isn't changed
+      return input.inputText;
+    }
+
     const params: QueryAssistParameters = {
       question: editorTextRef.current,
-      index: data.query.queryString.getQuery().dataset?.title!,
-      language: (inputValue as QueryState).queryLanguage,
+      index: title,
+      language: queryLanguage,
       dataSourceId,
     };
 
@@ -272,8 +257,8 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     return query;
   };
 
-  const handleSubmit = async (payload?: unknown) => {
-    if (!payload && !inputValue) {
+  const handleSubmit = async () => {
+    if (!inputValue) {
       return;
     }
 
@@ -286,14 +271,22 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
           break;
         case 'PPL':
           // Specially handle PPL to insert timerange and natural language information
-          const { timeRange, selectedIndex, isPromptEditorMode } = inputValue as QueryState;
+          const {
+            timeRange,
+            selectedIndex,
+            isPromptEditorMode,
+            noDatePicker,
+          } = inputValue as QueryState;
           const query = isPromptEditorMode ? await handleGenerateQuery() : editorTextRef.current;
           onSubmit({
-            inputText: calculateQueryWithTimeFilter(query, timeRange, selectedIndex),
+            inputText: query,
             inputType: 'PPL',
             parameters: {
               timeRange,
-              ...(isPromptEditorMode && { question: editorTextRef.current }),
+              indexName: selectedIndex?.title,
+              timeField: selectedIndex?.timeField,
+              question: isPromptEditorMode ? editorTextRef.current : '',
+              noDatePicker,
             },
           });
           break;
@@ -320,7 +313,11 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         queryLanguage: type as QueryLanguage,
         isPromptEditorMode: false,
         timeRange: { from: 'now-15m', to: 'now' },
-        selectedIndex: data.query.queryString.getDefaultQuery().dataset,
+        selectedIndex: {
+          title: '',
+          fields: [],
+        },
+        noDatePicker: false,
       });
     } else {
       setInputValue('');
@@ -334,7 +331,6 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     textareaRef,
     editorRef,
     editorTextRef,
-    dataView,
     isLoading,
     isInputMountedInParagraph,
     paragraphOptions,
@@ -345,7 +341,6 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     handleCancel,
     handleSubmit,
     handleParagraphSelection,
-    setDataView,
   };
 
   return <InputContext.Provider value={value}>{children}</InputContext.Provider>;
