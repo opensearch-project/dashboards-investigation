@@ -7,5 +7,5 @@ import { OtherParagraph } from '../components/notebooks/components/paragraph_com
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 
 export const OtherParagraphItem: ParagraphRegistryItem<string> = {
-  renderParagraph: OtherParagraph,
+  ParagraphComponent: OtherParagraph,
 };

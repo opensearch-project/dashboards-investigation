@@ -7,5 +7,5 @@ import { MarkdownParagraph } from '../components/notebooks/components/paragraph_
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 
 export const MarkdownParagraphItem: ParagraphRegistryItem = {
-  renderParagraph: MarkdownParagraph,
+  ParagraphComponent: MarkdownParagraph,
 };

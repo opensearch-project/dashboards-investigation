@@ -35,6 +35,8 @@ export const Paragraphs = (props: ParagraphProps) => {
   const paraClass = `notebooks-paragraph notebooks-paragraph-${
     uiSettingsService.get('theme:darkMode') ? 'dark' : 'light'
   }`;
+  const { ParagraphComponent } =
+    paragraphService.getParagraphRegistry(getInputType(paragraphValue)) || {};
 
   return (
     <EuiPanel
@@ -44,19 +46,11 @@ export const Paragraphs = (props: ParagraphProps) => {
       hasBorder={false}
     >
       {<ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />}
-      {(() => {
-        const RenderComponent = paragraphService.getParagraphRegistry(getInputType(paragraphValue))
-          ?.renderParagraph;
-        if (!RenderComponent) {
-          return null;
-        }
-
-        return (
-          <div key={paragraph.value.id} className={paraClass}>
-            <RenderComponent paragraphState={paragraph as ParagraphState<any, any>} />
-          </div>
-        );
-      })()}
+      {ParagraphComponent && (
+        <div key={paragraph.value.id} className={paraClass}>
+          <ParagraphComponent paragraphState={paragraph} />
+        </div>
+      )}
     </EuiPanel>
   );
 };

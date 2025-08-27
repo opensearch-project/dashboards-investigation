@@ -8,5 +8,5 @@ import { LogPatternContainer } from '../components/notebooks/components/log_anal
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 
 export const LogPatternParagraphItem: ParagraphRegistryItem<LogPatternAnalysisResult> = {
-  renderParagraph: LogPatternContainer,
+  ParagraphComponent: LogPatternContainer,
 };

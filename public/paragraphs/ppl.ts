@@ -10,5 +10,5 @@ import {
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 
 export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObject> = {
-  renderParagraph: PPLParagraph,
+  ParagraphComponent: PPLParagraph,
 };

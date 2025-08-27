@@ -7,5 +7,5 @@ import { VisualizationParagraph } from '../components/notebooks/components/parag
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 
 export const VisualizationParagraphItem: ParagraphRegistryItem = {
-  renderParagraph: VisualizationParagraph,
+  ParagraphComponent: VisualizationParagraph,
 };

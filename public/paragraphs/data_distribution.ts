@@ -8,5 +8,5 @@ import { DataDistributionContainer } from '../components/notebooks/components/da
 import { AnomalyVisualizationAnalysisOutputResult } from '../../common/types/notebooks';
 
 export const DataDistributionParagraphItem: ParagraphRegistryItem<AnomalyVisualizationAnalysisOutputResult> = {
-  renderParagraph: DataDistributionContainer,
+  ParagraphComponent: DataDistributionContainer,
 };

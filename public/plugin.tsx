@@ -33,26 +33,9 @@ import {
   ParagraphService,
 } from './services';
 import { Notebook, NotebookProps } from './components/notebooks/components/notebook';
-import {
-  AI_RESPONSE_TYPE,
-  DASHBOARDS_VISUALIZATION_TYPE,
-  DATA_DISTRIBUTION_PARAGRAPH_TYPE,
-  DEEP_RESEARCH_PARAGRAPH_TYPE,
-  LOG_PATTERN_PARAGRAPH_TYPE,
-  NOTEBOOK_APP_NAME,
-  OBSERVABILITY_VISUALIZATION_TYPE,
-  OTHER_PARAGRAPH_TYPE,
-} from '../common/constants/notebooks';
+import { NOTEBOOK_APP_NAME } from '../common/constants/notebooks';
 import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opensearch_dashboards_react/public';
-import {
-  DataDistributionParagraphItem,
-  LogPatternParagraphItem,
-  MarkdownParagraphItem,
-  OtherParagraphItem,
-  PERAgentParagraphItem,
-  PPLParagraphItem,
-  VisualizationParagraphItem,
-} from './paragraphs';
+import { paragraphRegistry } from './paragraphs';
 
 export class InvestigationPlugin
   implements
@@ -76,24 +59,9 @@ export class InvestigationPlugin
     const paragraphServiceSetup = this.paragraphService.setup();
 
     // Register paragraph types
-    paragraphServiceSetup.register(OTHER_PARAGRAPH_TYPE, OtherParagraphItem);
-    paragraphServiceSetup.register(DATA_DISTRIBUTION_PARAGRAPH_TYPE, DataDistributionParagraphItem);
-    paragraphServiceSetup.register(LOG_PATTERN_PARAGRAPH_TYPE, LogPatternParagraphItem);
-    paragraphServiceSetup.register(
-      [DEEP_RESEARCH_PARAGRAPH_TYPE, AI_RESPONSE_TYPE],
-      PERAgentParagraphItem
-    );
-    paragraphServiceSetup.register(
-      [
-        DASHBOARDS_VISUALIZATION_TYPE.toUpperCase(),
-        OBSERVABILITY_VISUALIZATION_TYPE.toUpperCase(),
-        DASHBOARDS_VISUALIZATION_TYPE,
-        OBSERVABILITY_VISUALIZATION_TYPE,
-      ],
-      VisualizationParagraphItem
-    );
-    paragraphServiceSetup.register(['ppl', 'sql'], PPLParagraphItem);
-    paragraphServiceSetup.register('md', MarkdownParagraphItem);
+    paragraphRegistry.forEach(({ types, item }) => {
+      paragraphServiceSetup.register(types, item);
+    });
 
     const getServices = async () => {
       const [coreStart, depsStart] = await core.getStartServices();

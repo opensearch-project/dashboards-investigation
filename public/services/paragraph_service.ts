@@ -12,11 +12,9 @@ export interface ParagraphRegistryItem<
   TInputParameters = any,
   TFullfilledOutput = any
 > {
-  renderParagraph: ({
-    paragraphState,
-  }: {
+  ParagraphComponent: React.FC<{
     paragraphState: ParagraphState<TOutputResult, TInputParameters, TFullfilledOutput>;
-  }) => React.JSX.Element | null;
+  }>;
 }
 
 export interface ParagraphServiceSetup {

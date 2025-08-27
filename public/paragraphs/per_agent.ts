@@ -14,5 +14,5 @@ export const PERAgentParagraphItem: ParagraphRegistryItem<
   DeepResearchOutputResult | string,
   DeepResearchInputParameters
 > = {
-  renderParagraph: DeepResearchParagraph,
+  ParagraphComponent: DeepResearchParagraph,
 };
