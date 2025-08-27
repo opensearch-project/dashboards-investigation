@@ -83,7 +83,7 @@ jest.mock('../../../../services/paragraph_service', () => ({
     setup: jest.fn().mockReturnValue({
       register: jest.fn(),
       getParagraphRegistry: jest.fn().mockReturnValue({
-        render: () => <div data-test-subj="mock-paragraph" />,
+        ParagraphComponent: () => <div data-test-subj="mock-paragraph" />,
       }),
     }),
   })),
@@ -161,7 +161,7 @@ const ContextAwareNotebook = (props: NotebookProps & { dataSourceEnabled?: boole
         navigation: navigationPluginMock.createStartContract(),
         paragraphService: {
           getParagraphRegistry: jest.fn().mockReturnValue({
-            render: () => <div data-test-subj="mock-paragraph" />,
+            ParagraphComponent: () => <div data-test-subj="mock-paragraph" />,
           }),
         },
       }}
@@ -214,7 +214,7 @@ describe('<Notebook /> spec', () => {
     // Wait for the paragraph to be created and rendered
     await waitFor(
       () => {
-        expect(utils.container.querySelector('.notebookParagraphWrapper')).toBeInTheDocument();
+        expect(utils.getByTestId('mock-paragraph')).toBeInTheDocument();
       },
       { timeout: 3000 }
     );

@@ -70,7 +70,7 @@ const ContextAwareParagraphs = (
         paragraphService: {
           getParagraphRegistry: jest.fn().mockImplementation(() => {
             return {
-              render: () => <div data-test-subj="mock-paragraph" />,
+              ParagraphComponent: () => <div data-test-subj="mock-paragraph" />,
             };
           }),
         },
@@ -112,6 +112,7 @@ describe('<Paragraphs /> spec', () => {
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();
+    expect(utils.getByTestId('mock-paragraph')).toBeInTheDocument();
   });
 
   it('use SavedObject find to fetch visualizations when dataSourceEnabled', () => {
@@ -158,8 +159,8 @@ describe('<Paragraphs /> spec', () => {
       />
     );
     expect(utils.container.firstChild).toMatchSnapshot();
-    // Since we're using a mock paragraphService, we can't test the original behavior
-    // Just verify the component renders without crashing
-    expect(utils.container.firstChild).toBeTruthy();
+
+    // Expect the mock paragraph has been rendered
+    expect(utils.getByTestId('mock-paragraph')).toBeInTheDocument();
   });
 });
