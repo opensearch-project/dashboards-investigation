@@ -4,13 +4,7 @@
  */
 
 import React from 'react';
-import {
-  AppMountParameters,
-  CoreSetup,
-  CoreStart,
-  Plugin,
-  PluginInitializerContext,
-} from '../../../src/core/public';
+import { AppMountParameters, CoreSetup, CoreStart, Plugin } from '../../../src/core/public';
 import {
   investigationNotebookID,
   investigationNotebookPluginOrder,
