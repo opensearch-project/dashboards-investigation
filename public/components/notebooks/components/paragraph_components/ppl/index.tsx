@@ -8,7 +8,6 @@ import {
   EuiCodeBlock,
   EuiCompressedFormRow,
   EuiFlexGroup,
-  EuiFlexItem,
   EuiIcon,
   EuiLink,
   EuiLoadingContent,
@@ -21,13 +20,10 @@ import { useCallback } from 'react';
 import { useMemo } from 'react';
 import { useContext } from 'react';
 import { NoteBookServices } from 'public/types';
-import { ParagraphDataSourceSelector } from '../../data_source_selector';
 import {
   ParagraphState,
   ParagraphStateValue,
 } from '../../../../../../common/state/paragraph_state';
-import { DataSourceSelectorProps } from '../../../../../../../../src/plugins/data_source_management/public/components/data_source_selector/data_source_selector';
-import { dataSourceFilterFn } from '../../../../../../common/utils/shared';
 import { useParagraphs } from '../../../../../hooks/use_paragraphs';
 import {
   PPL_DOCUMENTATION_URL,
@@ -99,12 +95,6 @@ export const PPLParagraph = ({
     services: { http, notifications, contextService },
   } = useOpenSearchDashboards<NoteBookServices>();
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
-  const selectedDataSource = paragraphValue?.dataSourceMDSId;
-  const onSelectedDataSource: DataSourceSelectorProps['onSelectedDataSource'] = (event) => {
-    paragraphState.updateValue({
-      dataSourceMDSId: event[0] ? event[0].id : undefined,
-    });
-  };
   const { runParagraph, saveParagraph } = useParagraphs();
   const queryObject = paragraphValue.fullfilledOutput;
   const errorMessage = useMemo(() => {
@@ -242,17 +232,7 @@ export const PPLParagraph = ({
 
   return (
     <>
-      <EuiFlexGroup style={{ marginTop: 0 }}>
-        <EuiFlexItem>
-          <ParagraphDataSourceSelector
-            disabled={!!isRunning}
-            fullWidth={false}
-            onSelectedDataSource={onSelectedDataSource}
-            selectedDataSourceId={selectedDataSource}
-            dataSourceFilter={dataSourceFilterFn}
-          />
-        </EuiFlexItem>
-      </EuiFlexGroup>
+      <EuiFlexGroup style={{ marginTop: 0 }} />
       <EuiSpacer size="s" />
       <EuiCompressedFormRow
         fullWidth={true}
