@@ -20,7 +20,10 @@ import { QueryPanel } from './query_panel';
 import { InputProvider, useInputContext } from './input_context';
 import { NotebookInput } from './notebook_input';
 import { MarkDownInput } from './markdown_input';
-import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
+import {
+  AI_RESPONSE_TYPE,
+  DEEP_RESEARCH_PARAGRAPH_TYPE,
+} from '../../../../../common/constants/notebooks';
 
 interface MultiVariantInputProps<TParameters = unknown> {
   input?: ParagraphInputType<TParameters>;
@@ -77,7 +80,7 @@ const MultiVariantInputContent: React.FC = () => {
         return <QueryPanel prependWidget={getInputTypeSelector()} appendWidget={getInputMenu()} />;
       case 'MARKDOWN':
         return <MarkDownInput />;
-      case 'DEEP_RESEARCH_AGENT':
+      case DEEP_RESEARCH_PARAGRAPH_TYPE:
         return <NotebookInput placeholder="Ask question to trigger deep research agent" />;
       case 'VISUALIZATION':
         return <></>;

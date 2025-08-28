@@ -8,7 +8,10 @@ import { ParagraphInputType } from 'common/types/notebooks';
 import { CoreStart } from '../../../../../../../src/core/public';
 import { ActionMetadata, actionsMetadata } from '../../../../../common/constants/actions';
 import { executeMLCommonsAgent, getMLCommonsConfig } from '../../../../utils/ml_commons_apis';
-import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
+import {
+  AI_RESPONSE_TYPE,
+  DEEP_RESEARCH_PARAGRAPH_TYPE,
+} from '../../../../../common/constants/notebooks';
 
 interface AgentSelectSubmitHookProps<TParameters = unknown> {
   http: CoreStart['http'];
@@ -85,8 +88,8 @@ export const useAgentSelectSubmit = ({
             inputType = 'VISUALIZATION';
             paragraphInput = '';
             break;
-          case 'DEEP_RESEARCH_AGENT':
-            inputType = AI_RESPONSE_TYPE;
+          case DEEP_RESEARCH_PARAGRAPH_TYPE:
+            inputType = DEEP_RESEARCH_PARAGRAPH_TYPE;
             paragraphInput = result.input?.question || '';
             break;
           default:

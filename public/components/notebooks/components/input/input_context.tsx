@@ -20,7 +20,10 @@ import { ParagraphInputType } from 'common/types/notebooks';
 // import { useAgentSelectSubmit } from './use_agent_select_submit';
 import { InputType, QueryLanguage, QueryState, InputValueType, InputTypeOption } from './types';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
-import { AI_RESPONSE_TYPE } from '../../../../../common/constants/notebooks';
+import {
+  AI_RESPONSE_TYPE,
+  DEEP_RESEARCH_PARAGRAPH_TYPE,
+} from '../../../../../common/constants/notebooks';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import {
   QueryAssistParameters,
@@ -181,7 +184,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
         },
         { key: 'PPL', icon: 'compass', label: 'Query', 'data-test-subj': 'paragraph-type-ppl' },
         {
-          key: 'DEEP_RESEARCH_AGENT',
+          key: DEEP_RESEARCH_PARAGRAPH_TYPE,
           icon: 'generate',
           label: 'Continue investigation',
           'data-test-subj': 'paragraph-type-deep-research',
