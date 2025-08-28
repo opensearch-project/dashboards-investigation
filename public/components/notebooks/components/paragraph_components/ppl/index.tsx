@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
   EuiCodeBlock,
   EuiCompressedFormRow,
@@ -37,8 +37,7 @@ import { MultiVariantInput } from '../../input/multi_variant_input';
 import { parsePPLQuery } from '../../../../../../common/utils';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
 import { formatTimePickerDate, TimeRange } from '../../../../../../../../src/plugins/data/common';
-
-const PPL_TIME_FILTER_REGEX = /\s*\|\s*WHERE\s+`[^`]+`\s*>=?\s*'[^']+'\s*AND\s*`[^`]+`\s*<=?\s*'[^']+'/i;
+import { getPPLQueryWithTimeRange, PPL_TIME_FILTER_REGEX } from '../../../../../utils/time';
 
 export interface QueryObject {
   schema?: any[];
@@ -108,6 +107,10 @@ export const PPLParagraph = ({
   const context = useContext(NotebookReactContext);
   const notebookId = context.state.value.id;
 
+  const [isWaitingForPPLResult, setIsWaitingForPPLResult] = useState(false);
+  // Remove this when the PPL results saved in index db
+  const queryExecutedInitially = useRef<boolean>(false);
+
   const addTimeRangeFilter = useCallback((query: string, params: any) => {
     if (params.noDatePicker || !params.timeField || PPL_TIME_FILTER_REGEX.test(query)) {
       /**
@@ -120,17 +123,8 @@ export const PPLParagraph = ({
     }
 
     const { timeRange, timeField } = params as { timeRange: TimeRange; timeField: string };
-
     const { fromDate, toDate } = formatTimePickerDate(timeRange, 'YYYY-MM-DD HH:mm:ss.SSS');
-    const timeFieldName = timeField;
-    const whereCommand = timeFieldName
-      ? `WHERE \`${timeFieldName}\` >= '${fromDate}' AND \`${timeFieldName}\` <= '${toDate}'`
-      : '';
-
-    // Append time filter where command after the first command
-    const commands = query.split('|');
-    commands.splice(1, 0, whereCommand);
-    return commands.map((cmd) => cmd.trim()).join(' | ');
+    return getPPLQueryWithTimeRange(query, fromDate, toDate, timeField);
   }, []);
 
   const loadQueryResultsFromInput = useCallback(
@@ -146,7 +140,10 @@ export const PPLParagraph = ({
           path: `/_plugins/${queryType}`,
           method: 'POST',
           body: JSON.stringify({
-            query: addTimeRangeFilter(currentSearchQuery, paragraph.input.parameters as any),
+            query: addTimeRangeFilter(
+              currentSearchQuery as string,
+              paragraph.input.parameters as any
+            ),
           }),
         },
       })
@@ -201,6 +198,9 @@ export const PPLParagraph = ({
         });
       }
     }
+
+    setIsWaitingForPPLResult(true);
+
     await saveParagraph({
       paragraphStateValue: paragraphState.getBackendValue(),
     });
@@ -209,6 +209,8 @@ export const PPLParagraph = ({
     });
 
     await loadQueryResultsFromInput(paragraphState.value);
+
+    setIsWaitingForPPLResult(false);
   };
 
   const inputQuery = useMemo(
@@ -270,6 +272,7 @@ export const PPLParagraph = ({
         }
       >
         <div style={{ width: '100%' }}>
+          <EuiSpacer size="xl" />
           <MultiVariantInput
             input={{
               inputText: inputQuery,
@@ -289,7 +292,7 @@ export const PPLParagraph = ({
           />
         </div>
       </EuiCompressedFormRow>
-      {isRunning ? (
+      {isRunning || isWaitingForPPLResult ? (
         <EuiLoadingContent />
       ) : (
         <>

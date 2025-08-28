@@ -37,15 +37,24 @@ export const getTimeGapFromDates = (startDate: moment.Moment, endDate: moment.Mo
   return formatTimeGap(duration.asMilliseconds());
 };
 
+export const PPL_TIME_FILTER_REGEX = /\s*\|\s*WHERE\s+`[^`]+`\s*>=?\s*'[^']+'\s*AND\s*`[^`]+`\s*<=?\s*'[^']+'/i;
+
 export const getPPLQueryWithTimeRange = (
-  query: string,
-  from: number,
-  to: number,
+  query: string = '',
+  from: number | string,
+  to: number | string,
   timeField: string
 ) => {
   const PPLDateFormat = 'YYYY-MM-DD HH:mm:ss.SSS';
-  const startTime = moment.utc(from).format(PPLDateFormat);
-  const endTime = moment.utc(to).format(PPLDateFormat);
-  const queryWithTimeRange = `${query} | WHERE \`${timeField}\` >= '${startTime}' AND \`${timeField}\` <= '${endTime}'`;
-  return queryWithTimeRange;
+  const startTime = typeof from === 'string' ? from : moment.utc(from).format(PPLDateFormat);
+  const endTime = typeof to === 'string' ? to : moment.utc(to).format(PPLDateFormat);
+
+  const whereCommand = timeField
+    ? `WHERE \`${timeField}\` >= '${startTime}' AND \`${timeField}\` <= '${endTime}'`
+    : '';
+
+  // Append time filter where command after the first command
+  const commands = query.split('|');
+  commands.splice(1, 0, whereCommand);
+  return commands.map((cmd) => cmd.trim()).join(' | ');
 };
