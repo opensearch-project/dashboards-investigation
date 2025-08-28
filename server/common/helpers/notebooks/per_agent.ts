@@ -8,24 +8,14 @@ import now from 'performance-now';
 import type {
   DeepResearchInputParameters,
   DeepResearchOutputResult,
-  NotebookContext,
   ParagraphBackendType,
 } from 'common/types/notebooks';
 import {
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   EXECUTOR_SYSTEM_PROMPT,
 } from '../../../../common/constants/notebooks';
-import { getInputType } from '../../../../common/utils/paragraph';
-import {
-  getNotebookTopLevelContextPrompt,
-  getOpenSearchClientTransport,
-} from '../../../routes/utils';
-import { getMLService, getParagraphServiceSetup } from '../../../services/get_set';
-import {
-  OpenSearchClient,
-  RequestHandlerContext,
-  SavedObject,
-} from '../../../../../../src/core/server';
+import { getMLService } from '../../../services/get_set';
+import { OpenSearchClient } from '../../../../../../src/core/server';
 
 const getAgentIdFromParagraph = async ({
   transport,
@@ -195,43 +185,4 @@ export const executePERAgentInParagraph = async ({
     },
     output,
   };
-};
-
-export const generateContextPromptFromParagraphs = async ({
-  paragraphs,
-  routeContext,
-  notebookInfo,
-  ignoreInputTypes = [],
-}: {
-  paragraphs: Array<ParagraphBackendType<unknown>>;
-  routeContext: RequestHandlerContext;
-  notebookInfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>;
-  ignoreInputTypes?: string[];
-}) => {
-  const allContext = await Promise.all(
-    paragraphs
-      .filter((paragraph) => !ignoreInputTypes.includes(getInputType(paragraph)))
-      .map(async (paragraph) => {
-        const transport = await getOpenSearchClientTransport({
-          context: routeContext,
-          dataSourceId: paragraph.dataSourceMDSId,
-        });
-        const paragraphRegistry = getParagraphServiceSetup().getParagraphRegistry(
-          getInputType(paragraph)
-        );
-        if (!paragraphRegistry) {
-          return '';
-        }
-
-        return await paragraphRegistry.getContext({
-          transport,
-          paragraph,
-        });
-      })
-  );
-
-  return [getNotebookTopLevelContextPrompt(notebookInfo), ...allContext]
-    .filter((item) => item)
-    .map((item) => item)
-    .join('\n');
 };

@@ -6,16 +6,21 @@
 import { useContext, useCallback } from 'react';
 import { ParagraphBackendType } from 'common/types/notebooks';
 import { NoteBookServices } from 'public/types';
-import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
+import {
+  AI_RESPONSE_TYPE,
+  DEEP_RESEARCH_PARAGRAPH_TYPE,
+  NOTEBOOKS_API_PREFIX,
+} from '../../common/constants/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
+import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
 
 export const useParagraphs = () => {
   const context = useContext(NotebookReactContext);
   const {
-    services: { notifications, http, contextService },
+    services: { notifications, http, contextService, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { id } = context.state.value;
 
@@ -215,8 +220,8 @@ export const useParagraphs = () => {
     cloneParagraph,
     saveParagraph,
     runParagraph: useCallback(
-      <TOutput>(props: { index?: number; id?: string }) => {
-        const { id: openedNoteId } = context.state.value;
+      async <TOutput>(props: { index?: number; id?: string }) => {
+        const { id: openedNoteId, context: topContextState } = context.state.value;
         let index: number = -1;
         if (props.hasOwnProperty('index') && props.index) {
           index = props.index;
@@ -231,11 +236,35 @@ export const useParagraphs = () => {
           return;
         }
 
-        const para = context.state.getParagraphsValue()[index];
+        const paragraphs = context.state.getParagraphsValue();
+        const para = paragraphs[index];
         const isSavedObjectNotebook = isValidUUID(openedNoteId);
         context.state.value.paragraphs[index].updateUIState({
           isRunning: true,
         });
+
+        let contextPrompt: string = '';
+        if (
+          isSavedObjectNotebook &&
+          (para.input.inputType === DEEP_RESEARCH_PARAGRAPH_TYPE ||
+            para.input.inputType === AI_RESPONSE_TYPE)
+        ) {
+          try {
+            contextPrompt = await generateContextPromptFromParagraphs({
+              paragraphService,
+              paragraphs,
+              notebookInfo: topContextState.value,
+              ignoreInputTypes:
+                para.input.inputType === AI_RESPONSE_TYPE ? [] : [DEEP_RESEARCH_PARAGRAPH_TYPE],
+            });
+          } catch (err) {
+            notifications.toasts.addDanger(`Error running paragraph: ${err.message}`);
+            context.state.value.paragraphs[index].updateUIState({
+              isRunning: false,
+            });
+            return Promise.reject('Generate context failed');
+          }
+        }
 
         const paraUpdateObject = {
           noteId: openedNoteId,
@@ -243,7 +272,7 @@ export const useParagraphs = () => {
           input: {
             inputType: para.input.inputType,
             inputText: para.input.inputText,
-            parameters: para.input.parameters,
+            parameters: { ...(para.input.parameters || {}), contextPrompt },
           },
           dataSourceMDSId: para.dataSourceMDSId || '',
         };
@@ -272,7 +301,7 @@ export const useParagraphs = () => {
             });
           });
       },
-      [context.state, http, notifications.toasts]
+      [context.state, http, notifications.toasts, paragraphService]
     ),
   };
 };

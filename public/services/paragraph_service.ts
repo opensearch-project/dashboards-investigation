@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { ParagraphState } from '../../common/state/paragraph_state';
+import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import { OTHER_PARAGRAPH_TYPE } from '../../common/constants/notebooks';
 
 export interface ParagraphRegistryItem<
@@ -15,6 +15,9 @@ export interface ParagraphRegistryItem<
   ParagraphComponent: React.FC<{
     paragraphState: ParagraphState<TOutputResult, TInputParameters, TFullfilledOutput>;
   }>;
+  getContext?: (
+    paragraphState: ParagraphStateValue<TOutputResult, TInputParameters, TFullfilledOutput>
+  ) => Promise<string>;
 }
 
 export interface ParagraphServiceSetup {

@@ -63,7 +63,7 @@ const createQueryColumns = (jsonColumns: QueryObject['schema']) => {
   return datagridColumns;
 };
 
-const getQueryOutputData = (queryObject: QueryObject) => {
+export const getQueryOutputData = (queryObject: QueryObject) => {
   if (!queryObject.datarows || !queryObject.schema) {
     return [];
   }

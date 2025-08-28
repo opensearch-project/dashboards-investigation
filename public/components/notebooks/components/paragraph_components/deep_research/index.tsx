@@ -46,7 +46,7 @@ import { PERAgentMemoryService } from './services/per_agent_memory_service';
 export const DeepResearchParagraph = ({
   paragraphState,
 }: {
-  paragraphState: ParagraphState<DeepResearchOutputResult | string, DeepResearchInputParameters>;
+  paragraphState: ParagraphState<DeepResearchOutputResult, DeepResearchInputParameters>;
 }) => {
   const {
     services: { http },
