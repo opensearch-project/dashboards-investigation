@@ -3,19 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SavedObject } from '../../../../../../src/core/server';
 import {
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   EXECUTOR_SYSTEM_PROMPT,
 } from '../../../../common/constants/notebooks';
 import {
   DeepResearchInputParameters,
-  NotebookContext,
   ParagraphBackendType,
 } from '../../../../common/types/notebooks';
 import * as utils from '../../../routes/utils';
 import * as getSetModule from '../../../services/get_set';
-import { executePERAgentInParagraph, generateContextPromptFromParagraphs } from './per_agent';
+import { executePERAgentInParagraph } from './per_agent';
 
 // Mock the modules
 jest.mock('../../../routes/utils');
@@ -25,10 +23,6 @@ describe('per_agent', () => {
   let mockTransport: any;
   let mockParagraph: ParagraphBackendType<unknown, DeepResearchInputParameters>;
   let mockMLService: any;
-  let mockParagraphServiceSetup: any;
-  let mockParagraphRegistry: any;
-  let mockRouteContext: any;
-  let mockNotebookInfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>;
   let realDate: DateConstructor;
   const mockDate = new Date('2023-01-01T12:00:00.000Z');
 
@@ -77,50 +71,9 @@ describe('per_agent', () => {
       executeAgent: jest.fn(),
     };
 
-    // Mock paragraph registry
-    mockParagraphRegistry = {
-      getContext: jest.fn(),
-    };
-
-    // Mock paragraph service setup
-    mockParagraphServiceSetup = {
-      getParagraphRegistry: jest.fn().mockReturnValue(mockParagraphRegistry),
-    };
-
-    // Mock route context
-    mockRouteContext = {
-      core: {
-        opensearch: {
-          client: {
-            asCurrentUser: {
-              transport: mockTransport,
-            },
-          },
-        },
-      },
-    };
-
-    // Mock notebook info
-    mockNotebookInfo = {
-      id: 'test-notebook-id',
-      type: 'notebook',
-      references: [],
-      attributes: {
-        savedNotebook: {
-          context: {
-            summary: 'Test summary',
-            index: 'test-index',
-            timeField: '@timestamp',
-          },
-        },
-      },
-    };
-
     // Setup mocks for imported functions
     (getSetModule.getMLService as jest.Mock).mockReturnValue(mockMLService);
-    (getSetModule.getParagraphServiceSetup as jest.Mock).mockReturnValue(mockParagraphServiceSetup);
     (utils.getOpenSearchClientTransport as jest.Mock).mockResolvedValue(mockTransport);
-    (utils.getNotebookTopLevelContextPrompt as jest.Mock).mockReturnValue('Top level context');
   });
 
   describe('getAgentIdFromParagraph', () => {
@@ -422,138 +375,6 @@ describe('per_agent', () => {
 
       // Verify date is the mocked date
       expect(result.dateModified).toBe(mockDate.toISOString());
-    });
-  });
-
-  describe('generateContextPromptFromParagraphs', () => {
-    beforeEach(() => {
-      // Setup for paragraph registry
-      mockParagraphRegistry.getContext.mockImplementation(
-        async ({ paragraph }: { paragraph: ParagraphBackendType<unknown> }) => {
-          return `Context for paragraph ${paragraph.id}`;
-        }
-      );
-    });
-
-    it('should generate context prompt from paragraphs', async () => {
-      // Setup
-      const paragraphs = [
-        {
-          ...mockParagraph,
-          id: 'paragraph-1',
-        },
-        {
-          ...mockParagraph,
-          id: 'paragraph-2',
-        },
-      ];
-
-      // Execute
-      const result = await generateContextPromptFromParagraphs({
-        paragraphs,
-        routeContext: mockRouteContext,
-        notebookInfo: mockNotebookInfo,
-      });
-
-      // Verify
-      expect(utils.getNotebookTopLevelContextPrompt).toHaveBeenCalledWith(mockNotebookInfo);
-      expect(utils.getOpenSearchClientTransport).toHaveBeenCalledTimes(2);
-      expect(mockParagraphServiceSetup.getParagraphRegistry).toHaveBeenCalledTimes(2);
-      expect(mockParagraphRegistry.getContext).toHaveBeenCalledTimes(2);
-
-      // Verify result
-      expect(result).toBe(
-        'Top level context\nContext for paragraph paragraph-1\nContext for paragraph paragraph-2'
-      );
-    });
-
-    it('should filter out paragraphs with ignored input types', async () => {
-      // Setup
-      const paragraphs = [
-        {
-          ...mockParagraph,
-          id: 'paragraph-1',
-          input: {
-            inputText: 'Test input 1',
-            inputType: 'TYPE_1',
-          },
-        },
-        {
-          ...mockParagraph,
-          id: 'paragraph-2',
-          input: {
-            inputText: 'Test input 2',
-            inputType: 'TYPE_2',
-          },
-        },
-        {
-          ...mockParagraph,
-          id: 'paragraph-3',
-          input: {
-            inputText: 'Test input 3',
-            inputType: 'TYPE_3',
-          },
-        },
-      ];
-
-      // Execute
-      const result = await generateContextPromptFromParagraphs({
-        paragraphs,
-        routeContext: mockRouteContext,
-        notebookInfo: mockNotebookInfo,
-        ignoreInputTypes: ['TYPE_2'],
-      });
-
-      // Verify
-      expect(utils.getOpenSearchClientTransport).toHaveBeenCalledTimes(2);
-      expect(mockParagraphServiceSetup.getParagraphRegistry).toHaveBeenCalledTimes(2);
-      expect(mockParagraphRegistry.getContext).toHaveBeenCalledTimes(2);
-
-      // Verify result
-      expect(result).toBe(
-        'Top level context\nContext for paragraph paragraph-1\nContext for paragraph paragraph-3'
-      );
-    });
-
-    it('should handle paragraphs with missing registry', async () => {
-      // Setup
-      const paragraphs = [
-        {
-          ...mockParagraph,
-          id: 'paragraph-1',
-        },
-        {
-          ...mockParagraph,
-          id: 'paragraph-2',
-          input: {
-            inputText: 'Test input 2',
-            inputType: 'UNKNOWN_TYPE',
-          },
-        },
-      ];
-
-      // Mock registry to return undefined for UNKNOWN_TYPE
-      mockParagraphServiceSetup.getParagraphRegistry.mockImplementation((type: string) => {
-        if (type === 'UNKNOWN_TYPE') {
-          return undefined;
-        }
-        return mockParagraphRegistry;
-      });
-
-      // Execute
-      const result = await generateContextPromptFromParagraphs({
-        paragraphs,
-        routeContext: mockRouteContext,
-        notebookInfo: mockNotebookInfo,
-      });
-
-      // Verify
-      expect(utils.getOpenSearchClientTransport).toHaveBeenCalledTimes(2);
-      expect(mockParagraphServiceSetup.getParagraphRegistry).toHaveBeenCalledTimes(2);
-      expect(mockParagraphRegistry.getContext).toHaveBeenCalledTimes(1);
-
-      // Verify result
-      expect(result).toBe('Top level context\nContext for paragraph paragraph-1');
     });
   });
 });
