@@ -36,3 +36,16 @@ export const getTimeGapFromDates = (startDate: moment.Moment, endDate: moment.Mo
   const duration = moment.duration(moment(endDate).diff(moment(startDate)));
   return formatTimeGap(duration.asMilliseconds());
 };
+
+export const getPPLQueryWithTimeRange = (
+  query: string,
+  from: number,
+  to: number,
+  timeField: string
+) => {
+  const PPLDateFormat = 'YYYY-MM-DD HH:mm:ss.SSS';
+  const startTime = moment.utc(from).format(PPLDateFormat);
+  const endTime = moment.utc(to).format(PPLDateFormat);
+  const queryWithTimeRange = `${query} | WHERE \`${timeField}\` >= '${startTime}' AND \`${timeField}\` <= '${endTime}'`;
+  return queryWithTimeRange;
+};

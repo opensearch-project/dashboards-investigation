@@ -37,6 +37,7 @@ import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import './data_distribution_viz.scss';
+import { getPPLQueryWithTimeRange } from '../../../../utils/time';
 
 const ITEMS_PER_PAGE = 3;
 
@@ -80,9 +81,15 @@ export const DataDistributionContainer = ({
       setDistributionLoading(true);
 
       let dataDistribution: SummaryDataItem[];
-
       if (source === NoteBookSource.DISCOVER) {
-        const pplData = await dataService.fetchPPlData(variables?.['pplQuery'] as string);
+        const pplData = await dataService.fetchPPlData(
+          getPPLQueryWithTimeRange(
+            variables?.['pplQuery'] as string,
+            timeRange!.selectionFrom,
+            timeRange!.selectionTo,
+            timeField as string
+          )
+        );
         setFetchDataLoading(false);
         dataDistribution = await dataService.getSingleDataDistribution(pplData);
       } else {
@@ -108,7 +115,17 @@ export const DataDistributionContainer = ({
       setFetchDataLoading(false);
       setDistributionLoading(false);
     }
-  }, [dataService, filters, paragraph, saveParagraph, notifications, source, timeRange, variables]);
+  }, [
+    dataService,
+    filters,
+    paragraph,
+    saveParagraph,
+    notifications,
+    source,
+    timeRange,
+    variables,
+    timeField,
+  ]);
 
   useEffect(() => {
     (async () => {

@@ -21,6 +21,7 @@ import {
 import { useParagraphs } from './use_paragraphs';
 import { useNotebook } from './use_notebook';
 import { getInputType } from '../../common/utils/paragraph';
+import { getPPLQueryWithTimeRange } from '../utils/time';
 
 export const usePrecheck = () => {
   const { updateNotebookContext } = useNotebook();
@@ -112,18 +113,25 @@ export const usePrecheck = () => {
 
         if (!anomalyAnalysisParaExists) {
           const resContext = res.context;
+          const canAnalyticDis =
+            resContext?.source === NoteBookSource.DISCOVER &&
+            resContext.variables?.['pplQuery'] &&
+            !resContext.variables?.log;
+          const canAnalyticAlert =
+            resContext?.source === NoteBookSource.ALERTING && resContext?.filters;
           if (
-            resContext?.filters &&
             resContext?.timeRange &&
             resContext?.index &&
-            resContext?.timeField
+            resContext?.timeField &&
+            (canAnalyticDis || canAnalyticAlert)
           ) {
             const newParaContent = JSON.stringify({
               index: resContext.index,
               timeField: resContext.timeField,
               dataSourceId: resContext?.dataSourceId,
               timeRange: resContext.timeRange,
-              filters: resContext.filters,
+              ...(canAnalyticAlert ? { filters: resContext.filters } : {}),
+              ...(canAnalyticDis ? { query: resContext.variables?.['pplQuery'] } : {}),
             });
             const anomalyAnalysisParagraphResult = await createParagraph({
               index: totalParagraphLength + paragraphStates.length,
@@ -142,12 +150,20 @@ export const usePrecheck = () => {
         if (
           res.context?.source === NoteBookSource.DISCOVER &&
           !res.paragraphs.find((paragraph) => getInputType(paragraph) === PPL_PARAGRAPH_TYPE) &&
-          res.context.variables?.pplQuery
+          res.context.variables?.['pplQuery'] &&
+          res.context.timeField &&
+          res.context.timeRange
         ) {
+          const pplQuery = getPPLQueryWithTimeRange(
+            res.context.variables?.['pplQuery'],
+            res.context.timeRange.selectionFrom,
+            res.context.timeRange.selectionTo,
+            res.context.timeField
+          );
           const createdPPLParagraph = await createParagraph({
             index: res.paragraphs.length + paragraphStates.length,
             input: {
-              inputText: `%ppl ${res.context.variables?.pplQuery}`,
+              inputText: `%ppl ${pplQuery}`,
               inputType: 'CODE',
               parameters: {
                 noDatePicker: true,
