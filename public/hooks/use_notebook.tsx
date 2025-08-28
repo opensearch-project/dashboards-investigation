@@ -80,7 +80,12 @@ export const useNotebook = () => {
         if (!content.related_indexes) {
           if (/ss4o_metrics.*/.test(index)) {
             content.related_indexes = [
-              { index_name: 'ss4o_logs*', is_log_index: true, log_message_field: 'body' },
+              {
+                index_name: 'ss4o_logs*',
+                is_log_index: true,
+                log_message_field: 'body',
+                time_field: 'time', // get the value from index pattern if possible
+              },
               {
                 index_name: 'otel-v1-apm-span*',
                 is_log_index: false,
@@ -97,9 +102,14 @@ export const useNotebook = () => {
                 is_log_index: false,
               },
             ];
-          } else if (/otel-v1-apm-span.*/.test(index)) {
+          } else if (/otel-v1-apm-span.*/.test(index) || /jaeger-span.*/.test(index)) {
             content.related_indexes = [
-              { index_name: 'ss4o_logs*', is_log_index: true, log_message_field: 'body' },
+              {
+                index_name: 'ss4o_logs*',
+                is_log_index: true,
+                log_message_field: 'body',
+                time_field: 'time',
+              },
               {
                 index_name: 'ss4o_metrics*',
                 is_log_index: false,

@@ -96,7 +96,7 @@ export const usePrecheck = () => {
                     inputType: LOG_PATTERN_PARAGRAPH_TYPE,
                     parameters: {
                       // assuming the related log index share same time field
-                      timeField: resContext.timeField,
+                      timeField: relatedLogIndex.time_field || resContext.timeField,
                       index: relatedLogIndex.index_name,
                       insight: relatedLogIndex,
                     },
