@@ -16,24 +16,15 @@ import { QueryState } from '../types';
 
 import './query_panel_editor.scss';
 
-export const QueryPanelEditor: React.FC<{ promptModeIsAvailable: boolean }> = ({
-  promptModeIsAvailable,
-}) => {
+export const QueryPanelEditor: React.FC<{
+  queryState: QueryState;
+  promptModeIsAvailable: boolean;
+  handleRunQuery: () => void;
+}> = ({ queryState, handleRunQuery, promptModeIsAvailable }) => {
   const { services } = useOpenSearchDashboards<NoteBookServices>();
-  const {
-    editorRef,
-    editorTextRef,
-    inputValue,
-    handleSubmit,
-    handleInputChange,
-  } = useInputContext();
+  const { editorRef, editorTextRef, handleInputChange } = useInputContext();
 
-  const queryState = inputValue as QueryState;
-  const { value, queryLanguage, isPromptEditorMode, selectedIndex } = queryState || {
-    value: '',
-    queryLanguage: 'PPL' as const,
-    isPromptEditorMode: false,
-  };
+  const { value, queryLanguage, isPromptEditorMode, selectedIndex } = queryState;
 
   const selectedIndexRef = useRef<any>();
 
@@ -53,10 +44,8 @@ export const QueryPanelEditor: React.FC<{ promptModeIsAvailable: boolean }> = ({
     promptModeIsAvailable: queryLanguage === 'SQL' ? false : promptModeIsAvailable,
     isPromptEditorMode,
     queryLanguage,
-    userQueryString: value,
-    handleRun: useCallback(() => {
-      handleSubmit();
-    }, [handleSubmit]),
+    userQueryString: value || '',
+    handleRun: handleRunQuery,
     handleEscape: useCallback(() => {
       handleInputChange({ isPromptEditorMode: false, query: '' });
     }, [handleInputChange]),

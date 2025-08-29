@@ -19,6 +19,7 @@ import {
   DATA_STRUCTURE_META_TYPES,
   DataStructure,
 } from '../../../../../../../../../src/plugins/data/common';
+import { QueryIndexState } from '../../types';
 
 type IStandaloneCodeEditor = monaco.editor.IStandaloneCodeEditor;
 type LanguageConfiguration = monaco.languages.LanguageConfiguration;
@@ -113,7 +114,7 @@ interface UseQueryPanelEditorProps {
   handleChange: () => void;
   editorTextRef: React.MutableRefObject<string>;
   editorRef: React.MutableRefObject<IStandaloneCodeEditor | null>;
-  selectedIndexRef: React.MutableRefObject<any>;
+  selectedIndexRef: React.MutableRefObject<QueryIndexState>;
   isQueryEditorDirty: boolean;
 }
 
@@ -128,7 +129,6 @@ export interface UseQueryPanelEditorReturnType {
   options: IEditorConstructionOptions;
   placeholder: string;
   promptIsTyping: boolean;
-  suggestionProvider: undefined;
   showPlaceholder: boolean;
   useLatestTheme: true;
   value: string;
@@ -164,7 +164,10 @@ export const useQueryPanelEditor = ({
     isPromptModeRef.current = isPromptMode;
     promptModeIsAvailableRef.current = promptModeIsAvailable;
     handleRunRef.current = handleRun;
-  }, [editorText, editorTextRef, isPromptMode, promptModeIsAvailable, handleRun]);
+  }, [editorText, editorTextRef, isPromptMode, promptModeIsAvailable, handleRun, userQueryString]);
+  useEffect(() => {
+    setEditorText(userQueryString);
+  }, [userQueryString]);
 
   // The 'triggerSuggestOnFocus' prop of CodeEditor only happens on mount, so I am intentionally not passing it
   // and programmatically doing it here. We should only trigger autosuggestion on focus while on isQueryMode and there is text
@@ -207,7 +210,7 @@ export const useQueryPanelEditor = ({
           selectionEnd: model.getOffsetAt(position),
           language: effectiveLanguage,
           baseLanguage: queryLanguage, // Pass the original language before transformation
-          indexPattern: selectedIndexRef.current,
+          indexPattern: selectedIndexRef.current as any, // Supply necessary parameters to getQuerySuggestions
           datasetType: 'INDEX', // TODO: if we support index pattern in the future
           position,
           services: services as any, // NotebookServices storage type incompatible with IDataPluginServices.DataStorage
@@ -370,7 +373,6 @@ export const useQueryPanelEditor = ({
     options,
     placeholder,
     promptIsTyping,
-    suggestionProvider: undefined, // Always return undefined to prevent CodeEditor from registering this
     showPlaceholder: !editorText.length,
     useLatestTheme: true,
     value: editorText,

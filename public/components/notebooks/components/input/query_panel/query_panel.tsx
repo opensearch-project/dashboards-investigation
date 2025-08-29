@@ -17,45 +17,122 @@ import {
   EuiText,
 } from '@elastic/eui';
 import { NoteBookServices } from 'public/types';
+import { isEmpty } from 'lodash';
 import { QueryPanelEditor } from './query_panel_editor';
 import { QueryPanelGeneratedQuery } from './query_panel_generated_query';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { useInputContext } from '../input_context';
-import { QueryState } from '../types';
+import { QueryLanguage, QueryState } from '../types';
 
 import './query_panel.scss';
 import { getPromptModeIsAvailable } from './get_prompt_mode_is_available';
 import { LanguageToggle } from './language_toggle';
 import { IndexSelector } from './index_selector.tsx/index_selector';
+import {
+  QueryAssistParameters,
+  QueryAssistResponse,
+} from '../../../../../../../../src/plugins/query_enhancements/common/query_assist';
 
 interface QueryPanelProps {
   prependWidget?: React.ReactNode;
   appendWidget?: React.ReactNode;
 }
 
+export const QUERY_PANEL_INITIAL_STATE = {
+  value: '',
+  query: '',
+  queryLanguage: 'PPL' as QueryLanguage,
+  isPromptEditorMode: false,
+  timeRange: { from: 'now-15m', to: 'now' },
+  selectedIndex: {
+    title: '',
+    fields: [],
+  },
+  noDatePicker: false,
+};
+
 export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWidget }) => {
   const {
     services,
-    services: { uiSettings },
+    services: {
+      uiSettings,
+      data: { indexPatterns },
+    },
   } = useOpenSearchDashboards<NoteBookServices>();
   const {
+    editorTextRef,
     inputValue,
     dataSourceId,
+    isLoading,
+    paragraphInput,
     handleInputChange,
     handleSubmit,
-    isLoading,
   } = useInputContext();
 
   const [promptModeIsAvailable, setPromptModeIsAvailable] = useState(false);
   const [isQueryPanelMenuOpen, setIsQueryPanelMenuOpen] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
 
-  const queryState = inputValue as QueryState | undefined;
-  const { timeRange, queryLanguage } = queryState || {};
+  const queryState = (inputValue || QUERY_PANEL_INITIAL_STATE) as QueryState;
+  const { queryLanguage, isPromptEditorMode, selectedIndex, timeRange, noDatePicker } = queryState;
 
   useEffect(() => {
     // TODO: consider move this to global state
     getPromptModeIsAvailable(services, dataSourceId).then(setPromptModeIsAvailable);
   }, [services, dataSourceId]);
+
+  useEffect(() => {
+    const handleInitalInput = async () => {
+      if (
+        !isFetching &&
+        paragraphInput &&
+        (paragraphInput.inputType === 'PPL' || paragraphInput.inputType === 'SQL') &&
+        isEmpty(inputValue)
+      ) {
+        // Set up input value from paragraph input
+        try {
+          setIsFetching(true);
+          const value = paragraphInput.inputText;
+          const {
+            timeRange: inputTimeRange,
+            query,
+            indexName,
+            timeField,
+            noDatePicker: inputNoDatePicker,
+          } = (paragraphInput.parameters as any) || {};
+
+          const fields = indexName
+            ? await indexPatterns.getFieldsForWildcard({
+                pattern: indexName,
+                dataSourceId,
+              })
+            : [];
+
+          handleInputChange({
+            value,
+            query,
+            queryLanguage: paragraphInput.inputType as QueryLanguage,
+            // If question is defined, indicate the user executed t2ppl previously
+            isPromptEditorMode: !isEmpty(query),
+            timeRange: inputTimeRange,
+            selectedIndex: {
+              title: indexName || '',
+              fields,
+              timeField,
+            },
+            noDatePicker: inputNoDatePicker,
+          });
+        } catch (err) {
+          console.log('error', err);
+        } finally {
+          setIsFetching(false);
+        }
+      } else if (typeof inputValue === 'string' || isEmpty(inputValue)) {
+        handleInputChange(QUERY_PANEL_INITIAL_STATE);
+      }
+    };
+    handleInitalInput();
+  }, [paragraphInput, handleInputChange, indexPatterns, dataSourceId, inputValue, isFetching]);
 
   const handleTimeChange = useCallback(
     (props) => {
@@ -63,6 +140,67 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
     },
     [handleInputChange]
   );
+
+  const handleGenerateQuery = useCallback(async () => {
+    if (
+      paragraphInput?.inputText &&
+      editorTextRef.current === (paragraphInput?.parameters as any)?.question
+    ) {
+      // Don't regenerate PPL query if the input NL question isn't changed
+      return paragraphInput?.inputText;
+    }
+    setIsFetching(true);
+    const params: QueryAssistParameters = {
+      question: editorTextRef.current,
+      index: selectedIndex.title,
+      language: queryLanguage,
+      dataSourceId,
+    };
+
+    const { query } = await services.http.post<QueryAssistResponse>(
+      '/api/enhancements/assist/generate',
+      {
+        body: JSON.stringify(params),
+      }
+    );
+
+    handleInputChange({ query });
+    setIsFetching(false);
+
+    return query;
+  }, [
+    paragraphInput,
+    editorTextRef,
+    selectedIndex.title,
+    queryLanguage,
+    dataSourceId,
+    services.http,
+    handleInputChange,
+  ]);
+
+  const handleRunQuery = useCallback(async () => {
+    handleSubmit(editorTextRef.current, {
+      timeRange,
+      indexName: selectedIndex?.title,
+      timeField: selectedIndex?.timeField,
+      query: isPromptEditorMode ? await handleGenerateQuery() : '',
+      noDatePicker,
+    });
+  }, [
+    handleSubmit,
+    handleGenerateQuery,
+    editorTextRef,
+    isPromptEditorMode,
+    noDatePicker,
+    selectedIndex,
+    timeRange,
+  ]);
+
+  const isQueryPanelLoading = isFetching || isLoading;
+
+  if (!queryState) {
+    return null;
+  }
 
   return (
     <EuiPanel paddingSize="none" hasBorder={false} hasShadow={false}>
@@ -93,54 +231,58 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
           </>
         )}
         <EuiFlexGroup gutterSize="none" dir="row" justifyContent="flexEnd" alignItems="center">
-          {isLoading && <EuiLoadingSpinner size="m" />}
+          {isQueryPanelLoading && <EuiLoadingSpinner size="m" />}
           <EuiButtonEmpty
-            iconType={isLoading ? undefined : 'play'}
+            iconType={isQueryPanelLoading ? undefined : 'play'}
             size="s"
             aria-label="run button"
-            onClick={handleSubmit}
-            disabled={isLoading}
+            onClick={handleRunQuery}
+            disabled={isQueryPanelLoading}
           >
             Run
           </EuiButtonEmpty>
-          <div className="notebookQueryPanelWidgets__verticalSeparator" />
-          <EuiPopover
-            panelPaddingSize="none"
-            button={
-              <EuiSmallButtonIcon
-                aria-label="Open input menu"
-                iconType="boxesHorizontal"
-                onClick={() => setIsQueryPanelMenuOpen(true)}
-              />
-            }
-            closePopover={() => setIsQueryPanelMenuOpen(false)}
-            isOpen={isQueryPanelMenuOpen}
-          >
-            {queryLanguage === 'PPL' ? (
-              <EuiFlexGroup
-                gutterSize="none"
-                dir="row"
-                alignItems="center"
-                style={{ gap: 8, padding: 8 }}
+          {queryLanguage === 'PPL' && (
+            <>
+              <div className="notebookQueryPanelWidgets__verticalSeparator" />
+              <EuiPopover
+                panelPaddingSize="none"
+                button={
+                  <EuiSmallButtonIcon
+                    aria-label="Open input menu"
+                    iconType="boxesHorizontal"
+                    onClick={() => setIsQueryPanelMenuOpen(true)}
+                  />
+                }
+                closePopover={() => setIsQueryPanelMenuOpen(false)}
+                isOpen={isQueryPanelMenuOpen}
               >
-                <EuiSwitch
-                  showLabel={false}
-                  label=""
-                  checked={Boolean((inputValue as QueryState)?.noDatePicker)}
-                  onChange={(e) => handleInputChange({ noDatePicker: e.target.checked })}
-                />
-                <EuiText size="s">Disable Time Filter</EuiText>
-              </EuiFlexGroup>
-            ) : (
-              <></>
-            )}
-          </EuiPopover>
+                <EuiFlexGroup
+                  gutterSize="none"
+                  dir="row"
+                  alignItems="center"
+                  style={{ gap: 8, padding: 8 }}
+                >
+                  <EuiSwitch
+                    showLabel={false}
+                    label=""
+                    checked={Boolean((inputValue as QueryState)?.noDatePicker)}
+                    onChange={(e) => handleInputChange({ noDatePicker: e.target.checked })}
+                  />
+                  <EuiText size="s">Disable Time Filter</EuiText>
+                </EuiFlexGroup>
+              </EuiPopover>
+            </>
+          )}
           {appendWidget && <div className="notebookQueryPanelWidgets__verticalSeparator" />}
           {appendWidget}
         </EuiFlexGroup>
       </EuiFlexGroup>
       <EuiSpacer size="xs" />
-      <QueryPanelEditor promptModeIsAvailable={promptModeIsAvailable} />
+      <QueryPanelEditor
+        queryState={queryState}
+        promptModeIsAvailable={promptModeIsAvailable}
+        handleRunQuery={handleRunQuery}
+      />
       <QueryPanelGeneratedQuery />
     </EuiPanel>
   );

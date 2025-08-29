@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useState, useCallback, useMemo, useContext } from 'react';
 import {
   EuiCodeBlock,
   EuiCompressedFormRow,
@@ -14,11 +14,9 @@ import {
   EuiSpacer,
   EuiText,
 } from '@elastic/eui';
-import { useObservable } from 'react-use';
-import { useEffectOnce } from 'react-use';
-import { useCallback } from 'react';
-import { useMemo } from 'react';
-import { useContext } from 'react';
+import { useObservable, useEffectOnce } from 'react-use';
+import {} from 'react';
+import { isEmpty } from 'lodash';
 import { NoteBookServices } from 'public/types';
 import {
   ParagraphState,
@@ -108,11 +106,9 @@ export const PPLParagraph = ({
   const notebookId = context.state.value.id;
 
   const [isWaitingForPPLResult, setIsWaitingForPPLResult] = useState(false);
-  // Remove this when the PPL results saved in index db
-  const queryExecutedInitially = useRef<boolean>(false);
 
   const addTimeRangeFilter = useCallback((query: string, params: any) => {
-    if (params.noDatePicker || !params.timeField || PPL_TIME_FILTER_REGEX.test(query)) {
+    if (params?.noDatePicker || !params?.timeField || PPL_TIME_FILTER_REGEX.test(query)) {
       /**
        * Do not concatenate the time filter query string if:
        * 1. The date picker is disabled by the query panel component
@@ -130,8 +126,14 @@ export const PPLParagraph = ({
   const loadQueryResultsFromInput = useCallback(
     async (paragraph: ParagraphStateValue) => {
       const queryType = paragraph.input.inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
+      const queryParams = paragraph.input.parameters as any;
+      const currentSearchQuery = queryParams?.query || paragraph.input.inputText.substring(5);
 
-      const currentSearchQuery = ParagraphState.getOutput(paragraph)?.result || '';
+      if (isEmpty(currentSearchQuery)) return;
+
+      paragraphState.updateUIState({
+        isRunning: true,
+      });
 
       await callOpenSearchCluster({
         http,
@@ -140,10 +142,10 @@ export const PPLParagraph = ({
           path: `/_plugins/${queryType}`,
           method: 'POST',
           body: JSON.stringify({
-            query: addTimeRangeFilter(
-              currentSearchQuery as string,
-              paragraph.input.parameters as any
-            ),
+            query:
+              queryType === '_sql'
+                ? currentSearchQuery
+                : addTimeRangeFilter(currentSearchQuery, queryParams),
           }),
         },
       })
@@ -164,9 +166,15 @@ export const PPLParagraph = ({
               },
             },
           });
+        })
+        .finally(() => {
+          paragraphState.updateUIState({
+            isRunning: false,
+          });
+          setIsWaitingForPPLResult(false);
         });
     },
-    [http, notifications.toasts, contextService, notebookId, paragraphState]
+    [paragraphState, http, notifications.toasts, addTimeRangeFilter, contextService, notebookId]
   );
 
   useEffectOnce(() => {
@@ -189,12 +197,12 @@ export const PPLParagraph = ({
   const runParagraphHandler = async () => {
     const inputText = paragraphState.getBackendValue().input.inputText;
     const queryType = inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
-    const inputQuery = inputText.substring(4);
+    const inputQuery = inputText.substring(5);
     if (queryType === '_ppl' && inputQuery.trim()) {
       const pplWithAbsoluteTime = parsePPLQuery(inputQuery).pplWithAbsoluteTime;
       if (pplWithAbsoluteTime !== inputQuery) {
         paragraphState.updateInput({
-          inputText: `%ppl${pplWithAbsoluteTime}`,
+          inputText: `%ppl\n${pplWithAbsoluteTime}`,
         });
       }
     }
@@ -221,10 +229,17 @@ export const PPLParagraph = ({
     [paragraphValue.input.inputText]
   );
 
-  const inputQueryWithTimeFilter = useMemo(
-    () => addTimeRangeFilter(inputQuery, paragraphValue.input.parameters as any),
-    [inputQuery, paragraphValue.input.parameters, addTimeRangeFilter]
-  );
+  const inputQueryWithTimeFilter = useMemo(() => {
+    const params = paragraphValue.input.parameters as any;
+    return paragraphValue.input.inputText.startsWith('%sql')
+      ? inputQuery
+      : params?.query || addTimeRangeFilter(inputQuery, params);
+  }, [
+    inputQuery,
+    paragraphValue.input.parameters,
+    paragraphValue.input.inputText,
+    addTimeRangeFilter,
+  ]);
 
   const columns = useMemo(() => createQueryColumns(queryObject?.schema || []), [
     queryObject?.schema,

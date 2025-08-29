@@ -31,7 +31,7 @@ interface IndexSelectorOption {
 
 export const IndexSelector: React.FC = () => {
   const { dataSourceId, handleInputChange, inputValue } = useInputContext();
-  const queryState = inputValue as QueryState;
+  const { noDatePicker, selectedIndex } = (inputValue as QueryState) || {};
   const {
     services: {
       http,
@@ -87,45 +87,21 @@ export const IndexSelector: React.FC = () => {
 
   useEffect(() => {
     const initializeFromInput = async () => {
-      // Initialize from input parameters to fetch fields for the index
-      if (
-        !uiState.isLoading &&
-        queryState.selectedIndex.title &&
-        isEmpty(queryState.selectedIndex.fields)
-      ) {
-        const indexTitle = queryState.selectedIndex.title;
-        const timeField = queryState.selectedIndex.timeField;
+      // Populate selected index and time field label from input state
+      if (!currentSelection.selectedIndex && !isEmpty(selectedIndex?.title)) {
+        const indexTitle = selectedIndex.title;
+        const timeField = selectedIndex.timeField;
 
-        setUiState((prev) => ({ ...prev, isLoading: true }));
-        try {
-          const fields = await indexPatterns.getFieldsForWildcard({
-            pattern: indexTitle,
-            dataSourceId,
-          });
-
-          setCurrentSelection((prev) => ({
-            ...prev,
-            selectedIndex: { label: indexTitle },
-            selectedTimeField: { label: timeField },
-          }));
-
-          handleInputChange({
-            selectedIndex: {
-              title: indexTitle,
-              fields,
-              timeField,
-            },
-          });
-        } catch (err) {
-          console.log('error', err);
-        } finally {
-          setUiState((prev) => ({ ...prev, isLoading: false }));
-        }
+        setCurrentSelection((prev) => ({
+          ...prev,
+          selectedIndex: { label: indexTitle },
+          selectedTimeField: { label: timeField },
+        }));
       }
     };
 
     initializeFromInput();
-  }, [queryState.selectedIndex, dataSourceId, indexPatterns, handleInputChange, uiState.isLoading]);
+  }, [selectedIndex, currentSelection.selectedIndex]);
 
   const options = useMemo(() => {
     return indicesData.indices.map(({ index, uuid }) => ({ label: index, key: uuid }));
@@ -173,7 +149,7 @@ export const IndexSelector: React.FC = () => {
       const selected = newOptions.find((option) => option.checked === 'on');
       tempSelectedIndexRef.current = selected;
 
-      if (queryState.noDatePicker) {
+      if (noDatePicker) {
         // Skip time field selection and directly set the index
         setCurrentSelection((prev) => ({ ...prev, selectedIndex: selected }));
         setUiState((prev) => ({ ...prev, isOpen: false }));
@@ -198,7 +174,7 @@ export const IndexSelector: React.FC = () => {
         fetchTimeFields(selected?.label);
       }
     },
-    [queryState.noDatePicker, indexPatterns, dataSourceId, handleInputChange, fetchTimeFields]
+    [noDatePicker, indexPatterns, dataSourceId, handleInputChange, fetchTimeFields]
   );
 
   const handleTimeFieldChange = useCallback(
@@ -229,7 +205,7 @@ export const IndexSelector: React.FC = () => {
   };
 
   const getButtonText = () => {
-    if (queryState.noDatePicker) {
+    if (noDatePicker) {
       return currentSelection.selectedIndex?.label || 'Select an index';
     }
     if (currentSelection.selectedTimeField) {
@@ -265,7 +241,7 @@ export const IndexSelector: React.FC = () => {
       panelPaddingSize="none"
       repositionOnScroll
     >
-      {uiState.stage === 'index' ? (
+      {uiState.stage === 'index' || noDatePicker ? (
         <EuiSelectable
           className="notebookIndexSelector__selectable"
           data-test-subj="notebookIndexSelectorSelectable"

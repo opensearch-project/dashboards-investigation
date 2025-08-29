@@ -14,21 +14,15 @@ import React, {
 } from 'react';
 import { useObservable } from 'react-use';
 import type { monaco } from '@osd/monaco';
-import { NoteBookServices } from 'public/types';
 import { EuiSelectableOption } from '@elastic/eui';
 import { ParagraphInputType } from 'common/types/notebooks';
 // import { useAgentSelectSubmit } from './use_agent_select_submit';
-import { InputType, QueryLanguage, QueryState, InputValueType, InputTypeOption } from './types';
-import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { InputType, QueryState, InputValueType, InputTypeOption } from './types';
 import {
   AI_RESPONSE_TYPE,
   DEEP_RESEARCH_PARAGRAPH_TYPE,
 } from '../../../../../common/constants/notebooks';
 import { NotebookReactContext } from '../../context_provider/context_provider';
-import {
-  QueryAssistParameters,
-  QueryAssistResponse,
-} from '../../../../../../../src/plugins/query_enhancements/common/query_assist';
 
 interface InputContextValue<T extends InputType = InputType> {
   // States
@@ -56,6 +50,9 @@ interface InputContextValue<T extends InputType = InputType> {
   // Data source ID from notebook context
   dataSourceId: string | undefined;
 
+  // Input object from paragraph
+  paragraphInput: ParagraphInputType<T> | undefined;
+
   // Actions
   // Update the current state of input variant type
   handleSetCurrInputType: (type: T) => void;
@@ -70,7 +67,7 @@ interface InputContextValue<T extends InputType = InputType> {
   handleCancel: () => void;
 
   // Submit and execute the current input state
-  handleSubmit: () => void;
+  handleSubmit: (inputText?: string, parameters?: unknown) => void;
 
   // Handle open the popover for creating blank
   handleParagraphSelection: (options: EuiSelectableOption[]) => void;
@@ -89,10 +86,6 @@ interface InputProviderProps<TParameters = unknown> {
 }
 
 export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit, input }) => {
-  const {
-    services: { http },
-  } = useOpenSearchDashboards<NoteBookServices>();
-
   const [currInputType, setCurrInputType] = useState<InputType>(
     (input?.inputType as InputType) || AI_RESPONSE_TYPE
   );
@@ -101,27 +94,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     if (!input?.inputText) return undefined;
 
     if (input.inputType === 'PPL' || input.inputType === 'SQL') {
-      // FIXME: remove this when the executing of a query is properly implemented
-      const queryString = input.inputText;
-      const { timeRange, question, indexName, timeField, noDatePicker } =
-        (input.parameters as any) || {};
-
-      return {
-        // Use natural language question as input text if is t2ppl
-        value: question || queryString || '',
-        // Set generated query if is t2ppl
-        query: question ? queryString : '',
-        queryLanguage: input.inputType as QueryLanguage,
-        // If question is defined, indicate the user executed t2ppl previously
-        isPromptEditorMode: !!question,
-        timeRange,
-        selectedIndex: {
-          title: indexName || '',
-          fields: [],
-          timeField,
-        },
-        noDatePicker,
-      } as InputValueType<typeof currInputType>;
+      return undefined;
     }
 
     return input.inputText as InputValueType<typeof currInputType>;
@@ -135,22 +108,12 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const editorTextRef = useRef(
-    typeof inputValue === 'object' && inputValue?.value
-      ? inputValue.value
-      : (inputValue as string) || ''
-  );
+  const editorTextRef = useRef(input?.inputText ? input?.inputText : '');
 
   const handleInputChange = (value: Partial<InputValueType<typeof currInputType>>) => {
-    if (currInputType === 'PPL' || currInputType === 'SQL') {
-      // For query types, support partial updates
-      if (typeof value === 'object' && value !== null && !('queryLanguage' in value)) {
-        // Partial update
-        setInputValue((prev) => ({ ...(prev as QueryState), ...value }));
-      } else {
-        // Full replacement
-        setInputValue(value as QueryState);
-      }
+    if (typeof value === 'object') {
+      // For query types, support object updates
+      setInputValue((prev) => ({ ...(prev as QueryState), ...value }));
     } else {
       setInputValue(value as string);
     }
@@ -230,69 +193,19 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
 
   const isInputMountedInParagraph = !!input;
 
-  const handleGenerateQuery = async () => {
-    const {
-      queryLanguage,
-      selectedIndex: { title },
-    } = inputValue as QueryState;
-
-    if (input?.inputText && editorTextRef.current === (input?.parameters as any)?.question) {
-      // Don't regenerate PPL query if the input NL question isn't changed
-      return input.inputText;
-    }
-
-    const params: QueryAssistParameters = {
-      question: editorTextRef.current,
-      index: title,
-      language: queryLanguage,
-      dataSourceId,
-    };
-
-    const { query } = await http.post<QueryAssistResponse>('/api/enhancements/assist/generate', {
-      body: JSON.stringify(params),
-    });
-
-    handleInputChange({ query });
-
-    return query;
-  };
-
-  const handleSubmit = async () => {
-    if (!inputValue) {
+  const handleSubmit = async (inputText?: string, parameters?: any) => {
+    if (!inputValue && !inputText) {
       return;
     }
 
     setIsLoading(true);
 
     try {
-      switch (currInputType) {
-        case 'SQL':
-          onSubmit({ inputText: editorTextRef.current, inputType: 'SQL' });
-          break;
-        case 'PPL':
-          // Specially handle PPL to insert timerange and natural language information
-          const {
-            timeRange,
-            selectedIndex,
-            isPromptEditorMode,
-            noDatePicker,
-          } = inputValue as QueryState;
-          const query = isPromptEditorMode ? await handleGenerateQuery() : editorTextRef.current;
-          onSubmit({
-            inputText: query,
-            inputType: 'PPL',
-            parameters: {
-              timeRange,
-              indexName: selectedIndex?.title,
-              timeField: selectedIndex?.timeField,
-              question: isPromptEditorMode ? editorTextRef.current : '',
-              noDatePicker,
-            },
-          });
-          break;
-        default:
-          onSubmit({ inputText: inputValue as string, inputType: currInputType });
-      }
+      onSubmit({
+        inputText: inputText ?? (inputValue as string),
+        inputType: currInputType,
+        ...(parameters ? { parameters } : {}),
+      });
 
       if (!isInputMountedInParagraph) handleCancel();
     } catch (err) {
@@ -304,24 +217,6 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
 
   const handleSetCurrInputType = (type: InputType) => {
     setCurrInputType(type);
-
-    // Reset inputValue when changing types
-    if (type === 'PPL' || type === 'SQL') {
-      setInputValue({
-        value: '',
-        query: '',
-        queryLanguage: type as QueryLanguage,
-        isPromptEditorMode: false,
-        timeRange: { from: 'now-15m', to: 'now' },
-        selectedIndex: {
-          title: '',
-          fields: [],
-        },
-        noDatePicker: false,
-      });
-    } else {
-      setInputValue('');
-    }
   };
 
   const value: InputContextValue = {
@@ -335,6 +230,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     isInputMountedInParagraph,
     paragraphOptions,
     dataSourceId,
+    paragraphInput: input,
     handleSetCurrInputType,
     setIsParagraphSelectionOpen,
     handleInputChange,
