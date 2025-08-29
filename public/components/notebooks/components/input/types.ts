@@ -18,16 +18,20 @@ export type InputType =
 
 export type QueryLanguage = 'PPL' | 'SQL';
 
+export interface QueryIndexState {
+  title: string;
+  fields: any[];
+  timeField?: string;
+}
+
 export interface QueryState {
   value: string;
   query?: string;
   queryLanguage: QueryLanguage;
   isPromptEditorMode: boolean;
   timeRange: TimeRange;
-  selectedIndex?: any;
-  parameters?: {
-    noDatePicker?: boolean;
-  };
+  selectedIndex: QueryIndexState;
+  noDatePicker: boolean;
 }
 
 export type InputValueType<T extends InputType> = T extends 'PPL' | 'SQL' ? QueryState : string;

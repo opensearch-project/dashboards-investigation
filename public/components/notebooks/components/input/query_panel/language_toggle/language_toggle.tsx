@@ -44,7 +44,7 @@ export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
     [closePopover, handleInputChange, handleSetCurrInputType]
   );
 
-  const badgeLabel = isPromptEditorMode ? 'AI' : queryLanguage;
+  const badgeLabel = isPromptEditorMode ? 'AI' : queryLanguage || 'PPL';
 
   const items = useMemo(() => {
     const output = [

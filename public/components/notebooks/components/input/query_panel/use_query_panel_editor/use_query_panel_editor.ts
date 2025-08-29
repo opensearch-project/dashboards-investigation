@@ -19,6 +19,7 @@ import {
   DATA_STRUCTURE_META_TYPES,
   DataStructure,
 } from '../../../../../../../../../src/plugins/data/common';
+import { QueryIndexState } from '../../types';
 
 type IStandaloneCodeEditor = monaco.editor.IStandaloneCodeEditor;
 type LanguageConfiguration = monaco.languages.LanguageConfiguration;
@@ -113,8 +114,8 @@ interface UseQueryPanelEditorProps {
   handleChange: () => void;
   editorTextRef: React.MutableRefObject<string>;
   editorRef: React.MutableRefObject<IStandaloneCodeEditor | null>;
+  selectedIndexRef: React.MutableRefObject<QueryIndexState>;
   isQueryEditorDirty: boolean;
-  datasetId?: any;
 }
 
 export interface UseQueryPanelEditorReturnType {
@@ -128,7 +129,6 @@ export interface UseQueryPanelEditorReturnType {
   options: IEditorConstructionOptions;
   placeholder: string;
   promptIsTyping: boolean;
-  suggestionProvider: monaco.languages.CompletionItemProvider;
   showPlaceholder: boolean;
   useLatestTheme: true;
   value: string;
@@ -146,36 +146,28 @@ export const useQueryPanelEditor = ({
   handleChange,
   editorTextRef,
   editorRef,
+  selectedIndexRef,
   isQueryEditorDirty,
-  datasetId,
 }: UseQueryPanelEditorProps): UseQueryPanelEditorReturnType => {
   const { promptIsTyping, handleChangeForPromptIsTyping } = usePromptIsTyping();
   const [editorText, setEditorText] = useState<string>(userQueryString);
   const [editorIsFocused, setEditorIsFocused] = useState(false);
-  const {
-    data: {
-      dataViews,
-      query: { queryString },
-    },
-  } = services;
   const isQueryMode = !isPromptMode;
   const isPromptModeRef = useRef(isPromptMode);
   const promptModeIsAvailableRef = useRef(promptModeIsAvailable);
   const handleRunRef = useRef(handleRun);
+  const completionProviderRef = useRef<monaco.IDisposable>();
 
   // Keep the refs updated with latest context
   useEffect(() => {
     editorTextRef.current = editorText;
-  }, [editorText, editorTextRef]);
-  useEffect(() => {
     isPromptModeRef.current = isPromptMode;
-  }, [isPromptMode]);
-  useEffect(() => {
     promptModeIsAvailableRef.current = promptModeIsAvailable;
-  }, [promptModeIsAvailable]);
-  useEffect(() => {
     handleRunRef.current = handleRun;
-  }, [handleRun]);
+  }, [editorText, editorTextRef, isPromptMode, promptModeIsAvailable, handleRun, userQueryString]);
+  useEffect(() => {
+    setEditorText(userQueryString);
+  }, [userQueryString]);
 
   // The 'triggerSuggestOnFocus' prop of CodeEditor only happens on mount, so I am intentionally not passing it
   // and programmatically doing it here. We should only trigger autosuggestion on focus while on isQueryMode and there is text
@@ -212,22 +204,14 @@ export const useQueryPanelEditor = ({
       try {
         const effectiveLanguage = isPromptModeRef.current ? 'AI' : queryLanguage;
 
-        // Get the current dataset from Query Service to avoid stale closure values
-        const currentDataset = queryString.getQuery().dataset;
-        const currentDataView = await dataViews.get(
-          currentDataset?.id! || datasetId,
-          currentDataset?.type !== DEFAULT_DATA.SET_TYPES.INDEX_PATTERN
-        );
-
-        // Use the current Dataset to avoid stale data
         const suggestions = await services?.data?.autocomplete?.getQuerySuggestions({
           query: model.getValue(), // Use the current editor content, using the local query results in a race condition where we can get stale query data
           selectionStart: model.getOffsetAt(position),
           selectionEnd: model.getOffsetAt(position),
           language: effectiveLanguage,
           baseLanguage: queryLanguage, // Pass the original language before transformation
-          indexPattern: currentDataView,
-          datasetType: currentDataset?.type,
+          indexPattern: selectedIndexRef.current as any, // Supply necessary parameters to getQuerySuggestions
+          datasetType: 'INDEX', // TODO: if we support index pattern in the future
           position,
           services: services as any, // NotebookServices storage type incompatible with IDataPluginServices.DataStorage
         });
@@ -272,15 +256,27 @@ export const useQueryPanelEditor = ({
         return { suggestions: [], incomplete: false };
       }
     },
-    [isPromptModeRef, queryLanguage, queryString, dataViews, services, datasetId]
+    [isPromptModeRef, queryLanguage, services, selectedIndexRef]
   );
 
-  const suggestionProvider = useMemo(() => {
-    return {
-      triggerCharacters: isPromptMode ? ['='] : TRIGGER_CHARACTERS,
-      provideCompletionItems,
+  // Register/dispose completion provider based on focus state
+  useEffect(() => {
+    if (editorIsFocused) {
+      const provider = {
+        triggerCharacters: isPromptMode ? ['='] : TRIGGER_CHARACTERS,
+        provideCompletionItems,
+      };
+      completionProviderRef.current = monaco.languages.registerCompletionItemProvider(
+        isPromptMode ? 'AI' : queryLanguage,
+        provider
+      );
+    }
+
+    return () => {
+      completionProviderRef.current?.dispose();
+      completionProviderRef.current = undefined;
     };
-  }, [isPromptMode, provideCompletionItems]);
+  }, [editorIsFocused, isPromptMode, provideCompletionItems, queryLanguage]);
 
   const editorDidMount = useCallback(
     (editor: IStandaloneCodeEditor) => {
@@ -337,13 +333,9 @@ export const useQueryPanelEditor = ({
     [setEditorRef, handleEscape, setEditorIsFocused, editorTextRef, handleSpaceBar]
   );
 
-  const options = useMemo(() => {
-    if (isQueryMode) {
-      return queryEditorOptions;
-    } else {
-      return promptEditorOptions;
-    }
-  }, [isQueryMode]);
+  const options = useMemo(() => (isQueryMode ? queryEditorOptions : promptEditorOptions), [
+    isQueryMode,
+  ]);
 
   const placeholder = useMemo(() => {
     if (queryLanguage === 'SQL') {
@@ -364,16 +356,10 @@ export const useQueryPanelEditor = ({
   const onChange = useCallback(
     (newText: string) => {
       setEditorText(newText);
-
-      if (!isQueryEditorDirty) {
-        handleChange();
-      }
-
-      if (isPromptMode) {
-        handleChangeForPromptIsTyping();
-      }
+      if (!isQueryEditorDirty) handleChange();
+      if (isPromptMode) handleChangeForPromptIsTyping();
     },
-    [setEditorText, isPromptMode, handleChangeForPromptIsTyping, isQueryEditorDirty, handleChange]
+    [isPromptMode, handleChangeForPromptIsTyping, isQueryEditorDirty, handleChange]
   );
 
   return {
@@ -387,7 +373,6 @@ export const useQueryPanelEditor = ({
     options,
     placeholder,
     promptIsTyping,
-    suggestionProvider,
     showPlaceholder: !editorText.length,
     useLatestTheme: true,
     value: editorText,

@@ -4,14 +4,7 @@
  */
 
 import React from 'react';
-import {
-  EuiFlexGroup,
-  EuiInputPopover,
-  EuiPopover,
-  EuiSelectable,
-  EuiSmallButtonIcon,
-  EuiSpacer,
-} from '@elastic/eui';
+import { EuiFlexGroup, EuiInputPopover, EuiSelectable, EuiSpacer } from '@elastic/eui';
 import autosize from 'autosize';
 import { useEffectOnce } from 'react-use';
 import { ParagraphInputType } from 'common/types/notebooks';
@@ -36,48 +29,28 @@ const MultiVariantInputContent: React.FC = () => {
     isParagraphSelectionOpen,
     setIsParagraphSelectionOpen,
     handleSetCurrInputType,
-    isInputMountedInParagraph,
     handleParagraphSelection,
   } = useInputContext();
-
-  const getInputTypeSelector = () => {
-    return (
-      <InputTypeSelector
-        allowSelect
-        current={currInputType}
-        onInputTypeChange={handleSetCurrInputType}
-      />
-    );
-  };
-
-  const getInputMenu = () => {
-    if (isInputMountedInParagraph) {
-      return null;
-    }
-    return (
-      <EuiPopover
-        panelPaddingSize="none"
-        button={
-          <EuiSmallButtonIcon
-            aria-label="Open input menu"
-            iconType="boxesHorizontal"
-            onClick={() => {}}
-          />
-        }
-        closePopover={() => {}}
-      >
-        TODO
-      </EuiPopover>
-    );
-  };
 
   const getInputComponent = () => {
     switch (currInputType) {
       case AI_RESPONSE_TYPE:
-        return <NotebookInput placeholder="Type % to show paragraph options" />;
+        return (
+          <NotebookInput placeholder="Ask AI with question or type % to show paragraph options" />
+        );
       case 'PPL':
       case 'SQL':
-        return <QueryPanel prependWidget={getInputTypeSelector()} appendWidget={getInputMenu()} />;
+        return (
+          <QueryPanel
+            prependWidget={
+              <InputTypeSelector
+                allowSelect
+                current={currInputType}
+                onInputTypeChange={handleSetCurrInputType}
+              />
+            }
+          />
+        );
       case 'MARKDOWN':
         return <MarkDownInput />;
       case DEEP_RESEARCH_PARAGRAPH_TYPE:
@@ -105,10 +78,14 @@ const MultiVariantInputContent: React.FC = () => {
   return (
     <>
       {currInputType !== 'PPL' && currInputType !== 'SQL' && (
+        // Input type selector for query panel is a part of the component already
         <>
           <EuiFlexGroup dir="row" gutterSize="none" justifyContent="spaceBetween">
-            {getInputTypeSelector()}
-            {getInputMenu()}
+            <InputTypeSelector
+              allowSelect
+              current={currInputType}
+              onInputTypeChange={handleSetCurrInputType}
+            />
           </EuiFlexGroup>
           <EuiSpacer size="xs" />
         </>

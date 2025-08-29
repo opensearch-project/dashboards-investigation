@@ -5,6 +5,7 @@
 
 import { useCallback, useRef } from 'react';
 import { combineLatest } from 'rxjs';
+import moment from 'moment';
 import {
   IndexInsightContent,
   NotebookContext,
@@ -21,7 +22,6 @@ import {
 import { useParagraphs } from './use_paragraphs';
 import { useNotebook } from './use_notebook';
 import { getInputType } from '../../common/utils/paragraph';
-import { getPPLQueryWithTimeRange } from '../utils/time';
 import { getLocalInputParameters } from '../components/notebooks/components/helpers/per_agent_helpers';
 
 export const usePrecheck = () => {
@@ -155,19 +155,22 @@ export const usePrecheck = () => {
           res.context.timeField &&
           res.context.timeRange
         ) {
-          const pplQuery = getPPLQueryWithTimeRange(
-            res.context.variables?.['pplQuery'],
-            res.context.timeRange.selectionFrom,
-            res.context.timeRange.selectionTo,
-            res.context.timeField
-          );
+          const formatToLocalTime = (timestamp: number) =>
+            moment(timestamp).format('YYYY-MM-DD HH:mm:ss.SSS');
+          const pplQuery = res.context.variables?.['pplQuery'];
           const createdPPLParagraph = await createParagraph({
             index: res.paragraphs.length + paragraphStates.length,
             input: {
               inputText: `%ppl ${pplQuery}`,
               inputType: 'CODE',
               parameters: {
-                noDatePicker: true,
+                noDatePicker: false,
+                indexName: res.context.index,
+                timeField: res.context.timeField,
+                timeRange: {
+                  from: formatToLocalTime(res.context.timeRange.selectionFrom),
+                  to: formatToLocalTime(res.context.timeRange.selectionTo),
+                },
               },
             },
             dataSourceMDSId: res.context.dataSourceId || '',

@@ -3,31 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState, useCallback, useMemo, useContext } from 'react';
 import {
   EuiCodeBlock,
   EuiCompressedFormRow,
   EuiFlexGroup,
-  EuiFlexItem,
   EuiIcon,
   EuiLink,
   EuiLoadingContent,
   EuiSpacer,
   EuiText,
 } from '@elastic/eui';
-import { useObservable } from 'react-use';
-import { useEffectOnce } from 'react-use';
-import { useCallback } from 'react';
-import { useMemo } from 'react';
-import { useContext } from 'react';
+import { useObservable, useEffectOnce } from 'react-use';
+import {} from 'react';
+import { isEmpty } from 'lodash';
 import { NoteBookServices } from 'public/types';
-import { ParagraphDataSourceSelector } from '../../data_source_selector';
 import {
   ParagraphState,
   ParagraphStateValue,
 } from '../../../../../../common/state/paragraph_state';
-import { DataSourceSelectorProps } from '../../../../../../../../src/plugins/data_source_management/public/components/data_source_selector/data_source_selector';
-import { dataSourceFilterFn } from '../../../../../../common/utils/shared';
 import { useParagraphs } from '../../../../../hooks/use_paragraphs';
 import {
   PPL_DOCUMENTATION_URL,
@@ -40,6 +34,8 @@ import { callOpenSearchCluster } from '../../../../../plugin_helpers/plugin_prox
 import { MultiVariantInput } from '../../input/multi_variant_input';
 import { parsePPLQuery } from '../../../../../../common/utils';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
+import { formatTimePickerDate, TimeRange } from '../../../../../../../../src/plugins/data/common';
+import { getPPLQueryWithTimeRange, PPL_TIME_FILTER_REGEX } from '../../../../../utils/time';
 
 export interface QueryObject {
   schema?: any[];
@@ -96,12 +92,6 @@ export const PPLParagraph = ({
     services: { http, notifications, contextService },
   } = useOpenSearchDashboards<NoteBookServices>();
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
-  const selectedDataSource = paragraphValue?.dataSourceMDSId;
-  const onSelectedDataSource: DataSourceSelectorProps['onSelectedDataSource'] = (event) => {
-    paragraphState.updateValue({
-      dataSourceMDSId: event[0] ? event[0].id : undefined,
-    });
-  };
   const { runParagraph, saveParagraph } = useParagraphs();
   const queryObject = paragraphValue.fullfilledOutput;
   const errorMessage = useMemo(() => {
@@ -115,11 +105,35 @@ export const PPLParagraph = ({
   const context = useContext(NotebookReactContext);
   const notebookId = context.state.value.id;
 
+  const [isWaitingForPPLResult, setIsWaitingForPPLResult] = useState(false);
+
+  const addTimeRangeFilter = useCallback((query: string, params: any) => {
+    if (params?.noDatePicker || !params?.timeField || PPL_TIME_FILTER_REGEX.test(query)) {
+      /**
+       * Do not concatenate the time filter query string if:
+       * 1. The date picker is disabled by the query panel component
+       * 2. The time field is not selected by the user
+       * 3. The query already exists an absolute time filter query string
+       */
+      return query;
+    }
+
+    const { timeRange, timeField } = params as { timeRange: TimeRange; timeField: string };
+    const { fromDate, toDate } = formatTimePickerDate(timeRange, 'YYYY-MM-DD HH:mm:ss.SSS');
+    return getPPLQueryWithTimeRange(query, fromDate, toDate, timeField);
+  }, []);
+
   const loadQueryResultsFromInput = useCallback(
     async (paragraph: ParagraphStateValue) => {
       const queryType = paragraph.input.inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
+      const queryParams = paragraph.input.parameters as any;
+      const currentSearchQuery = queryParams?.query || paragraph.input.inputText.substring(5);
 
-      const currentSearchQuery = ParagraphState.getOutput(paragraph)?.result || '';
+      if (isEmpty(currentSearchQuery)) return;
+
+      paragraphState.updateUIState({
+        isRunning: true,
+      });
 
       await callOpenSearchCluster({
         http,
@@ -128,7 +142,10 @@ export const PPLParagraph = ({
           path: `/_plugins/${queryType}`,
           method: 'POST',
           body: JSON.stringify({
-            query: currentSearchQuery,
+            query:
+              queryType === '_sql'
+                ? currentSearchQuery
+                : addTimeRangeFilter(currentSearchQuery, queryParams),
           }),
         },
       })
@@ -149,9 +166,15 @@ export const PPLParagraph = ({
               },
             },
           });
+        })
+        .finally(() => {
+          paragraphState.updateUIState({
+            isRunning: false,
+          });
+          setIsWaitingForPPLResult(false);
         });
     },
-    [http, notifications.toasts, contextService, notebookId, paragraphState]
+    [paragraphState, http, notifications.toasts, addTimeRangeFilter, contextService, notebookId]
   );
 
   useEffectOnce(() => {
@@ -174,15 +197,18 @@ export const PPLParagraph = ({
   const runParagraphHandler = async () => {
     const inputText = paragraphState.getBackendValue().input.inputText;
     const queryType = inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
-    const inputQuery = inputText.substring(4);
+    const inputQuery = inputText.substring(5);
     if (queryType === '_ppl' && inputQuery.trim()) {
       const pplWithAbsoluteTime = parsePPLQuery(inputQuery).pplWithAbsoluteTime;
       if (pplWithAbsoluteTime !== inputQuery) {
         paragraphState.updateInput({
-          inputText: `%ppl${pplWithAbsoluteTime}`,
+          inputText: `%ppl\n${pplWithAbsoluteTime}`,
         });
       }
     }
+
+    setIsWaitingForPPLResult(true);
+
     await saveParagraph({
       paragraphStateValue: paragraphState.getBackendValue(),
     });
@@ -191,12 +217,29 @@ export const PPLParagraph = ({
     });
 
     await loadQueryResultsFromInput(paragraphState.value);
+
+    setIsWaitingForPPLResult(false);
   };
 
-  // FIXME: when properly store input language
-  const inputQuery = paragraphValue.input.inputText.startsWith('%')
-    ? paragraphValue.input.inputText.substring(5)
-    : paragraphValue.input.inputText;
+  const inputQuery = useMemo(
+    () =>
+      paragraphValue.input.inputText.startsWith('%')
+        ? paragraphValue.input.inputText.substring(5)
+        : paragraphValue.input.inputText,
+    [paragraphValue.input.inputText]
+  );
+
+  const inputQueryWithTimeFilter = useMemo(() => {
+    const params = paragraphValue.input.parameters as any;
+    return paragraphValue.input.inputText.startsWith('%sql')
+      ? inputQuery
+      : params?.query || addTimeRangeFilter(inputQuery, params);
+  }, [
+    inputQuery,
+    paragraphValue.input.parameters,
+    paragraphValue.input.inputText,
+    addTimeRangeFilter,
+  ]);
 
   const columns = useMemo(() => createQueryColumns(queryObject?.schema || []), [
     queryObject?.schema,
@@ -206,17 +249,7 @@ export const PPLParagraph = ({
 
   return (
     <>
-      <EuiFlexGroup style={{ marginTop: 0 }}>
-        <EuiFlexItem>
-          <ParagraphDataSourceSelector
-            disabled={!!isRunning}
-            fullWidth={false}
-            onSelectedDataSource={onSelectedDataSource}
-            selectedDataSourceId={selectedDataSource}
-            dataSourceFilter={dataSourceFilterFn}
-          />
-        </EuiFlexItem>
-      </EuiFlexGroup>
+      <EuiFlexGroup style={{ marginTop: 0 }} />
       <EuiSpacer size="s" />
       <EuiCompressedFormRow
         fullWidth={true}
@@ -254,6 +287,7 @@ export const PPLParagraph = ({
         }
       >
         <div style={{ width: '100%' }}>
+          <EuiSpacer size="xl" />
           <MultiVariantInput
             input={{
               inputText: inputQuery,
@@ -273,7 +307,7 @@ export const PPLParagraph = ({
           />
         </div>
       </EuiCompressedFormRow>
-      {isRunning ? (
+      {isRunning || isWaitingForPPLResult ? (
         <EuiLoadingContent />
       ) : (
         <>
@@ -282,7 +316,7 @@ export const PPLParagraph = ({
           {columns.length && data.length ? (
             <div>
               <EuiText className="wrapAll" data-test-subj="queryOutputText">
-                <b>{inputQuery}</b>
+                <b>{inputQueryWithTimeFilter}</b>
               </EuiText>
               <EuiSpacer />
               <QueryDataGridMemo

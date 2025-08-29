@@ -3,78 +3,82 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { of } from 'rxjs';
 import { getPromptModeIsAvailable } from './get_prompt_mode_is_available';
 import { NoteBookServices } from 'public/types';
 
 describe('getPromptModeIsAvailable', () => {
   let services: jest.Mocked<NoteBookServices>;
+  const dataSourceId = 'test-datasource';
 
   beforeEach(() => {
     services = {
-      data: {
-        query: {
-          queryString: {
-            getLanguageService: jest.fn().mockReturnValue({
-              getQueryEditorExtensionMap: jest.fn(),
-            }),
-          },
-        },
+      http: {
+        post: jest.fn(),
+      },
+      uiSettings: {
+        get: jest.fn() as jest.MockedFunction<any>,
       },
     } as any;
 
     jest.clearAllMocks();
   });
 
-  it('returns false if query-assist extension is missing', async () => {
-    (services.data.query.queryString.getLanguageService().getQueryEditorExtensionMap as jest.Mocked<
-      any
-    >).mockReturnValue({});
+  it('returns false if AI features are disabled', async () => {
+    (services.uiSettings.get as jest.Mock).mockReturnValue(false);
 
-    const result = await getPromptModeIsAvailable(services);
+    const result = await getPromptModeIsAvailable(services, dataSourceId);
     expect(result).toBe(false);
+    expect(services.uiSettings.get).toHaveBeenCalledWith('enableAIFeatures');
+    expect(services.http.post).not.toHaveBeenCalled();
   });
 
-  it('returns false if query-assist extension exists but isEnabled$ returns false', async () => {
-    const mockIsEnabled$ = jest.fn().mockReturnValue(of(false));
+  it('returns false if ML config has no agent_id', async () => {
+    (services.uiSettings.get as jest.Mock).mockReturnValue(true);
+    (services.http.post as jest.Mock).mockResolvedValue({ configuration: {} });
 
-    (services.data.query.queryString.getLanguageService().getQueryEditorExtensionMap as jest.Mocked<
-      any
-    >).mockReturnValue({
-      'query-assist': {
-        isEnabled$: mockIsEnabled$,
+    const result = await getPromptModeIsAvailable(services, dataSourceId);
+    expect(result).toBe(false);
+    expect(services.http.post).toHaveBeenCalledWith('/api/console/proxy', {
+      query: {
+        path: '/_plugins/_ml/config/os_query_assist_ppl',
+        method: 'GET',
+        dataSourceId,
       },
     });
-
-    const result = await getPromptModeIsAvailable(services);
-    expect(result).toBe(false);
-    expect(mockIsEnabled$).toHaveBeenCalledWith({});
   });
 
-  it('returns true if query-assist extension exists and isEnabled$ returns true', async () => {
-    const mockIsEnabled$ = jest.fn().mockReturnValue(of(true));
-
-    (services.data.query.queryString.getLanguageService().getQueryEditorExtensionMap as jest.Mocked<
-      any
-    >).mockReturnValue({
-      'query-assist': {
-        isEnabled$: mockIsEnabled$,
-      },
+  it('returns true if ML config has agent_id', async () => {
+    (services.uiSettings.get as jest.Mock).mockReturnValue(true);
+    (services.http.post as jest.Mock).mockResolvedValue({
+      configuration: { agent_id: 'test-agent' },
     });
 
-    const result = await getPromptModeIsAvailable(services);
+    const result = await getPromptModeIsAvailable(services, dataSourceId);
     expect(result).toBe(true);
-    expect(mockIsEnabled$).toHaveBeenCalledWith({});
   });
 
-  it('returns false if getting extension map throws an error', async () => {
-    (services.data.query.queryString.getLanguageService().getQueryEditorExtensionMap as jest.Mocked<
-      any
-    >).mockImplementation(() => {
-      throw new Error('Extension map error');
+  it('returns false if HTTP request throws an error', async () => {
+    (services.uiSettings.get as jest.Mock).mockReturnValue(true);
+    (services.http.post as jest.Mock).mockRejectedValue(new Error('Network error'));
+
+    const result = await getPromptModeIsAvailable(services, dataSourceId);
+    expect(result).toBe(false);
+  });
+
+  it('works with undefined dataSourceId', async () => {
+    (services.uiSettings.get as jest.Mock).mockReturnValue(true);
+    (services.http.post as jest.Mock).mockResolvedValue({
+      configuration: { agent_id: 'test-agent' },
     });
 
-    const result = await getPromptModeIsAvailable(services);
-    expect(result).toBe(false);
+    const result = await getPromptModeIsAvailable(services, undefined);
+    expect(result).toBe(true);
+    expect(services.http.post).toHaveBeenCalledWith('/api/console/proxy', {
+      query: {
+        path: '/_plugins/_ml/config/os_query_assist_ppl',
+        method: 'GET',
+        dataSourceId: undefined,
+      },
+    });
   });
 });

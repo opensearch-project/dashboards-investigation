@@ -152,9 +152,6 @@ const ContextAwareNotebook = (props: NotebookProps & { dataSourceEnabled?: boole
               getDefaultQuery: jest.fn(() => ({})),
             },
           },
-          ui: {
-            DatasetSelect: jest.fn(() => <div data-test-subj="dataset-select" />),
-          },
           dataViews: {
             getDefault: jest.fn(() => Promise.resolve({ id: 'default-data-view' })),
           },

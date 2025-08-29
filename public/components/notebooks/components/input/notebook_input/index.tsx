@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { EuiLoadingSpinner, EuiSmallButtonIcon, EuiTextArea } from '@elastic/eui';
 import { useInputContext } from '../input_context';
 import './index.scss';
@@ -15,6 +15,10 @@ interface NotebookInputProps {
 export const NotebookInput: React.FC<NotebookInputProps> = ({ placeholder }) => {
   const { inputValue, textareaRef, handleInputChange, isLoading } = useInputContext();
   const { handleSubmit } = useInputContext();
+
+  useEffect(() => {
+    handleInputChange('');
+  }, [handleInputChange]);
 
   return (
     <>
@@ -56,7 +60,7 @@ export const NotebookInput: React.FC<NotebookInputProps> = ({ placeholder }) => 
           <EuiSmallButtonIcon
             iconType="rocket"
             className="notebook-input__button"
-            onClick={handleSubmit}
+            onClick={() => handleSubmit()}
             aria-label="submit input"
           />
         </div>
