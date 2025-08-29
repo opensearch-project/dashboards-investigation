@@ -56,18 +56,17 @@ const getAgentIdFromParagraph = async ({
 export const executePERAgentInParagraph = async ({
   transport,
   paragraph,
-  context,
   baseMemoryId,
 }: {
   transport: OpenSearchClient['transport'];
   paragraph: ParagraphBackendType<unknown, DeepResearchInputParameters>;
   baseMemoryId?: string;
-  context?: string;
 }) => {
   const agentId = await getAgentIdFromParagraph({
     transport,
     paragraph,
   });
+  const context = paragraph.input.parameters?.PERAgentContext;
 
   if (!agentId) {
     throw new Error('No PER agent id configured.');
@@ -180,7 +179,6 @@ export const executePERAgentInParagraph = async ({
             parameters,
           }),
         },
-        PERAgentContext: context,
       },
     },
     output,

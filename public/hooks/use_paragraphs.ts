@@ -272,7 +272,7 @@ export const useParagraphs = () => {
           input: {
             inputType: para.input.inputType,
             inputText: para.input.inputText,
-            parameters: { ...(para.input.parameters || {}), contextPrompt },
+            parameters: { ...(para.input.parameters || {}), PERAgentContext: contextPrompt },
           },
           dataSourceMDSId: para.dataSourceMDSId || '',
         };

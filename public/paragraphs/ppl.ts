@@ -21,7 +21,9 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
     }
 
     const query = output[0].result;
-    const queryType = paragraph?.input.inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
+    const isSqlQuery = paragraph?.input?.inputText.substring(0, 4) === '%sql';
+    const queryType = isSqlQuery ? '_sql' : '_ppl';
+    const queryTypeName = isSqlQuery ? 'SQL' : 'PPL';
 
     let queryObject = paragraph?.fullfilledOutput;
 
@@ -51,10 +53,10 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
 
     return `
           ## Step description
-          This step executes PPL query and get response data for further research. Analyze these results as part of your investigation and consider how they relate to the overall issue. 
+          This step executes ${queryTypeName} query and get response data for further research. Analyze these results as part of your investigation and consider how they relate to the overall issue. 
     
           ## Step result:
-          User has executed the following PPL query: '${query}' which returned the following results:
+          User has executed the following ${queryTypeName} query: '${query}' which returned the following results:
           
           \`\`\`json
           ${JSON.stringify(data)}

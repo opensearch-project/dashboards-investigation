@@ -160,8 +160,7 @@ export async function updateRunFetchParagraph<TOutput>(
       updatedInputParagraphs,
       params.paragraphId,
       context,
-      notebookInfo,
-      params.input.parameters
+      notebookInfo
     );
 
     const updateNotebook: {
@@ -214,8 +213,7 @@ export async function runParagraph<TOutput>(
   paragraphs: Array<ParagraphBackendType<unknown>>,
   paragraphId: string,
   context: RequestHandlerContext,
-  notebookinfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>,
-  parameters?: unknown
+  notebookinfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>
 ): Promise<Array<ParagraphBackendType<TOutput>>> {
   try {
     const updatedParagraphs: Array<ParagraphBackendType<TOutput>> = [];
@@ -285,7 +283,6 @@ export async function runParagraph<TOutput>(
               unknown,
               DeepResearchInputParameters
             >,
-            context: parameters?.contextPrompt,
             baseMemoryId:
               inputType === AI_RESPONSE_TYPE
                 ? undefined

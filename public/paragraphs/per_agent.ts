@@ -21,7 +21,6 @@ export const PERAgentParagraphItem: ParagraphRegistryItem<
   getContext: async (paragraph) => {
     const { dataSourceMDSId, input, output } = paragraph || {};
     const taskId = output?.[0].result.taskId;
-    const PERAgentInput = input?.parameters?.PERAgentInput;
 
     if (!taskId) {
       return '';
@@ -41,7 +40,7 @@ export const PERAgentParagraphItem: ParagraphRegistryItem<
       return '';
     }
     return `
-        Step: Generate a research report for objective: \`\`\`${PERAgentInput}\`\`\`
+        Step: Generate a research report for objective: \`\`\`${input.inputText}\`\`\`
         Step result:
         ${response}
       `;

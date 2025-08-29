@@ -238,6 +238,7 @@ describe('per_agent', () => {
   });
 
   describe('executePERAgentInParagraph', () => {
+    const context = 'Test context';
     beforeEach(() => {
       // Setup for successful execution
       // Create a paragraph with output containing agent_id
@@ -245,7 +246,7 @@ describe('per_agent', () => {
         ...mockParagraph,
         input: {
           ...mockParagraph.input,
-          parameters: { agentId: 'test-agent-id' },
+          parameters: { agentId: 'test-agent-id', PERAgentContext: context },
         },
         output: [
           {
@@ -267,14 +268,12 @@ describe('per_agent', () => {
 
     it('should execute PER agent with correct parameters', async () => {
       // Setup
-      const context = 'Test context';
       const baseMemoryId = 'test-base-memory-id';
 
       // Execute
       const result = await executePERAgentInParagraph({
         transport: mockTransport,
         paragraph: mockParagraph,
-        context,
         baseMemoryId,
       });
 
@@ -285,7 +284,6 @@ describe('per_agent', () => {
         async: true,
         parameters: expect.objectContaining({
           question: mockParagraph.input.inputText,
-          context,
           memory_id: baseMemoryId,
           executor_system_prompt: expect.stringContaining(EXECUTOR_SYSTEM_PROMPT),
         }),
@@ -334,7 +332,6 @@ describe('per_agent', () => {
         async: true,
         parameters: expect.objectContaining({
           question: mockParagraph.input.inputText,
-          context: undefined,
           memory_id: undefined,
         }),
       });
