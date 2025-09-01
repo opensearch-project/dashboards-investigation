@@ -28,7 +28,7 @@ describe('PPL Parse Service', () => {
       const result = parsePPLQuery(query);
 
       expect(result.pplWithAbsoluteTime).toBe(
-        "source=logs | where timestamp > '2023-01-01 12:00:00'"
+        "source=logs | where timestamp > timestamp('2023-01-01 12:00:00')"
       );
     });
 
@@ -58,7 +58,7 @@ describe('PPL Parse Service', () => {
       const result = parsePPLQuery(query);
 
       expect(result.pplWithAbsoluteTime).toBe(
-        "source=logs | where timestamp = '2023-01-01 12:00:00'"
+        "source=logs | where timestamp = timestamp('2023-01-01 12:00:00')"
       );
     });
 
@@ -67,7 +67,7 @@ describe('PPL Parse Service', () => {
       const result = parsePPLQuery(query);
 
       expect(result.pplWithAbsoluteTime).toBe(
-        "source=logs | where timestamp > '2023-01-01 12:00:00' AND date = '2023-01-01'"
+        "source=logs | where timestamp > timestamp('2023-01-01 12:00:00') AND date = '2023-01-01'"
       );
     });
 
@@ -76,7 +76,7 @@ describe('PPL Parse Service', () => {
       const result = parsePPLQuery(query);
 
       expect(result.pplWithAbsoluteTime).toBe(
-        "source=logs | where timestamp > '2023-01-01 12:00:00'"
+        "source=logs | where timestamp > timestamp('2023-01-01 12:00:00')"
       );
     });
 
@@ -85,12 +85,12 @@ describe('PPL Parse Service', () => {
       const result = parsePPLQuery(query);
 
       expect(result.pplWithAbsoluteTime).toBe(
-        "source=logs | eval current_time = '2023-01-01 12:00:00' | where created_date >= '2023-01-01'"
+        "source=logs | eval current_time = timestamp('2023-01-01 12:00:00') | where created_date >= '2023-01-01'"
       );
     });
 
     it('should preserve query structure when no replacements are needed', () => {
-      const query = 'source=logs | stats count() by status | sort count desc';
+      const query = 'source=logs | stats count() by status | sort -count';
       const result = parsePPLQuery(query);
 
       expect(result.pplWithAbsoluteTime).toBe(query);
@@ -101,7 +101,7 @@ describe('PPL Parse Service', () => {
       const result = parsePPLQuery(query);
 
       expect(result.pplWithAbsoluteTime).toBe(
-        "source=logs | where timestamp > DATE_ADD('2023-01-01 12:00:00', INTERVAL 1 DAY)"
+        "source=logs | where timestamp > DATE_ADD(timestamp('2023-01-01 12:00:00'), INTERVAL 1 DAY)"
       );
     });
 
@@ -110,7 +110,7 @@ describe('PPL Parse Service', () => {
       const result = parsePPLQuery(query);
 
       expect(result.pplWithAbsoluteTime).toBe(
-        "source=logs | where timestamp < DATE_SUB('2023-01-01 12:00:00', INTERVAL 1 HOUR)"
+        "source=logs | where timestamp < DATE_SUB(timestamp('2023-01-01 12:00:00'), INTERVAL 1 HOUR)"
       );
     });
 
@@ -129,7 +129,7 @@ describe('PPL Parse Service', () => {
       const result = parsePPLQuery(query);
 
       expect(result.pplWithAbsoluteTime).toBe(
-        "source=logs | where timestamp >= DATE_SUB('2023-01-01 12:00:00', INTERVAL 1 DAY) AND timestamp <= DATE_ADD('2023-01-01', INTERVAL 1 DAY)"
+        "source=logs | where timestamp >= DATE_SUB(timestamp('2023-01-01 12:00:00'), INTERVAL 1 DAY) AND timestamp <= DATE_ADD('2023-01-01', INTERVAL 1 DAY)"
       );
     });
 
@@ -139,7 +139,7 @@ describe('PPL Parse Service', () => {
       const result = parsePPLQuery(query);
 
       expect(result.pplWithAbsoluteTime).toBe(
-        "source=ss4o_logs-otel-2025.08* | where time >= DATE_SUB('2023-01-01 12:00:00', INTERVAL 2 DAY)  | head 10"
+        "source=ss4o_logs-otel-2025.08* | where time >= DATE_SUB(timestamp('2023-01-01 12:00:00'), INTERVAL 2 DAY)  | head 10"
       );
     });
 
@@ -149,7 +149,7 @@ describe('PPL Parse Service', () => {
       const result = parsePPLQuery(query);
 
       expect(result.pplWithAbsoluteTime).toBe(
-        "source=logs | eval `current_time()` = '2023-01-01 12:00:00' | where time >= DATE_SUB('2023-01-01', INTERVAL 2 DAY)  | head 10"
+        "source=logs | eval `current_time()` = timestamp('2023-01-01 12:00:00') | where time >= DATE_SUB('2023-01-01', INTERVAL 2 DAY)  | head 10"
       );
     });
 
@@ -159,6 +159,32 @@ describe('PPL Parse Service', () => {
       const result = parsePPLQuery(query);
 
       expect(result.fromClause?.text).toBe('source=logs');
+    });
+
+    it('should able to parse where conditions', () => {
+      const query =
+        'source = ss4o_logs-otel-2025* | where `time` > date_sub(now(), interval 5 hour) and severityNumber > 9';
+      const result = parsePPLQuery(query);
+
+      expect(result.compareExprs?.length).toBe(2);
+      expect(result.compareExprs?.[0].left).toBe('`time`');
+      expect(result.compareExprs?.[0].right).toBe('date_sub(now(), interval 5 hour)');
+      expect(result.compareExprs?.[0].op).toBe('>');
+    });
+
+    it('should able to parse where conditions with time range', () => {
+      const query =
+        'source = ss4o_logs-otel-2025* | where date_sub(now(), interval 5 hour) < time and time < now() and severityNumber > 9';
+      const result = parsePPLQuery(query);
+
+      expect(result.compareExprs?.length).toBe(3);
+      expect(result.compareExprs?.[0].right).toBe('time');
+      expect(result.compareExprs?.[0].left).toBe('date_sub(now(), interval 5 hour)');
+      expect(result.compareExprs?.[0].op).toBe('<');
+
+      expect(result.compareExprs?.[1].right).toBe('now()');
+      expect(result.compareExprs?.[1].left).toBe('time');
+      expect(result.compareExprs?.[1].op).toBe('<');
     });
   });
 });

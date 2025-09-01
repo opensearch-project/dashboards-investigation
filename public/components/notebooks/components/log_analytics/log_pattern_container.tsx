@@ -23,6 +23,8 @@ import { PatternDifference, sortPatternMapDifference } from './components/patter
 import { LogSequence } from './components/log_sequence';
 import { SummaryStatistics } from './components/summary_statistics';
 import { IndexInsightContent } from '../../../../../common/types/notebooks';
+import { parsePPLQuery } from '../../../../../common/utils';
+import { DataDistributionDataService } from '../data_distribution/data_distribution_data_service';
 
 const LOG_INSIGHTS_ANALYSIS = 'Log Insights Analysis';
 const PATTERN_DIFFERENCE_ANALYSIS = 'Pattern Difference Analysis';
@@ -75,24 +77,77 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
   const notebookState = useObservable(notebookReactContext.state.getValue$());
   const context = notebookState?.context.value;
 
-  // Memoize context values to prevent unnecessary re-renders
-  const memoizedContextValues = useMemo(() => {
-    if (!context) return null;
-    return {
-      dataSourceId: context.dataSourceId,
-      index: paragraph?.input.parameters?.index || context.index,
-      timeField: paragraph?.input.parameters?.timeField || context.timeField,
-      timeRange: context.timeRange
-        ? {
-            selectionFrom: context.timeRange.selectionFrom,
-            selectionTo: context.timeRange.selectionTo,
-            baselineFrom: context.timeRange.baselineFrom,
-            baselineTo: context.timeRange.baselineTo,
+  const dataService = useMemo(() => new DataDistributionDataService(), []);
+  const [memoizedContextValues, setMemoizedContextValues] = useState<any>(null);
+
+  useEffect(() => {
+    const processContextValues = async () => {
+      if (!context) {
+        setMemoizedContextValues(null);
+        return;
+      }
+
+      const timeField = paragraph?.input.parameters?.timeField || context.timeField;
+      const index = paragraph?.input.parameters?.index || context.index;
+
+      const pplQuery = context.variables?.pplQuery;
+      const timeRange = [context.timeRange?.selectionFrom, context.timeRange?.selectionTo];
+      // merge time range from PPL query with time picker value from context
+      if (pplQuery && context.timeRange) {
+        const pplWithAbsoluteTime = parsePPLQuery(pplQuery).pplWithAbsoluteTime;
+        const conditions = parsePPLQuery(pplWithAbsoluteTime).compareExprs;
+        // time field with expressions like date_sub(time, interval 1 hour) are not supported
+        const isTimeFieldCondition = (filed: string) =>
+          filed === timeField || filed === `\`${timeField}\``;
+        const timeConditions =
+          conditions?.filter(
+            (con) => isTimeFieldCondition(con.left) || isTimeFieldCondition(con.right)
+          ) || [];
+        for (const con of timeConditions) {
+          const timeFiledOnLeft = isTimeFieldCondition(con.left);
+          const timeValue = timeFiledOnLeft ? con.right : con.left;
+          // the time value could be expression like `date_sub(now(), interval 1 hour)`
+          const pplToEval = `source=${index} | head 1 | eval timeValue = ${timeValue} | fields timeValue`;
+          dataService.setConfig(context.dataSourceId, index || '', timeField || '');
+          const data = await dataService.fetchPPlData(pplToEval);
+          if (data && data.length > 0) {
+            const time = moment.utc(data[0].timeValue).valueOf();
+            // merge
+            if (timeFiledOnLeft) {
+              if (con.op === '<' || con.op === '<=') {
+                timeRange[1] = timeRange[1] !== undefined ? Math.min(time, timeRange[1]) : time;
+              } else {
+                timeRange[0] = timeRange[0] !== undefined ? Math.max(time, timeRange[0]) : time;
+              }
+            } else {
+              if (con.op === '>' || con.op === '>=') {
+                timeRange[1] = timeRange[1] !== undefined ? Math.min(time, timeRange[1]) : time;
+              } else {
+                timeRange[0] = timeRange[0] !== undefined ? Math.max(time, timeRange[0]) : time;
+              }
+            }
           }
-        : null,
-      indexInsight: paragraph?.input.parameters?.insight || context.indexInsight,
+        }
+      }
+
+      setMemoizedContextValues({
+        dataSourceId: context.dataSourceId,
+        index,
+        timeField,
+        timeRange: context.timeRange
+          ? {
+              selectionFrom: timeRange[0],
+              selectionTo: timeRange[1],
+              baselineFrom: context.timeRange.baselineFrom,
+              baselineTo: context.timeRange.baselineTo,
+            }
+          : null,
+        indexInsight: paragraph?.input.parameters?.insight || context.indexInsight,
+      });
     };
-  }, [context, paragraph?.input.parameters]);
+
+    processContextValues();
+  }, [context, paragraph?.input.parameters, dataService]);
 
   // Memoize para.out to prevent array reference changes
   const memoizedParaOut = useMemo(() => {
@@ -117,6 +172,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
       baselineTo,
     } = memoizedContextValues.timeRange;
 
+    const dateFormat = 'YYYY-MM-DD HH:mm:ss.SSS';
     const apiRequestsParam: LogPatternAnalysisParams = {
       selectionStartTime: moment(selectionFrom).toISOString(),
       selectionEndTime: moment(selectionTo).toISOString(),
@@ -139,20 +195,20 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
       apiRequests.push({
         name: PATTERN_DIFFERENCE_ANALYSIS,
         params: {
-          baselineStartTime: moment(baselineFrom).toISOString(),
-          baselineEndTime: moment(baselineTo).toISOString(),
+          baselineStartTime: moment(baselineFrom).utc().format(dateFormat),
+          baselineEndTime: moment(baselineTo).utc().format(dateFormat),
           ...apiRequestsParam,
         },
         resultKey: 'patternMapDifference' as keyof LogPatternAnalysisResult,
       });
     }
 
-    if (memoizedContextValues?.indexInsight?.trace_id_field) {
+    if (baselineFrom && baselineTo && memoizedContextValues?.indexInsight?.trace_id_field) {
       apiRequests.push({
         name: LOG_SEQUENCE_ANALYSIS,
         params: {
-          baselineStartTime: moment(baselineFrom).toISOString(),
-          baselineEndTime: moment(baselineTo).toISOString(),
+          baselineStartTime: moment(baselineFrom).utc().format(dateFormat),
+          baselineEndTime: moment(baselineTo).utc().format(dateFormat),
           traceIdField: memoizedContextValues?.indexInsight?.trace_id_field,
           ...apiRequestsParam,
         },
