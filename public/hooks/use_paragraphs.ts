@@ -252,7 +252,7 @@ export const useParagraphs = () => {
           try {
             contextPrompt = await generateContextPromptFromParagraphs({
               paragraphService,
-              paragraphs,
+              paragraphs: paragraphs.slice(0, index),
               notebookInfo: topContextState.value,
               ignoreInputTypes:
                 para.input.inputType === AI_RESPONSE_TYPE ? [] : [DEEP_RESEARCH_PARAGRAPH_TYPE],

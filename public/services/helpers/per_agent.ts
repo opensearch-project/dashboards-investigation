@@ -29,8 +29,16 @@ export const generateContextPromptFromParagraphs = async ({
 
         let inputType = paragraph.input.inputType;
         if (inputType === 'CODE') {
-          const language = paragraph.input.inputText.substring(0, 3);
-          inputType = language === '%ppl' ? 'ppl' : 'sql';
+          switch (paragraph.input.inputText.substring(0, 4)) {
+            case '%sql':
+              inputType = 'sql';
+              break;
+            case '%ppl':
+              inputType = 'ppl';
+              break;
+            default:
+              break;
+          }
         }
         const paragraphRegistry = paragraphService.getParagraphRegistry(inputType);
 
