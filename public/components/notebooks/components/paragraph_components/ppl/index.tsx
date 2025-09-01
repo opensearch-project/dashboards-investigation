@@ -9,6 +9,7 @@ import {
   EuiCompressedFormRow,
   EuiFlexGroup,
   EuiIcon,
+  EuiIconTip,
   EuiLink,
   EuiLoadingContent,
   EuiSpacer,
@@ -36,6 +37,7 @@ import { parsePPLQuery } from '../../../../../../common/utils';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
 import { formatTimePickerDate, TimeRange } from '../../../../../../../../src/plugins/data/common';
 import { getPPLQueryWithTimeRange, PPL_TIME_FILTER_REGEX } from '../../../../../utils/time';
+import { addHeadFilter } from '../../../../../../public/utils/query';
 
 export interface QueryObject {
   schema?: any[];
@@ -145,7 +147,7 @@ export const PPLParagraph = ({
             query:
               queryType === '_sql'
                 ? currentSearchQuery
-                : addTimeRangeFilter(currentSearchQuery, queryParams),
+                : addHeadFilter(addTimeRangeFilter(currentSearchQuery, queryParams)),
           }),
         },
       })
@@ -318,7 +320,10 @@ export const PPLParagraph = ({
               <EuiText className="wrapAll" data-test-subj="queryOutputText">
                 <b>{inputQueryWithTimeFilter}</b>
               </EuiText>
-              <EuiSpacer />
+              <EuiFlexGroup justifyContent="flexEnd" gutterSize="none">
+                <EuiIconTip content="A maximum of 100 random results are displayed" />
+              </EuiFlexGroup>
+              <EuiSpacer size="xs" />
               <QueryDataGridMemo
                 rowCount={queryObject?.datarows?.length || 0}
                 queryColumns={columns}

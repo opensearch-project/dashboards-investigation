@@ -11,6 +11,7 @@ import {
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
 import { getClient } from '../services';
+import { addHeadFilter } from '../../public/utils/query';
 
 export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObject> = {
   ParagraphComponent: PPLParagraph,
@@ -35,7 +36,7 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
           path: `/_plugins/${queryType}`,
           method: 'POST',
           body: JSON.stringify({
-            query,
+            query: addHeadFilter(query),
           }),
         },
       });

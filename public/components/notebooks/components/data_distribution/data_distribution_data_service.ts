@@ -18,6 +18,7 @@ import {
 import { getClient, getData, getSearch } from '../../../../services';
 import { callOpenSearchCluster } from '../../../../plugin_helpers/plugin_proxy_call';
 import { QueryObject } from '../paragraph_components/ppl';
+import { addHeadFilter } from '../../../../../public/utils/query';
 
 export class DataDistributionDataService {
   private readonly search: ISearchStart;
@@ -115,7 +116,7 @@ export class DataDistributionDataService {
         path: `/_plugins/_ppl`,
         method: 'POST',
         body: JSON.stringify({
-          query: searchQuery,
+          query: addHeadFilter(searchQuery),
         }),
       },
     });
