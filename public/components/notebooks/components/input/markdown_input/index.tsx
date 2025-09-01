@@ -30,6 +30,10 @@ export const MarkDownInput: React.FC = () => {
     }
   }, [inputValue, textareaRef]);
 
+  useEffect(() => {
+    handleInputChange('');
+  }, [handleInputChange]);
+
   const onParse = useCallback((err, { messages: msgs }) => {
     setMessages(err ? [err] : msgs);
   }, []);
@@ -49,7 +53,7 @@ export const MarkDownInput: React.FC = () => {
         <EuiButtonEmpty color="primary" onClick={handleCancel} size="s">
           Cancel
         </EuiButtonEmpty>
-        <EuiButton color="primary" fill onClick={handleSubmit} size="s">
+        <EuiButton color="primary" fill onClick={() => handleSubmit()} size="s">
           Save
         </EuiButton>
       </EuiFlexGroup>

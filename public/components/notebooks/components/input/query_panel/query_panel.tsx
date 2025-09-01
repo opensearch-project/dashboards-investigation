@@ -73,7 +73,9 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
   const [isQueryPanelMenuOpen, setIsQueryPanelMenuOpen] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
 
-  const queryState = (inputValue || QUERY_PANEL_INITIAL_STATE) as QueryState;
+  const queryState = (inputValue && typeof inputValue !== 'string'
+    ? inputValue
+    : QUERY_PANEL_INITIAL_STATE) as QueryState;
   const { queryLanguage, isPromptEditorMode, selectedIndex, timeRange, noDatePicker } = queryState;
 
   useEffect(() => {
@@ -87,7 +89,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
         !isFetching &&
         paragraphInput &&
         (paragraphInput.inputType === 'PPL' || paragraphInput.inputType === 'SQL') &&
-        isEmpty(inputValue)
+        (isEmpty(inputValue) || typeof inputValue === 'string')
       ) {
         // Set up input value from paragraph input
         try {

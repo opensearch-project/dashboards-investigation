@@ -110,7 +110,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const editorTextRef = useRef(input?.inputText ? input?.inputText : '');
 
-  const handleInputChange = (value: Partial<InputValueType<typeof currInputType>>) => {
+  const handleInputChange = useCallback((value: Partial<InputValueType<typeof currInputType>>) => {
     if (typeof value === 'object') {
       // For query types, support object updates
       setInputValue((prev) => ({ ...(prev as QueryState), ...value }));
@@ -121,10 +121,10 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     // Only check for % trigger on string values
     if (typeof value === 'string' && value.endsWith('%')) {
       setIsParagraphSelectionOpen(true);
-    } else if (isParagraphSelectionOpen) {
+    } else {
       setIsParagraphSelectionOpen(false);
     }
-  };
+  }, []);
 
   const context = useContext(NotebookReactContext);
   const { dataSourceId, initialGoal } = useObservable(
