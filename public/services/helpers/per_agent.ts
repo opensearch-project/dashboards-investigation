@@ -92,5 +92,6 @@ export const getNotebookTopLevelContextPrompt = (notebookInfo: NotebookContext) 
     }
     ${filters ? `**Applied Filters**: ${JSON.stringify(filters, null, 2)}` : ''}
     ${variables ? `**Variables**: ${JSON.stringify(variables, null, 2)}` : ''}
+    ${variables?.pplQuery ? `**PPL Query user executed**: ${variables.pplQuery}` : ''}
   `;
 };

@@ -141,9 +141,7 @@ export const executePERAgentInParagraph = async ({
       Remember: Respond only in JSON format following the required schema.`,
     context,
     system_prompt: customizedPrompts?.systemPrompt ?? undefined,
-    executor_system_prompt: `${
-      customizedPrompts?.executorSystemPrompt ?? EXECUTOR_SYSTEM_PROMPT
-    } \n You have currently executed the following steps: \n ${context}`,
+    executor_system_prompt: `${customizedPrompts?.executorSystemPrompt ?? EXECUTOR_SYSTEM_PROMPT}`,
     memory_id: baseMemoryId,
   };
   const { body } = await getMLService().executeAgent({

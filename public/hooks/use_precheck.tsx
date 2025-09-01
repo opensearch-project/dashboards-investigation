@@ -176,7 +176,7 @@ export const usePrecheck = () => {
             dataSourceMDSId: res.context.dataSourceId || '',
           });
           if (createdPPLParagraph) {
-            runParagraph({
+            await runParagraph({
               id: createdPPLParagraph.value.id,
             });
 
