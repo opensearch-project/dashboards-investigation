@@ -43,6 +43,15 @@ export interface QueryObject {
   error?: { body: { reason: string } };
 }
 
+const HEAD_REGEX = /\|\s*head\s+\d+/i;
+
+const appendHeadIfNeeded = (query: string) => {
+  if (!HEAD_REGEX.test(query)) {
+    return `${query} | head 500`;
+  }
+  return query;
+};
+
 const createQueryColumns = (jsonColumns: QueryObject['schema']) => {
   if (!jsonColumns) {
     return [];
@@ -145,7 +154,7 @@ export const PPLParagraph = ({
             query:
               queryType === '_sql'
                 ? currentSearchQuery
-                : addTimeRangeFilter(currentSearchQuery, queryParams),
+                : appendHeadIfNeeded(addTimeRangeFilter(currentSearchQuery, queryParams)),
           }),
         },
       })
