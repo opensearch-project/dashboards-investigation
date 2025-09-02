@@ -11,7 +11,7 @@ import {
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
 import { getClient } from '../services';
-import { addHeadFilter } from '../../public/utils/query';
+import { executePPLQueryWithHeadFilter } from '../../public/utils/query';
 
 export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObject> = {
   ParagraphComponent: PPLParagraph,
@@ -29,17 +29,23 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
     let queryObject = paragraph?.fullfilledOutput;
 
     if (!queryObject || queryObject.error) {
-      queryObject = await callOpenSearchCluster({
-        http: getClient(),
-        dataSourceId: dataSourceMDSId,
-        request: {
-          path: `/_plugins/${queryType}`,
-          method: 'POST',
-          body: JSON.stringify({
-            query: addHeadFilter(query),
-          }),
-        },
-      });
+      queryObject = await (isSqlQuery
+        ? callOpenSearchCluster({
+            http: getClient(),
+            dataSourceId: dataSourceMDSId,
+            request: {
+              path: `/_plugins/${queryType}`,
+              method: 'POST',
+              body: JSON.stringify({
+                query,
+              }),
+            },
+          })
+        : executePPLQueryWithHeadFilter({
+            http: getClient(),
+            dataSourceId: dataSourceMDSId,
+            query,
+          }));
 
       if (!queryObject || queryObject.error) {
         return '';

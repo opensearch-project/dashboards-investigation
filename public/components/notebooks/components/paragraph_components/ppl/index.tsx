@@ -37,7 +37,7 @@ import { parsePPLQuery } from '../../../../../../common/utils';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
 import { formatTimePickerDate, TimeRange } from '../../../../../../../../src/plugins/data/common';
 import { getPPLQueryWithTimeRange, PPL_TIME_FILTER_REGEX } from '../../../../../utils/time';
-import { addHeadFilter } from '../../../../../../public/utils/query';
+import { executePPLQueryWithHeadFilter } from '../../../../../../public/utils/query';
 
 export interface QueryObject {
   schema?: any[];
@@ -137,21 +137,25 @@ export const PPLParagraph = ({
         isRunning: true,
       });
 
-      await callOpenSearchCluster({
-        http,
-        dataSourceId: paragraph.dataSourceMDSId,
-        request: {
-          path: `/_plugins/${queryType}`,
-          method: 'POST',
-          body: JSON.stringify({
-            query:
-              queryType === '_sql'
-                ? currentSearchQuery
-                : addHeadFilter(addTimeRangeFilter(currentSearchQuery, queryParams)),
-          }),
-        },
-      })
-        .then((response) => {
+      await (queryType === '_sql'
+        ? callOpenSearchCluster({
+            http,
+            dataSourceId: paragraph.dataSourceMDSId,
+            request: {
+              path: '/_plugins/_sql',
+              method: 'POST',
+              body: JSON.stringify({
+                query: currentSearchQuery,
+              }),
+            },
+          })
+        : executePPLQueryWithHeadFilter({
+            http,
+            dataSourceId: paragraph.dataSourceMDSId,
+            query: addTimeRangeFilter(currentSearchQuery, queryParams),
+          })
+      )
+        .then((response: object) => {
           paragraphState.updateFullfilledOutput(response);
           return contextService.setParagraphContext({
             notebookId,
@@ -159,7 +163,7 @@ export const PPLParagraph = ({
             context: response,
           });
         })
-        .catch((err) => {
+        .catch((err: Error) => {
           notifications.toasts.addDanger('Error getting query output');
           paragraphState.updateFullfilledOutput({
             error: {
