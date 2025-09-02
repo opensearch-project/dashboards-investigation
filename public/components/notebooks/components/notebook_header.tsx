@@ -22,6 +22,7 @@ import { useHistory } from 'react-router-dom';
 import moment from 'moment';
 import { useObservable } from 'react-use';
 import { i18n } from '@osd/i18n';
+import { isEmpty } from 'lodash';
 
 import type { NoteBookServices } from 'public/types';
 
@@ -42,6 +43,9 @@ import {
 import { ToggleSystemPromptSettingModal } from './helpers/custom_modals/toggle_system_prompt_setting_modal';
 import { TopNavMenuIconData } from '../../../../../../src/plugins/navigation/public';
 import { SystemPromptSettingModal } from './helpers/custom_modals/system_prompt_setting_modal';
+import { dataSourceFilterFn } from '../../../../common/utils/shared';
+import { DataSourceOption } from '../../../../../../src/plugins/data_source_management/public';
+import { useNotebook } from '../../../../public/hooks/use_notebook';
 
 export const NotebookHeader = ({
   loadNotebook,
@@ -62,6 +66,9 @@ export const NotebookHeader = ({
         ui: { TopNavMenu, HeaderControl },
       },
       appMountService,
+      savedObjects,
+      uiSettings,
+      application,
     },
   } = useOpenSearchDashboards<NoteBookServices>();
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
@@ -73,8 +80,11 @@ export const NotebookHeader = ({
     dateCreated,
     dateModified,
     context,
+    isLoading,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const contextValue = useObservable(context.getValue$());
+  const { updateNotebookContext } = useNotebook();
+  const { dataSourceId } = contextValue || {};
 
   const [isReportingPluginInstalled, setIsReportingPluginInstalled] = useState(false);
   const [isReportingActionsPopoverOpen, setIsReportingActionsPopoverOpen] = useState(false);
@@ -88,37 +98,40 @@ export const NotebookHeader = ({
     isSavedObjectNotebook,
   ]);
 
-  const toggleReportingLoadingModal = (show: boolean) => {
+  const toggleReportingLoadingModal = useCallback((show: boolean) => {
     setIsReportingLoadingModalOpen(show);
-  };
+  }, []);
   // Renames an existing notebook
-  const renameNotebook = async (editedNoteName: string, editedNoteID: string): Promise<any> => {
-    if (editedNoteName.length >= 50 || editedNoteName.length === 0) {
-      notifications.toasts.addDanger('Invalid notebook name');
-      return;
-    }
-    const renameNoteObject = {
-      name: editedNoteName,
-      noteId: editedNoteID,
-    };
+  const renameNotebook = useCallback(
+    async (editedNoteName: string, editedNoteID: string): Promise<any> => {
+      if (editedNoteName.length >= 50 || editedNoteName.length === 0) {
+        notifications.toasts.addDanger('Invalid notebook name');
+        return;
+      }
+      const renameNoteObject = {
+        name: editedNoteName,
+        noteId: editedNoteID,
+      };
 
-    return http
-      .put(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook/rename`, {
-        body: JSON.stringify(renameNoteObject),
-      })
-      .then((res) => {
-        notifications.toasts.addSuccess(`Notebook successfully renamed into "${editedNoteName}"`);
-        return res;
-      })
-      .catch((err) => {
-        notifications.toasts.addDanger(
-          'Error renaming notebook, please make sure you have the correct permission.'
-        );
-        console.error(err.body.message);
-      });
-  };
+      return http
+        .put(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook/rename`, {
+          body: JSON.stringify(renameNoteObject),
+        })
+        .then((res) => {
+          notifications.toasts.addSuccess(`Notebook successfully renamed into "${editedNoteName}"`);
+          return res;
+        })
+        .catch((err) => {
+          notifications.toasts.addDanger(
+            'Error renaming notebook, please make sure you have the correct permission.'
+          );
+          console.error(err.body.message);
+        });
+    },
+    [http, notifications.toasts]
+  );
 
-  const showRenameModal = () => {
+  const showRenameModal = useCallback(() => {
     setModalLayout(
       getCustomModal(
         (newName: string) => {
@@ -140,35 +153,38 @@ export const NotebookHeader = ({
       )
     );
     setIsModalVisible(true);
-  };
+  }, [renameNotebook, openedNoteId, loadNotebook, path]);
   // Clones an existing notebook, return new notebook's id
-  const cloneNotebook = async (clonedNoteName: string, clonedNoteID: string): Promise<string> => {
-    if (clonedNoteName.length >= 50 || clonedNoteName.length === 0) {
-      notifications.toasts.addDanger('Invalid notebook name');
-      return Promise.reject();
-    }
-    const cloneNoteObject = {
-      name: clonedNoteName,
-      noteId: clonedNoteID,
-    };
+  const cloneNotebook = useCallback(
+    async (clonedNoteName: string, clonedNoteID: string): Promise<string> => {
+      if (clonedNoteName.length >= 50 || clonedNoteName.length === 0) {
+        notifications.toasts.addDanger('Invalid notebook name');
+        return Promise.reject();
+      }
+      const cloneNoteObject = {
+        name: clonedNoteName,
+        noteId: clonedNoteID,
+      };
 
-    return http
-      .post(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook/clone`, {
-        body: JSON.stringify(cloneNoteObject),
-      })
-      .then((res) => {
-        notifications.toasts.addSuccess(`Notebook "${clonedNoteName}" successfully created!`);
-        return res.id;
-      })
-      .catch((err) => {
-        notifications.toasts.addDanger(
-          'Error cloning notebook, please make sure you have the correct permission.'
-        );
-        console.error(err.body.message);
-      });
-  };
+      return http
+        .post(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook/clone`, {
+          body: JSON.stringify(cloneNoteObject),
+        })
+        .then((res) => {
+          notifications.toasts.addSuccess(`Notebook "${clonedNoteName}" successfully created!`);
+          return res.id;
+        })
+        .catch((err) => {
+          notifications.toasts.addDanger(
+            'Error cloning notebook, please make sure you have the correct permission.'
+          );
+          console.error(err.body.message);
+        });
+    },
+    [http, notifications.toasts]
+  );
 
-  const showCloneModal = () => {
+  const showCloneModal = useCallback(() => {
     setModalLayout(
       getCustomModal(
         (newName: string) => {
@@ -190,27 +206,30 @@ export const NotebookHeader = ({
       )
     );
     setIsModalVisible(true);
-  };
+  }, [cloneNotebook, openedNoteId, loadNotebook, path]);
 
   // Delete a single notebook
-  const deleteSingleNotebook = async (notebookId: string, toastMessage?: string) => {
-    const route = isSavedObjectNotebook
-      ? `${NOTEBOOKS_API_PREFIX}/note/savedNotebook/${notebookId}`
-      : `${NOTEBOOKS_API_PREFIX}/note/${notebookId}`;
+  const deleteSingleNotebook = useCallback(
+    async (notebookId: string, toastMessage?: string) => {
+      const route = isSavedObjectNotebook
+        ? `${NOTEBOOKS_API_PREFIX}/note/savedNotebook/${notebookId}`
+        : `${NOTEBOOKS_API_PREFIX}/note/${notebookId}`;
 
-    try {
-      await http.delete(route);
-      const message = toastMessage || 'Notebook successfully deleted!';
-      notifications.toasts.addSuccess(message);
-    } catch (err) {
-      notifications.toasts.addDanger(
-        'Error deleting notebook, please make sure you have the correct permission.'
-      );
-      console.error(err.body.message);
-    }
-  };
+      try {
+        await http.delete(route);
+        const message = toastMessage || 'Notebook successfully deleted!';
+        notifications.toasts.addSuccess(message);
+      } catch (err) {
+        notifications.toasts.addDanger(
+          'Error deleting notebook, please make sure you have the correct permission.'
+        );
+        console.error(err.body.message);
+      }
+    },
+    [http, notifications.toasts, isSavedObjectNotebook]
+  );
 
-  const showDeleteNotebookModal = () => {
+  const showDeleteNotebookModal = useCallback(() => {
     setModalLayout(
       <DeleteNotebookModal
         onConfirm={async () => {
@@ -227,179 +246,202 @@ export const NotebookHeader = ({
       />
     );
     setIsModalVisible(true);
-  };
-  const reportingActionPanels: EuiContextMenuPanelDescriptor[] = [
-    {
-      id: 0,
-      title: 'Reporting',
-      items: [
-        {
-          name: 'Download PDF',
-          icon: <EuiIcon type="download" data-test-subj="download-notebook-pdf" />,
-          onClick: () => {
-            setIsReportingActionsPopoverOpen(false);
-            generateInContextReport('pdf', { http, notifications }, toggleReportingLoadingModal);
-          },
-        },
-        {
-          name: 'Download PNG',
-          icon: <EuiIcon type="download" />,
-          onClick: () => {
-            setIsReportingActionsPopoverOpen(false);
-            generateInContextReport('png', { http, notifications }, toggleReportingLoadingModal);
-          },
-        },
-        {
-          name: 'Create report definition',
-          icon: <EuiIcon type="calendar" />,
-          onClick: () => {
-            setIsReportingActionsPopoverOpen(false);
-            contextMenuCreateReportDefinition(window.location.href);
-          },
-        },
-        {
-          name: 'View reports',
-          icon: <EuiIcon type="document" />,
-          onClick: () => {
-            setIsReportingActionsPopoverOpen(false);
-            contextMenuViewReports();
-          },
-        },
-      ],
-    },
-  ];
+  }, [path, deleteSingleNotebook, openedNoteId, history]);
 
-  const showReportingContextMenu =
-    isReportingPluginInstalled && !dataSourceMDSEnabled ? (
-      <div>
-        <EuiPopover
-          panelPaddingSize="none"
-          button={
-            <EuiSmallButton
-              data-test-subj="reporting-actions-button"
-              id="reportingActionsButton"
-              iconType="arrowDown"
-              iconSide="right"
-              onClick={() => setIsReportingActionsPopoverOpen(!isReportingActionsPopoverOpen)}
-            >
-              Reporting
-            </EuiSmallButton>
-          }
-          isOpen={isReportingActionsPopoverOpen}
-          closePopover={() => setIsReportingActionsPopoverOpen(false)}
-        >
-          <EuiContextMenu initialPanelId={0} panels={reportingActionPanels} size="s" />
-        </EuiPopover>
-      </div>
-    ) : null;
-
-  const reportingTopButton = !isSavedObjectNotebook ? (
-    <EuiFlexItem grow={false}>
-      <EuiSmallButton
-        fill
-        data-test-subj="upgrade-notebook-callout"
-        onClick={() => showUpgradeModal()}
-      >
-        Upgrade Notebook
-      </EuiSmallButton>
-    </EuiFlexItem>
-  ) : null;
-
-  const noteActionIcons = (
-    <EuiFlexGroup gutterSize="s">
-      {isSavedObjectNotebook ? (
-        <>
-          <EuiFlexItem grow={false}>
-            <ToggleSystemPromptSettingModal />
-          </EuiFlexItem>
-          <EuiFlexItem grow={false}>
-            <EuiToolTip
-              content={
-                <FormattedMessage id="notebook.deleteButton.tooltip" defaultMessage="Delete" />
-              }
-            >
-              <EuiButtonIcon
-                color="danger"
-                display="base"
-                iconType="trash"
-                size="s"
-                onClick={showDeleteNotebookModal}
-                data-test-subj="notebook-delete-icon"
-                aria-label={i18n.translate('notebook.deleteButton.tooltip', {
-                  defaultMessage: 'Delete',
-                })}
-              />
-            </EuiToolTip>
-          </EuiFlexItem>
-          <EuiFlexItem grow={false}>
-            <EuiToolTip
-              content={
-                <FormattedMessage id="notebook.editButton.tooltip" defaultMessage="Edit name" />
-              }
-            >
-              <EuiButtonIcon
-                display="base"
-                iconType="pencil"
-                size="s"
-                onClick={showRenameModal}
-                data-test-subj="notebook-edit-icon"
-                aria-label={i18n.translate('notebook.editButton.tooltip', {
-                  defaultMessage: 'Edit name',
-                })}
-              />
-            </EuiToolTip>
-          </EuiFlexItem>
-          <EuiFlexItem grow={false}>
-            <EuiToolTip
-              content={
-                <FormattedMessage
-                  id="notebook.duplicateButton.tooltip"
-                  defaultMessage="Duplicate"
-                />
-              }
-            >
-              <EuiButtonIcon
-                iconType="copy"
-                display="base"
-                size="s"
-                onClick={showCloneModal}
-                data-test-subj="notebook-duplicate-icon"
-                aria-label={i18n.translate('notebook.duplicateButton.tooltip', {
-                  defaultMessage: 'Duplicate',
-                })}
-              />
-            </EuiToolTip>
-          </EuiFlexItem>
-        </>
-      ) : (
-        <>
-          <EuiFlexItem grow={false}>
-            <EuiToolTip
-              content={
-                <FormattedMessage id="notebook.deleteButton.tooltip" defaultMessage="Delete" />
-              }
-            >
-              <EuiButtonIcon
-                color="danger"
-                display="base"
-                iconType="trash"
-                size="s"
-                onClick={showDeleteNotebookModal}
-                data-test-subj="notebook-delete-icon"
-                aria-label={i18n.translate('notebook.deleteButton.tooltip', {
-                  defaultMessage: 'Delete',
-                })}
-              />
-            </EuiToolTip>
-          </EuiFlexItem>
-        </>
-      )}
-    </EuiFlexGroup>
+  const reportingActionPanels: EuiContextMenuPanelDescriptor[] = useMemo(
+    () => [
+      {
+        id: 0,
+        title: 'Reporting',
+        items: [
+          {
+            name: 'Download PDF',
+            icon: <EuiIcon type="download" data-test-subj="download-notebook-pdf" />,
+            onClick: () => {
+              setIsReportingActionsPopoverOpen(false);
+              generateInContextReport('pdf', { http, notifications }, toggleReportingLoadingModal);
+            },
+          },
+          {
+            name: 'Download PNG',
+            icon: <EuiIcon type="download" />,
+            onClick: () => {
+              setIsReportingActionsPopoverOpen(false);
+              generateInContextReport('png', { http, notifications }, toggleReportingLoadingModal);
+            },
+          },
+          {
+            name: 'Create report definition',
+            icon: <EuiIcon type="calendar" />,
+            onClick: () => {
+              setIsReportingActionsPopoverOpen(false);
+              contextMenuCreateReportDefinition(window.location.href);
+            },
+          },
+          {
+            name: 'View reports',
+            icon: <EuiIcon type="document" />,
+            onClick: () => {
+              setIsReportingActionsPopoverOpen(false);
+              contextMenuViewReports();
+            },
+          },
+        ],
+      },
+    ],
+    [http, notifications, toggleReportingLoadingModal]
   );
 
-  const showLoadingModal = isReportingLoadingModalOpen ? (
-    <GenerateReportLoadingModal setShowLoading={toggleReportingLoadingModal} />
-  ) : null;
+  const showReportingContextMenu = useMemo(
+    () =>
+      isReportingPluginInstalled && !dataSourceMDSEnabled ? (
+        <div>
+          <EuiPopover
+            panelPaddingSize="none"
+            button={
+              <EuiSmallButton
+                data-test-subj="reporting-actions-button"
+                id="reportingActionsButton"
+                iconType="arrowDown"
+                iconSide="right"
+                onClick={() => setIsReportingActionsPopoverOpen(!isReportingActionsPopoverOpen)}
+              >
+                Reporting
+              </EuiSmallButton>
+            }
+            isOpen={isReportingActionsPopoverOpen}
+            closePopover={() => setIsReportingActionsPopoverOpen(false)}
+          >
+            <EuiContextMenu initialPanelId={0} panels={reportingActionPanels} size="s" />
+          </EuiPopover>
+        </div>
+      ) : null,
+    [
+      isReportingPluginInstalled,
+      dataSourceMDSEnabled,
+      isReportingActionsPopoverOpen,
+      reportingActionPanels,
+    ]
+  );
+
+  const reportingTopButton = useMemo(
+    () =>
+      !isSavedObjectNotebook ? (
+        <EuiFlexItem grow={false}>
+          <EuiSmallButton
+            fill
+            data-test-subj="upgrade-notebook-callout"
+            onClick={() => showUpgradeModal()}
+          >
+            Upgrade Notebook
+          </EuiSmallButton>
+        </EuiFlexItem>
+      ) : null,
+    [isSavedObjectNotebook, showUpgradeModal]
+  );
+
+  const noteActionIcons = useMemo(
+    () => (
+      <EuiFlexGroup gutterSize="s">
+        {isSavedObjectNotebook ? (
+          <>
+            <EuiFlexItem grow={false}>
+              <ToggleSystemPromptSettingModal />
+            </EuiFlexItem>
+            <EuiFlexItem grow={false}>
+              <EuiToolTip
+                content={
+                  <FormattedMessage id="notebook.deleteButton.tooltip" defaultMessage="Delete" />
+                }
+              >
+                <EuiButtonIcon
+                  color="danger"
+                  display="base"
+                  iconType="trash"
+                  size="s"
+                  onClick={showDeleteNotebookModal}
+                  data-test-subj="notebook-delete-icon"
+                  aria-label={i18n.translate('notebook.deleteButton.tooltip', {
+                    defaultMessage: 'Delete',
+                  })}
+                />
+              </EuiToolTip>
+            </EuiFlexItem>
+            <EuiFlexItem grow={false}>
+              <EuiToolTip
+                content={
+                  <FormattedMessage id="notebook.editButton.tooltip" defaultMessage="Edit name" />
+                }
+              >
+                <EuiButtonIcon
+                  display="base"
+                  iconType="pencil"
+                  size="s"
+                  onClick={showRenameModal}
+                  data-test-subj="notebook-edit-icon"
+                  aria-label={i18n.translate('notebook.editButton.tooltip', {
+                    defaultMessage: 'Edit name',
+                  })}
+                />
+              </EuiToolTip>
+            </EuiFlexItem>
+            <EuiFlexItem grow={false}>
+              <EuiToolTip
+                content={
+                  <FormattedMessage
+                    id="notebook.duplicateButton.tooltip"
+                    defaultMessage="Duplicate"
+                  />
+                }
+              >
+                <EuiButtonIcon
+                  iconType="copy"
+                  display="base"
+                  size="s"
+                  onClick={showCloneModal}
+                  data-test-subj="notebook-duplicate-icon"
+                  aria-label={i18n.translate('notebook.duplicateButton.tooltip', {
+                    defaultMessage: 'Duplicate',
+                  })}
+                />
+              </EuiToolTip>
+            </EuiFlexItem>
+          </>
+        ) : (
+          <>
+            <EuiFlexItem grow={false}>
+              <EuiToolTip
+                content={
+                  <FormattedMessage id="notebook.deleteButton.tooltip" defaultMessage="Delete" />
+                }
+              >
+                <EuiButtonIcon
+                  color="danger"
+                  display="base"
+                  iconType="trash"
+                  size="s"
+                  onClick={showDeleteNotebookModal}
+                  data-test-subj="notebook-delete-icon"
+                  aria-label={i18n.translate('notebook.deleteButton.tooltip', {
+                    defaultMessage: 'Delete',
+                  })}
+                />
+              </EuiToolTip>
+            </EuiFlexItem>
+          </>
+        )}
+      </EuiFlexGroup>
+    ),
+    [isSavedObjectNotebook, showDeleteNotebookModal, showRenameModal, showCloneModal]
+  );
+
+  const showLoadingModal = useMemo(
+    () =>
+      isReportingLoadingModalOpen ? (
+        <GenerateReportLoadingModal setShowLoading={toggleReportingLoadingModal} />
+      ) : null,
+    [isReportingLoadingModalOpen, toggleReportingLoadingModal]
+  );
 
   const checkIfReportingPluginIsInstalled = useCallback(() => {
     fetch('../api/status', {
@@ -470,120 +512,170 @@ export const NotebookHeader = ({
     }
   }, [chrome, newNavigation]);
 
-  const header = newNavigation ? (
-    <>
-      {appMountService && (
+  const header = useMemo(
+    () =>
+      newNavigation ? (
         <>
-          <TopNavMenu
-            appName={investigationNotebookID}
-            config={[
-              {
-                tooltip: i18n.translate('notebook.systemPromptSettingButton.tooltip', {
-                  defaultMessage: 'Edit system prompt',
-                }),
-                ariaLabel: i18n.translate('notebook.systemPromptSettingButton.tooltip', {
-                  defaultMessage: 'Edit system prompt',
-                }),
-                testId: 'notebook-system-prompt-icon',
-                run: () => {
-                  setIsSystemPromptsModalOpen(true);
-                },
-                iconType: 'setting',
-                controlType: 'icon',
-              } as TopNavMenuIconData,
-              ...(isSavedObjectNotebook
-                ? [
-                    {
-                      tooltip: i18n.translate('notebook.editButton.tooltip', {
-                        defaultMessage: 'Edit name',
-                      }),
-                      ariaLabel: i18n.translate('notebook.editButton.tooltip', {
-                        defaultMessage: 'Edit name',
-                      }),
-                      testId: 'notebook-edit-icon',
-                      run: showRenameModal,
-                      iconType: 'pencil',
-                      controlType: 'icon',
-                    } as TopNavMenuIconData,
-                  ]
-                : []),
-              ...(isReportingPluginInstalled && !dataSourceMDSEnabled
-                ? [
-                    {
-                      tooltip: i18n.translate('notebook.header.downloadPDFTooltip', {
-                        defaultMessage: 'Download PDF',
-                      }),
-                      ariaLabel: i18n.translate('notebook.header.downloadPDFTooltip', {
-                        defaultMessage: 'Download PDF',
-                      }),
-                      testId: 'notebook-download-pdf-icon',
-                      run: () => {
-                        generateInContextReport(
-                          'pdf',
-                          { http, notifications },
-                          toggleReportingLoadingModal
-                        );
-                      },
-                      iconType: 'download',
-                      controlType: 'icon',
-                    } as TopNavMenuIconData,
-                  ]
-                : []),
-              {
-                tooltip: i18n.translate('notebook.deleteButton.tooltip', {
-                  defaultMessage: 'Delete',
-                }),
-                ariaLabel: i18n.translate('notebook.deleteButton.tooltip', {
-                  defaultMessage: 'Delete',
-                }),
-                testId: 'notebook-delete-icon',
-                run: showDeleteNotebookModal,
-                iconType: 'trash',
-                controlType: 'icon',
-              } as TopNavMenuIconData,
-            ]}
-            screenTitle={path}
-            setMenuMountPoint={appMountService.setHeaderActionMenu}
-          />
-          <HeaderControl
-            controls={[
-              {
-                text: i18n.translate('notebook.header.lastUpdated', {
-                  defaultMessage: 'Last updated: {time}',
-                  values: {
-                    time: moment(dateModified).format('MM/DD/YYYY@ h:mma'),
+          {appMountService && (
+            <>
+              <TopNavMenu
+                appName={investigationNotebookID}
+                showDataSourceMenu={!isLoading}
+                dataSourceMenuConfig={{
+                  componentType: dataSourceId ? 'DataSourceView' : 'DataSourceSelectable',
+                  componentConfig: {
+                    savedObjects: savedObjects.client,
+                    notifications,
+                    onSelectedDataSources: (ds: DataSourceOption[]) => {
+                      if (ds[0].id !== '' && ds[0].id !== dataSourceId) {
+                        updateNotebookContext({ dataSourceId: ds[0].id });
+                      }
+                    },
+                    // Use local cluster if no data source id
+                    activeOption: dataSourceId ? [{ id: dataSourceId }] : [{ id: '' }],
+                    dataSourceFilter: !dataSourceId && dataSourceFilterFn,
+                    fullWidth: true,
                   },
-                }),
-                color: 'subdued',
-              },
-            ]}
-            setMountPoint={appMountService.setHeaderRightControls}
-          />
+                  uiSettings,
+                  application,
+                }}
+                config={[
+                  {
+                    tooltip: i18n.translate('notebook.systemPromptSettingButton.tooltip', {
+                      defaultMessage: 'Edit system prompt',
+                    }),
+                    ariaLabel: i18n.translate('notebook.systemPromptSettingButton.tooltip', {
+                      defaultMessage: 'Edit system prompt',
+                    }),
+                    testId: 'notebook-system-prompt-icon',
+                    run: () => {
+                      setIsSystemPromptsModalOpen(true);
+                    },
+                    iconType: 'setting',
+                    controlType: 'icon',
+                  } as TopNavMenuIconData,
+                  ...(isSavedObjectNotebook
+                    ? [
+                        {
+                          tooltip: i18n.translate('notebook.editButton.tooltip', {
+                            defaultMessage: 'Edit name',
+                          }),
+                          ariaLabel: i18n.translate('notebook.editButton.tooltip', {
+                            defaultMessage: 'Edit name',
+                          }),
+                          testId: 'notebook-edit-icon',
+                          run: showRenameModal,
+                          iconType: 'pencil',
+                          controlType: 'icon',
+                        } as TopNavMenuIconData,
+                      ]
+                    : []),
+                  ...(isReportingPluginInstalled && !dataSourceMDSEnabled
+                    ? [
+                        {
+                          tooltip: i18n.translate('notebook.header.downloadPDFTooltip', {
+                            defaultMessage: 'Download PDF',
+                          }),
+                          ariaLabel: i18n.translate('notebook.header.downloadPDFTooltip', {
+                            defaultMessage: 'Download PDF',
+                          }),
+                          testId: 'notebook-download-pdf-icon',
+                          run: () => {
+                            generateInContextReport(
+                              'pdf',
+                              { http, notifications },
+                              toggleReportingLoadingModal
+                            );
+                          },
+                          iconType: 'download',
+                          controlType: 'icon',
+                        } as TopNavMenuIconData,
+                      ]
+                    : []),
+                  {
+                    tooltip: i18n.translate('notebook.deleteButton.tooltip', {
+                      defaultMessage: 'Delete',
+                    }),
+                    ariaLabel: i18n.translate('notebook.deleteButton.tooltip', {
+                      defaultMessage: 'Delete',
+                    }),
+                    testId: 'notebook-delete-icon',
+                    run: showDeleteNotebookModal,
+                    iconType: 'trash',
+                    controlType: 'icon',
+                  } as TopNavMenuIconData,
+                ]}
+                screenTitle={path}
+                setMenuMountPoint={appMountService.setHeaderActionMenu}
+              />
+              <HeaderControl
+                controls={[
+                  {
+                    text: i18n.translate('notebook.header.lastUpdated', {
+                      defaultMessage: 'Last updated: {time}',
+                      values: {
+                        time: moment(dateModified).format('MM/DD/YYYY@ h:mma'),
+                      },
+                    }),
+                    color: 'subdued',
+                  },
+                ]}
+                setMountPoint={appMountService.setHeaderRightControls}
+              />
+            </>
+          )}
         </>
-      )}
-    </>
-  ) : (
-    <div>
-      <EuiFlexGroup justifyContent="spaceBetween" alignItems="center" gutterSize="s">
-        <EuiTitle size="l">
-          <h3 data-test-subj="notebookTitle">{path}</h3>
-        </EuiTitle>
-        <EuiFlexItem grow={false}>
-          <EuiFlexGroup gutterSize="s" alignItems="center">
-            {noteActionIcons}
-            <EuiFlexItem grow={false}>{showReportingContextMenu}</EuiFlexItem>
-            <EuiFlexItem grow={false}>{reportingTopButton}</EuiFlexItem>
+      ) : (
+        <div>
+          <EuiFlexGroup justifyContent="spaceBetween" alignItems="center" gutterSize="s">
+            <EuiTitle size="l">
+              <h3 data-test-subj="notebookTitle">{path}</h3>
+            </EuiTitle>
+            <EuiFlexItem grow={false}>
+              <EuiFlexGroup gutterSize="s" alignItems="center">
+                {noteActionIcons}
+                <EuiFlexItem grow={false}>{showReportingContextMenu}</EuiFlexItem>
+                <EuiFlexItem grow={false}>{reportingTopButton}</EuiFlexItem>
+              </EuiFlexGroup>
+            </EuiFlexItem>
           </EuiFlexGroup>
-        </EuiFlexItem>
-      </EuiFlexGroup>
-      <EuiFlexGroup justifyContent="spaceBetween" alignItems="center">
-        <EuiFlexItem grow={false}>
-          <p>{`Created on ${moment(dateCreated).format(UI_DATE_FORMAT)}`}</p>
-        </EuiFlexItem>
-      </EuiFlexGroup>
-      <EuiSpacer size="s" />
-    </div>
+          <EuiFlexGroup justifyContent="spaceBetween" alignItems="center">
+            <EuiFlexItem grow={false}>
+              <p>{`Created on ${moment(dateCreated).format(UI_DATE_FORMAT)}`}</p>
+            </EuiFlexItem>
+          </EuiFlexGroup>
+          <EuiSpacer size="s" />
+        </div>
+      ),
+    [
+      newNavigation,
+      appMountService,
+      isLoading,
+      savedObjects.client,
+      notifications,
+      dataSourceId,
+      updateNotebookContext,
+      uiSettings,
+      application,
+      isSavedObjectNotebook,
+      showRenameModal,
+      isReportingPluginInstalled,
+      dataSourceMDSEnabled,
+      http,
+      toggleReportingLoadingModal,
+      showDeleteNotebookModal,
+      path,
+      dateModified,
+      dateCreated,
+      noteActionIcons,
+      showReportingContextMenu,
+      reportingTopButton,
+    ]
   );
+
+  if (isEmpty(contextValue) || path === '') {
+    return null;
+  }
 
   return (
     <>
