@@ -17,7 +17,8 @@ import {
 } from '../../../../../../../src/plugins/data/public';
 import { getClient, getData, getSearch } from '../../../../services';
 import { QueryObject } from '../paragraph_components/ppl';
-import { executePPLQueryWithHeadFilter } from '../../../../../public/utils/query';
+import { callOpenSearchCluster } from '../../../../plugin_helpers/plugin_proxy_call';
+import { addHeadFilter } from '../../../../../public/utils/query';
 
 export class DataDistributionDataService {
   private readonly search: ISearchStart;
@@ -108,10 +109,16 @@ export class DataDistributionDataService {
     }
 
     const searchQuery = pplQuery;
-    const response = await executePPLQueryWithHeadFilter({
+    const response = await callOpenSearchCluster({
       http: getClient(),
       dataSourceId: this.dataSourceId,
-      query: searchQuery,
+      request: {
+        path: `/_plugins/_ppl`,
+        method: 'POST',
+        body: JSON.stringify({
+          query: addHeadFilter(searchQuery),
+        }),
+      },
     });
 
     const pplData = formatPPLQueryData(response);
@@ -451,7 +458,6 @@ const formatPPLQueryData = (queryObject: QueryObject) => {
     const datarowValue: Record<string, unknown> = {};
     for (schemaIndex = 0; schemaIndex < queryObject.schema.length; ++schemaIndex) {
       const columnName = queryObject.schema[schemaIndex].name;
-      console.log(columnName);
       if (typeof queryObject.datarows[index][schemaIndex] === 'object') {
         datarowValue[columnName] = queryObject.datarows[index][schemaIndex];
       } else if (typeof queryObject.datarows[index][schemaIndex] === 'boolean') {
