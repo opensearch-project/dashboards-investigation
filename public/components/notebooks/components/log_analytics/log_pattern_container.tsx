@@ -24,7 +24,7 @@ import { LogSequence } from './components/log_sequence';
 import { SummaryStatistics } from './components/summary_statistics';
 import { IndexInsightContent, NotebookContext } from '../../../../../common/types/notebooks';
 import { parsePPLQuery } from '../../../../../common/utils';
-import { DataDistributionDataService } from '../data_distribution/data_distribution_data_service';
+import { DataDistributionService } from '../data_distribution/data_distribution_service';
 import { dateFormat } from '../../../../../common/constants/notebooks';
 
 const LOG_INSIGHTS_ANALYSIS = 'Log Insights Analysis';
@@ -78,7 +78,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
   const notebookState = useObservable(notebookReactContext.state.getValue$());
   const context = notebookState?.context.value;
 
-  const dataService = useMemo(() => new DataDistributionDataService(), []);
+  const dataService = useMemo(() => new DataDistributionService(), []);
   const [memoizedContextValues, setMemoizedContextValues] = useState<Partial<
     NotebookContext
   > | null>(null);

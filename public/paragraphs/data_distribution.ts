@@ -10,7 +10,7 @@ import {
   NoteBookSource,
   SummaryDataItem,
 } from '../../common/types/notebooks';
-import { DataDistributionService } from '../components/notebooks/components/data_distribution/data_distribution_data_service';
+import { DataDistributionService } from '../components/notebooks/components/data_distribution/data_distribution_service';
 import { getPPLQueryWithTimeRange } from '../utils/time';
 import { ParagraphState } from '../../common/state/paragraph_state';
 import { getNotifications } from '../services';
