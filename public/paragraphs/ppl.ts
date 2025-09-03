@@ -97,13 +97,12 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
       ppl: { isWaitingForPPLResult: true },
     });
 
-    let queryResponse = {};
     try {
       await saveParagraph({
         paragraphStateValue: paragraphValue,
       });
 
-      queryResponse = await (queryType === '_sql'
+      const queryResponse = await (queryType === '_sql'
         ? callOpenSearchCluster({
             http: getClient(),
             dataSourceId: paragraphValue.dataSourceMDSId,
@@ -121,18 +120,18 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
             query: addTimeRangeFilter(currentSearchQuery, queryParams),
           }));
 
+      paragraphState.updateFullfilledOutput(queryResponse);
       paragraphState.updateUIState({
         isRunning: false,
         ppl: { isWaitingForPPLResult: false },
       });
     } catch (err) {
+      paragraphState.resetFullfilledOutput();
       paragraphState.updateUIState({
         isRunning: false,
         ppl: { error: err.message, isWaitingForPPLResult: false },
       });
       getNotifications().toasts.addDanger(`Error executing query: ${err.message}`);
-    } finally {
-      paragraphState.updateFullfilledOutput(queryResponse);
     }
   },
 };

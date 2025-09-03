@@ -127,7 +127,15 @@ export class ParagraphState<
   }
   updateFullfilledOutput(fullfilledOutput: Partial<TFullfilledOutput>) {
     this.updateValue({
-      fullfilledOutput: fullfilledOutput as TFullfilledOutput,
+      fullfilledOutput: {
+        ...(this.value.fullfilledOutput as TFullfilledOutput),
+        ...fullfilledOutput,
+      },
+    });
+  }
+  resetFullfilledOutput() {
+    this.updateValue({
+      fullfilledOutput: {} as TFullfilledOutput,
     });
   }
   updateUIState(uiState: Partial<ParagraphStateValue['uiState']>) {
