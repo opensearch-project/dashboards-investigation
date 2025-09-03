@@ -78,7 +78,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
   const context = notebookState?.context.value;
 
   const dataService = useMemo(() => new DataDistributionDataService(), []);
-  const [memoizedContextValues, setMemoizedContextValues] = useState<any>(null);
+  const [memoizedContextValues, setMemoizedContextValues] = useState<Partial<NotebookContext> | null>(null);
 
   useEffect(() => {
     const processContextValues = async () => {
