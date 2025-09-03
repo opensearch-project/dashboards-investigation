@@ -19,6 +19,9 @@ export const [getDataSourceManagementSetup, setDataSourceManagementSetup] = crea
   | { enabled: false; dataSourceManagement: undefined }
 >('DataSourceManagementSetup');
 export const [getClient, setClient] = createGetterSetter<CoreStart['http']>('http');
+export const [getNotifications, setNotifications] = createGetterSetter<CoreStart['notifications']>(
+  'notifications'
+);
 
 // Export services
 export { LogPatternService } from './requests/log_pattern';

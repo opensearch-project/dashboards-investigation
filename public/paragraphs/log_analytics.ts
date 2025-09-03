@@ -129,4 +129,7 @@ ${generateNaturalSummary()}
 
 ${generateDetailedFindings()}`;
   },
+  runParagraph: async () => {
+    return;
+  },
 };

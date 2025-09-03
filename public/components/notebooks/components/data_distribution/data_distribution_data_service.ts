@@ -18,9 +18,8 @@ import {
 import { getClient, getData, getSearch } from '../../../../services';
 import { QueryObject } from '../paragraph_components/ppl';
 import { callOpenSearchCluster } from '../../../../plugin_helpers/plugin_proxy_call';
-import { addHeadFilter } from '../../../../../public/utils/query';
 
-export class DataDistributionDataService {
+export class DataDistributionService {
   private readonly search: ISearchStart;
   private readonly data: DataPublicPluginStart;
   private dataSourceId: string | undefined;
@@ -108,7 +107,6 @@ export class DataDistributionDataService {
       throw new Error('No ppl query found from discovery');
     }
 
-    const searchQuery = pplQuery;
     const response = await callOpenSearchCluster({
       http: getClient(),
       dataSourceId: this.dataSourceId,
@@ -116,7 +114,7 @@ export class DataDistributionDataService {
         path: `/_plugins/_ppl`,
         method: 'POST',
         body: JSON.stringify({
-          query: addHeadFilter(searchQuery),
+          query: pplQuery,
         }),
       },
     });

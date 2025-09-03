@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useContext, useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useContext, useMemo, useState, useEffect } from 'react';
 import {
   EuiButtonIcon,
   EuiCallOut,
@@ -25,19 +25,17 @@ import { i18n } from '@osd/i18n';
 import {
   AnomalyVisualizationAnalysisOutputResult,
   NoteBookSource,
-  SummaryDataItem,
 } from '../../../../../common/types/notebooks';
 import { NoteBookServices } from '../../../../types';
 import { DataDistributionInput } from './embeddable/types';
 import { EmbeddableRenderer } from '../../../../../../../src/plugins/embeddable/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { generateAllFieldCharts } from './render_data_distribution_vega';
-import { DataDistributionDataService } from './data_distribution_data_service';
 import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { DATA_DISTRIBUTION_PARAGRAPH_TYPE } from '../../../../../common/constants/notebooks';
 import './data_distribution_viz.scss';
-import { getPPLQueryWithTimeRange } from '../../../../utils/time';
 
 const ITEMS_PER_PAGE = 3;
 
@@ -47,7 +45,7 @@ export const DataDistributionContainer = ({
   paragraphState: ParagraphState<AnomalyVisualizationAnalysisOutputResult>;
 }) => {
   const {
-    services: { embeddable, notifications },
+    services: { embeddable, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
   const context = useContext(NotebookReactContext);
   const topContextValue = useObservable(
@@ -57,14 +55,16 @@ export const DataDistributionContainer = ({
   const paragraph = useObservable(paragraphState.getValue$());
   const { result } = ParagraphState.getOutput(paragraph)! || {};
   const { fieldComparison } = result! || {};
-  const { timeRange, timeField, index, dataSourceId, filters, source, variables } = topContextValue;
+  const { timeRange, timeField, index, source } = topContextValue;
   const { saveParagraph } = useParagraphs();
   const [activePage, setActivePage] = useState(0);
-  const [fetchDataLoading, setFetchDataLoading] = useState(false);
-  const [distributionLoading, setDistributionLoading] = useState(false);
   const [distributionModalExpand, setDistributionModalExpand] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const factory = embeddable.getEmbeddableFactory<DataDistributionInput>('vega_visualization');
+  const paragraphRegistry = paragraphService?.getParagraphRegistry(
+    DATA_DISTRIBUTION_PARAGRAPH_TYPE
+  );
+  const { fetchDataLoading, distributionLoading, error } =
+    paragraph?.uiState?.dataDistribution || {};
 
   const dataDistributionSpecs = useMemo(() => {
     if (fieldComparison) {
@@ -72,60 +72,6 @@ export const DataDistributionContainer = ({
     }
     return [];
   }, [fieldComparison, source]);
-
-  const dataService = useMemo(() => new DataDistributionDataService(), []);
-
-  const loadDataDistribution = useCallback(async () => {
-    try {
-      setFetchDataLoading(true);
-      setDistributionLoading(true);
-
-      let dataDistribution: SummaryDataItem[];
-      if (source === NoteBookSource.DISCOVER) {
-        const pplData = await dataService.fetchPPlData(
-          getPPLQueryWithTimeRange(
-            variables?.['pplQuery'] as string,
-            timeRange!.selectionFrom,
-            timeRange!.selectionTo,
-            timeField as string
-          )
-        );
-        setFetchDataLoading(false);
-        dataDistribution = await dataService.getSingleDataDistribution(pplData);
-      } else {
-        const comparisonData = await dataService.fetchComparisonData({
-          timeRange,
-          selectionFilters: filters,
-        });
-        setFetchDataLoading(false);
-        dataDistribution = await dataService.getComparisonDataDistribution(comparisonData);
-      }
-
-      if (paragraph) {
-        await saveParagraph({
-          paragraphStateValue: ParagraphState.updateOutputResult(paragraph, {
-            fieldComparison: dataDistribution || [],
-          }),
-        });
-      }
-    } catch (err) {
-      setError(err.message);
-      notifications.toasts.addDanger(`Initialize data distribution failed: ${err.message}`);
-    } finally {
-      setFetchDataLoading(false);
-      setDistributionLoading(false);
-    }
-  }, [
-    dataService,
-    filters,
-    paragraph,
-    saveParagraph,
-    notifications,
-    source,
-    timeRange,
-    variables,
-    timeField,
-  ]);
 
   useEffect(() => {
     (async () => {
@@ -140,15 +86,18 @@ export const DataDistributionContainer = ({
         return;
       }
 
-      await loadDataDistribution();
+      await paragraphRegistry?.runParagraph(paragraphState, saveParagraph, context.state.value);
     })();
   }, [
-    loadDataDistribution,
+    paragraphRegistry,
     fieldComparison,
     fetchDataLoading,
     distributionLoading,
     paragraph,
     error,
+    paragraphState,
+    saveParagraph,
+    context.state.value,
   ]);
 
   const { paginatedSpecs, totalPages } = useMemo(() => {
@@ -164,11 +113,9 @@ export const DataDistributionContainer = ({
     };
   }, [dataDistributionSpecs, activePage]);
 
-  if (!context || !timeRange || !timeField || !index) {
+  if (!context || !timeRange || !timeField || !index || !paragraphRegistry) {
     return null;
   }
-
-  dataService.setConfig(dataSourceId, index, timeField, source);
 
   const dataDistributionTitle = (
     <EuiTitle size="s">

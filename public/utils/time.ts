@@ -5,6 +5,7 @@
 
 import moment from 'moment';
 import { dateFormat } from '../../common/constants/notebooks';
+import { formatTimePickerDate, TimeRange } from '../../../../src/plugins/data/common';
 
 export const formatTimeGap = (milliseconds: number) => {
   if (milliseconds < 0) {
@@ -57,4 +58,20 @@ export const getPPLQueryWithTimeRange = (
   const commands = query.split('|');
   commands.splice(1, 0, whereCommand);
   return commands.map((cmd) => cmd.trim()).join(' | ');
+};
+
+export const addTimeRangeFilter = (query: string, params: any) => {
+  if (params?.noDatePicker || !params?.timeField || PPL_TIME_FILTER_REGEX.test(query)) {
+    /**
+     * Do not concatenate the time filter query string if:
+     * 1. The date picker is disabled by the query panel component
+     * 2. The time field is not selected by the user
+     * 3. The query already exists an absolute time filter query string
+     */
+    return query;
+  }
+
+  const { timeRange, timeField } = params as { timeRange: TimeRange; timeField: string };
+  const { fromDate, toDate } = formatTimePickerDate(timeRange, dateFormat);
+  return getPPLQueryWithTimeRange(query, fromDate, toDate, timeField);
 };

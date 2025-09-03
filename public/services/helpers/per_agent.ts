@@ -7,6 +7,7 @@ import moment from 'moment';
 import { NotebookContext } from '../../../common/types/notebooks';
 import { ParagraphStateValue } from '../../../common/state/paragraph_state';
 import { ParagraphServiceSetup } from '../paragraph_service';
+import { getInputType } from '../../../common/utils/paragraph';
 
 export const generateContextPromptFromParagraphs = async ({
   paragraphService,
@@ -27,21 +28,7 @@ export const generateContextPromptFromParagraphs = async ({
           return '';
         }
 
-        let inputType = paragraph.input.inputType;
-        if (inputType === 'CODE') {
-          switch (paragraph.input.inputText.substring(0, 4)) {
-            case '%sql':
-              inputType = 'sql';
-              break;
-            case '%ppl':
-              inputType = 'ppl';
-              break;
-            default:
-              break;
-          }
-        }
-        const paragraphRegistry = paragraphService.getParagraphRegistry(inputType);
-
+        const paragraphRegistry = paragraphService.getParagraphRegistry(getInputType(paragraph));
         if (!paragraphRegistry || !paragraphRegistry.getContext) {
           return '';
         }

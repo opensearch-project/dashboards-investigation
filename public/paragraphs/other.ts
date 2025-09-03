@@ -8,4 +8,7 @@ import { ParagraphRegistryItem } from '../services/paragraph_service';
 
 export const OtherParagraphItem: ParagraphRegistryItem<string> = {
   ParagraphComponent: OtherParagraph,
+  runParagraph: async () => {
+    return;
+  },
 };

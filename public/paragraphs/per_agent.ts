@@ -45,4 +45,7 @@ export const PERAgentParagraphItem: ParagraphRegistryItem<
         ${response}
       `;
   },
+  runParagraph: async () => {
+    return;
+  },
 };

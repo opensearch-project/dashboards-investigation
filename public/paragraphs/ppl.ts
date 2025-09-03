@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { isEmpty } from 'lodash';
 import {
   getQueryOutputData,
   PPLParagraph,
@@ -10,8 +11,10 @@ import {
 } from '../components/notebooks/components/paragraph_components/ppl';
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
-import { getClient } from '../services';
+import { getClient, getNotifications } from '../services';
 import { executePPLQueryWithHeadFilter } from '../../public/utils/query';
+import { parsePPLQuery } from '../../common/utils';
+import { addTimeRangeFilter } from '../utils/time';
 
 export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObject> = {
   ParagraphComponent: PPLParagraph,
@@ -69,5 +72,67 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
           ${JSON.stringify(data)}
           \`\`\`
         `;
+  },
+  runParagraph: async (paragraphState, saveParagraph) => {
+    const paragraphValue = paragraphState.getBackendValue();
+    const inputText = paragraphValue.input.inputText;
+    const queryType = inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
+    const queryParams = paragraphValue.input.parameters as any;
+    const inputQuery = queryParams?.query || inputText.substring(5);
+    if (isEmpty(inputQuery)) {
+      return;
+    }
+
+    let currentSearchQuery = inputQuery;
+    if (queryType === '_ppl' && inputQuery.trim()) {
+      currentSearchQuery = parsePPLQuery(inputQuery).pplWithAbsoluteTime;
+      if (currentSearchQuery !== inputQuery) {
+        paragraphState.updateInput({
+          inputText: `%ppl\n${currentSearchQuery}`,
+        });
+      }
+    }
+    paragraphState.updateUIState({
+      isRunning: true,
+      ppl: { isWaitingForPPLResult: true },
+    });
+
+    let queryResponse = {};
+    try {
+      await saveParagraph({
+        paragraphStateValue: paragraphValue,
+      });
+
+      queryResponse = await (queryType === '_sql'
+        ? callOpenSearchCluster({
+            http: getClient(),
+            dataSourceId: paragraphValue.dataSourceMDSId,
+            request: {
+              path: '/_plugins/_sql',
+              method: 'POST',
+              body: JSON.stringify({
+                query: currentSearchQuery,
+              }),
+            },
+          })
+        : executePPLQueryWithHeadFilter({
+            http: getClient(),
+            dataSourceId: paragraphValue.dataSourceMDSId,
+            query: addTimeRangeFilter(currentSearchQuery, queryParams),
+          }));
+
+      paragraphState.updateUIState({
+        isRunning: false,
+        ppl: { isWaitingForPPLResult: false },
+      });
+    } catch (err) {
+      paragraphState.updateUIState({
+        isRunning: false,
+        ppl: { error: err.message, isWaitingForPPLResult: false },
+      });
+      getNotifications().toasts.addDanger(`Error executing query: ${err.message}`);
+    } finally {
+      paragraphState.updateFullfilledOutput(queryResponse);
+    }
   },
 };

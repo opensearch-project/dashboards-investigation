@@ -6,6 +6,8 @@
 import React from 'react';
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import { OTHER_PARAGRAPH_TYPE } from '../../common/constants/notebooks';
+import { Toast } from '../../../../src/core/public';
+import { NotebookStateValue } from '../../common/state/notebook_state';
 
 export interface ParagraphRegistryItem<
   TOutputResult = any,
@@ -18,6 +20,13 @@ export interface ParagraphRegistryItem<
   getContext?: (
     paragraphState: ParagraphStateValue<TOutputResult, TInputParameters, TFullfilledOutput>
   ) => Promise<string>;
+  runParagraph: (
+    paragraphState: ParagraphState<TOutputResult, TInputParameters, TFullfilledOutput>,
+    saveParagraph: <TOutputResult>(props: {
+      paragraphStateValue: ParagraphStateValue<TOutputResult, unknown, {}>;
+    }) => Promise<void> | Toast,
+    notebookStateValue: NotebookStateValue
+  ) => Promise<void>;
 }
 
 export interface ParagraphServiceSetup {

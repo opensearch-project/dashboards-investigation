@@ -23,6 +23,12 @@ export interface ParagraphStateValue<
     isRunning?: boolean;
     isOutputStale?: boolean;
     actions: ParagraphAction[];
+    dataDistribution?: {
+      fetchDataLoading?: boolean;
+      distributionLoading?: boolean;
+      error?: string;
+    };
+    ppl?: { isWaitingForPPLResult?: boolean; error?: string };
   }>;
 }
 
@@ -121,10 +127,7 @@ export class ParagraphState<
   }
   updateFullfilledOutput(fullfilledOutput: Partial<TFullfilledOutput>) {
     this.updateValue({
-      fullfilledOutput: {
-        ...(this.value.fullfilledOutput as TFullfilledOutput),
-        ...fullfilledOutput,
-      },
+      fullfilledOutput: fullfilledOutput as TFullfilledOutput,
     });
   }
   updateUIState(uiState: Partial<ParagraphStateValue['uiState']>) {
