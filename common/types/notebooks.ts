@@ -31,6 +31,7 @@ export interface NotebookContext {
   dataSourceId?: string;
   timeField?: string;
   index?: string;
+  currentTime?: number; // the time when PPL been executed when trigger from discovery
   timeRange?: {
     selectionFrom: number;
     selectionTo: number;

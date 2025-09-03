@@ -38,6 +38,7 @@ import { NotebookReactContext } from '../../../context_provider/context_provider
 import { formatTimePickerDate, TimeRange } from '../../../../../../../../src/plugins/data/common';
 import { getPPLQueryWithTimeRange, PPL_TIME_FILTER_REGEX } from '../../../../../utils/time';
 import { executePPLQueryWithHeadFilter } from '../../../../../../public/utils/query';
+import { dateFormat } from '../../../../../../common/constants/notebooks';
 
 export interface QueryObject {
   schema?: any[];
@@ -121,7 +122,7 @@ export const PPLParagraph = ({
     }
 
     const { timeRange, timeField } = params as { timeRange: TimeRange; timeField: string };
-    const { fromDate, toDate } = formatTimePickerDate(timeRange, 'YYYY-MM-DD HH:mm:ss.SSS');
+    const { fromDate, toDate } = formatTimePickerDate(timeRange, dateFormat);
     return getPPLQueryWithTimeRange(query, fromDate, toDate, timeField);
   }, []);
 

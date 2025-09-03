@@ -22,9 +22,10 @@ import { LogInsight } from './components/log_insight';
 import { PatternDifference, sortPatternMapDifference } from './components/pattern_difference';
 import { LogSequence } from './components/log_sequence';
 import { SummaryStatistics } from './components/summary_statistics';
-import { IndexInsightContent } from '../../../../../common/types/notebooks';
+import { IndexInsightContent, NotebookContext } from '../../../../../common/types/notebooks';
 import { parsePPLQuery } from '../../../../../common/utils';
 import { DataDistributionDataService } from '../data_distribution/data_distribution_data_service';
+import { dateFormat } from '../../../../../common/constants/notebooks';
 
 const LOG_INSIGHTS_ANALYSIS = 'Log Insights Analysis';
 const PATTERN_DIFFERENCE_ANALYSIS = 'Pattern Difference Analysis';
@@ -78,7 +79,9 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
   const context = notebookState?.context.value;
 
   const dataService = useMemo(() => new DataDistributionDataService(), []);
-  const [memoizedContextValues, setMemoizedContextValues] = useState<Partial<NotebookContext> | null>(null);
+  const [memoizedContextValues, setMemoizedContextValues] = useState<Partial<
+    NotebookContext
+  > | null>(null);
 
   useEffect(() => {
     const processContextValues = async () => {
@@ -94,8 +97,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
       const timeRange = [context.timeRange?.selectionFrom, context.timeRange?.selectionTo];
       // merge time range from PPL query with time picker value from context
       if (pplQuery && context.timeRange) {
-        const pplWithAbsoluteTime = parsePPLQuery(pplQuery).pplWithAbsoluteTime;
-        const conditions = parsePPLQuery(pplWithAbsoluteTime).compareExprs;
+        const conditions = parsePPLQuery(pplQuery).compareExprs;
         // time field with expressions like date_sub(time, interval 1 hour) are not supported
         const isTimeFieldCondition = (filed: string) =>
           filed === timeField || filed === `\`${timeField}\``;
@@ -136,12 +138,12 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
         timeField,
         timeRange: context.timeRange
           ? {
-              selectionFrom: timeRange[0],
-              selectionTo: timeRange[1],
+              selectionFrom: timeRange[0]!,
+              selectionTo: timeRange[1]!,
               baselineFrom: context.timeRange.baselineFrom,
               baselineTo: context.timeRange.baselineTo,
             }
-          : null,
+          : undefined,
         indexInsight: paragraph?.input.parameters?.insight || context.indexInsight,
       });
     };
@@ -172,7 +174,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
       baselineTo,
     } = memoizedContextValues.timeRange;
 
-    const dateFormat = 'YYYY-MM-DD HH:mm:ss.SSS';
     const apiRequestsParam: LogPatternAnalysisParams = {
       selectionStartTime: moment(selectionFrom).toISOString(),
       selectionEndTime: moment(selectionTo).toISOString(),

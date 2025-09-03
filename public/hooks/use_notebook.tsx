@@ -17,6 +17,7 @@ import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
+import { parsePPLQuery } from '../../common/utils';
 
 export const useNotebook = () => {
   const context = useContext(NotebookReactContext);
@@ -137,6 +138,23 @@ export const useNotebook = () => {
       let contextPayload = {
         ...res.context,
       };
+
+      // try to convert relative time in ppl query to absolute time as
+      if (res.context?.variables?.pplQuery) {
+        const pplWithAbsoluteTime = parsePPLQuery(
+          res.context.variables.pplQuery,
+          res.context.currentTime
+        ).pplWithAbsoluteTime;
+        if (pplWithAbsoluteTime !== res.context.variables.pplQuery) {
+          contextPayload = {
+            ...contextPayload,
+            variables: {
+              ...contextPayload.variables,
+              pplQuery: pplWithAbsoluteTime,
+            },
+          };
+        }
+      }
 
       if (
         !res.context?.indexInsight &&

@@ -15,6 +15,7 @@ import {
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import {
   DATA_DISTRIBUTION_PARAGRAPH_TYPE,
+  dateFormat,
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   LOG_PATTERN_PARAGRAPH_TYPE,
   PPL_PARAGRAPH_TYPE,
@@ -155,8 +156,7 @@ export const usePrecheck = () => {
           res.context.timeField &&
           res.context.timeRange
         ) {
-          const formatToLocalTime = (timestamp: number) =>
-            moment(timestamp).format('YYYY-MM-DD HH:mm:ss.SSS');
+          const formatToLocalTime = (timestamp: number) => moment(timestamp).format(dateFormat);
           const pplQuery = res.context.variables?.['pplQuery'];
           const createdPPLParagraph = await createParagraph({
             index: res.paragraphs.length + paragraphStates.length,

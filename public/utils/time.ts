@@ -4,6 +4,7 @@
  */
 
 import moment from 'moment';
+import { dateFormat } from '../../common/constants/notebooks';
 
 export const formatTimeGap = (milliseconds: number) => {
   if (milliseconds < 0) {
@@ -45,9 +46,8 @@ export const getPPLQueryWithTimeRange = (
   to: number | string,
   timeField: string
 ) => {
-  const PPLDateFormat = 'YYYY-MM-DD HH:mm:ss.SSS';
-  const startTime = typeof from === 'string' ? from : moment.utc(from).format(PPLDateFormat);
-  const endTime = typeof to === 'string' ? to : moment.utc(to).format(PPLDateFormat);
+  const startTime = typeof from === 'string' ? from : moment.utc(from).format(dateFormat);
+  const endTime = typeof to === 'string' ? to : moment.utc(to).format(dateFormat);
 
   const whereCommand = timeField
     ? `WHERE \`${timeField}\` >= '${startTime}' AND \`${timeField}\` <= '${endTime}'`

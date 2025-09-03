@@ -31,6 +31,7 @@ export const OTHER_PARAGRAPH_TYPE = 'OTHER';
 
 // common log errors
 export const errorKeywords = /\b(error|exception|failed|failure|panic|crash|fatal|abort|timeout|unavailable|denied|rejected|invalid|corrupt|broken|dead|kill)\b/gi;
+export const dateFormat = 'YYYY-MM-DD HH:mm:ss.SSS';
 
 // Prompts from ml commons (https://github.com/opensearch-project/ml-commons/blob/main/ml-algorithms/src/main/java/org/opensearch/ml/engine/algorithms/agent/PromptTemplate.java)
 const PLANNER_RESPONSIBILITY = `
