@@ -69,6 +69,7 @@ describe('per_agent', () => {
     mockMLService = {
       getMLConfig: jest.fn(),
       executeAgent: jest.fn(),
+      createMemory: jest.fn().mockResolvedValue({ memory_id: 'test-memory-id' }),
     };
 
     // Setup mocks for imported functions

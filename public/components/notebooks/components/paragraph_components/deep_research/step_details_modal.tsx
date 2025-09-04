@@ -22,12 +22,12 @@ import MarkdownRender from '@nteract/markdown';
 import { useObservable } from 'react-use';
 
 import { getTimeGapFromDates } from '../../../../../utils/time';
-import { PERAgentTaskService } from './services/per_agent_task_service';
 import { PERAgentMemoryService } from './services/per_agent_memory_service';
+import { PERAgentMessageService } from './services/per_agent_message_service';
 
 export const StepDetailsModal = ({
   closeModal,
-  taskService,
+  messageService,
   onStepExplain,
   defaultExpandMessageId,
   executorMemoryService,
@@ -35,24 +35,23 @@ export const StepDetailsModal = ({
   onStepExplain: (messageId: string) => void;
   closeModal: () => void;
   defaultExpandMessageId?: string;
-  taskService: PERAgentTaskService;
+  messageService: PERAgentMessageService;
   executorMemoryService: PERAgentMemoryService;
 }) => {
   const titleRefs = useRef<{ [key: string]: HTMLDivElement }>({});
   const scrollLock = useRef(false);
   const observables = useMemo(
     () => ({
-      message$: executorMemoryService.getMessages$(),
+      executorMessage$: executorMemoryService.getMessages$(),
       messagePollingState$: executorMemoryService.getPollingState$(),
-      executorMemoryId$: taskService.getExecutorMemoryId$(),
-      task$: taskService.getExecutorMemoryId$(),
+      message$: messageService.getMessage$(),
     }),
-    [executorMemoryService, taskService]
+    [executorMemoryService, messageService]
   );
-  const steps = useObservable(observables.message$);
+  const steps = useObservable(observables.executorMessage$);
   const loadingSteps = useObservable(observables.messagePollingState$);
-  const task = useObservable(observables.task$);
-  const taskCreateTime = task?.create_time;
+  const message = useObservable(observables.message$);
+  const messageCreateTime = message?.create_time;
 
   useEffect(() => {
     const stopPolling = executorMemoryService.startPolling();
@@ -83,8 +82,8 @@ export const StepDetailsModal = ({
             moment(steps[index - 1].create_time),
             moment(createTime)
           );
-        } else if (taskCreateTime) {
-          durationStr = getTimeGapFromDates(moment(taskCreateTime), moment(createTime));
+        } else if (messageCreateTime) {
+          durationStr = getTimeGapFromDates(moment(messageCreateTime), moment(createTime));
         }
 
         return (
@@ -136,8 +135,8 @@ export const StepDetailsModal = ({
       </EuiModalHeader>
 
       <EuiModalBody>
-        {task && renderSteps()}
-        {(!task || loadingSteps) && <EuiLoadingContent />}
+        {message && renderSteps()}
+        {(!message || loadingSteps) && <EuiLoadingContent />}
       </EuiModalBody>
 
       <EuiModalFooter>

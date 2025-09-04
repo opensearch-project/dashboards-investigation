@@ -20,19 +20,12 @@ import {
 import { useObservable } from 'react-use';
 import moment from 'moment';
 
-import {
-  extractCompletedResponse,
-  extractFailedErrorMessage,
-  isStateCompletedOrFailed,
-} from '../../../../../../common/utils/task';
-import { formatTimeGap } from '../../../../../utils/time';
-
 import { isMarkdownText } from './utils';
-import { PERAgentTaskService } from './services/per_agent_task_service';
 import { PERAgentMemoryService } from './services/per_agent_memory_service';
+import { PERAgentMessageService } from './services/per_agent_message_service';
 
 interface Props {
-  taskService: PERAgentTaskService;
+  messageService: PERAgentMessageService;
   executorMemoryService: PERAgentMemoryService;
   showSteps?: boolean;
   onViewDetails: (messageId: string) => void;
@@ -40,7 +33,7 @@ interface Props {
 }
 
 export const DeepResearchOutput = ({
-  taskService,
+  messageService,
   executorMemoryService,
   showSteps,
   onViewDetails,
@@ -48,33 +41,15 @@ export const DeepResearchOutput = ({
 }: Props) => {
   const observables = useMemo(
     () => ({
-      message$: executorMemoryService.getMessages$(),
+      executorMessages$: executorMemoryService.getMessages$(),
       messagePollingState$: executorMemoryService.getPollingState$(),
-      task$: taskService.getTask$(),
-      executorMemoryId$: taskService.getTask$(),
+      message$: messageService.getMessage$(),
     }),
-    [executorMemoryService, taskService]
+    [executorMemoryService, messageService]
   );
-  const task = useObservable(observables.task$);
-  const executorMessages = useObservable(observables.message$);
-  const executorMessageId = useObservable(observables.executorMemoryId$);
+  const message = useObservable(observables.message$);
+  const executorMessages = useObservable(observables.executorMessages$);
   const loadingExecutorMessage = useObservable(observables.messagePollingState$);
-
-  const finalMessage = useMemo(() => {
-    if (!task) {
-      return '';
-    }
-    if (task.state === 'COMPLETED') {
-      return (
-        extractCompletedResponse(task) ?? 'Task was completed, but failed to load inference result.'
-      );
-    }
-
-    if (task.state === 'FAILED') {
-      return `Failed to execute task, reason: ${extractFailedErrorMessage(task)}`.trim();
-    }
-    return '';
-  }, [task]);
 
   const renderTraces = () => {
     if (!showSteps) {
@@ -86,16 +61,26 @@ export const DeepResearchOutput = ({
           <h4>Steps performed</h4>
         </EuiTitle>
         <EuiSpacer size="s" />
+        {!!message?.response &&
+          !loadingExecutorMessage &&
+          (!executorMessages || executorMessages.length === 0) && (
+            <EuiText>No steps performed</EuiText>
+          )}
         {!!executorMessages &&
-          executorMessages.map((message, index) => {
+          executorMessages.map((executorMessage, index) => {
             const isLastMessageLoading =
               index === executorMessages.length - 1 &&
-              !message.response &&
-              !isStateCompletedOrFailed(task.state);
+              !executorMessage.response &&
+              !message.response;
             return (
               <>
-                <EuiPanel key={message.message_id} paddingSize="s" borderRadius="l" hasBorder>
-                  <EuiFlexGroup alignItems="center">
+                <EuiPanel
+                  key={executorMessage.message_id}
+                  paddingSize="s"
+                  borderRadius="l"
+                  hasBorder
+                >
+                  <EuiFlexGroup style={{ overflow: 'hidden' }} alignItems="center">
                     <EuiFlexItem grow={false}>
                       {isLastMessageLoading ? (
                         <EuiLoadingSpinner />
@@ -104,13 +89,13 @@ export const DeepResearchOutput = ({
                       )}
                     </EuiFlexItem>
                     <EuiFlexItem grow>
-                      <EuiText size="s">{message.input}</EuiText>
+                      <EuiText size="s">{executorMessage.input}</EuiText>
                     </EuiFlexItem>
                     <EuiFlexItem grow={false}>
                       <EuiSmallButtonEmpty
                         iconSide="right"
                         onClick={() => {
-                          onViewDetails(message.message_id);
+                          onViewDetails(executorMessage.message_id);
                         }}
                       >
                         View details
@@ -118,7 +103,7 @@ export const DeepResearchOutput = ({
                       <EuiSmallButtonEmpty
                         iconSide="right"
                         onClick={() => {
-                          onExplainThisStep(message.message_id);
+                          onExplainThisStep(executorMessage.message_id);
                         }}
                       >
                         Explain this step
@@ -147,28 +132,26 @@ export const DeepResearchOutput = ({
   return (
     <>
       {renderTraces()}
-      {(loadingExecutorMessage ||
-        !executorMessageId ||
-        !task ||
-        !isStateCompletedOrFailed(task.state)) && <EuiLoadingContent />}
-      {finalMessage && (
+      {(loadingExecutorMessage || !message || !message.response) && <EuiLoadingContent />}
+      {message?.response && (
         <EuiFlexGroup gutterSize="s" alignItems="flexStart" style={{ overflow: 'hidden' }}>
           <EuiFlexItem grow={false} />
           <EuiFlexItem style={{ overflow: 'hidden' }}>
             <EuiPanel paddingSize="m" hasShadow={false} color="primary">
               <EuiText className="markdown-output-text" size="s">
-                {isMarkdownText(finalMessage) ? (
-                  <MarkdownRender source={finalMessage} />
+                {isMarkdownText(message.response) ? (
+                  <MarkdownRender source={message.response} />
                 ) : (
-                  finalMessage
+                  message.response
                 )}
               </EuiText>
-              {task && task.last_update_time && task.create_time && (
-                <EuiText size="xs" color="subdued" style={{ marginTop: '8px' }}>
-                  Total Duration:{' '}
-                  {formatTimeGap(Number(task.last_update_time) - Number(task.create_time))}
-                  &nbsp;&nbsp; Last updated: {moment(task.last_update_time).format()}
-                </EuiText>
+              {message?.create_time && (
+                <>
+                  <EuiSpacer size="s" />
+                  <EuiText size="xs" color="subdued">
+                    Created at: {moment(message.create_time).format()}
+                  </EuiText>
+                </>
               )}
             </EuiPanel>
           </EuiFlexItem>
