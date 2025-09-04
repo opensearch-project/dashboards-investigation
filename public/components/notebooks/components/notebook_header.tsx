@@ -43,9 +43,7 @@ import {
 import { ToggleSystemPromptSettingModal } from './helpers/custom_modals/toggle_system_prompt_setting_modal';
 import { TopNavMenuIconData } from '../../../../../../src/plugins/navigation/public';
 import { SystemPromptSettingModal } from './helpers/custom_modals/system_prompt_setting_modal';
-import { dataSourceFilterFn } from '../../../../common/utils/shared';
-import { DataSourceOption } from '../../../../../../src/plugins/data_source_management/public';
-import { useNotebook } from '../../../../public/hooks/use_notebook';
+import { NotebookDataSourceSelector } from './data_source_selector/notebook_data_source_selector';
 
 export const NotebookHeader = ({
   loadNotebook,
@@ -66,9 +64,6 @@ export const NotebookHeader = ({
         ui: { TopNavMenu, HeaderControl },
       },
       appMountService,
-      savedObjects,
-      uiSettings,
-      application,
     },
   } = useOpenSearchDashboards<NoteBookServices>();
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
@@ -83,7 +78,6 @@ export const NotebookHeader = ({
     isLoading,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const contextValue = useObservable(context.getValue$());
-  const { updateNotebookContext } = useNotebook();
   const { dataSourceId } = contextValue || {};
 
   const [isReportingPluginInstalled, setIsReportingPluginInstalled] = useState(false);
@@ -520,25 +514,6 @@ export const NotebookHeader = ({
             <>
               <TopNavMenu
                 appName={investigationNotebookID}
-                showDataSourceMenu={!isLoading}
-                dataSourceMenuConfig={{
-                  componentType: dataSourceId ? 'DataSourceView' : 'DataSourceSelectable',
-                  componentConfig: {
-                    savedObjects: savedObjects.client,
-                    notifications,
-                    onSelectedDataSources: (ds: DataSourceOption[]) => {
-                      if (ds[0].id !== '' && ds[0].id !== dataSourceId) {
-                        updateNotebookContext({ dataSourceId: ds[0].id });
-                      }
-                    },
-                    // Use local cluster if no data source id
-                    activeOption: dataSourceId ? [{ id: dataSourceId }] : [{ id: '' }],
-                    dataSourceFilter: !dataSourceId && dataSourceFilterFn,
-                    fullWidth: true,
-                  },
-                  uiSettings,
-                  application,
-                }}
                 config={[
                   {
                     tooltip: i18n.translate('notebook.systemPromptSettingButton.tooltip', {
@@ -611,6 +586,14 @@ export const NotebookHeader = ({
               <HeaderControl
                 controls={[
                   {
+                    renderComponent: (
+                      <NotebookDataSourceSelector
+                        dataSourceId={dataSourceId}
+                        isNotebookLoading={isLoading}
+                      />
+                    ),
+                  },
+                  {
                     text: i18n.translate('notebook.header.lastUpdated', {
                       defaultMessage: 'Last updated: {time}',
                       values: {
@@ -651,12 +634,8 @@ export const NotebookHeader = ({
       newNavigation,
       appMountService,
       isLoading,
-      savedObjects.client,
       notifications,
       dataSourceId,
-      updateNotebookContext,
-      uiSettings,
-      application,
       isSavedObjectNotebook,
       showRenameModal,
       isReportingPluginInstalled,
