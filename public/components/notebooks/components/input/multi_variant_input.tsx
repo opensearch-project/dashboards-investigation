@@ -21,11 +21,10 @@ import {
 interface MultiVariantInputProps<TParameters = unknown> {
   input?: ParagraphInputType<TParameters>;
   onSubmit: (input: ParagraphInputType<TParameters>) => void;
+  actionDisabled?: boolean;
 }
 
-const MultiVariantInputContent: React.FC<MultiVariantInputContentProps> = ({
-  disabled = false,
-}) => {
+const MultiVariantInputContent: React.FC<{ actionDisabled?: boolean }> = ({ actionDisabled }) => {
   const {
     currInputType,
     isParagraphSelectionOpen,
@@ -51,6 +50,7 @@ const MultiVariantInputContent: React.FC<MultiVariantInputContentProps> = ({
                 onInputTypeChange={handleSetCurrInputType}
               />
             }
+            isDisabled={actionDisabled}
           />
         );
       case 'MARKDOWN':
@@ -117,7 +117,7 @@ const MultiVariantInputContent: React.FC<MultiVariantInputContentProps> = ({
 export const MultiVariantInput: React.FC<MultiVariantInputProps> = (props) => {
   return (
     <InputProvider onSubmit={props.onSubmit} input={props.input}>
-      <MultiVariantInputContent disabled={props.input?.disabled} />
+      <MultiVariantInputContent actionDisabled={props.actionDisabled} />
     </InputProvider>
   );
 };

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useContext } from 'react';
+import React from 'react';
 import {
   EuiCodeBlock,
   EuiCompressedTextArea,
@@ -16,17 +16,19 @@ import {
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import MarkdownRender from '@nteract/markdown';
-import { NotebookReactContext } from '../../../context_provider/context_provider';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
 import { useParagraphs } from '../../../../../hooks/use_paragraphs';
-import { isAgenticRunBefore } from '../utils';
 
 const inputPlaceholderString =
   'Type %md on the first line to define the input type. \nCode block starts here.';
 
-export const MarkdownParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
-  const { state } = useContext(NotebookReactContext);
-
+export const MarkdownParagraph = ({
+  paragraphState,
+  actionDisabled,
+}: {
+  paragraphState: ParagraphState;
+  actionDisabled: boolean;
+}) => {
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const { runParagraph } = useParagraphs();
 
@@ -60,13 +62,7 @@ export const MarkdownParagraph = ({ paragraphState }: { paragraphState: Paragrap
             id={`editorArea-${paragraphValue.id}`}
             className="editorArea"
             fullWidth
-            disabled={
-              !!isRunning ||
-              isAgenticRunBefore({
-                notebookState: state,
-                id: paragraphValue.id,
-              })
-            }
+            disabled={!!isRunning || actionDisabled}
             onChange={(evt) => {
               paragraphState.updateInput({
                 inputText: evt.target.value,
@@ -95,10 +91,7 @@ export const MarkdownParagraph = ({ paragraphState }: { paragraphState: Paragrap
         )}
       </div>
       <EuiSpacer size="m" />
-      {isAgenticRunBefore({
-        notebookState: state,
-        id: paragraphValue.id,
-      }) ? null : (
+      {actionDisabled ? null : (
         <EuiFlexGroup alignItems="center" gutterSize="s">
           <EuiFlexItem grow={false}>
             <EuiSmallButton

@@ -46,15 +46,16 @@ export const Paragraphs = (props: ParagraphProps) => {
       paddingSize="none"
       hasBorder={false}
     >
-      {isAgenticRunBefore({
-        notebookState: context.state,
-        id: paragraphValue.id,
-      }) ? null : (
-        <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
-      )}
+      <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
       {ParagraphComponent && (
         <div key={paragraph.value.id} className={paraClass}>
-          <ParagraphComponent paragraphState={paragraph} />
+          <ParagraphComponent
+            paragraphState={paragraph}
+            actionDisabled={isAgenticRunBefore({
+              notebookState: context.state,
+              id: paragraphValue.id,
+            })}
+          />
         </div>
       )}
     </EuiPanel>

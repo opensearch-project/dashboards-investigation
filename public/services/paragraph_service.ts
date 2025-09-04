@@ -14,6 +14,7 @@ export interface ParagraphRegistryItem<
 > {
   ParagraphComponent: React.FC<{
     paragraphState: ParagraphState<TOutputResult, TInputParameters, TFullfilledOutput>;
+    actionDisabled: boolean;
   }>;
   getContext?: (
     paragraphState: ParagraphStateValue<TOutputResult, TInputParameters, TFullfilledOutput>
