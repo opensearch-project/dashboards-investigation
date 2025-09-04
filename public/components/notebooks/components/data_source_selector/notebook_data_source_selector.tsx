@@ -46,7 +46,7 @@ export const NotebookDataSourceSelector: React.FC<{
             componentType="DataSourceView"
             componentConfig={{
               savedObjects: savedObjects.client,
-              activeOption: [{ id: dataSourceId, label: 'Loading...' }],
+              activeOption: [{ id: dataSourceId }],
             }}
           />
         )}
