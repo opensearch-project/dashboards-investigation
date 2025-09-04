@@ -506,6 +506,83 @@ export const NotebookHeader = ({
     }
   }, [chrome, newNavigation]);
 
+  const topNavMenuConfig = useMemo(
+    () => [
+      {
+        tooltip: i18n.translate('notebook.systemPromptSettingButton.tooltip', {
+          defaultMessage: 'Edit system prompt',
+        }),
+        ariaLabel: i18n.translate('notebook.systemPromptSettingButton.tooltip', {
+          defaultMessage: 'Edit system prompt',
+        }),
+        testId: 'notebook-system-prompt-icon',
+        run: () => setIsSystemPromptsModalOpen(true),
+        iconType: 'setting',
+        controlType: 'icon',
+      } as TopNavMenuIconData,
+      ...(isSavedObjectNotebook
+        ? [
+            {
+              tooltip: i18n.translate('notebook.editButton.tooltip', {
+                defaultMessage: 'Edit name',
+              }),
+              ariaLabel: i18n.translate('notebook.editButton.tooltip', {
+                defaultMessage: 'Edit name',
+              }),
+              testId: 'notebook-edit-icon',
+              run: showRenameModal,
+              iconType: 'pencil',
+              controlType: 'icon',
+            } as TopNavMenuIconData,
+          ]
+        : []),
+      ...(isReportingPluginInstalled && !dataSourceMDSEnabled
+        ? [
+            {
+              tooltip: i18n.translate('notebook.header.downloadPDFTooltip', {
+                defaultMessage: 'Download PDF',
+              }),
+              ariaLabel: i18n.translate('notebook.header.downloadPDFTooltip', {
+                defaultMessage: 'Download PDF',
+              }),
+              testId: 'notebook-download-pdf-icon',
+              run: () => {
+                generateInContextReport(
+                  'pdf',
+                  { http, notifications },
+                  toggleReportingLoadingModal
+                );
+              },
+              iconType: 'download',
+              controlType: 'icon',
+            } as TopNavMenuIconData,
+          ]
+        : []),
+      {
+        tooltip: i18n.translate('notebook.deleteButton.tooltip', {
+          defaultMessage: 'Delete',
+        }),
+        ariaLabel: i18n.translate('notebook.deleteButton.tooltip', {
+          defaultMessage: 'Delete',
+        }),
+        testId: 'notebook-delete-icon',
+        run: showDeleteNotebookModal,
+        iconType: 'trash',
+        controlType: 'icon',
+      } as TopNavMenuIconData,
+    ],
+    [
+      isSavedObjectNotebook,
+      showRenameModal,
+      isReportingPluginInstalled,
+      dataSourceMDSEnabled,
+      http,
+      notifications,
+      toggleReportingLoadingModal,
+      showDeleteNotebookModal,
+    ]
+  );
+
   const header = useMemo(
     () =>
       newNavigation ? (
@@ -514,72 +591,7 @@ export const NotebookHeader = ({
             <>
               <TopNavMenu
                 appName={investigationNotebookID}
-                config={[
-                  {
-                    tooltip: i18n.translate('notebook.systemPromptSettingButton.tooltip', {
-                      defaultMessage: 'Edit system prompt',
-                    }),
-                    ariaLabel: i18n.translate('notebook.systemPromptSettingButton.tooltip', {
-                      defaultMessage: 'Edit system prompt',
-                    }),
-                    testId: 'notebook-system-prompt-icon',
-                    run: () => {
-                      setIsSystemPromptsModalOpen(true);
-                    },
-                    iconType: 'setting',
-                    controlType: 'icon',
-                  } as TopNavMenuIconData,
-                  ...(isSavedObjectNotebook
-                    ? [
-                        {
-                          tooltip: i18n.translate('notebook.editButton.tooltip', {
-                            defaultMessage: 'Edit name',
-                          }),
-                          ariaLabel: i18n.translate('notebook.editButton.tooltip', {
-                            defaultMessage: 'Edit name',
-                          }),
-                          testId: 'notebook-edit-icon',
-                          run: showRenameModal,
-                          iconType: 'pencil',
-                          controlType: 'icon',
-                        } as TopNavMenuIconData,
-                      ]
-                    : []),
-                  ...(isReportingPluginInstalled && !dataSourceMDSEnabled
-                    ? [
-                        {
-                          tooltip: i18n.translate('notebook.header.downloadPDFTooltip', {
-                            defaultMessage: 'Download PDF',
-                          }),
-                          ariaLabel: i18n.translate('notebook.header.downloadPDFTooltip', {
-                            defaultMessage: 'Download PDF',
-                          }),
-                          testId: 'notebook-download-pdf-icon',
-                          run: () => {
-                            generateInContextReport(
-                              'pdf',
-                              { http, notifications },
-                              toggleReportingLoadingModal
-                            );
-                          },
-                          iconType: 'download',
-                          controlType: 'icon',
-                        } as TopNavMenuIconData,
-                      ]
-                    : []),
-                  {
-                    tooltip: i18n.translate('notebook.deleteButton.tooltip', {
-                      defaultMessage: 'Delete',
-                    }),
-                    ariaLabel: i18n.translate('notebook.deleteButton.tooltip', {
-                      defaultMessage: 'Delete',
-                    }),
-                    testId: 'notebook-delete-icon',
-                    run: showDeleteNotebookModal,
-                    iconType: 'trash',
-                    controlType: 'icon',
-                  } as TopNavMenuIconData,
-                ]}
+                config={topNavMenuConfig}
                 screenTitle={path}
                 setMenuMountPoint={appMountService.setHeaderActionMenu}
               />
@@ -633,17 +645,10 @@ export const NotebookHeader = ({
     [
       newNavigation,
       appMountService,
-      isLoading,
-      notifications,
-      dataSourceId,
-      isSavedObjectNotebook,
-      showRenameModal,
-      isReportingPluginInstalled,
-      dataSourceMDSEnabled,
-      http,
-      toggleReportingLoadingModal,
-      showDeleteNotebookModal,
+      topNavMenuConfig,
       path,
+      isLoading,
+      dataSourceId,
       dateModified,
       dateCreated,
       noteActionIcons,
