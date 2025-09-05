@@ -45,8 +45,10 @@ import { PERAgentMemoryService } from './services/per_agent_memory_service';
 
 export const DeepResearchParagraph = ({
   paragraphState,
+  actionDisabled,
 }: {
   paragraphState: ParagraphState<DeepResearchOutputResult, DeepResearchInputParameters>;
+  actionDisabled: boolean;
 }) => {
   const {
     services: { http },
@@ -163,7 +165,7 @@ export const DeepResearchParagraph = ({
               },
             ]
           : []),
-        ...(paragraphValue.input.inputType === AI_RESPONSE_TYPE
+        ...(paragraphValue.input.inputType === AI_RESPONSE_TYPE && actionDisabled
           ? [
               {
                 name: 'Re-Run',
@@ -181,6 +183,7 @@ export const DeepResearchParagraph = ({
     paragraphValue.input.inputType,
     runParagraphHandler,
     taskFinished,
+    actionDisabled,
   ]);
 
   useEffect(() => {
