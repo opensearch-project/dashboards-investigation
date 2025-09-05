@@ -8,4 +8,7 @@ import { ParagraphRegistryItem } from '../services/paragraph_service';
 
 export const VisualizationParagraphItem: ParagraphRegistryItem = {
   ParagraphComponent: VisualizationParagraph,
+  runParagraph: async () => {
+    return;
+  },
 };
