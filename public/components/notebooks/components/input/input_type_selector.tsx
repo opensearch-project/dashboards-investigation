@@ -61,17 +61,19 @@ export const InputTypeSelector: React.FC<InputTypeSelectorProps> = ({
     >
       <EuiListGroup>
         {paragraphOptions.map(({ key, label, icon: iconType }) => (
-          <EuiListGroupItem
-            id={key}
-            autoFocus={current === key}
-            onClick={() => {
-              handlePopoverItemClick(key as InputType);
-            }}
-            size="s"
-            label={label}
-            color="text"
-            icon={<EuiIcon aria-label={`${label} button`} type={iconType} size="m" />}
-          />
+          <React.Fragment key={key}>
+            <EuiListGroupItem
+              id={key}
+              autoFocus={current === key}
+              onClick={() => {
+                handlePopoverItemClick(key as InputType);
+              }}
+              size="s"
+              label={label}
+              color="text"
+              icon={<EuiIcon aria-label={`${label} button`} type={iconType} size="m" />}
+            />
+          </React.Fragment>
         ))}
       </EuiListGroup>
     </EuiPopover>
