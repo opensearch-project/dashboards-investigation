@@ -165,7 +165,7 @@ export const DeepResearchParagraph = ({
               },
             ]
           : []),
-        ...(paragraphValue.input.inputType === AI_RESPONSE_TYPE && actionDisabled
+        ...(paragraphValue.input.inputType === AI_RESPONSE_TYPE && !actionDisabled
           ? [
               {
                 name: 'Re-Run',
