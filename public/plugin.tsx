@@ -32,6 +32,7 @@ import {
   setSearch,
   ParagraphService,
   setNotifications,
+  setVisualizations,
 } from './services';
 import { Notebook, NotebookProps } from './components/notebooks/components/notebook';
 import { NOTEBOOK_APP_NAME } from '../common/constants/notebooks';
@@ -140,6 +141,7 @@ export class InvestigationPlugin
     setClient(core.http);
     setEmbeddable(startDeps.embeddable);
     setNotifications(core.notifications);
+    setVisualizations(startDeps.visualizations);
 
     // Export so other plugins can use this flyout
     return {};

@@ -7,11 +7,6 @@
     display: flex;
     overflow: hidden;
 
-
-    > :last-child {
-        margin-right: auto;
-    }
-
     &__verticalSeparator {
         width: 1px;
         height: $ouiSizeS * 2;
