@@ -172,13 +172,15 @@ export async function updateRunFetchParagraph<TOutput>(
       dateModified: new Date().toISOString(),
     };
     const notebookContext = notebookInfo.attributes.savedNotebook?.context;
-    if (notebookContext && !notebookContext.memoryId) {
-      const targetParagraph:
-        | ParagraphBackendType<DeepResearchOutputResult>
-        | undefined = updatedOutputParagraphs.find(({ id }) => id === params.paragraphId) as
-        | ParagraphBackendType<DeepResearchOutputResult>
-        | undefined;
+    if (notebookContext && notebookContext.initialGoal) {
+      const firstDeepResearchParagraph = updatedOutputParagraphs.find(
+        ({ input }) => input.inputType === DEEP_RESEARCH_PARAGRAPH_TYPE
+      );
+      const targetParagraph = updatedOutputParagraphs.find(
+        ({ id }) => id === params.paragraphId
+      ) as ParagraphBackendType<DeepResearchOutputResult> | undefined;
       if (
+        firstDeepResearchParagraph?.id === targetParagraph?.id &&
         targetParagraph?.input.inputType === DEEP_RESEARCH_PARAGRAPH_TYPE &&
         targetParagraph?.output?.[0]?.outputType === DEEP_RESEARCH_PARAGRAPH_TYPE
       ) {
@@ -276,6 +278,20 @@ export async function runParagraph<TOutput>(
             context,
             dataSourceId: updatedParagraph.dataSourceMDSId,
           });
+          const isDeepResearchParagraph = inputType === DEEP_RESEARCH_PARAGRAPH_TYPE;
+          let baseMemoryId = isDeepResearchParagraph
+            ? notebookinfo.attributes.savedNotebook.context?.memoryId
+            : undefined;
+          // Always use fresh memory for first deep research paragraph rerun
+          if (
+            isDeepResearchParagraph &&
+            !!baseMemoryId &&
+            !paragraphs
+              .slice(0, index)
+              .some((item) => item.input.inputType === DEEP_RESEARCH_PARAGRAPH_TYPE)
+          ) {
+            baseMemoryId = undefined;
+          }
 
           const newParagraph = await executePERAgentInParagraph({
             transport,
@@ -283,10 +299,7 @@ export async function runParagraph<TOutput>(
               unknown,
               DeepResearchInputParameters
             >,
-            baseMemoryId:
-              inputType === AI_RESPONSE_TYPE
-                ? undefined
-                : notebookinfo.attributes.savedNotebook.context?.memoryId,
+            baseMemoryId,
           });
           updatedParagraph.dateModified = newParagraph.dateModified;
           updatedParagraph.input = newParagraph.input;

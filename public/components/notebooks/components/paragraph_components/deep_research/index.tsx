@@ -37,6 +37,7 @@ import {
   DEEP_RESEARCH_PARAGRAPH_TYPE,
 } from '../../../../../../common/constants/notebooks';
 import { isStateCompletedOrFailed } from '../../../../../../common/utils/task';
+import { getInputType } from '../../../../../../common/utils/paragraph';
 
 import { StepDetailsModal } from './step_details_modal';
 import { PERAgentTaskService } from './services/per_agent_task_service';
@@ -113,6 +114,12 @@ export const DeepResearchParagraph = ({
     }
     return undefined;
   }, [rawOutputResult]);
+  const isFirstDeepResearchParagraph = useMemo(() => {
+    const firstDeepResearchParagraph = state.value.paragraphs.find(
+      (item) => getInputType(item.value) === DEEP_RESEARCH_PARAGRAPH_TYPE
+    );
+    return firstDeepResearchParagraph?.value.id === paragraphValue.id;
+  }, [state.value.paragraphs, paragraphValue]);
 
   const runParagraphHandler = useCallback(
     async (inputPayload?: Partial<ParagraphStateValue['input']>) => {
@@ -165,7 +172,8 @@ export const DeepResearchParagraph = ({
               },
             ]
           : []),
-        ...(paragraphValue.input.inputType === AI_RESPONSE_TYPE && !actionDisabled
+        ...((paragraphValue.input.inputType === AI_RESPONSE_TYPE || isFirstDeepResearchParagraph) &&
+        !actionDisabled
           ? [
               {
                 name: 'Re-Run',
@@ -184,6 +192,7 @@ export const DeepResearchParagraph = ({
     runParagraphHandler,
     taskFinished,
     actionDisabled,
+    isFirstDeepResearchParagraph,
   ]);
 
   useEffect(() => {
