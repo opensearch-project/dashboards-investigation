@@ -8,6 +8,14 @@ import { IOpenSearchDashboardsResponse, IRouter } from '../../../../../src/core/
 import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
 import { getOpenSearchClientTransport } from '../utils';
 import { getMLService } from '../../services/get_set';
+import { LogPattern, LogSequenceEntry } from '../../../common/types/log_pattern';
+
+interface LogPatternAnalysisRes {
+  logInsights: LogPattern[];
+  patternMapDifference?: LogPattern[];
+  EXCEPTIONAL?: Record<string, string>;
+  BASE?: Record<string, string>;
+}
 
 export function registerLogPatternRoute(router: IRouter) {
   router.post(
@@ -48,8 +56,26 @@ export function registerLogPatternRoute(router: IRouter) {
           },
         });
 
+        const convertMapToSequenceArray = (
+          map: { [key: string]: string } | undefined
+        ): LogSequenceEntry[] => {
+          if (!map) return [];
+          return Object.entries(map).map(([traceId, sequence]) => ({
+            traceId,
+            sequence,
+          }));
+        };
+
+        const result = JSON.parse(
+          body.inference_results[0].output[0].result
+        ) as LogPatternAnalysisRes;
+
         return response.ok({
-          body: body.inference_results[0].output[0].result,
+          body: {
+            ...result,
+            EXCEPTIONAL: convertMapToSequenceArray(result.EXCEPTIONAL),
+            BASE: convertMapToSequenceArray(result.BASE),
+          },
         });
       } catch (error) {
         return response.custom({

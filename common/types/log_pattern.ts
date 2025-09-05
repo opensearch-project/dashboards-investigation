@@ -10,15 +10,18 @@ export interface LogPattern {
   base?: number;
   selection?: number;
   lift?: number;
+  excluded?: boolean;
 }
 
 export interface LogSequenceEntry {
-  [key: string]: string;
+  traceId: string;
+  sequence: string;
+  excluded?: boolean;
 }
 
 export interface LogPatternAnalysisResult {
   logInsights: LogPattern[];
   patternMapDifference?: LogPattern[];
-  EXCEPTIONAL?: LogSequenceEntry;
-  BASE?: LogSequenceEntry;
+  EXCEPTIONAL?: LogSequenceEntry[];
+  BASE?: LogSequenceEntry[];
 }

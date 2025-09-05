@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useContext, useEffect, useState, useMemo } from 'react';
+import React, { useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { EuiPanel, EuiText, EuiSpacer, EuiCallOut, EuiTitle } from '@elastic/eui';
 import moment from 'moment';
 import { useObservable } from 'react-use';
-import { LogPatternAnalysisResult } from 'common/types/log_pattern';
+import { LogPattern, LogPatternAnalysisResult, LogSequenceEntry } from 'common/types/log_pattern';
 import { NoteBookServices } from 'public/types';
 import { i18n } from '@osd/i18n';
 import {
@@ -39,7 +39,6 @@ interface LogPatternContainerProps {
 }
 
 interface LoadingStatus {
-  isLoading: boolean;
   isLoadingLogInsights: boolean;
   isLoadingPatternMapDifference: boolean;
   isLoadingLogSequence: boolean;
@@ -54,7 +53,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
   const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({
-    isLoading: false,
     isLoadingLogInsights: false,
     isLoadingPatternMapDifference: false,
     isLoadingLogSequence: false,
@@ -65,14 +63,15 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
   });
   const [error, setError] = useState<string | null>(null);
   const paragraph = useObservable(paragraphState.getValue$());
+  const paragraphRef = useRef(paragraph);
   const [result, setResult] = useState<LogPatternAnalysisResult>({
     logInsights: [],
     patternMapDifference: [],
-    EXCEPTIONAL: {},
-    BASE: {},
+    EXCEPTIONAL: [],
   });
   const { saveParagraph } = useParagraphs();
-  const [hasData, setHasData] = useState<boolean>(false);
+  const [initialized, setInitialized] = useState<boolean>(false);
+  const [pendingSaveOutput, setPendingSaveOutput] = useState<boolean>(false);
   const notebookReactContext = useContext(NotebookReactContext);
 
   const notebookState = useObservable(notebookReactContext.state.getValue$());
@@ -84,14 +83,20 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
   > | null>(null);
 
   useEffect(() => {
+    paragraphRef.current = paragraph;
+  }, [paragraph]);
+
+  useEffect(() => {
     const processContextValues = async () => {
       if (!context) {
         setMemoizedContextValues(null);
         return;
       }
 
-      const timeField = paragraph?.input.parameters?.timeField || context.timeField;
-      const index = paragraph?.input.parameters?.index || context.index;
+      const currentPara = paragraphRef.current;
+
+      const timeField = currentPara?.input.parameters?.timeField || context.timeField;
+      const index = currentPara?.input.parameters?.index || context.index;
 
       const pplQuery = context.variables?.pplQuery;
       const timeRange = [context.timeRange?.selectionFrom, context.timeRange?.selectionTo];
@@ -106,8 +111,8 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
             (con) => isTimeFieldCondition(con.left) || isTimeFieldCondition(con.right)
           ) || [];
         for (const con of timeConditions) {
-          const timeFiledOnLeft = isTimeFieldCondition(con.left);
-          const timeValue = timeFiledOnLeft ? con.right : con.left;
+          const timeFieldOnLeft = isTimeFieldCondition(con.left);
+          const timeValue = timeFieldOnLeft ? con.right : con.left;
           // the time value could be expression like `date_sub(now(), interval 1 hour)`
           const pplToEval = `source=${index} | head 1 | eval timeValue = ${timeValue} | fields timeValue`;
           dataService.setConfig(context.dataSourceId, index || '', timeField || '');
@@ -115,7 +120,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
           if (data && data.length > 0) {
             const time = moment.utc(data[0].timeValue).valueOf();
             // merge
-            if (timeFiledOnLeft) {
+            if (timeFieldOnLeft) {
               if (con.op === '<' || con.op === '<=') {
                 timeRange[1] = timeRange[1] !== undefined ? Math.min(time, timeRange[1]) : time;
               } else {
@@ -144,19 +149,15 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
               baselineTo: context.timeRange.baselineTo,
             }
           : undefined,
-        indexInsight: paragraph?.input.parameters?.insight || context.indexInsight,
+        indexInsight: currentPara?.input.parameters?.insight || context.indexInsight,
       });
     };
 
     processContextValues();
-  }, [context, paragraph?.input.parameters, dataService]);
-
-  // Memoize para.out to prevent array reference changes
-  const memoizedParaOut = useMemo(() => {
-    return paragraph?.output?.[0].result;
-  }, [paragraph]);
+  }, [context, dataService]);
 
   useEffect(() => {
+    if (initialized) return;
     if (!memoizedContextValues) {
       return;
     }
@@ -175,8 +176,8 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
     } = memoizedContextValues.timeRange;
 
     const apiRequestsParam: LogPatternAnalysisParams = {
-      selectionStartTime: moment(selectionFrom).toISOString(),
-      selectionEndTime: moment(selectionTo).toISOString(),
+      selectionStartTime: moment(selectionFrom).utc().format(dateFormat),
+      selectionEndTime: moment(selectionTo).utc().format(dateFormat),
       timeField: memoizedContextValues.timeField,
       logMessageField: memoizedContextValues?.indexInsight?.log_message_field,
       indexName: memoizedContextValues.index,
@@ -218,32 +219,23 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
     }
 
     // Parse the result from the paragraph output if available
-    if (memoizedParaOut) {
-      try {
-        if (memoizedParaOut) {
-          setResult(memoizedParaOut);
-          setLoadingStatus({
-            isLoading: false,
-            isLoadingLogInsights: false,
-            isLoadingPatternMapDifference: false,
-            isLoadingLogSequence: false,
-            completedRequests: apiRequests.length,
-            totalRequests: apiRequests.length,
-            currentlyRunning: [],
-            completedSteps: apiRequests.map((req) => req.name),
-          });
-          setHasData(true);
-          return;
-        }
-      } catch (err) {
-        setError('Failed to parse log pattern results');
-        return;
-      }
+    if (paragraphRef.current?.output?.[0].result) {
+      setResult(paragraphRef.current?.output?.[0].result);
+      setLoadingStatus({
+        isLoadingLogInsights: false,
+        isLoadingPatternMapDifference: false,
+        isLoadingLogSequence: false,
+        completedRequests: apiRequests.length,
+        totalRequests: apiRequests.length,
+        currentlyRunning: [],
+        completedSteps: apiRequests.map((req) => req.name),
+      });
+      setInitialized(true);
+      return;
     }
 
     // Initialize loading status
     setLoadingStatus({
-      isLoading: true,
       isLoadingLogInsights: apiRequests.some((request) => request.name === LOG_INSIGHTS_ANALYSIS),
       isLoadingPatternMapDifference: apiRequests.some(
         (request) => request.name === PATTERN_DIFFERENCE_ANALYSIS
@@ -255,7 +247,6 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
       completedSteps: [],
     });
     setError(null);
-    setHasData(false);
 
     const updateLoadingStatus = (requestName: string, isSuccess: boolean) => {
       setLoadingStatus((prevStatus) => {
@@ -278,10 +269,11 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
           completedRequests,
           currentlyRunning: [],
           completedSteps: newCompletedSteps,
-          isLoading: completedRequests < apiRequests.length,
         };
       });
     };
+
+    let remainingRequest = apiRequests.length;
 
     const fetchLogPatternAnalysis = async () => {
       const logPatternService = new LogPatternService(http);
@@ -308,76 +300,89 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
               request.resultKey === 'patternMapDifference' &&
               analysisResult.patternMapDifference
             ) {
-              newResult.patternMapDifference = analysisResult.patternMapDifference;
+              newResult.patternMapDifference = sortPatternMapDifference(
+                analysisResult.patternMapDifference || []
+              );
             } else if (request.resultKey === 'EXCEPTIONAL' && analysisResult.EXCEPTIONAL) {
               newResult.EXCEPTIONAL = analysisResult.EXCEPTIONAL;
-              // Also add BASELINE if available
-              if (analysisResult.BASE) {
-                newResult.BASE = analysisResult.BASE;
-              }
             }
             return newResult;
           });
 
           // Update loading status
           updateLoadingStatus(request.name, true);
-          setHasData(true);
+          remainingRequest--;
         } catch (err) {
-          if (err.response?.status === 404) {
-            setError('Log sequence/pattern analysis agent not found');
-            return;
-          }
-
           // Update loading status even for failed requests
           updateLoadingStatus(request.name, false);
         }
       }
+      if (remainingRequest === 0) {
+        setInitialized(true);
+        setPendingSaveOutput(true);
+      }
     };
 
     fetchLogPatternAnalysis();
-  }, [memoizedContextValues, memoizedParaOut, http]);
+  }, [memoizedContextValues, initialized, http]);
+
+  const handleLogInsightExclude = useCallback((item: LogPattern) => {
+    setResult((prevResult) => {
+      const newResult = { ...prevResult };
+      newResult.logInsights = newResult.logInsights.map((logInsight) => {
+        if (logInsight.pattern === item.pattern) {
+          logInsight.excluded = !logInsight.excluded;
+        }
+        return logInsight;
+      });
+      return newResult;
+    });
+    setPendingSaveOutput(true);
+  }, []);
+
+  const handlePatternDifferenceExclude = useCallback((item: LogPattern) => {
+    setResult((prevResult) => {
+      const newResult = { ...prevResult };
+      newResult.patternMapDifference = newResult.patternMapDifference?.map((pattern) => {
+        if (pattern.pattern === item.pattern) {
+          pattern.excluded = !pattern.excluded;
+        }
+        return pattern;
+      });
+      return newResult;
+    });
+    setPendingSaveOutput(true);
+  }, []);
+
+  const handleLogSequenceExclude = useCallback((item: LogSequenceEntry) => {
+    setResult((prevResult) => {
+      const newResult = { ...prevResult };
+      newResult.EXCEPTIONAL = newResult.EXCEPTIONAL?.map((sequence) => {
+        if (sequence.traceId === item.traceId) {
+          sequence.excluded = !sequence.excluded;
+        }
+        return sequence;
+      });
+      return newResult;
+    });
+    setPendingSaveOutput(true);
+  }, []);
 
   useEffect(() => {
-    if (
-      loadingStatus.completedRequests === loadingStatus.totalRequests &&
-      loadingStatus.completedRequests > 0 &&
-      hasData &&
-      !ParagraphState.getOutput(paragraph)?.result.logInsights &&
-      !paragraph?.uiState?.isRunning
-    ) {
-      if (paragraph) {
-        result.patternMapDifference = sortPatternMapDifference(result.patternMapDifference || []);
+    if (pendingSaveOutput) {
+      if (paragraphRef.current) {
         saveParagraph({
-          paragraphStateValue: ParagraphState.updateOutputResult(paragraph, result),
+          paragraphStateValue: ParagraphState.updateOutputResult(paragraphRef.current, result),
         });
       }
+      setPendingSaveOutput(false);
     }
-  }, [
-    loadingStatus.completedRequests,
-    loadingStatus.totalRequests,
-    result,
-    hasData,
-    paragraph,
-    saveParagraph,
-  ]);
+  }, [pendingSaveOutput, result, saveParagraph]);
 
   if (error) {
     return (
       <EuiCallOut title="Error" color="danger">
         <p>{error}</p>
-      </EuiCallOut>
-    );
-  }
-
-  if (!hasData && !loadingStatus.isLoading) {
-    return (
-      <EuiCallOut title="No results" color="primary">
-        <p>
-          {i18n.translate('notebook.log.sequence.paragraph.no.result', {
-            defaultMessage:
-              'No log pattern analysis results available. Run the analysis to see results.',
-          })}
-        </p>
       </EuiCallOut>
     );
   }
@@ -414,6 +419,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
       <LogInsight
         logInsights={result.logInsights || []}
         isLoadingLogInsights={loadingStatus.isLoadingLogInsights}
+        onExclude={handleLogInsightExclude}
       />
 
       <EuiSpacer size="s" />
@@ -422,6 +428,8 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
       <PatternDifference
         patternMapDifference={result.patternMapDifference || []}
         isLoadingPatternMapDifference={loadingStatus.isLoadingPatternMapDifference}
+        isNotApplicable={!memoizedContextValues?.timeRange?.baselineFrom}
+        onExclude={handlePatternDifferenceExclude}
       />
 
       <EuiSpacer size="s" />
@@ -431,6 +439,13 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
         exceptionalSequences={result.EXCEPTIONAL}
         baselineSequences={result.BASE}
         isLoadingLogSequence={loadingStatus.isLoadingLogSequence}
+        isNotApplicable={
+          !(
+            memoizedContextValues?.timeRange?.baselineFrom &&
+            memoizedContextValues.indexInsight?.trace_id_field
+          )
+        }
+        onExclude={handleLogSequenceExclude}
       />
     </EuiPanel>
   );
