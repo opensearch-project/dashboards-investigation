@@ -34,6 +34,7 @@ export const codeBlockNotebook = {
       id: 'paragraph_de00ea2d-a8fb-45d1-8085-698f51c6b6be',
     },
   ],
+  context: { notebookType: 'Agentic' },
 };
 
 export const migrateBlockNotebook = {
@@ -76,6 +77,7 @@ export const emptyNotebook = {
   dateCreated: '2023-12-14T18:49:43.375Z',
   dateModified: '2023-12-15T06:13:23.463Z',
   paragraphs: [],
+  context: { notebookType: 'Agentic' },
 };
 
 // Sample notebook with all input and output
