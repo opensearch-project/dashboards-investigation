@@ -27,7 +27,7 @@ describe('Query Utils', () => {
       const query = 'source=logs';
       const result = addHeadFilter(query);
 
-      expect(result).toBe('source=logs | sort _id | head 100 ');
+      expect(result).toBe('source=logs | sort - _id | head 100');
     });
 
     it('should handle complex query', () => {
@@ -35,13 +35,13 @@ describe('Query Utils', () => {
       const result = addHeadFilter(query);
 
       expect(result).toBe(
-        'source=logs | where status="error" | stats count by host | sort _id | head 100 '
+        'source=logs | where status="error" | stats count by host | sort - _id | head 100'
       );
     });
 
     it('should handle empty query', () => {
       const result = addHeadFilter('');
-      expect(result).toBe(' | sort _id | head 100 ');
+      expect(result).toBe(' | sort - _id | head 100');
     });
   });
 
@@ -69,7 +69,7 @@ describe('Query Utils', () => {
           path: '/_plugins/_ppl',
           method: 'POST',
           body: JSON.stringify({
-            query: 'source=logs | sort _id | head 100 ',
+            query: 'source=logs | sort - _id | head 100',
           }),
         },
       });

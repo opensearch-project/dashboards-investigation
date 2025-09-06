@@ -7,7 +7,7 @@ import { HttpSetup } from '../../../../src/core/public';
 import { callOpenSearchCluster } from '../../public/plugin_helpers/plugin_proxy_call';
 
 export const addHeadFilter = (query: string) => {
-  return `${query} | sort _id | head 100 `;
+  return `${query} | sort - _id | head 100`;
 };
 
 export const executePPLQueryWithHeadFilter = async ({
