@@ -7,23 +7,7 @@ import { HttpSetup } from '../../../../src/core/public';
 import { callOpenSearchCluster } from '../../public/plugin_helpers/plugin_proxy_call';
 
 export const addHeadFilter = (query: string) => {
-  return `${query} | eval random_score = rand() | sort random_score | head 100`;
-};
-
-export const removeRandomScoreFromResponse = (response: any) => {
-  let randomScoreIndex = -1;
-  if (response?.schema) {
-    randomScoreIndex = response.schema.findIndex((field: any) => field.name === 'random_score');
-    if (randomScoreIndex !== -1) {
-      response.schema = response.schema.filter((field: any) => field.name !== 'random_score');
-    }
-  }
-  if (response?.datarows && randomScoreIndex !== -1) {
-    response.datarows = response.datarows.map((row: any[]) =>
-      row.filter((_, index) => index !== randomScoreIndex)
-    );
-  }
-  return response;
+  return `${query} | sort _id | head 100 `;
 };
 
 export const executePPLQueryWithHeadFilter = async ({
@@ -45,7 +29,5 @@ export const executePPLQueryWithHeadFilter = async ({
         query: addHeadFilter(query),
       }),
     },
-  }).then((res) => {
-    return removeRandomScoreFromResponse(res);
   });
 };
