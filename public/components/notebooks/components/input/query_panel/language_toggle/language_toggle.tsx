@@ -8,13 +8,14 @@ import { EuiBetaBadge, EuiContextMenuItem, EuiContextMenuPanel, EuiPopover } fro
 import classNames from 'classnames';
 import { useInputContext } from '../../input_context';
 import { QueryLanguage, QueryState } from '../../types';
+import { NotebookType } from '../../../../../../../common/types/notebooks';
 
 import './language_toggle.scss';
 
 export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
   promptModeIsAvailable,
 }) => {
-  const { inputValue, handleInputChange, handleSetCurrInputType } = useInputContext();
+  const { inputValue, notebookType, handleInputChange, handleSetCurrInputType } = useInputContext();
 
   const { isPromptEditorMode, queryLanguage } = (inputValue as QueryState) || {};
 
@@ -49,13 +50,6 @@ export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
   const items = useMemo(() => {
     const output = [
       <EuiContextMenuItem
-        key="SQL"
-        onClick={() => onItemClick('SQL')}
-        data-test-subj="queryPanelFooterLanguageToggle-SQL"
-      >
-        SQL
-      </EuiContextMenuItem>,
-      <EuiContextMenuItem
         key="PPL"
         onClick={() => onItemClick('PPL')}
         data-test-subj="queryPanelFooterLanguageToggle-PPL"
@@ -63,6 +57,18 @@ export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
         PPL
       </EuiContextMenuItem>,
     ];
+
+    if (notebookType === NotebookType.CLASSIC) {
+      output.push(
+        <EuiContextMenuItem
+          key="SQL"
+          onClick={() => onItemClick('SQL')}
+          data-test-subj="queryPanelFooterLanguageToggle-SQL"
+        >
+          SQL
+        </EuiContextMenuItem>
+      );
+    }
 
     if (promptModeIsAvailable) {
       output.push(
@@ -77,7 +83,7 @@ export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
     }
 
     return output;
-  }, [onItemClick, promptModeIsAvailable]);
+  }, [onItemClick, promptModeIsAvailable, notebookType]);
 
   return (
     // This div is needed to allow for the gradient styling

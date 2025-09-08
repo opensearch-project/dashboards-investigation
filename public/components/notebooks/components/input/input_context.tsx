@@ -53,6 +53,9 @@ interface InputContextValue<T extends InputType = InputType> {
   // Input object from paragraph
   paragraphInput: ParagraphInputType<T> | undefined;
 
+  // Notebook type, agentic or classic
+  notebookType: string | undefined;
+
   // Actions
   // Update the current state of input variant type
   handleSetCurrInputType: (type: T) => void;
@@ -127,7 +130,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
   }, []);
 
   const context = useContext(NotebookReactContext);
-  const { dataSourceId, initialGoal } = useObservable(
+  const { dataSourceId, initialGoal, notebookType } = useObservable(
     context.state.value.context.getValue$(),
     context.state.value.context.value
   );
@@ -231,6 +234,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
     paragraphOptions,
     dataSourceId,
     paragraphInput: input,
+    notebookType,
     handleSetCurrInputType,
     setIsParagraphSelectionOpen,
     handleInputChange,
