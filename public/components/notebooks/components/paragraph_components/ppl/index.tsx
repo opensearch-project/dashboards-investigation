@@ -94,7 +94,11 @@ export const PPLParagraph = ({
 
   useEffectOnce(() => {
     (async () => {
-      await paragraphRegistry?.runParagraph(paragraphState, saveParagraph, context.state.value);
+      await paragraphRegistry?.runParagraph({
+        paragraphState,
+        saveParagraph,
+        notebookStateValue: context.state.value,
+      });
     })();
   });
 
@@ -177,7 +181,11 @@ export const PPLParagraph = ({
               paragraphState.updateUIState({
                 isOutputStale: true,
               });
-              paragraphRegistry?.runParagraph(paragraphState, saveParagraph, context.state.value);
+              paragraphRegistry?.runParagraph({
+                paragraphState,
+                saveParagraph,
+                notebookStateValue: context.state.value,
+              });
             }}
           />
         </div>

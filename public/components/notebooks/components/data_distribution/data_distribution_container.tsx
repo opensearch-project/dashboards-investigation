@@ -86,7 +86,11 @@ export const DataDistributionContainer = ({
         return;
       }
 
-      await paragraphRegistry?.runParagraph(paragraphState, saveParagraph, context.state.value);
+      await paragraphRegistry?.runParagraph({
+        paragraphState,
+        saveParagraph,
+        notebookStateValue: context.state.value,
+      });
     })();
   }, [
     paragraphRegistry,

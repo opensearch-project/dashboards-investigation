@@ -28,7 +28,7 @@ export const DataDistributionParagraphItem: ParagraphRegistryItem<AnomalyVisuali
       ${JSON.stringify(paragraph?.output?.[0].result.fieldComparison)}.
     `;
   },
-  runParagraph: async (paragraphState, saveParagraph, notebookStateValue) => {
+  runParagraph: async ({ paragraphState, saveParagraph, notebookStateValue }) => {
     const paragraph = paragraphState.value;
     const {
       timeRange,

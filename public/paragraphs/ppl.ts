@@ -73,7 +73,7 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
           \`\`\`
         `;
   },
-  runParagraph: async (paragraphState, saveParagraph) => {
+  runParagraph: async ({ paragraphState, saveParagraph }) => {
     const paragraphValue = paragraphState.getBackendValue();
     const inputText = paragraphValue.input.inputText;
     const queryType = inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
