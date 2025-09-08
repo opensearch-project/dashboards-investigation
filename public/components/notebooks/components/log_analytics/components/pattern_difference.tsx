@@ -28,7 +28,7 @@ interface PatternDifferenceProps {
 }
 
 // Function to sort and limit patternMapDifference to top 10 with lift and top 10 without lift
-export const sortPatternMapDifference = (patterns: LogPattern[]) => {
+export const sortPatternMapDifference = (patterns?: LogPattern[]) => {
   if (!patterns || patterns.length === 0) {
     return patterns;
   }
@@ -198,9 +198,9 @@ export const PatternDifference: React.FC<PatternDifferenceProps> = ({
         rowProps={(item) => ({
           style: item.excluded
             ? {
-                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                backgroundColor: 'rgba(255, 255, 255, 0.3)',
                 color: 'var(--euiColorSubdued)',
-                opacity: 0.6,
+                opacity: 0.3,
               }
             : undefined,
         })}

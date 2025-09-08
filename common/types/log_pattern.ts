@@ -20,7 +20,7 @@ export interface LogSequenceEntry {
 }
 
 export interface LogPatternAnalysisResult {
-  logInsights: LogPattern[];
+  logInsights?: LogPattern[];
   patternMapDifference?: LogPattern[];
   EXCEPTIONAL?: LogSequenceEntry[];
   BASE?: LogSequenceEntry[];

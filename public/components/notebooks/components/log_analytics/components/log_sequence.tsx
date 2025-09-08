@@ -58,8 +58,8 @@ export const LogSequence: React.FC<LogSequenceProps> = ({
           <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
             {sequenceItems.length > 0 ? (
               <ol>
-                {sequenceItems.map((item, index) => (
-                  <SequenceItem key={index} item={item} index={index} />
+                {sequenceItems.reverse().map((item, index) => (
+                  <SequenceItem key={index} item={item} index={sequenceItems.length - index} />
                 ))}
               </ol>
             ) : (
@@ -117,9 +117,9 @@ export const LogSequence: React.FC<LogSequenceProps> = ({
             rowProps={(item) => ({
               style: item.excluded
                 ? {
-                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
                     color: 'var(--euiColorSubdued)',
-                    opacity: 0.6,
+                    opacity: 0.3,
                   }
                 : undefined,
             })}
