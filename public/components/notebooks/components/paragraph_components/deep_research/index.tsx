@@ -123,13 +123,13 @@ export const DeepResearchParagraph = ({
     async (inputPayload?: Partial<ParagraphStateValue['input']>) => {
       paragraphState.updateInput({
         ...inputPayload,
-        parameters: getLocalInputParameters(),
+        parameters: getLocalInputParameters(contextValue.dataSourceId),
       });
       await runParagraph({
         id: paragraphValue.id,
       });
     },
-    [runParagraph, paragraphState, paragraphValue.id]
+    [runParagraph, paragraphState, paragraphValue.id, contextValue.dataSourceId]
   );
 
   useEffect(() => {

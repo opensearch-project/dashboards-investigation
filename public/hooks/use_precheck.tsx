@@ -212,7 +212,7 @@ export const usePrecheck = () => {
                   input: {
                     inputText: '',
                     inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
-                    parameters: getLocalInputParameters(),
+                    parameters: getLocalInputParameters(res.context?.dataSourceId),
                   },
                   dataSourceMDSId: res.context?.dataSourceId,
                 });
