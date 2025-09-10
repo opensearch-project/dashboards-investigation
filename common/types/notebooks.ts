@@ -103,6 +103,7 @@ export interface SummaryDataItem {
     baselinePercentage?: number;
     selectionPercentage: number;
   }>;
+  excludeFromContext?: boolean;
 }
 
 export interface AnomalyVisualizationAnalysisOutputResult {
