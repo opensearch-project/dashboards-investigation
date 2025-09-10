@@ -13,12 +13,13 @@ export const useContextProcessor = (
   context: NotebookContext | undefined,
   inputParameters: string
 ) => {
-  const [processedContext, setProcessedContext] = useState<Partial<NotebookContext>>();
+  const [processedContext, setProcessedContext] = useState<Partial<NotebookContext>>({});
   const dataService = useMemo(() => new DataDistributionService(), []);
 
   useEffect(() => {
     const processContext = async () => {
       if (!context) {
+        setProcessedContext({});
         return;
       }
       const parameters = JSON.parse(inputParameters);

@@ -33,8 +33,8 @@ interface LoadingStatus {
 
 export const useLogPatternAnalysis = (
   http: HttpSetup,
-  saveParaOutput: (result: LogPatternAnalysisResult) => void,
-  contextValues?: Partial<NotebookContext>,
+  analysisParameters: Partial<NotebookContext>,
+  saveParaOutput?: (result: LogPatternAnalysisResult) => void,
   existingResult?: string
 ) => {
   const [result, setResult] = useState<LogPatternAnalysisResult>();
@@ -47,17 +47,17 @@ export const useLogPatternAnalysis = (
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const buildApiRequests = useCallback(() => {
-    if (!contextValues?.timeRange) return [];
+    if (!analysisParameters?.timeRange) return [];
 
-    const { selectionFrom, selectionTo, baselineFrom, baselineTo } = contextValues.timeRange;
+    const { selectionFrom, selectionTo, baselineFrom, baselineTo } = analysisParameters.timeRange;
 
     const baseParams = {
       selectionStartTime: moment(selectionFrom).utc().format(dateFormat),
       selectionEndTime: moment(selectionTo).utc().format(dateFormat),
-      timeField: contextValues.timeField,
-      logMessageField: contextValues?.indexInsight?.log_message_field,
-      indexName: contextValues.index,
-      dataSourceMDSId: contextValues.dataSourceId,
+      timeField: analysisParameters.timeField,
+      logMessageField: analysisParameters?.indexInsight?.log_message_field,
+      indexName: analysisParameters.index,
+      dataSourceMDSId: analysisParameters.dataSourceId,
     } as LogPatternAnalysisParams;
 
     const requests: Array<{
@@ -83,14 +83,14 @@ export const useLogPatternAnalysis = (
         resultKey: 'patternMapDifference' as keyof LogPatternAnalysisResult,
       });
 
-      if (contextValues?.indexInsight?.trace_id_field) {
+      if (analysisParameters?.indexInsight?.trace_id_field) {
         requests.push({
           name: ANALYSIS_TYPES.LOG_SEQUENCE,
           params: {
             ...baseParams,
             baselineStartTime: moment(baselineFrom).utc().format(dateFormat),
             baselineEndTime: moment(baselineTo).utc().format(dateFormat),
-            traceIdField: contextValues.indexInsight.trace_id_field,
+            traceIdField: analysisParameters.indexInsight.trace_id_field,
           },
           resultKey: 'EXCEPTIONAL' as keyof LogPatternAnalysisResult,
         });
@@ -98,7 +98,7 @@ export const useLogPatternAnalysis = (
     }
 
     return requests;
-  }, [contextValues]);
+  }, [analysisParameters]);
 
   const fetchAnalysis = useCallback(async () => {
     const requests = buildApiRequests();
@@ -171,7 +171,7 @@ export const useLogPatternAnalysis = (
   useEffect(() => {
     if (existingResult && !result) {
       setResult(JSON.parse(existingResult));
-    } else if (!existingResult && result && allRequestsComplete) {
+    } else if (!existingResult && result && allRequestsComplete && saveParaOutput) {
       saveParaOutput(result);
     }
   }, [existingResult, result, saveParaOutput, allRequestsComplete]);

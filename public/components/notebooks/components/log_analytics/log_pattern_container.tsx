@@ -65,70 +65,54 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
 
   const { result, loadingStatus, error, handleExclude } = useLogPatternAnalysis(
     http,
-    onSaveOutput,
     processedContext,
+    onSaveOutput,
     existingResult
   );
+
+  const toggleChange = useCallback((changeId: string) => {
+    setResultChanged(true);
+    setChanges((prev: string[]) =>
+      prev.includes(changeId) ? prev.filter((name) => name !== changeId) : [...prev, changeId]
+    );
+  }, []);
 
   const handleLogInsightExclude = useCallback(
     (item: LogPattern) => {
       handleExclude(item, 'logInsights');
-      setChanges((prev: string[]) => {
-        const change = `logInsights-${item.pattern}`;
-        if (prev.includes(change)) {
-          // remove it and return
-          return prev.filter((name) => name !== change);
-        } else {
-          // add it and return
-          return [...prev, change];
-        }
-      });
+      toggleChange(`logInsights-${item.pattern}`);
     },
-    [handleExclude]
+    [handleExclude, toggleChange]
   );
 
   const handlePatternDifferenceExclude = useCallback(
     (item: LogPattern) => {
       handleExclude(item, 'patternMapDifference');
-      setChanges((prev: string[]) => {
-        const change = `patternMapDifference-${item.pattern}`;
-        if (prev.includes(change)) {
-          // remove it and return
-          return prev.filter((name) => name !== change);
-        } else {
-          // add it and return
-          return [...prev, change];
-        }
-      });
+      toggleChange(`patternMapDifference-${item.pattern}`);
     },
-    [handleExclude]
+    [handleExclude, toggleChange]
   );
 
   const handleLogSequenceExclude = useCallback(
     (item: LogSequenceEntry) => {
       handleExclude(item, 'logSequence');
-      setChanges((prev: string[]) => {
-        const change = `logSequence-${item.traceId}`;
-        if (prev.includes(change)) {
-          return prev.filter((name) => name !== change);
-        } else {
-          return [...prev, change];
-        }
-      });
+      toggleChange(`logSequence-${item.traceId}`);
     },
-    [handleExclude]
+    [handleExclude, toggleChange]
   );
 
   const [changes, setChanges] = useState<string[]>([]);
+  const [resultChanged, setResultChanged] = useState<boolean>();
 
-  // // Save results when needed
-  // useEffect(() => {
-  //   if (changes.length > 0 && paragraphRef.current) {
-  //     saveParagraph({
-  //       paragraphStateValue: ParagraphState.updateOutputResult(paragraphRef.current, result),
-  //     });
-  //   }
-  // }, [result, changes, saveParagraph]);
+  // Save results when needed
+  useEffect(() => {
+    if (paragraphRef.current && resultChanged) {
+      saveParagraph({
+        paragraphStateValue: ParagraphState.updateOutputResult(paragraphRef.current, result),
+      });
+      setResultChanged(false);
+    }
+  }, [result, resultChanged, saveParagraph]);
 
   if (error) {
     return (
@@ -164,11 +148,11 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
       <EuiSpacer size="s" />
 
       {changes.length > 0 && (
-        <EuiCallOut color="primary" iconType="info">
+        <EuiCallOut color="warning" iconType="info">
           <EuiText>
             {i18n.translate('notebook.log.sequence.paragraph.notice', {
               defaultMessage:
-                'Note that excluding items will take effect once you re-run the investigation',
+                'Log analysis result is part of context of AI investigation, exclude some not useful items and re-run the AI investigation to see the more accurate investigation result based on your valuable feedback.',
             })}
           </EuiText>
         </EuiCallOut>
