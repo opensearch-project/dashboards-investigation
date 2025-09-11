@@ -18,6 +18,9 @@ import { getNotifications } from '../services';
 export const DataDistributionParagraphItem: ParagraphRegistryItem<AnomalyVisualizationAnalysisOutputResult> = {
   ParagraphComponent: DataDistributionContainer,
   getContext: async (paragraph) => {
+    const selectedFieldComparison = paragraph?.output?.[0].result.fieldComparison.filter(
+      (item) => !item.excludeFromContext
+    );
     return `
       ## Step description
       This step calculate fields' distribution and find the outlines between baselineTimeRange and selectionTimeRange. 
@@ -25,7 +28,7 @@ export const DataDistributionParagraphItem: ParagraphRegistryItem<AnomalyVisuali
 
       ## Step result:
       Anomaly detection has been performed on the data and the analysis identified anomalies in the following fields:
-      ${JSON.stringify(paragraph?.output?.[0].result.fieldComparison)}.
+      ${JSON.stringify(selectedFieldComparison)}.
     `;
   },
   runParagraph: async ({ paragraphState, saveParagraph, notebookStateValue }) => {
