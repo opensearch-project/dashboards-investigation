@@ -6,6 +6,8 @@
 import { PERAgentMemoryService } from '../per_agent_memory_service';
 import { getAllMessagesByMemoryId } from '../../utils';
 import { BehaviorSubject } from 'rxjs';
+import { httpServiceMock } from '../../../../../../../../../../src/core/public/http/http_service.mock';
+import { CoreStart } from '../../../../../../../../../../src/core/public';
 
 // Mock dependencies
 jest.mock('../../utils', () => ({
@@ -26,32 +28,6 @@ global.AbortController = jest.fn().mockImplementation(() => ({
   abort: jest.fn(),
 }));
 
-// Mock CoreStart type for testing
-interface MockHttpInterface {
-  post: jest.Mock;
-  get: jest.Mock;
-  put: jest.Mock;
-  delete: jest.Mock;
-  head: jest.Mock;
-  options: jest.Mock;
-  patch: jest.Mock;
-  fetch: jest.Mock;
-  basePath: {
-    prepend: jest.Mock;
-    get: jest.Mock;
-    getBasePath: jest.Mock;
-    remove: jest.Mock;
-    serverBasePath: string;
-  };
-  anonymousPaths: {
-    isAnonymous: jest.Mock;
-    register: jest.Mock;
-  };
-  intercept: jest.Mock;
-  addLoadingCountSource: jest.Mock;
-  getLoadingCount$: jest.Mock;
-}
-
 // Mock messages for tests
 const mockMessages = [
   { id: 'msg1', content: 'Message 1' },
@@ -62,7 +38,7 @@ describe('PERAgentMemoryService', () => {
   let service: PERAgentMemoryService;
   let mockMemoryId$: BehaviorSubject<string>;
   let mockShouldPolling: jest.Mock;
-  let mockHttp: MockHttpInterface;
+  let mockHttp: CoreStart['http'];
   let mockDataSourceId: string;
   let mockMemoryId: string;
 
@@ -71,30 +47,7 @@ describe('PERAgentMemoryService', () => {
     jest.clearAllMocks();
 
     // Setup mock data
-    mockHttp = {
-      post: jest.fn(),
-      get: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-      head: jest.fn(),
-      options: jest.fn(),
-      patch: jest.fn(),
-      fetch: jest.fn(),
-      basePath: {
-        prepend: jest.fn(),
-        get: jest.fn(),
-        getBasePath: jest.fn(),
-        remove: jest.fn(),
-        serverBasePath: '',
-      },
-      anonymousPaths: {
-        isAnonymous: jest.fn(),
-        register: jest.fn(),
-      },
-      intercept: jest.fn(),
-      addLoadingCountSource: jest.fn(),
-      getLoadingCount$: jest.fn(),
-    };
+    mockHttp = httpServiceMock.createStartContract();
     mockDataSourceId = 'test-datasource-id';
     mockMemoryId = 'memory-id-123';
 
