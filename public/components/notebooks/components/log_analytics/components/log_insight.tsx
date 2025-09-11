@@ -14,6 +14,7 @@ import {
   EuiSpacer,
   EuiTableFieldDataColumnType,
   EuiTitle,
+  EuiToolTip,
 } from '@elastic/eui';
 import { LogPattern } from '../../../../../../common/types/log_pattern';
 import { LogAnalyticsLoadingPanel } from './log_analytics_loading_panel';
@@ -21,9 +22,14 @@ import { LogAnalyticsLoadingPanel } from './log_analytics_loading_panel';
 interface LogInsightProps {
   logInsights: LogPattern[];
   isLoadingLogInsights: boolean;
+  onExclude?: (item: LogPattern) => void;
 }
 
-export const LogInsight: React.FC<LogInsightProps> = ({ logInsights, isLoadingLogInsights }) => {
+export const LogInsight: React.FC<LogInsightProps> = ({
+  logInsights,
+  isLoadingLogInsights,
+  onExclude,
+}) => {
   const [openPopovers, setOpenPopovers] = useState<{ [key: string]: boolean }>({});
 
   const togglePopover = (id: string) => {
@@ -95,6 +101,26 @@ export const LogInsight: React.FC<LogInsightProps> = ({ logInsights, isLoadingLo
       },
       width: '10%',
     },
+    ...(onExclude
+      ? [
+          {
+            field: '',
+            name: 'Actions',
+            render: (record: LogPattern) => (
+              <EuiToolTip content="Exclude from the results">
+                <EuiButtonIcon
+                  key={`deselect-${record.pattern}-${record.count}`}
+                  iconType="crossInCircleEmpty"
+                  aria-label="Deselect item"
+                  onClick={() => onExclude(record)}
+                  color="subdued"
+                />
+              </EuiToolTip>
+            ),
+            width: '10%',
+          },
+        ]
+      : []),
   ];
 
   const renderSection = () => {
@@ -114,6 +140,15 @@ export const LogInsight: React.FC<LogInsightProps> = ({ logInsights, isLoadingLo
         columns={logInsightsColumns}
         tableCaption="Log Insights"
         noItemsMessage="No log insights patterns were detected in the analysis."
+        rowProps={(item) => ({
+          style: item.excluded
+            ? {
+                backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                color: 'var(--euiColorSubdued)',
+                opacity: 0.3,
+              }
+            : undefined,
+        })}
       />
     );
   };

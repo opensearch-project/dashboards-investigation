@@ -7,12 +7,14 @@ import React from 'react';
 import {
   EuiBadge,
   EuiBasicTable,
+  EuiButtonIcon,
   EuiCodeBlock,
   EuiEmptyPrompt,
   EuiFlexGroup,
   EuiFlexItem,
   EuiIcon,
   EuiTableFieldDataColumnType,
+  EuiToolTip,
 } from '@elastic/eui';
 import { LogPattern } from '../../../../../../common/types/log_pattern';
 import { errorKeywords } from '../../../../../../common/constants/notebooks';
@@ -21,10 +23,12 @@ import { LogAnalyticsLoadingPanel } from './log_analytics_loading_panel';
 interface PatternDifferenceProps {
   patternMapDifference: LogPattern[];
   isLoadingPatternMapDifference: boolean;
+  isNotApplicable: boolean;
+  onExclude?: (item: LogPattern) => void;
 }
 
 // Function to sort and limit patternMapDifference to top 10 with lift and top 10 without lift
-export const sortPatternMapDifference = (patterns: LogPattern[]) => {
+export const sortPatternMapDifference = (patterns?: LogPattern[]) => {
   if (!patterns || patterns.length === 0) {
     return patterns;
   }
@@ -73,6 +77,8 @@ export const sortPatternMapDifference = (patterns: LogPattern[]) => {
 export const PatternDifference: React.FC<PatternDifferenceProps> = ({
   patternMapDifference,
   isLoadingPatternMapDifference,
+  isNotApplicable,
+  onExclude,
 }) => {
   // Columns for pattern difference table
   const patternDiffColumns: Array<EuiTableFieldDataColumnType<LogPattern>> = [
@@ -145,17 +151,40 @@ export const PatternDifference: React.FC<PatternDifferenceProps> = ({
       },
       width: '10%',
     },
+    ...(onExclude
+      ? [
+          {
+            field: '',
+            name: 'Actions',
+            render: (record: LogPattern) => (
+              <EuiToolTip content="Exclude from the results">
+                <EuiButtonIcon
+                  key={`deselect-${record.pattern}-${record.selection}`}
+                  iconType="crossInCircleEmpty"
+                  aria-label="Deselect item"
+                  onClick={() => onExclude(record)}
+                  color="subdued"
+                />
+              </EuiToolTip>
+            ),
+            width: '10%',
+          },
+        ]
+      : []),
   ];
 
+  const emptyMessage = isNotApplicable
+    ? 'No pattern differences due to no baseline for comparison'
+    : 'No significant pattern differences found between baseline and selection periods.';
+
+  const emptyResultTitle = isNotApplicable ? 'Not applicable' : 'No pattern differences found';
   const renderSection = () => {
     if (!patternMapDifference || patternMapDifference.length === 0) {
       return (
         <EuiEmptyPrompt
           iconType="search"
-          title={<h4>No pattern differences found</h4>}
-          body={
-            <p>No significant pattern differences found between baseline and selection periods.</p>
-          }
+          title={<h4>{emptyResultTitle}</h4>}
+          body={<p>{emptyMessage}</p>}
         />
       );
     }
@@ -165,7 +194,16 @@ export const PatternDifference: React.FC<PatternDifferenceProps> = ({
         items={patternMapDifference}
         columns={patternDiffColumns}
         tableCaption="Pattern Differences"
-        noItemsMessage="No significant pattern differences found between baseline and selection periods."
+        noItemsMessage={emptyMessage}
+        rowProps={(item) => ({
+          style: item.excluded
+            ? {
+                backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                color: 'var(--euiColorSubdued)',
+                opacity: 0.3,
+              }
+            : undefined,
+        })}
       />
     );
   };
