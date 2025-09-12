@@ -12,7 +12,7 @@ import {
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
 import { getClient, getNotifications } from '../services';
-import { executePPLQueryWithHeadFilter } from '../../public/utils/query';
+import { executePPLQueryWithSampling } from '../../public/utils/query';
 import { parsePPLQuery } from '../../common/utils';
 import { addTimeRangeFilter } from '../utils/time';
 
@@ -44,7 +44,7 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
               }),
             },
           })
-        : executePPLQueryWithHeadFilter({
+        : executePPLQueryWithSampling({
             http: getClient(),
             dataSourceId: dataSourceMDSId,
             query,
@@ -114,7 +114,7 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
               }),
             },
           })
-        : executePPLQueryWithHeadFilter({
+        : executePPLQueryWithSampling({
             http: getClient(),
             dataSourceId: paragraphValue.dataSourceMDSId,
             query: addTimeRangeFilter(currentSearchQuery, queryParams),
