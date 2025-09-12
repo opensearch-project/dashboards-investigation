@@ -19,6 +19,7 @@ import { AppMountParameters, CoreStart } from '../../../src/core/public';
 import PPLService from './services/requests/ppl';
 import { ParagraphServiceSetup } from './services/paragraph_service';
 import { ContextServiceSetup } from './services/context_service';
+import { CombinedAnalysisProps } from './components/notebooks/components/combined_analysis';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -50,8 +51,12 @@ export type NoteBookServices = CoreStart &
 export interface InvestigationSetup {
   ui: {
     getNotebook: (props: { openedNoteId: string }) => Promise<React.ReactElement>;
+    CombinedAnalysis: React.FC<CombinedAnalysisProps>;
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface InvestigationStart {}
+export interface InvestigationStart {
+  ui: {
+    CombinedAnalysis: React.FC<CombinedAnalysisProps>;
+  };
+}
