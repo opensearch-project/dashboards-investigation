@@ -3,7 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { addSamplingFilter, executePPLQueryWithSampling } from '../query';
+import {
+  addSamplingFilter,
+  executePPLQueryWithSampling,
+  removeRandomScoreFromResponse,
+} from '../query';
 import { callOpenSearchCluster } from '../../plugin_helpers/plugin_proxy_call';
 
 jest.mock('../../plugin_helpers/plugin_proxy_call');
@@ -157,6 +161,96 @@ describe('Query Utils', () => {
           body: JSON.stringify({ query: 'source=logs | head 100' }),
         },
       });
+    });
+  });
+
+  describe('removeRandomScoreFromResponse', () => {
+    it('should remove random_score from schema and datarows', () => {
+      const response = {
+        schema: [
+          { name: 'FlightNum', type: 'string' },
+          { name: 'random_score', type: 'float' },
+        ],
+        datarows: [
+          ['8EY59TH', 0.4150576],
+          ['IK60892', 0.53712994],
+        ],
+      };
+
+      const result = removeRandomScoreFromResponse(response);
+
+      expect(result.schema).toEqual([{ name: 'FlightNum', type: 'string' }]);
+      expect(result.datarows).toEqual([['8EY59TH'], ['IK60892']]);
+    });
+
+    it('should handle response without schema', () => {
+      const response = {
+        datarows: [
+          ['data1', 0.123],
+          ['data2', 0.456],
+        ],
+      };
+
+      const result = removeRandomScoreFromResponse(response);
+      expect(result.datarows).toEqual([
+        ['data1', 0.123],
+        ['data2', 0.456],
+      ]);
+    });
+
+    it('should not remove datarows when random_score not in schema', () => {
+      const response = {
+        schema: [
+          { name: 'FlightNum', type: 'string' },
+          { name: 'Origin', type: 'string' },
+        ],
+        datarows: [
+          ['8EY59TH', 'NYC'],
+          ['IK60892', 'LAX'],
+        ],
+      };
+
+      const result = removeRandomScoreFromResponse(response);
+
+      expect(result.schema).toEqual([
+        { name: 'FlightNum', type: 'string' },
+        { name: 'Origin', type: 'string' },
+      ]);
+      expect(result.datarows).toEqual([
+        ['8EY59TH', 'NYC'],
+        ['IK60892', 'LAX'],
+      ]);
+    });
+
+    it('should remove random_score from middle position', () => {
+      const response = {
+        schema: [
+          { name: 'FlightNum', type: 'string' },
+          { name: 'random_score', type: 'float' },
+          { name: 'Origin', type: 'string' },
+        ],
+        datarows: [
+          ['8EY59TH', 0.4150576, 'NYC'],
+          ['IK60892', 0.53712994, 'LAX'],
+        ],
+      };
+
+      const result = removeRandomScoreFromResponse(response);
+
+      expect(result.schema).toEqual([
+        { name: 'FlightNum', type: 'string' },
+        { name: 'Origin', type: 'string' },
+      ]);
+      expect(result.datarows).toEqual([
+        ['8EY59TH', 'NYC'],
+        ['IK60892', 'LAX'],
+      ]);
+    });
+
+    it('should handle empty response', () => {
+      const response = {};
+      const result = removeRandomScoreFromResponse(response);
+      expect(result).toEqual({});
     });
   });
 });

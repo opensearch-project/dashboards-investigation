@@ -36,6 +36,19 @@ export const addSamplingFilter = (query: string, count: number): string => {
   return `${query} | eval random_score=rand() | where random_score > ${score} | head ${QUERY_RESULT_SAMPLE_SIZE}`;
 };
 
+export const removeRandomScoreFromResponse = (response: any) => {
+  if (!response?.schema) return response;
+
+  const randomScoreIndex = response.schema.findIndex((field: any) => field.name === 'random_score');
+  if (randomScoreIndex === -1) return response;
+
+  response.schema.splice(randomScoreIndex, 1);
+  if (response.datarows) {
+    response.datarows.forEach((row: any[]) => row.splice(randomScoreIndex, 1));
+  }
+  return response;
+};
+
 interface PPLQueryParams {
   http: HttpSetup;
   dataSourceId?: string;
@@ -73,12 +86,14 @@ export const executePPLQueryWithSampling = async (params: PPLQueryParams) => {
       };
     }
 
-    const finalQuery =
-      count > QUERY_RESULT_SAMPLE_SIZE
-        ? addSamplingFilter(query, count)
-        : `${query} | head ${QUERY_RESULT_SAMPLE_SIZE}`;
+    const needsSampling = count > QUERY_RESULT_SAMPLE_SIZE;
+    const finalQuery = needsSampling
+      ? addSamplingFilter(query, count)
+      : `${query} | head ${QUERY_RESULT_SAMPLE_SIZE}`;
 
-    return executePPLQuery(params, finalQuery);
+    const result = await executePPLQuery(params, finalQuery);
+
+    return needsSampling ? removeRandomScoreFromResponse(result) : result;
   } catch (error) {
     // Fallback to simple head limit if count query fails
     return executePPLQuery(params, `${query} | head ${QUERY_RESULT_SAMPLE_SIZE}`);
