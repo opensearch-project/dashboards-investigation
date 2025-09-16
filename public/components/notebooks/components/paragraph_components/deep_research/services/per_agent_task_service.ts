@@ -36,14 +36,14 @@ export class PERAgentTaskService {
           });
         })
       )
-      .pipe(takeWhile((res) => !isStateCompletedOrFailed(res.state), true))
+      .pipe(takeWhile((res) => this._shouldContinuePolling(res), true))
       .subscribe((newTask) => {
         const previousTask = this._task$.getValue();
         newTask = { taskId, ...newTask };
         if (JSON.stringify(previousTask) === JSON.stringify(newTask)) {
           return;
         }
-        if (isStateCompletedOrFailed(newTask)) {
+        if (this._shouldContinuePolling(newTask)) {
           this._taskLoadingState$.next(false);
         }
         this._task$.next(newTask);
@@ -78,5 +78,9 @@ export class PERAgentTaskService {
 
   reset() {
     this._task$.next(null);
+  }
+
+  private _shouldContinuePolling(task) {
+    return !task || (!extractExecutorMemoryId(task) && !isStateCompletedOrFailed(task.state));
   }
 }

@@ -73,6 +73,11 @@ export const executePERAgentInParagraph = async ({
   }
   const customizedPrompts = paragraph.input.parameters?.prompts;
   const startTime = now();
+  const mlService = getMLService();
+  const { memory_id: executorAgentMemoryId } = await mlService.createMemory({
+    transport,
+    name: paragraph.input.inputText,
+  });
   const parameters = {
     question: paragraph.input.inputText,
     planner_prompt_template: `
@@ -143,8 +148,9 @@ export const executePERAgentInParagraph = async ({
     system_prompt: customizedPrompts?.systemPrompt ?? undefined,
     executor_system_prompt: `${customizedPrompts?.executorSystemPrompt ?? EXECUTOR_SYSTEM_PROMPT}`,
     memory_id: baseMemoryId,
+    executor_agent_memory_id: executorAgentMemoryId,
   };
-  const { body } = await getMLService().executeAgent({
+  const { body } = await mlService.executeAgent({
     transport,
     agentId,
     async: true,
@@ -157,6 +163,8 @@ export const executePERAgentInParagraph = async ({
       result: {
         taskId: body.task_id,
         memoryId: body.response?.memory_id,
+        messageId: body.response?.parent_interaction_id,
+        executorAgentMemoryId,
       },
       execution_time: `${(now() - startTime).toFixed(3)} ms`,
     },

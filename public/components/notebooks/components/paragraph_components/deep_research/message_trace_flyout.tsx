@@ -23,12 +23,11 @@ import { concatMap } from 'rxjs/operators';
 import type { NoteBookServices } from 'public/types';
 
 import { getTimeGapFromDates } from '../../../../../utils/time';
-import { isStateCompletedOrFailed } from '../../../../../../common/utils/task';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 import { getAllTracesByMessageId, isMarkdownText } from './utils';
-import { PERAgentTaskService } from './services/per_agent_task_service';
 import { PERAgentMemoryService } from './services/per_agent_memory_service';
+import { PERAgentMessageService } from './services/per_agent_message_service';
 
 const renderTraceString = ({ text, fallback }: { text: string | undefined; fallback: string }) => {
   if (!text) {
@@ -61,13 +60,13 @@ export const MessageTraceFlyout = ({
   messageId,
   dataSourceId,
   onClose,
-  taskService,
+  messageService,
   executorMemoryService,
 }: {
   messageId: string;
   dataSourceId?: string;
   onClose: () => void;
-  taskService: PERAgentTaskService;
+  messageService: PERAgentMessageService;
   executorMemoryService: PERAgentMemoryService;
 }) => {
   const {
@@ -78,12 +77,12 @@ export const MessageTraceFlyout = ({
   tracesLengthRef.current = traces.length;
   const observables = useMemo(
     () => ({
-      task$: taskService.getTask$(),
+      message$: messageService.getMessage$(),
       executorMessages$: executorMemoryService.getMessages$(),
     }),
-    [taskService, executorMemoryService]
+    [messageService, executorMemoryService]
   );
-  const task = useObservable(observables.task$);
+  const message = useObservable(observables.message$);
   const messages = useObservable(observables.executorMessages$);
   const messageIndex = messages?.findIndex((item) => item.message_id === messageId) ?? -1;
   const traceMessage = messages?.[messageIndex];
@@ -94,11 +93,11 @@ export const MessageTraceFlyout = ({
     if (traces.length === 0) {
       return true;
     }
-    if (isStateCompletedOrFailed(task?.state)) {
+    if (!!message?.response) {
       return false;
     }
     return isLastMessage && !traceMessage?.response;
-  }, [isLastMessage, traceMessage?.response, task?.state, traces]);
+  }, [isLastMessage, traceMessage?.response, message?.response, traces]);
 
   useEffect(() => {
     if (!shouldLoad) {
