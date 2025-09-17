@@ -237,7 +237,12 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               </EuiCallOut>
             </EuiFlexItem>
           )}
-          {source === NoteBookSource.DISCOVER && <SummaryCard />}
+          {source === NoteBookSource.DISCOVER && (
+            <>
+              <SummaryCard />
+              <EuiSpacer />
+            </>
+          )}
           {source === NoteBookSource.ALERTING && (
             <>
               <AlertPanel />

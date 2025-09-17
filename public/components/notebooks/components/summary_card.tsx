@@ -9,8 +9,8 @@ import {
   EuiPanel,
   EuiSpacer,
   EuiText,
-  EuiBadge,
   EuiIcon,
+  EuiLink,
 } from '@elastic/eui';
 import React, { useContext } from 'react';
 import moment from 'moment';
@@ -38,8 +38,18 @@ interface ContextData {
 export const SummaryCard = () => {
   const notebookContext = useContext(NotebookReactContext);
   const {
-    services: { uiSettings },
+    services: { uiSettings, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      notifications.toasts.add({
+        title: `${label} copied to clipboard`,
+        color: 'success',
+        iconType: 'check',
+      });
+    });
+  };
 
   const {
     dataSourceId = '',
@@ -47,7 +57,6 @@ export const SummaryCard = () => {
     timeRange,
     source,
     timeField,
-    currentTime,
     initialGoal,
   } = useObservable(
     notebookContext.state.value.context.getValue$(),
@@ -58,7 +67,7 @@ export const SummaryCard = () => {
 
   return (
     <EuiPanel borderRadius="l">
-      <EuiFlexGroup gutterSize="m" alignItems="center">
+      <EuiFlexGroup alignItems="center" justifyContent="spaceEvenly">
         <EuiFlexItem grow={false}>
           <EuiText size="xs">
             <strong>
@@ -66,7 +75,18 @@ export const SummaryCard = () => {
                 defaultMessage: 'Data Source',
               })}
             </strong>
-            <p>{dataSourceId || 'Not specified'}</p>
+            <div>
+              <EuiLink onClick={() => copyToClipboard(dataSourceId, 'Data Source')}>
+                {dataSourceId || 'Not specified'}
+                {dataSourceId && (
+                  <EuiIcon
+                    type="copy"
+                    size="s"
+                    style={{ marginLeft: '4px', verticalAlign: 'middle' }}
+                  />
+                )}
+              </EuiLink>
+            </div>
           </EuiText>
         </EuiFlexItem>
 
@@ -77,7 +97,18 @@ export const SummaryCard = () => {
                 defaultMessage: 'Index',
               })}
             </strong>
-            <p>{index || 'Not specified'}</p>
+            <div>
+              <EuiLink onClick={() => copyToClipboard(index, 'Index')}>
+                {index || 'Not specified'}
+                {index && (
+                  <EuiIcon
+                    type="copy"
+                    size="s"
+                    style={{ marginLeft: '4px', verticalAlign: 'middle' }}
+                  />
+                )}
+              </EuiLink>
+            </div>
           </EuiText>
         </EuiFlexItem>
 
@@ -88,8 +119,8 @@ export const SummaryCard = () => {
                 defaultMessage: 'Source',
               })}
             </strong>
+            <p>{source}</p>
           </EuiText>
-          <EuiBadge color="primary">{source}</EuiBadge>
         </EuiFlexItem>
         <EuiFlexItem grow={false}>
           <EuiText size="xs">
@@ -103,43 +134,6 @@ export const SummaryCard = () => {
         </EuiFlexItem>
 
         <EuiFlexItem grow={false}>
-          <EuiText size="xs">
-            <strong>
-              {i18n.translate('notebook.summary.card.currentTime', {
-                defaultMessage: 'Current Time',
-              })}
-            </strong>
-            <p>{currentTime || new Date().toLocaleString()}</p>
-          </EuiText>
-        </EuiFlexItem>
-
-        <EuiFlexItem grow={false}>
-          {timeRange && (
-            <>
-              <EuiText size="xs">
-                <strong>
-                  {i18n.translate('notebook.global.panel.investigation.subtitle', {
-                    defaultMessage: 'Time Range',
-                  })}
-                </strong>
-              </EuiText>
-              <EuiPanel paddingSize="s" hasShadow={false}>
-                <EuiText size="xs">
-                  <EuiIcon type="clock" />{' '}
-                  {timeRange.selectionFrom
-                    ? moment(timeRange.selectionFrom).format(dateFormat)
-                    : 'Not specified'}{' '}
-                  to{' '}
-                  {timeRange.selectionTo
-                    ? moment(timeRange.selectionTo).format(dateFormat)
-                    : 'Not specified'}
-                </EuiText>
-              </EuiPanel>
-            </>
-          )}
-        </EuiFlexItem>
-
-        <EuiFlexItem grow={true}>
           {initialGoal && (
             <>
               <EuiSpacer size="s" />
@@ -157,6 +151,30 @@ export const SummaryCard = () => {
                   </EuiPanel>
                 </EuiFlexItem>
               </EuiFlexGroup>
+            </>
+          )}
+        </EuiFlexItem>
+
+        <EuiFlexItem grow={false}>
+          {timeRange && (
+            <>
+              <EuiText size="xs">
+                <strong>
+                  {i18n.translate('notebook.global.panel.investigation.subtitle', {
+                    defaultMessage: 'Time Range',
+                  })}
+                </strong>
+              </EuiText>
+              <EuiText size="xs">
+                <EuiIcon type="clock" />{' '}
+                {timeRange.selectionFrom
+                  ? moment(timeRange.selectionFrom).format(dateFormat)
+                  : 'Not specified'}{' '}
+                to{' '}
+                {timeRange.selectionTo
+                  ? moment(timeRange.selectionTo).format(dateFormat)
+                  : 'Not specified'}
+              </EuiText>
             </>
           )}
         </EuiFlexItem>
