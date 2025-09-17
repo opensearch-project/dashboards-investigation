@@ -31,8 +31,8 @@ import { SummaryStatistics } from './log_analytics/components/summary_statistics
 import { LogInsight } from './log_analytics/components/log_insight';
 import { PatternDifference } from './log_analytics/components/pattern_difference';
 import { LogSequence } from './log_analytics/components/log_sequence';
-import { useDataDistribution } from '../../../hooks/use_data_distribution';
-import { useLogPattern } from '../../../hooks/use_log_pattern';
+import { useDataDistribution } from './data_distribution/hooks/use_data_distribution';
+import { useLogPatternAnalysis } from './log_analytics/hooks/useLogPatternAnalysis';
 
 export interface CombinedAnalysisProps {
   source: NoteBookSource;
@@ -40,8 +40,8 @@ export interface CombinedAnalysisProps {
   timeRange: {
     selectionFrom: number;
     selectionTo: number;
-    baselineFrom?: number;
-    baselineTo?: number;
+    baselineFrom: number;
+    baselineTo: number;
   };
   timeField: string;
   dataSourceId: string;
@@ -95,20 +95,28 @@ export const CombinedAnalysis: React.FC<CombinedAnalysisProps> = ({
     notifications,
   });
 
-  const { result: logPatternAnalysisResult, loadingStatus, error: logPatternError } = useLogPattern(
-    {
+  const analysisParameters = useMemo(
+    () => ({
       dataSourceId,
       index,
       timeField,
       timeRange,
-      logMessageField,
-      traceIdField,
-      pplQuery: variables.pplQuery,
-      http,
-      cachedResult: undefined,
-      skipAutoFetch: false,
-    }
+      indexInsight: {
+        index_name: index,
+        is_log_index: true, // No need for this value
+        log_message_field: logMessageField,
+        trace_id_field: traceIdField,
+        time_field: timeField,
+      },
+    }),
+    [dataSourceId, index, timeField, timeRange, logMessageField, traceIdField]
   );
+
+  const {
+    result: logPatternAnalysisResult,
+    loadingStatus,
+    error: logPatternError,
+  } = useLogPatternAnalysis(http, analysisParameters, undefined, undefined);
 
   const dataDistributionSpecs = useMemo(() => {
     if (dataDistribution) {
@@ -283,7 +291,7 @@ export const CombinedAnalysis: React.FC<CombinedAnalysisProps> = ({
 
         {/* Log Insights Section */}
         <LogInsight
-          logInsights={logPatternAnalysisResult.logInsights || []}
+          logInsights={logPatternAnalysisResult?.logInsights || []}
           isLoadingLogInsights={loadingStatus.isLoadingLogInsights}
         />
 
@@ -291,17 +299,19 @@ export const CombinedAnalysis: React.FC<CombinedAnalysisProps> = ({
 
         {/* Pattern Differences Section */}
         <PatternDifference
-          patternMapDifference={logPatternAnalysisResult.patternMapDifference || []}
+          patternMapDifference={logPatternAnalysisResult?.patternMapDifference || []}
           isLoadingPatternMapDifference={loadingStatus.isLoadingPatternMapDifference}
+          isNotApplicable={!timeRange?.baselineFrom}
         />
 
         <EuiSpacer size="s" />
 
         {/* Log Sequences Section */}
         <LogSequence
-          exceptionalSequences={logPatternAnalysisResult.EXCEPTIONAL}
-          baselineSequences={logPatternAnalysisResult.BASE}
+          exceptionalSequences={logPatternAnalysisResult?.EXCEPTIONAL}
+          baselineSequences={logPatternAnalysisResult?.BASE}
           isLoadingLogSequence={loadingStatus.isLoadingLogSequence}
+          isNotApplicable={!(timeRange?.baselineFrom && traceIdField)}
         />
       </EuiPanel>
       <EuiSpacer size="m" />
