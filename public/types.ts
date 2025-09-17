@@ -19,6 +19,7 @@ import { AppMountParameters, CoreStart } from '../../../src/core/public';
 import PPLService from './services/requests/ppl';
 import { ParagraphServiceSetup } from './services/paragraph_service';
 import { ContextServiceSetup } from './services/context_service';
+import { ContextProviderStart } from '../../../src/plugins/context_provider/public';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -28,6 +29,7 @@ export interface AppPluginStartDependencies {
   data: DataPublicPluginStart;
   dataSource: DataSourcePluginStart;
   expressions: ExpressionsStart;
+  contextProvider?: ContextProviderStart;
 }
 
 export interface SetupDependencies {
@@ -45,6 +47,7 @@ export type NoteBookServices = CoreStart &
     appMountService?: AppMountParameters;
     paragraphService: ParagraphServiceSetup;
     contextService: ContextServiceSetup;
+    updateContext: (context: Record<string, unknown>) => void;
   };
 
 export interface InvestigationSetup {

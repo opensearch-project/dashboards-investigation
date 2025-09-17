@@ -50,6 +50,7 @@ import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearc
 import { AlertPanel } from './alert_panel';
 import { GlobalPanel } from './global_panel';
 import { NotebookHeader } from './notebook_header';
+import { useContextSubscription } from '../../../hooks/use_context_subscription';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -80,6 +81,8 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const { createParagraph, deleteParagraph } = useParagraphs();
   const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start, setInitialGoal } = usePrecheck();
+
+  useContextSubscription();
 
   const notebookContext = useContext(NotebookReactContext);
   const { source } = useObservable(
