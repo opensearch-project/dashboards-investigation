@@ -98,7 +98,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({
   aiFeatureEnabled,
 }) => {
   const [currInputType, setCurrInputType] = useState<InputType>(
-    (input?.inputType as InputType) || (aiFeatureEnabled ? AI_RESPONSE_TYPE : 'MARKDOWN')
+    (input?.inputType as InputType) || (aiFeatureEnabled ? AI_RESPONSE_TYPE : 'PPL')
   );
 
   const getInitialInputValue = () => {
@@ -179,7 +179,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({
 
   const handleCancel = useCallback(() => {
     setInputValue('');
-    setCurrInputType(aiFeatureEnabled ? AI_RESPONSE_TYPE : 'MARKDOWN');
+    setCurrInputType(aiFeatureEnabled ? AI_RESPONSE_TYPE : 'PPL');
   }, [aiFeatureEnabled]);
 
   // const { handleAgentSelectSubmit } = useAgentSelectSubmit({
