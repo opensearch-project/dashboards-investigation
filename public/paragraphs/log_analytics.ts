@@ -19,15 +19,20 @@ export const LogPatternParagraphItem: ParagraphRegistryItem<LogPatternAnalysisRe
 
     // Generate natural language summary
     const generateNaturalSummary = () => {
-      const insights = logInsights?.length || 0;
-      const differences = patternMapDifference?.length || 0;
-      const sequences = EXCEPTIONAL ? Object.keys(EXCEPTIONAL).length : 0;
+      const filteredLogInsights = logInsights?.filter((pattern) => !pattern.excluded) || [];
+      const filteredPatternMapDifference =
+        patternMapDifference?.filter((pattern) => !pattern.excluded) || [];
+      const filteredExceptional = EXCEPTIONAL?.filter((sequence) => !sequence.excluded) || [];
+
+      const insights = filteredLogInsights.length;
+      const differences = filteredPatternMapDifference.length;
+      const sequences = filteredExceptional.length;
 
       let summary = `I performed an initial log pattern analysis on the ${index} index. `;
 
       if (insights > 0) {
         summary += `I found ${insights} error patterns that indicate potential issues. `;
-        const topPattern = logInsights[0];
+        const topPattern = filteredLogInsights[0];
         summary += `The most frequent error pattern is "${topPattern.pattern}" with ${topPattern.count} occurrences. `;
       } else {
         summary += `No significant error patterns were detected. `;
@@ -35,8 +40,9 @@ export const LogPatternParagraphItem: ParagraphRegistryItem<LogPatternAnalysisRe
 
       if (differences > 0) {
         summary += `When comparing the current period to the baseline, I identified ${differences} patterns with notable changes in frequency. `;
-        const significantDiffs =
-          patternMapDifference?.filter((p) => Math.abs(p.lift || 0) > 0.1) || [];
+        const significantDiffs = filteredPatternMapDifference.filter(
+          (p) => Math.abs(p.lift || 0) > 0.1
+        );
         if (significantDiffs.length > 0) {
           summary += `${significantDiffs.length} of these show significant increases or decreases that warrant investigation. `;
         }
@@ -57,9 +63,10 @@ export const LogPatternParagraphItem: ParagraphRegistryItem<LogPatternAnalysisRe
     const generateDetailedFindings = () => {
       let details = '';
 
-      if (logInsights && logInsights.length > 0) {
+      const filteredLogInsights = logInsights?.filter((pattern) => !pattern.excluded) || [];
+      if (filteredLogInsights.length > 0) {
         details += 'Key Error Patterns:\n';
-        logInsights.slice(0, 5).forEach((pattern, i) => {
+        filteredLogInsights.slice(0, 5).forEach((pattern, i) => {
           details += `${i + 1}. "${pattern.pattern}" occurred ${pattern.count} times`;
           if (pattern.sampleLogs?.[0]) {
             details += ` (example: "${pattern.sampleLogs[0]}")`;
@@ -69,9 +76,11 @@ export const LogPatternParagraphItem: ParagraphRegistryItem<LogPatternAnalysisRe
         details += '\n';
       }
 
-      if (patternMapDifference && patternMapDifference.length > 0) {
+      const filteredPatternMapDifference =
+        patternMapDifference?.filter((pattern) => !pattern.excluded) || [];
+      if (filteredPatternMapDifference.length > 0) {
         details += 'Pattern Changes from Baseline:\n';
-        patternMapDifference.slice(0, 20).forEach((pattern, i) => {
+        filteredPatternMapDifference.slice(0, 20).forEach((pattern, i) => {
           const change = (pattern.selection || 0) > (pattern.base || 0) ? 'increased' : 'decreased';
           details += `${i + 1}. "${pattern.pattern}" ${change} by ${percent(
             Math.abs(pattern.lift || 0)
@@ -81,13 +90,12 @@ export const LogPatternParagraphItem: ParagraphRegistryItem<LogPatternAnalysisRe
         details += '\n';
       }
 
-      if (EXCEPTIONAL && Object.keys(EXCEPTIONAL).length > 0) {
+      const filteredExceptional = EXCEPTIONAL?.filter((sequence) => !sequence.excluded) || [];
+      if (filteredExceptional.length > 0) {
         details += 'Exceptional Trace Sequences:\n';
-        Object.entries(EXCEPTIONAL)
-          .slice(0, 5)
-          .forEach(([traceId, sequence], i) => {
-            details += `${i + 1}. Trace ${traceId}: ${sequence}\n`;
-          });
+        filteredExceptional.slice(0, 5).forEach((sequence, i) => {
+          details += `${i + 1}. Trace ${sequence.traceId}: ${sequence.sequence}\n`;
+        });
       }
 
       return details;
