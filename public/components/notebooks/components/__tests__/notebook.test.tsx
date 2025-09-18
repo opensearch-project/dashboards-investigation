@@ -170,6 +170,7 @@ const ContextAwareNotebook = (props: NotebookProps & { dataSourceEnabled?: boole
             ParagraphComponent: () => <div data-test-subj="mock-paragraph" />,
           }),
         },
+        updateContext: jest.fn(),
       }}
     >
       <Notebook {...props} />
