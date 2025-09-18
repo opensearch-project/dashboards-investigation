@@ -59,7 +59,9 @@ const MultiVariantInputContent: React.FC<{ actionDisabled?: boolean }> = ({ acti
       case DEEP_RESEARCH_PARAGRAPH_TYPE:
         return <NotebookInput placeholder="Ask question to trigger deep research agent" />;
       case 'VISUALIZATION':
-        return <VisualizationInput prependWidget={getInputTypeSelector()} />;
+        return (
+          <VisualizationInput prependWidget={getInputTypeSelector()} isDisabled={actionDisabled} />
+        );
       default:
         return <></>;
     }

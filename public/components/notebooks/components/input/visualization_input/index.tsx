@@ -40,9 +40,10 @@ export interface VisualizationInputValue {
   endTime: string;
 }
 
-export const VisualizationInput: React.FC<{ prependWidget?: React.ReactNode }> = ({
-  prependWidget,
-}) => {
+export const VisualizationInput: React.FC<{
+  prependWidget?: React.ReactNode;
+  isDisabled?: boolean;
+}> = ({ prependWidget, isDisabled }) => {
   const { inputValue, handleSubmit, isInputMountedInParagraph } = useInputContext();
 
   const handleSelect = () => {
@@ -100,11 +101,13 @@ export const VisualizationInput: React.FC<{ prependWidget?: React.ReactNode }> =
         justifyContent="spaceBetween"
       >
         {prependWidget}
-        <EuiSmallButtonIcon
-          aria-label="input type icon button"
-          iconType="refresh"
-          onClick={openModal}
-        />
+        {!isDisabled && (
+          <EuiSmallButtonIcon
+            aria-label="input type icon button"
+            iconType="refresh"
+            onClick={openModal}
+          />
+        )}
         <EuiFlexItem grow={false} style={{ marginInlineStart: 'auto' }}>
           <EuiSuperDatePicker
             compressed
@@ -117,6 +120,7 @@ export const VisualizationInput: React.FC<{ prependWidget?: React.ReactNode }> =
               handleSubmit(' ', updatedValue);
               setValue(updatedValue as any);
             }}
+            isDisabled={isDisabled}
           />
         </EuiFlexItem>
         <EuiSmallButtonIcon

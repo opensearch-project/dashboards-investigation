@@ -19,13 +19,7 @@ import {
   getPanelValue,
 } from '../../../../../../public/utils/visualization';
 
-export const VisualizationParagraph = ({
-  paragraphState,
-  actionDisabled,
-}: {
-  paragraphState: ParagraphState;
-  actionDisabled: boolean;
-}) => {
+export const VisualizationParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
   const {
     services: {
       uiSettings,
