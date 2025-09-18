@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { BehaviorSubject } from 'rxjs';
 import { AppMountParameters, CoreSetup, CoreStart, Plugin } from '../../../src/core/public';
 import {
   investigationNotebookID,
@@ -45,6 +46,8 @@ export class InvestigationPlugin
     Plugin<InvestigationSetup, InvestigationStart, SetupDependencies, AppPluginStartDependencies> {
   private paragraphService: ParagraphService;
   private contextService: ContextService;
+  private chatbotContext$ = new BehaviorSubject<Record<string, unknown>>({});
+  private startDeps: AppPluginStartDependencies | undefined;
 
   constructor() {
     this.paragraphService = new ParagraphService();
@@ -81,6 +84,7 @@ export class InvestigationPlugin
         savedObjects: coreStart.savedObjects,
         paragraphService: paragraphServiceSetup,
         contextService: contextServiceSetup,
+        updateContext: this.updateContext,
       };
       return services;
     };
@@ -142,10 +146,20 @@ export class InvestigationPlugin
     setEmbeddable(startDeps.embeddable);
     setNotifications(core.notifications);
     setVisualizations(startDeps.visualizations);
+    this.startDeps = startDeps;
+    startDeps.contextProvider?.registerContextContributor({
+      appId: investigationNotebookID,
+      captureStaticContext: async () => this.chatbotContext$.getValue(),
+    });
 
     // Export so other plugins can use this flyout
     return {};
   }
+
+  private updateContext = (context: Record<string, unknown>) => {
+    this.chatbotContext$.next(context);
+    this.startDeps?.contextProvider?.refreshCurrentContext();
+  };
 
   public stop() {}
 }
