@@ -11,6 +11,7 @@ import type { ParagraphState } from 'common/state/paragraph_state';
 import { MultiVariantInput } from './input/multi_variant_input';
 import { useParagraphs } from '../../../../public/hooks/use_paragraphs';
 import { NotebookReactContext } from '../context_provider/context_provider';
+import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 interface InputPanelProps {
   onParagraphCreated?: (paragraphState: ParagraphState<unknown, unknown>) => void;
@@ -18,6 +19,9 @@ interface InputPanelProps {
 
 export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) => {
   const { createParagraph, runParagraph } = useParagraphs();
+  const {
+    services: { application },
+  } = useOpenSearchDashboards();
 
   const context = useContext(NotebookReactContext);
   const notebookState = useObservable(context.state.getValue$(), context.state.value);
@@ -82,7 +86,10 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) =>
       }}
     >
       <EuiPanel grow borderRadius="xl" hasBorder hasShadow paddingSize="s">
-        <MultiVariantInput onSubmit={handleCreateParagraph} />
+        <MultiVariantInput
+          onSubmit={handleCreateParagraph}
+          aiFeatureEnabled={application?.capabilities.investigation.agenticFeaturesEnabled}
+        />
       </EuiPanel>
     </div>
   );
