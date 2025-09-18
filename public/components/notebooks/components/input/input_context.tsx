@@ -86,11 +86,17 @@ interface InputProviderProps<TParameters = unknown> {
   children: ReactNode;
   onSubmit: (input: ParagraphInputType<TParameters>) => void;
   input?: ParagraphInputType<TParameters>;
+  aiFeatureEnabled?: boolean;
 }
 
-export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit, input }) => {
+export const InputProvider: React.FC<InputProviderProps> = ({
+  children,
+  onSubmit,
+  input,
+  aiFeatureEnabled,
+}) => {
   const [currInputType, setCurrInputType] = useState<InputType>(
-    (input?.inputType as InputType) || AI_RESPONSE_TYPE
+    (input?.inputType as InputType) || (aiFeatureEnabled ? AI_RESPONSE_TYPE : 'MARKDOWN')
   );
 
   const getInitialInputValue = () => {
@@ -143,6 +149,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
           icon: 'chatLeft',
           label: 'Ask AI',
           'data-test-subj': 'paragraph-type-nl',
+          disabled: !aiFeatureEnabled,
         },
         { key: 'PPL', icon: 'compass', label: 'Query', 'data-test-subj': 'paragraph-type-ppl' },
         {
@@ -150,7 +157,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
           icon: 'generate',
           label: 'Continue investigation',
           'data-test-subj': 'paragraph-type-deep-research',
-          disabled: !initialGoal,
+          disabled: !initialGoal || !aiFeatureEnabled,
         },
         {
           key: 'MARKDOWN',
@@ -165,13 +172,13 @@ export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit
           'data-test-subj': 'paragraph-type-visualization',
         },
       ].filter((item) => !item.disabled),
-    [initialGoal]
+    [initialGoal, aiFeatureEnabled]
   );
 
   const handleCancel = useCallback(() => {
     setInputValue('');
-    setCurrInputType(AI_RESPONSE_TYPE);
-  }, []);
+    setCurrInputType(aiFeatureEnabled ? AI_RESPONSE_TYPE : 'MARKDOWN');
+  }, [aiFeatureEnabled]);
 
   // const { handleAgentSelectSubmit } = useAgentSelectSubmit({
   //   http,

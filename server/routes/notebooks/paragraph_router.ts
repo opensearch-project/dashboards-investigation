@@ -30,6 +30,7 @@ const paragraphOutputValidation = schema.arrayOf(
   schema.object({
     outputType: schema.string(),
     result: schema.oneOf([schema.string(), schema.object({}, { unknowns: 'allow' })]),
+    execution_time: schema.maybe(schema.string()),
   })
 );
 

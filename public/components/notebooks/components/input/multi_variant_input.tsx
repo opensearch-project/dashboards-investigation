@@ -23,6 +23,7 @@ interface MultiVariantInputProps<TParameters = unknown> {
   input?: ParagraphInputType<TParameters>;
   onSubmit: (input: ParagraphInputType<TParameters>) => void;
   actionDisabled?: boolean;
+  aiFeatureEnabled?: boolean;
 }
 
 const MultiVariantInputContent: React.FC<{ actionDisabled?: boolean }> = ({ actionDisabled }) => {
@@ -115,7 +116,11 @@ const MultiVariantInputContent: React.FC<{ actionDisabled?: boolean }> = ({ acti
 
 export const MultiVariantInput: React.FC<MultiVariantInputProps> = (props) => {
   return (
-    <InputProvider onSubmit={props.onSubmit} input={props.input}>
+    <InputProvider
+      onSubmit={props.onSubmit}
+      input={props.input}
+      aiFeatureEnabled={props.aiFeatureEnabled}
+    >
       <MultiVariantInputContent actionDisabled={props.actionDisabled} />
     </InputProvider>
   );
