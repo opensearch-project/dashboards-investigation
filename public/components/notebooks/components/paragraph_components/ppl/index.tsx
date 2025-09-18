@@ -136,22 +136,7 @@ export const PPLParagraph = ({
       <EuiSpacer size="s" />
       <EuiCompressedFormRow
         fullWidth={true}
-        helpText={
-          <EuiText size="s">
-            Supported languages include{' '}
-            {
-              <>
-                <EuiLink href={SQL_DOCUMENTATION_URL} target="_blank">
-                  SQL
-                </EuiLink>{' '}
-                <EuiLink href={PPL_DOCUMENTATION_URL} target="_blank">
-                  PPL
-                </EuiLink>{' '}
-              </>
-            }
-            .
-          </EuiText>
-        }
+        helpText={<EuiSpacer size="s" />}
         isInvalid={!!error}
         error={
           <EuiText size="s">
