@@ -5,20 +5,22 @@
 
 import React from 'react';
 import { EuiFlexGroup, EuiPanel, EuiFlexItem, EuiText } from '@elastic/eui';
+import { HypothesisItem as HypothesisItemProps } from 'common/types/notebooks';
 import { HypothesisBadge } from './hypothesis_badge';
 
 export const HypothesisItem: React.FC<{
   index: number;
-  hypothesis: any;
+  hypothesis: HypothesisItemProps;
   onClickHypothesis: (hypothesisId: string) => void;
-}> = ({ index, hypothesis: { id, title, description }, onClickHypothesis }) => {
+}> = ({ index, hypothesis, onClickHypothesis }) => {
+  const { title, description, likelihood } = hypothesis;
   return (
     <EuiFlexGroup
       gutterSize="none"
       dir="row"
       alignItems="center"
       justifyContent="spaceBetween"
-      onClick={() => onClickHypothesis(id)}
+      onClick={() => onClickHypothesis('1')}
       style={{
         cursor: 'pointer',
       }}
@@ -31,6 +33,7 @@ export const HypothesisItem: React.FC<{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            marginInlineEnd: 12,
           }}
         >
           {index + 1}
@@ -42,7 +45,7 @@ export const HypothesisItem: React.FC<{
             <EuiText>
               <strong>{title}</strong>
             </EuiText>
-            <HypothesisBadge label="Strong evidence" color="#DCFCE7" />
+            <HypothesisBadge label={`Strong evidence ${likelihood}%`} color="#DCFCE7" />
             <EuiText size="xs" color="subdued">
               Updated 2 min ago
             </EuiText>
