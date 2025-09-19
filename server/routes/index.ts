@@ -8,6 +8,7 @@ import { HttpAuth, IRouter } from '../../../../src/core/server';
 import { registerNoteRoute } from './notebooks/notebook_router';
 import { registerParaRoute } from './notebooks/paragraph_router';
 import { registerLogPatternRoute } from './notebooks/log_pattern_router';
+import { registerHypothesisRoute } from './notebooks/hypothesis_router';
 
 export function setupRoutes({
   router,
@@ -21,7 +22,6 @@ export function setupRoutes({
   // notebooks routes
   registerParaRoute(router);
   registerNoteRoute(router, auth, config);
-  if (config.agenticFeaturesEnabled) {
-    registerLogPatternRoute(router);
-  }
+  registerLogPatternRoute(router);
+  registerHypothesisRoute(router);
 }
