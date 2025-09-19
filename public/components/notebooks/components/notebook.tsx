@@ -54,9 +54,8 @@ import { AlertPanel } from './alert_panel';
 import { GlobalPanel } from './global_panel';
 import { NotebookHeader } from './notebook_header';
 import { useContextSubscription } from '../../../hooks/use_context_subscription';
-import { HypothesesPanel } from './hypotheses_panel';
 import { HypothesisDetail } from './hypothesis/hypothesis_detail';
-import { HypothesesPanel as HypothesesPanelMock } from './hypothesis/hypotheses_panel';
+import { HypothesesPanel } from './hypothesis/hypotheses_panel';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -284,13 +283,13 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
             </>
           )}
           <HypothesesPanel
+            notebookId={openedNoteId}
             question={typeof query.question === 'string' ? query.question : undefined}
             isInvestigating={isInvestigating}
             doInvestigate={doInvestigate}
             addNewFinding={addNewFinding}
           />
           <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
-            <HypothesesPanelMock notebookId={openedNoteId} />
             {isLoading ? (
               <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
             ) : null}
