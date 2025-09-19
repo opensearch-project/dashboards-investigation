@@ -21,7 +21,7 @@ import {
   EuiText,
 } from '@elastic/eui';
 import CSS from 'csstype';
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 
 import { useContext } from 'react';
 import { useEffectOnce, useObservable } from 'react-use';
@@ -57,6 +57,7 @@ import { NotebookHeader } from './notebook_header';
 import { useContextSubscription } from '../../../hooks/use_context_subscription';
 import { HypothesesPanel } from './hypotheses_panel';
 import { HypothesisDetail } from './hypothesis/hypothesis_detail';
+import { HypothesesPanel as HypothesesPanelMock } from './hypothesis/hypotheses_panel';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -266,6 +267,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
             addNewFinding={addNewFinding}
           />
           <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
+            <HypothesesPanelMock notebookId={openedNoteId} />
             {isLoading ? (
               <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
             ) : null}
@@ -393,18 +395,17 @@ export const Notebook = ({ openedNoteId, ...rest }: NotebookProps) => {
   const {
     services: { dataSource },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const stateRef = useMemo(
-    () =>
-      getDefaultState({
-        id: openedNoteId,
-        dataSourceEnabled: !!dataSource,
-      }),
-    [openedNoteId, dataSource]
+  const location = useLocation();
+  const stateRef = useRef(
+    getDefaultState({
+      id: openedNoteId,
+      dataSourceEnabled: !!dataSource,
+    })
   );
 
-  const isHypothesisRoute = location.hash.includes('/hypothesis/');
+  const isHypothesisRoute = location.pathname.includes('/hypothesis/');
   return (
-    <NotebookContextProvider state={stateRef}>
+    <NotebookContextProvider state={stateRef.current}>
       <>
         {isHypothesisRoute && <HypothesisDetail />}
         <div style={{ display: isHypothesisRoute ? 'none' : 'block' }}>
