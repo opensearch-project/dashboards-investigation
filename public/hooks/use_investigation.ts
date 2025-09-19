@@ -350,6 +350,7 @@ ${finding.evidence}
         }
       }
       const newHypothesis = {
+        id: payload.hypothesis.id,
         title: payload.hypothesis.title,
         description: payload.hypothesis.description,
         likelihood: payload.hypothesis.likelihood,
