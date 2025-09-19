@@ -104,3 +104,30 @@ export const executePPLQuery = async (params: PPLQueryParams, shouldSampling: bo
     return callClusterWithPPlQuery(params, `${query} | head ${QUERY_RESULT_SAMPLE_SIZE}`);
   }
 };
+
+export const flattenObject = (obj: any, prefix = ''): Record<string, any> => {
+  const flattened: Record<string, any> = {};
+
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const newKey = prefix ? `${prefix}.${key}` : key;
+
+      if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+        Object.assign(flattened, flattenObject(obj[key], newKey));
+      } else {
+        flattened[newKey] = Array.isArray(obj[key]) ? JSON.stringify(obj[key]) : obj[key];
+      }
+    }
+  }
+
+  return flattened;
+};
+
+export const jsonArrayToTsv = (data: Array<Record<string, any>>): string => {
+  if (!data.length) return '';
+
+  const flatData = data.map((obj) => flattenObject(obj));
+  const headers = [...new Set(flatData.flatMap(Object.keys))];
+  const rows = flatData.map((row) => headers.map((h) => String(row[h] ?? '')).join('\t'));
+  return [headers.join('\t'), ...rows].join('\n');
+};
