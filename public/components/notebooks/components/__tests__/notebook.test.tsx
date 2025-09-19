@@ -183,6 +183,9 @@ const ContextAwareNotebook = (props: NotebookProps & { dataSourceEnabled?: boole
           },
         },
         updateContext: jest.fn(),
+        findingService: {
+          initialize: jest.fn(),
+        },
       }}
     >
       <Notebook {...props} />

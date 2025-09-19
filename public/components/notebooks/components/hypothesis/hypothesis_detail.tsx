@@ -23,22 +23,66 @@ import {
 } from '@elastic/eui';
 import MarkdownRender from '@nteract/markdown';
 import { useObservable } from 'react-use';
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { NoteBookServices } from 'public/types';
+import { HypothesisItem } from 'common/types/notebooks';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { HypothesisBadge } from './hypothesis_badge';
 
 import './hypothesis_detail.scss';
+import { NotebookReactContext } from '../../context_provider/context_provider';
 
-export const HypothesisDetail: React.FC<{ findings?: any }> = ({ findings }) => {
+export const HypothesisDetail: React.FC<{ findings?: any; hypothesis?: HypothesisItem }> = ({
+  findings,
+  hypothesis = {
+    title: 'Hypothesis: Cache overload from redundant UserProfile caching',
+    description: '',
+    supportingFindingParagraphIds: [],
+  },
+}) => {
   const {
-    services: { chrome },
+    services: { chrome, updateContext },
   } = useOpenSearchDashboards<NoteBookServices>();
   const history = useHistory();
   const breadcrumbs = useObservable(chrome.getBreadcrumbs$(), []);
+  const notebookContext = useContext(NotebookReactContext);
 
   const [toggleIdSelected, setToggleIdSelected] = useState('evidence');
+
+  useEffect(() => {
+    console.log('hypothesis - updateContext', hypothesis);
+    updateContext({
+      investigation: [
+        {
+          level: 0,
+          displayName: `Investigation: ${notebookContext.state.value.title}`,
+          notebookId: notebookContext.state.value.id,
+          contextContent: '',
+        },
+        {
+          level: 1,
+          displayName: `Hypothesis: ${hypothesis.title}`,
+          notebookId: notebookContext.state.value.id,
+          contextContent:
+            `` +
+            `## Hypothesis\n` +
+            `${hypothesis.title}\n` +
+            `## Hypothesis Description\n` +
+            `${hypothesis.description}\n` +
+            `## Hypothesis Findings\n` +
+            '```json\n' +
+            `${JSON.stringify(hypothesis.supportingFindingParagraphIds, null, 2)}\n` +
+            '```\n',
+        },
+      ],
+    });
+  }, [
+    hypothesis,
+    notebookContext.state.value.id,
+    notebookContext.state.value.title,
+    updateContext,
+  ]);
 
   useEffect(() => {
     const headerBars = document.getElementById('globalHeaderBars');
@@ -94,6 +138,16 @@ export const HypothesisDetail: React.FC<{ findings?: any }> = ({ findings }) => 
                 iconType="sortLeft"
                 style={{ borderRadius: '9999px' }}
                 onClick={() => {
+                  updateContext({
+                    investigation: [
+                      {
+                        level: 0,
+                        displayName: `Investigation: ${notebookContext.state.value.title}`,
+                        notebookId: notebookContext.state.value.id,
+                        contextContent: '',
+                      },
+                    ],
+                  });
                   history.goBack();
                 }}
               >

@@ -12,6 +12,7 @@ import { TopContextState } from './top_context_state';
 export interface NotebookStateValue {
   paragraphs: Array<ParagraphState<unknown>>;
   id: string;
+  title: string;
   context: TopContextState;
   dataSourceEnabled: boolean;
   dateCreated: string;

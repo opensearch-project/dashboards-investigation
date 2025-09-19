@@ -402,6 +402,7 @@ ${finding.evidence}
   }) => {
     let parentInteractionId;
 
+    console.log('doInvestigate');
     setIsInvestigating(true);
     try {
       const agentId = (
@@ -550,6 +551,7 @@ ${newFindingsPrompt}
   );
 
   useEffect(() => {
+    console.log('use investigation');
     if (!question || hasHypotheses) {
       return;
     }
