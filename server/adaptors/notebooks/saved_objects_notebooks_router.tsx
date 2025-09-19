@@ -39,7 +39,7 @@ export function fetchNotebooks(
 }
 
 export function createNotebook(notebookName: { name: string; context?: any }, userName?: string) {
-  const noteObject = {
+  const noteObject: NotebookBackendType = {
     dateCreated: new Date().toISOString(),
     name: notebookName.name,
     dateModified: new Date().toISOString(),
@@ -47,6 +47,7 @@ export function createNotebook(notebookName: { name: string; context?: any }, us
     paragraphs: [],
     path: notebookName.name,
     context: notebookName?.context ?? undefined,
+    hypotheses: [],
   };
 
   if (userName) {
