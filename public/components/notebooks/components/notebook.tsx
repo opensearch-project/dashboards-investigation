@@ -21,7 +21,7 @@ import {
   EuiText,
 } from '@elastic/eui';
 import CSS from 'csstype';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 import { useContext } from 'react';
 import { useEffectOnce, useObservable } from 'react-use';
@@ -49,6 +49,7 @@ import { useParagraphs } from '../../../hooks/use_paragraphs';
 import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
 import { usePrecheck } from '../../../hooks/use_precheck';
+import { useNotebookFindingIntegration } from '../../../hooks/use_notebook_finding_integration';
 import { useInvestigation } from '../../../hooks/use_investigation';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { AlertPanel } from './alert_panel';
@@ -79,7 +80,7 @@ export interface NotebookProps extends NotebookComponentProps {
 
 export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const {
-    services: { http, notifications },
+    services: { http, notifications, findingService },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const { search } = useLocation();
@@ -110,6 +111,16 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   );
   const isSavedObjectNotebook = isValidUUID(openedNoteId);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  // Initialize finding integration for automatic UI updates when findings are added
+  useNotebookFindingIntegration({
+    findingService,
+    notebookId: openedNoteId,
+  });
+
+  useEffect(() => {
+    findingService.initialize(openedNoteId);
+  }, [findingService, openedNoteId]);
 
   const showDeleteParaModal = (index: number) => {
     setModalLayout(
@@ -200,6 +211,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         }
         notebookContext.state.updateValue({
           dateCreated: res.dateCreated,
+          title: res.name,
           path: res.path,
           vizPrefix: res.vizPrefix,
           paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
@@ -271,20 +283,22 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
             ) : null}
             {isLoading ? null : paragraphsStates.length > 0 ? (
-              paragraphsStates.map((paragraphState, index: number) => (
-                <div
-                  ref={(ref) => (paraDivRefs.current[index] = ref)}
-                  key={`para_div_${paragraphState.value.id}`}
-                >
-                  {index > 0 && <EuiSpacer size="s" />}
-                  <Paragraphs
-                    paragraphState={paragraphState}
-                    index={index}
-                    deletePara={showDeleteParaModal}
-                    scrollToPara={scrollToPara}
-                  />
-                </div>
-              ))
+              paragraphsStates.map((paragraphState, index: number) => {
+                return (
+                  <div
+                    ref={(ref) => (paraDivRefs.current[index] = ref)}
+                    key={`para_div_${paragraphState.value.id}`}
+                  >
+                    {index > 0 && <EuiSpacer size="s" />}
+                    <Paragraphs
+                      paragraphState={paragraphState}
+                      index={index}
+                      deletePara={showDeleteParaModal}
+                      scrollToPara={scrollToPara}
+                    />
+                  </div>
+                );
+              })
             ) : (
               // show default paragraph if no paragraphs in this notebook
               <div style={panelStyles}>

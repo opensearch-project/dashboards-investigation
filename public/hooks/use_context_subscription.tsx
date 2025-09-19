@@ -16,7 +16,7 @@ export const useContextSubscription = () => {
   const {
     services: { updateContext, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { paragraphs, context: topLevelContext } = context.state.value;
+  const { paragraphs, context: topLevelContext, title } = context.state.value;
   useEffect(() => {
     const subscription = combineLatest([
       topLevelContext.getValue$(),
@@ -28,13 +28,22 @@ export const useContextSubscription = () => {
         notebookInfo: topLevelContext.value,
       });
 
+      console.log('useContextSubscription - updateContext');
       updateContext({
-        contextContent: finalContext,
+        investigation: [
+          {
+            level: 0,
+            displayName: `Investigation: ${title}`,
+            notebookId: context.state.value.id,
+            contextContent: finalContext,
+            notebookInfo: topLevelContext.value,
+          },
+        ],
       });
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [paragraphs, topLevelContext, context.state, paragraphService, updateContext]);
+  }, [paragraphs, topLevelContext, context.state, paragraphService, updateContext, title]);
 };

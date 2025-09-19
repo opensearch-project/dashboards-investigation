@@ -26,3 +26,4 @@ export const [getNotifications, setNotifications] = createGetterSetter<CoreStart
 // Export services
 export { LogPatternService } from './requests/log_pattern';
 export { ParagraphService } from './paragraph_service';
+export { FindingService } from './finding_service';
