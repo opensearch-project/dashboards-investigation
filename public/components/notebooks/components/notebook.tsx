@@ -21,9 +21,10 @@ import {
   EuiText,
 } from '@elastic/eui';
 import CSS from 'csstype';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
+
 import { useContext } from 'react';
-import { useObservable } from 'react-use';
+import { useEffectOnce, useObservable } from 'react-use';
 import { useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { parse } from 'query-string';
@@ -55,6 +56,7 @@ import { GlobalPanel } from './global_panel';
 import { NotebookHeader } from './notebook_header';
 import { useContextSubscription } from '../../../hooks/use_context_subscription';
 import { HypothesesPanel } from './hypotheses_panel';
+import { HypothesisDetail } from './hypothesis/hypothesis_detail';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -220,9 +222,9 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       });
   }, [loadNotebookHook, notifications.toasts, notebookContext.state, start, setInitialGoal]);
 
-  useEffect(() => {
+  useEffectOnce(() => {
     loadNotebook();
-  }, [loadNotebook]);
+  });
 
   return (
     <>
@@ -391,15 +393,24 @@ export const Notebook = ({ openedNoteId, ...rest }: NotebookProps) => {
   const {
     services: { dataSource },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const stateRef = useRef(
-    getDefaultState({
-      id: openedNoteId,
-      dataSourceEnabled: !!dataSource,
-    })
+  const stateRef = useMemo(
+    () =>
+      getDefaultState({
+        id: openedNoteId,
+        dataSourceEnabled: !!dataSource,
+      }),
+    [openedNoteId, dataSource]
   );
+
+  const isHypothesisRoute = location.hash.includes('/hypothesis/');
   return (
-    <NotebookContextProvider state={stateRef.current}>
-      <NotebookComponent {...rest} />
+    <NotebookContextProvider state={stateRef}>
+      <>
+        {isHypothesisRoute && <HypothesisDetail />}
+        <div style={{ display: isHypothesisRoute ? 'none' : 'block' }}>
+          <NotebookComponent {...rest} />
+        </div>
+      </>
     </NotebookContextProvider>
   );
 };
