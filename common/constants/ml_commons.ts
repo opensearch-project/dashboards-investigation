@@ -12,6 +12,7 @@ export const OPENSEARCH_ML_COMMONS_API = {
   memorySearch: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/memory/_search`,
   singleMemory: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/memory/{memoryId}`,
   memoryMessages: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/memory/{memoryId}/messages`,
+  singleMessage: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/memory/message/{messageId}`,
   messageTraces: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/memory/message/{messageId}/traces`,
   singleConfig: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/config/{configName}`,
 };
