@@ -87,7 +87,6 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const query = parse(search);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
-  const [findingIntegrationError, setFindingIntegrationError] = useState<string | null>(null);
   const { createParagraph, deleteParagraph } = useParagraphs();
   const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start, setInitialGoal } = usePrecheck();
@@ -114,7 +113,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   // Initialize finding integration for automatic UI updates when findings are added
-  const { isIntegrated } = useNotebookFindingIntegration({
+  useNotebookFindingIntegration({
     findingService,
     notebookId: openedNoteId,
   });
@@ -122,15 +121,6 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   useEffect(() => {
     findingService.initialize(openedNoteId);
   }, [findingService, openedNoteId]);
-
-  // Monitor integration status and handle errors
-  useEffect(() => {
-    if (findingService && openedNoteId && !isIntegrated) {
-      setFindingIntegrationError('Finding integration failed to initialize');
-    } else {
-      setFindingIntegrationError(null);
-    }
-  }, [findingService, openedNoteId, isIntegrated]);
 
   const showDeleteParaModal = (index: number) => {
     setModalLayout(
@@ -270,14 +260,6 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                 >
                   Upgrade Notebook
                 </EuiSmallButton>
-              </EuiCallOut>
-            </EuiFlexItem>
-          )}
-          {findingIntegrationError && (
-            <EuiFlexItem>
-              <EuiCallOut color="warning" iconType="alert" title="Finding Integration Warning">
-                {findingIntegrationError}. Automatic UI updates for new findings may not work
-                properly.
               </EuiCallOut>
             </EuiFlexItem>
           )}

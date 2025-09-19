@@ -33,7 +33,7 @@ import { HypothesisBadge } from './hypothesis_badge';
 import './hypothesis_detail.scss';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 
-export const HypothesisDetail: React.FC<{ findings?: any; hypothesis: HypothesisItem }> = ({
+export const HypothesisDetail: React.FC<{ findings?: any; hypothesis?: HypothesisItem }> = ({
   findings,
   hypothesis = {
     title: 'Hypothesis: Cache overload from redundant UserProfile caching',
