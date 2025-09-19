@@ -29,12 +29,14 @@ export const useParagraphs = (context: { state: NotebookState }) => {
       index: number;
       input: ParagraphBackendType<unknown, TInput>['input'];
       dataSourceMDSId?: string;
+      aiGenerated?: boolean;
     }) => {
       const addParaObj = {
         noteId: context.state.value.id,
         input: props.input,
         paragraphIndex: props.index,
         dataSourceMDSId: props.dataSourceMDSId,
+        aiGenerated: !!props.aiGenerated,
       };
 
       return http

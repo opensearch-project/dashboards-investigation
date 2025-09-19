@@ -155,6 +155,58 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
     }
   );
 
+  router.put(
+    {
+      path: `${NOTEBOOKS_API_PREFIX}/note/updateHypotheses`,
+      validate: {
+        body: schema.object({
+          notebookId: schema.string(),
+          hypotheses: schema.arrayOf(
+            schema.object({
+              title: schema.string(),
+              description: schema.string(),
+              likelihood: schema.number(),
+              supportingFindingParagraphIds: schema.arrayOf(schema.string()),
+              newAddedFindingIds: schema.maybe(schema.arrayOf(schema.string())),
+            })
+          ),
+        }),
+      },
+    },
+    async (
+      context,
+      request,
+      response
+    ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
+      const opensearchNotebooksClient: SavedObjectsClientContract =
+        context.core.savedObjects.client;
+      try {
+        const noteObject = {
+          hypotheses: request.body.hypotheses,
+          dateModified: new Date().toISOString(),
+        };
+        const updateResponse = await opensearchNotebooksClient.update(
+          NOTEBOOK_SAVED_OBJECT,
+          request.body.notebookId,
+          {
+            savedNotebook: noteObject,
+          }
+        );
+        return response.ok({
+          body: updateResponse,
+        });
+      } catch (error) {
+        return response.custom({
+          statusCode: error.statusCode || 500,
+          body: {
+            message: `Failed to hypotheses: ${error.message}`,
+            error: error.name,
+          },
+        });
+      }
+    }
+  );
+
   router.get(
     {
       path: `${NOTEBOOKS_API_PREFIX}/note/savedNotebook/{noteId}`,

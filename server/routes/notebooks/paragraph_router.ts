@@ -44,6 +44,7 @@ export function registerParaRoute(router: IRouter) {
           paragraphIndex: schema.number(),
           input: paragraphInputValidation,
           dataSourceMDSId: schema.maybe(schema.string()),
+          aiGenerated: schema.maybe(schema.boolean()),
         }),
       },
     },

@@ -5,6 +5,7 @@
 
 import React from 'react';
 import {
+  EuiBadge,
   EuiCodeBlock,
   EuiCompressedTextArea,
   EuiFlexGroup,
@@ -107,6 +108,7 @@ export const MarkdownParagraph = ({
         </EuiFlexGroup>
       )}
       <EuiSpacer size="m" />
+      {paragraphValue.aiGenerated && <EuiBadge>AI Generated</EuiBadge>}
       {isRunning ? (
         <EuiLoadingContent />
       ) : (
