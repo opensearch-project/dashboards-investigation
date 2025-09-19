@@ -84,11 +84,14 @@ export interface ParagraphBackendType<TOutputResult, TInputParameters = unknown>
 }
 
 export interface HypothesisItem {
+  id: string;
   title: string;
   description: string;
   likelihood: number;
   supportingFindingParagraphIds: string[];
   newAddedFindingIds?: string[];
+  dateCreated: string;
+  dateModified: string;
 }
 
 export type ParagraphInputType<TParameters = unknown> = ParagraphBackendType<TParameters>['input'];
