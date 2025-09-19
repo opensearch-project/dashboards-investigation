@@ -77,3 +77,40 @@
     margin-top: 98px;
   }
 }
+
+// Animation for new paragraphs added via finding service
+@keyframes fadeInSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+    background-color: #e6f3ff;
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(-5px);
+    background-color: #f0f9ff;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    background-color: #f0f9ff;
+  }
+}
+
+// Styles for new paragraph highlighting
+.notebook-new-paragraph {
+  animation: fadeInSlide 0.5s ease-in-out;
+  background-color: #f0f9ff;
+  border: 2px solid #0066cc;
+  border-radius: 4px;
+  transition: all 0.5s ease-in-out;
+  
+  &.notebook-new-paragraph--fading {
+    background-color: transparent;
+    border-color: transparent;
+  }
+}
+
+.notebook-paragraph-transition {
+  transition: all 0.3s ease-in-out;
+}
