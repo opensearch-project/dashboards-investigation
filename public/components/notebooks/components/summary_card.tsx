@@ -69,8 +69,12 @@ export const SummaryCard = () => {
 
   return (
     <EuiSplitPanel.Outer borderRadius="l">
-      <EuiSplitPanel.Inner grow={false} color="subdued" style={{ paddingLeft: '50px' }}>
-        <EuiFlexGroup alignItems="center" justifyContent="flexStart">
+      <EuiSplitPanel.Inner
+        grow={false}
+        color="subdued"
+        style={{ paddingLeft: '50px', paddingRight: '50px' }}
+      >
+        <EuiFlexGroup alignItems="center" justifyContent="spaceBetween">
           <EuiFlexItem grow={false}>
             <EuiText size="xs">
               <strong>
@@ -161,8 +165,8 @@ export const SummaryCard = () => {
         </EuiFlexGroup>
       </EuiSplitPanel.Inner>
 
-      <EuiSplitPanel.Inner grow={false} style={{ paddingLeft: '50px' }}>
-        <EuiFlexGroup alignItems="center" justifyContent="flexStart">
+      <EuiSplitPanel.Inner grow={false} style={{ paddingLeft: '50px', paddingRight: '50px' }}>
+        <EuiFlexGroup alignItems="center" justifyContent="spaceBetween">
           <EuiFlexItem grow={false}>
             {variables.pplQuery && (
               <EuiText size="xs">
