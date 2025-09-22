@@ -392,48 +392,49 @@ ${finding.evidence}
     [updateHypotheses, createParagraph, runParagraph, contextStateValue?.hypotheses]
   );
 
-  const doInvestigate = async ({
-    investigationQuestion,
-    hypothesisIndex,
-    abortController,
-  }: {
-    investigationQuestion: string;
-    hypothesisIndex?: number;
-    abortController?: AbortController;
-  }) => {
-    let parentInteractionId;
+  const doInvestigate = useCallback(
+    async ({
+      investigationQuestion,
+      hypothesisIndex,
+      abortController,
+    }: {
+      investigationQuestion: string;
+      hypothesisIndex?: number;
+      abortController?: AbortController;
+    }) => {
+      let parentInteractionId;
 
-    console.log('doInvestigate');
-    setIsInvestigating(true);
-    try {
-      const agentId = (
-        await getMLCommonsConfig({
-          http,
-          signal: abortController?.signal,
-          configName: 'os_deep_research',
-          dataSourceId,
-        })
-      ).configuration.agent_id;
-      const originalHypothesis =
-        typeof hypothesisIndex !== 'undefined'
-          ? contextStateValue?.hypotheses?.[hypothesisIndex]
-          : undefined;
-      const allParagraphs = context.state.getParagraphsValue();
-      const notebookContextPrompt = await getNotebookTopLevelContextPrompt(
-        context.state.value.context.value
-      );
-      const existingFindingsPrompt = convertParagraphsToFindings(
-        allParagraphs.filter((paragraph) =>
-          originalHypothesis?.supportingFindingParagraphIds.includes(paragraph.id)
-        )
-      );
-      const newFindingsPrompt = convertParagraphsToFindings(
-        allParagraphs.filter((paragraph) =>
-          originalHypothesis?.newAddedFindingIds?.includes(paragraph.id)
-        )
-      );
-      const contextPrompt = originalHypothesis
-        ? `
+      console.log('doInvestigate');
+      setIsInvestigating(true);
+      try {
+        const agentId = (
+          await getMLCommonsConfig({
+            http,
+            signal: abortController?.signal,
+            configName: 'os_deep_research',
+            dataSourceId,
+          })
+        ).configuration.agent_id;
+        const originalHypothesis =
+          typeof hypothesisIndex !== 'undefined'
+            ? contextStateValue?.hypotheses?.[hypothesisIndex]
+            : undefined;
+        const allParagraphs = context.state.getParagraphsValue();
+        const notebookContextPrompt = await getNotebookTopLevelContextPrompt(
+          context.state.value.context.value
+        );
+        const existingFindingsPrompt = convertParagraphsToFindings(
+          allParagraphs.filter((paragraph) =>
+            originalHypothesis?.supportingFindingParagraphIds.includes(paragraph.id)
+          )
+        );
+        const newFindingsPrompt = convertParagraphsToFindings(
+          allParagraphs.filter((paragraph) =>
+            originalHypothesis?.newAddedFindingIds?.includes(paragraph.id)
+          )
+        );
+        const contextPrompt = originalHypothesis
+          ? `
 ${notebookContextPrompt}
 
 ## Original hypothesis
@@ -447,72 +448,74 @@ ${existingFindingsPrompt}
 ## New added findings
 ${newFindingsPrompt}
       `.trim()
-        : notebookContextPrompt;
+          : notebookContextPrompt;
 
-      const result = await executePERAgent({
-        http,
-        agentId,
-        dataSourceId,
-        question: investigationQuestion,
-        context: contextPrompt,
-      });
-      parentInteractionId = extractParentInteractionId(result);
-    } catch (e) {
-      console.error('Failed to execute per agent', e);
-    }
-    if (!parentInteractionId) {
-      setIsInvestigating(false);
-      return;
-    }
-    return new Promise((resolve, reject) => {
-      const subscription = timer(0, 5000)
-        .pipe(
-          concatMap(() => {
-            return getMLCommonsMessage({
-              messageId: parentInteractionId,
-              http,
-              signal: abortController?.signal,
-              dataSourceId,
-            });
-          }),
-          takeWhile((message) => !message.response, true)
-        )
-        .subscribe(async (message) => {
-          if (!message.response) {
-            return;
-          }
-          let responseJson;
-          try {
-            responseJson = JSON.parse(message.response);
-          } catch (error) {
-            console.error('Failed to parse response message', message.response);
-            return;
-          }
-          if (!isValidPERAgentInvestigationResponse(responseJson)) {
-            console.error('Investigation response not valid', responseJson);
-            return;
-          }
-          try {
-            await storeInvestigationResponse({ payload: responseJson, hypothesisIndex });
-            resolve(undefined);
-          } catch (e) {
-            console.error('Failed to store investigation response', e);
-            reject(e);
-          } finally {
-            subscription.unsubscribe();
-          }
+        const result = await executePERAgent({
+          http,
+          agentId,
+          dataSourceId,
+          question: investigationQuestion,
+          context: contextPrompt,
         });
+        parentInteractionId = extractParentInteractionId(result);
+      } catch (e) {
+        console.error('Failed to execute per agent', e);
+      }
+      if (!parentInteractionId) {
+        setIsInvestigating(false);
+        return;
+      }
+      return new Promise((resolve, reject) => {
+        const subscription = timer(0, 5000)
+          .pipe(
+            concatMap(() => {
+              return getMLCommonsMessage({
+                messageId: parentInteractionId,
+                http,
+                signal: abortController?.signal,
+                dataSourceId,
+              });
+            }),
+            takeWhile((message) => !message.response, true)
+          )
+          .subscribe(async (message) => {
+            if (!message.response) {
+              return;
+            }
+            let responseJson;
+            try {
+              responseJson = JSON.parse(message.response);
+            } catch (error) {
+              console.error('Failed to parse response message', message.response);
+              return;
+            }
+            if (!isValidPERAgentInvestigationResponse(responseJson)) {
+              console.error('Investigation response not valid', responseJson);
+              return;
+            }
+            try {
+              await storeInvestigationResponse({ payload: responseJson, hypothesisIndex });
+              resolve(undefined);
+            } catch (e) {
+              console.error('Failed to store investigation response', e);
+              reject(e);
+            } finally {
+              subscription.unsubscribe();
+            }
+          });
 
-      const abortHandler = () => {
-        subscription.unsubscribe();
-        abortController?.signal.removeEventListener('abort', abortHandler);
-        reject(new Error('Investigation aborted'));
-      };
-      abortController?.signal.addEventListener('abort', abortHandler);
-    }).finally(() => {
-      setIsInvestigating(false);
-    });
-  };
+        const abortHandler = () => {
+          subscription.unsubscribe();
+          abortController?.signal.removeEventListener('abort', abortHandler);
+          reject(new Error('Investigation aborted'));
+        };
+        abortController?.signal.addEventListener('abort', abortHandler);
+      }).finally(() => {
+        setIsInvestigating(false);
+      });
+    },
+    [context.state, contextStateValue?.hypotheses, dataSourceId, http, storeInvestigationResponse]
+  );
 
   const doInvestigateRef = useRef(doInvestigate);
   doInvestigateRef.current = doInvestigate;

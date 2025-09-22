@@ -18,14 +18,12 @@ import { ParagraphState, ParagraphStateValue } from '../../common/state/paragrap
 import {
   DATA_DISTRIBUTION_PARAGRAPH_TYPE,
   dateFormat,
-  DEEP_RESEARCH_PARAGRAPH_TYPE,
   LOG_PATTERN_PARAGRAPH_TYPE,
   PPL_PARAGRAPH_TYPE,
 } from '../../common/constants/notebooks';
 import { useParagraphs } from './use_paragraphs';
 import { useNotebook } from './use_notebook';
 import { getInputType } from '../../common/utils/paragraph';
-import { getLocalInputParameters } from '../components/notebooks/components/helpers/per_agent_helpers';
 
 export const usePrecheck = () => {
   const { updateNotebookContext } = useNotebook();
@@ -48,6 +46,7 @@ export const usePrecheck = () => {
       async (res: {
         context?: NotebookContext;
         paragraphs: Array<ParagraphBackendType<unknown>>;
+        doInvestigate: (props: { investigationQuestion: string }) => Promise<unknown>;
       }) => {
         let logPatternParaExists = false;
         let anomalyAnalysisParaExists = false;
@@ -207,14 +206,8 @@ export const usePrecheck = () => {
                 deepResearchParaCreated.current = true;
                 subscribeDestroy$.next();
 
-                await createParagraph({
-                  index: totalParagraphLength + paragraphStates.length,
-                  input: {
-                    inputText: '',
-                    inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
-                    parameters: getLocalInputParameters(res.context?.dataSourceId),
-                  },
-                  dataSourceMDSId: res.context?.dataSourceId,
+                res.doInvestigate({
+                  investigationQuestion: res.context?.initialGoal || '',
                 });
               }
             });

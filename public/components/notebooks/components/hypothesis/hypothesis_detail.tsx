@@ -265,14 +265,13 @@ export const HypothesisDetail: React.FC = () => {
                       .map((paragraphState, index: number) => {
                         if (!paragraphState) return null;
                         return (
-                          <EuiPanel color="plain" key={paragraphState.value.id}>
-                            <Paragraphs
-                              paragraphState={paragraphState}
-                              index={index}
-                              deletePara={() => {}}
-                              scrollToPara={() => {}}
-                            />
-                          </EuiPanel>
+                          <Paragraphs
+                            key={paragraphState.value.id}
+                            paragraphState={paragraphState}
+                            index={index}
+                            deletePara={() => {}}
+                            scrollToPara={() => {}}
+                          />
                         );
                       })}
                   </>
