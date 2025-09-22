@@ -4,6 +4,8 @@
  */
 
 import React from 'react';
+import { BehaviorSubject } from 'rxjs';
+import { first } from 'rxjs/operators';
 import { AppMountParameters, CoreSetup, CoreStart, Plugin } from '../../../src/core/public';
 import {
   investigationNotebookID,
@@ -32,18 +34,22 @@ import {
   setSearch,
   ParagraphService,
   setNotifications,
+  FindingService,
 } from './services';
 import { Notebook, NotebookProps } from './components/notebooks/components/notebook';
 import { NOTEBOOK_APP_NAME } from '../common/constants/notebooks';
 import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opensearch_dashboards_react/public';
 import { paragraphRegistry } from './paragraphs';
 import { ContextService } from './services/context_service';
+import { ChatContext, ISuggestionProvider } from '../../dashboards-assistant/public';
 
 export class InvestigationPlugin
   implements
     Plugin<InvestigationSetup, InvestigationStart, SetupDependencies, AppPluginStartDependencies> {
   private paragraphService: ParagraphService;
   private contextService: ContextService;
+  private chatbotContext$ = new BehaviorSubject<Record<string, unknown>>({});
+  private startDeps: AppPluginStartDependencies | undefined;
 
   constructor() {
     this.paragraphService = new ParagraphService();
@@ -69,6 +75,8 @@ export class InvestigationPlugin
     });
     const contextServiceSetup = await this.contextService.setup();
 
+    const findingService = new FindingService();
+
     const getServices = async () => {
       const [coreStart, depsStart] = await core.getStartServices();
       const pplService: PPLService = new PPLService(core.http);
@@ -80,6 +88,8 @@ export class InvestigationPlugin
         savedObjects: coreStart.savedObjects,
         paragraphService: paragraphServiceSetup,
         contextService: contextServiceSetup,
+        updateContext: this.updateContext,
+        findingService,
       };
       return services;
     };
@@ -89,6 +99,50 @@ export class InvestigationPlugin
       const services = await getServices();
       return Observability({ ...services, appMountService: params }, params!);
     };
+
+    setupDeps.assistantDashboards?.registerSuggestionProvider({
+      id: 'finding',
+      priority: 1,
+      isEnabled: () => true,
+      getSuggestions: async (context: ChatContext) => {
+        const [coreStart] = await core.getStartServices();
+        const currentAppId = await coreStart.application.currentAppId$.pipe(first()).toPromise();
+        if (
+          currentAppId !== investigationNotebookID ||
+          !findingService.currentNotebookId ||
+          !context.currentMessage ||
+          !context.currentMessage.content
+        ) {
+          return [];
+        }
+
+        return [
+          {
+            actionType: 'customize',
+            message: 'Add current result to investigation as a finding',
+            action: async () => {
+              console.log('Adding a new finding from chatbot plugin...');
+              const input = context.messageHistory.findLast((message) => message.type === 'input')
+                ?.content;
+              const output = context.currentMessage?.content;
+
+              const notebookId = context.pageContext?.['notebookId'];
+
+              if (input && output) {
+                try {
+                  await findingService.addFinding(input, output, notebookId);
+                  return true;
+                } catch (error) {
+                  // Return false to indicate failure to the suggestion system
+                  return false;
+                }
+              }
+              return false;
+            },
+          },
+        ];
+      },
+    } as ISuggestionProvider);
 
     core.application.register({
       id: investigationNotebookID,
@@ -140,10 +194,20 @@ export class InvestigationPlugin
     setClient(core.http);
     setEmbeddable(startDeps.embeddable);
     setNotifications(core.notifications);
+    this.startDeps = startDeps;
+    startDeps.contextProvider?.registerContextContributor({
+      appId: investigationNotebookID,
+      captureStaticContext: async () => this.chatbotContext$.getValue(),
+    });
 
     // Export so other plugins can use this flyout
     return {};
   }
+
+  private updateContext = (context: Record<string, unknown>) => {
+    this.chatbotContext$.next(context);
+    this.startDeps?.contextProvider?.refreshCurrentContext();
+  };
 
   public stop() {}
 }

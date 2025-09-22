@@ -6,6 +6,7 @@
 import { useContext, useCallback } from 'react';
 import { NoteBookServices } from 'public/types';
 import {
+  HypothesisItem,
   IndexInsight,
   IndexInsightContent,
   NotebookBackendType,
@@ -189,8 +190,33 @@ export const useNotebook = () => {
     return promise;
   }, [context.state, http, showParagraphRunning, fetchIndexInsights]);
 
+  const updateHypotheses = useCallback(
+    async (hypotheses: HypothesisItem[]) => {
+      const { id: openedNoteId } = context.state.value;
+      try {
+        const response = await http.put(`${NOTEBOOKS_API_PREFIX}/note/updateHypotheses`, {
+          body: JSON.stringify({
+            notebookId: openedNoteId,
+            hypotheses,
+          }),
+        });
+
+        context.state.updateValue({
+          hypotheses,
+        });
+
+        return response;
+      } catch (error) {
+        console.error('Error updating notebook investigation result:', error);
+        throw error;
+      }
+    },
+    [context.state, http]
+  );
+
   return {
     loadNotebook,
     updateNotebookContext,
+    updateHypotheses,
   };
 };

@@ -20,11 +20,11 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
   ParagraphComponent: PPLParagraph,
   getContext: async (paragraph) => {
     const { output, dataSourceMDSId } = paragraph || {};
-    if (!output?.[0].result) {
+    if (!output?.[0].result && !paragraph?.fullfilledOutput) {
       return '';
     }
 
-    const query = output[0].result;
+    const query = output?.[0].result;
     const isSqlQuery = paragraph?.input?.inputText.substring(0, 4) === '%sql';
     const queryType = isSqlQuery ? '_sql' : '_ppl';
     const queryTypeName = isSqlQuery ? 'SQL' : 'PPL';

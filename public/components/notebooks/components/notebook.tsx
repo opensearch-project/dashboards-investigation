@@ -21,11 +21,14 @@ import {
   EuiText,
 } from '@elastic/eui';
 import CSS from 'csstype';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 import { useContext } from 'react';
-import { useObservable } from 'react-use';
+import { useEffectOnce, useObservable } from 'react-use';
 import { useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
+import { parse } from 'query-string';
+
 import { NoteBookServices } from 'public/types';
 import { ParagraphState } from '../../../../common/state/paragraph_state';
 import {
@@ -46,11 +49,16 @@ import { useParagraphs } from '../../../hooks/use_paragraphs';
 import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
 import { usePrecheck } from '../../../hooks/use_precheck';
+import { useNotebookFindingIntegration } from '../../../hooks/use_notebook_finding_integration';
+import { useInvestigation } from '../../../hooks/use_investigation';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { AlertPanel } from './alert_panel';
 import { GlobalPanel } from './global_panel';
 import { NotebookHeader } from './notebook_header';
 import { SummaryCard } from './summary_card';
+import { useContextSubscription } from '../../../hooks/use_context_subscription';
+import { HypothesisDetail } from './hypothesis/hypothesis_detail';
+import { HypothesesPanel } from './hypothesis/hypotheses_panel';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -73,14 +81,21 @@ export interface NotebookProps extends NotebookComponentProps {
 
 export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const {
-    services: { http, notifications },
+    services: { http, notifications, findingService },
   } = useOpenSearchDashboards<NoteBookServices>();
 
+  const { search } = useLocation();
+  const query = parse(search);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
   const { createParagraph, deleteParagraph } = useParagraphs();
   const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start, setInitialGoal } = usePrecheck();
+
+  useContextSubscription();
+  const { isInvestigating, doInvestigate, addNewFinding } = useInvestigation({
+    question: typeof query.question === 'string' ? query.question : '',
+  });
 
   const notebookContext = useContext(NotebookReactContext);
   const { source } = useObservable(
@@ -97,6 +112,16 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   );
   const isSavedObjectNotebook = isValidUUID(openedNoteId);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  // Initialize finding integration for automatic UI updates when findings are added
+  useNotebookFindingIntegration({
+    findingService,
+    notebookId: openedNoteId,
+  });
+
+  useEffect(() => {
+    findingService.initialize(openedNoteId);
+  }, [findingService, openedNoteId]);
 
   const showDeleteParaModal = (index: number) => {
     setModalLayout(
@@ -187,10 +212,12 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         }
         notebookContext.state.updateValue({
           dateCreated: res.dateCreated,
+          title: res.name,
           path: res.path,
           vizPrefix: res.vizPrefix,
           paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
           owner: res.owner,
+          hypotheses: res.hypotheses,
         });
         await setInitialGoal({
           context: notebookContext.state.value.context.value,
@@ -208,9 +235,9 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       });
   }, [loadNotebookHook, notifications.toasts, notebookContext.state, start, setInitialGoal]);
 
-  useEffect(() => {
+  useEffectOnce(() => {
     loadNotebook();
-  }, [loadNotebook]);
+  });
 
   return (
     <>
@@ -251,25 +278,34 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               <EuiSpacer />
             </>
           )}
+          <HypothesesPanel
+            notebookId={openedNoteId}
+            question={typeof query.question === 'string' ? query.question : undefined}
+            isInvestigating={isInvestigating}
+            doInvestigate={doInvestigate}
+            addNewFinding={addNewFinding}
+          />
           <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
             {isLoading ? (
               <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
             ) : null}
             {isLoading ? null : paragraphsStates.length > 0 ? (
-              paragraphsStates.map((paragraphState, index: number) => (
-                <div
-                  ref={(ref) => (paraDivRefs.current[index] = ref)}
-                  key={`para_div_${paragraphState.value.id}`}
-                >
-                  {index > 0 && <EuiSpacer size="s" />}
-                  <Paragraphs
-                    paragraphState={paragraphState}
-                    index={index}
-                    deletePara={showDeleteParaModal}
-                    scrollToPara={scrollToPara}
-                  />
-                </div>
-              ))
+              paragraphsStates.map((paragraphState, index: number) => {
+                return (
+                  <div
+                    ref={(ref) => (paraDivRefs.current[index] = ref)}
+                    key={`para_div_${paragraphState.value.id}`}
+                  >
+                    {index > 0 && <EuiSpacer size="s" />}
+                    <Paragraphs
+                      paragraphState={paragraphState}
+                      index={index}
+                      deletePara={showDeleteParaModal}
+                      scrollToPara={scrollToPara}
+                    />
+                  </div>
+                );
+              })
             ) : (
               // show default paragraph if no paragraphs in this notebook
               <div style={panelStyles}>
@@ -379,15 +415,23 @@ export const Notebook = ({ openedNoteId, ...rest }: NotebookProps) => {
   const {
     services: { dataSource },
   } = useOpenSearchDashboards<NoteBookServices>();
+  const location = useLocation();
   const stateRef = useRef(
     getDefaultState({
       id: openedNoteId,
       dataSourceEnabled: !!dataSource,
     })
   );
+
+  const isHypothesisRoute = location.pathname.includes('/hypothesis/');
   return (
     <NotebookContextProvider state={stateRef.current}>
-      <NotebookComponent {...rest} />
+      <>
+        {isHypothesisRoute && <HypothesisDetail />}
+        <div style={{ display: isHypothesisRoute ? 'none' : 'block' }}>
+          <NotebookComponent {...rest} />
+        </div>
+      </>
     </NotebookContextProvider>
   );
 };
