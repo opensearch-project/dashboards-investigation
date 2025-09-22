@@ -163,6 +163,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
           notebookId: schema.string(),
           hypotheses: schema.arrayOf(
             schema.object({
+              id: schema.string(),
               title: schema.string(),
               description: schema.string(),
               likelihood: schema.number(),
