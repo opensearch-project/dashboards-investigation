@@ -20,38 +20,42 @@ import {
   EuiPanel,
   EuiButtonGroup,
   EuiButtonIcon,
+  EuiLoadingContent,
 } from '@elastic/eui';
-import MarkdownRender from '@nteract/markdown';
 import { useObservable } from 'react-use';
 import React, { useContext, useEffect, useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation, useParams } from 'react-router-dom';
 import { NoteBookServices } from 'public/types';
-import { HypothesisItem } from 'common/types/notebooks';
+import { HypothesisItem as HypothesisItemProps } from 'common/types/notebooks';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { HypothesisBadge } from './hypothesis_badge';
+import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
 
 import './hypothesis_detail.scss';
 import { NotebookReactContext } from '../../context_provider/context_provider';
+import { Paragraphs } from '../paragraph_components/paragraphs';
 
-export const HypothesisDetail: React.FC<{ findings?: any; hypothesis?: HypothesisItem }> = ({
-  findings,
-  hypothesis = {
-    title: 'Hypothesis: Cache overload from redundant UserProfile caching',
-    description: '',
-    supportingFindingParagraphIds: [],
-  },
-}) => {
+export const HypothesisDetail: React.FC = () => {
   const {
-    services: { chrome, updateContext },
+    services: { chrome, http, updateContext },
   } = useOpenSearchDashboards<NoteBookServices>();
   const history = useHistory();
+  const location = useLocation();
+  const { id: notebookId } = useParams<{ id: string }>();
+
   const breadcrumbs = useObservable(chrome.getBreadcrumbs$(), []);
   const notebookContext = useContext(NotebookReactContext);
+  const { paragraphs: paragraphsStates } = useObservable(
+    notebookContext.state.getValue$(),
+    notebookContext.state.value
+  );
 
+  const [currentHypothesis, setCurrentHypothesis] = useState<HypothesisItemProps | undefined>();
   const [toggleIdSelected, setToggleIdSelected] = useState('evidence');
 
   useEffect(() => {
-    console.log('hypothesis - updateContext', hypothesis);
+    if (!currentHypothesis) return;
+    console.log('hypothesis - updateContext', currentHypothesis);
     updateContext({
       investigation: [
         {
@@ -62,23 +66,23 @@ export const HypothesisDetail: React.FC<{ findings?: any; hypothesis?: Hypothesi
         },
         {
           level: 1,
-          displayName: `Hypothesis: ${hypothesis.title}`,
+          displayName: `Hypothesis: ${currentHypothesis.title}`,
           notebookId: notebookContext.state.value.id,
           contextContent:
             `` +
             `## Hypothesis\n` +
-            `${hypothesis.title}\n` +
+            `${currentHypothesis.title}\n` +
             `## Hypothesis Description\n` +
-            `${hypothesis.description}\n` +
+            `${currentHypothesis.description}\n` +
             `## Hypothesis Findings\n` +
             '```json\n' +
-            `${JSON.stringify(hypothesis.supportingFindingParagraphIds, null, 2)}\n` +
+            `${JSON.stringify(currentHypothesis.supportingFindingParagraphIds, null, 2)}\n` +
             '```\n',
         },
       ],
     });
   }, [
-    hypothesis,
+    currentHypothesis,
     notebookContext.state.value.id,
     notebookContext.state.value.title,
     updateContext,
@@ -97,6 +101,22 @@ export const HypothesisDetail: React.FC<{ findings?: any; hypothesis?: Hypothesi
     };
   }, []);
 
+  const pathParts = location.pathname.split('/');
+  const hypothesisIndex = pathParts.indexOf('hypothesis');
+  const hypothesisId = hypothesisIndex !== -1 ? pathParts[hypothesisIndex + 1] : null;
+
+  useEffect(() => {
+    const fetchHypothesis = async () => {
+      // TODO: we should have a get by id?
+      const response = await http.get(
+        `${NOTEBOOKS_API_PREFIX}/savedNotebook/${notebookId}/hypotheses`
+      );
+      const hypothesis = response.find((res: any) => res.id === hypothesisId);
+      setCurrentHypothesis(hypothesis);
+    };
+    fetchHypothesis();
+  }, [http, hypothesisId, notebookId]);
+
   const toggleButtons = [
     {
       id: 'evidence',
@@ -107,6 +127,36 @@ export const HypothesisDetail: React.FC<{ findings?: any; hypothesis?: Hypothesi
       label: 'Suggested next steps',
     },
   ];
+
+  if (!currentHypothesis) {
+    return (
+      <>
+        <EuiFlexGroup gutterSize="none" style={{ gap: 8, paddingBlock: 12, paddingInline: 16 }}>
+          <EuiSimplifiedBreadcrumbs
+            breadcrumbs={breadcrumbs}
+            max={10}
+            data-test-subj="breadcrumbs"
+          />
+        </EuiFlexGroup>
+        <EuiHorizontalRule margin="none" />
+        <EuiFlexGroup gutterSize="none" alignItems="center" style={{ padding: 16, gap: 10 }}>
+          <EuiSmallButton
+            iconType="sortLeft"
+            style={{ borderRadius: '9999px' }}
+            onClick={() => {
+              history.goBack();
+            }}
+          >
+            Back
+          </EuiSmallButton>
+          <EuiTitle size="m">
+            <strong style={{ fontWeight: 600 }}>Loading Hypothesis...</strong>
+          </EuiTitle>
+        </EuiFlexGroup>
+        <EuiLoadingContent />
+      </>
+    );
+  }
 
   return (
     <EuiPage className="hypothesisDetail" paddingSize="none">
@@ -154,9 +204,7 @@ export const HypothesisDetail: React.FC<{ findings?: any; hypothesis?: Hypothesi
                 Back
               </EuiSmallButton>
               <EuiTitle size="m">
-                <strong style={{ fontWeight: 600 }}>
-                  Hypothesis: Cache overload from redundant UserProfile caching
-                </strong>
+                <strong style={{ fontWeight: 600 }}>Hypothesis: {currentHypothesis.title}</strong>
               </EuiTitle>
             </EuiPageHeaderSection>
             <EuiPageHeaderSection style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -183,15 +231,16 @@ export const HypothesisDetail: React.FC<{ findings?: any; hypothesis?: Hypothesi
                   Update 2 min ago
                 </EuiText>
                 <HypothesisBadge label="Under investigation" color="hollow" icon="pulse" />
-                <HypothesisBadge label="Strong evidence" color="#DCFCE7" />
+                <HypothesisBadge
+                  label={`Strong evidence ${currentHypothesis.likelihood}%`}
+                  color="#DCFCE7"
+                />
               </EuiFlexGroup>
               <EuiSpacer size="s" />
-              <EuiText>
-                Cache is performing poorly in the last 24 hours - elevated miss rates.
-              </EuiText>
+              <EuiText>{currentHypothesis.description}</EuiText>
               <EuiSpacer size="s" />
 
-              <EuiPanel color="plain" style={{ height: 200 }}>
+              <EuiPanel color="plain" style={{ height: 50 }}>
                 Graph
               </EuiPanel>
               <EuiSpacer size="m" />
@@ -204,25 +253,42 @@ export const HypothesisDetail: React.FC<{ findings?: any; hypothesis?: Hypothesi
               />
               <EuiSpacer size="m" />
 
-              {toggleIdSelected === 'evidence' && (
-                <EuiPanel color="plain">
-                  <EuiText className="markdown-output-text">
-                    <MarkdownRender source={findings} />
-                  </EuiText>
-                </EuiPanel>
-              )}
+              <EuiFlexGroup direction="column" gutterSize="none" style={{ gap: 16 }}>
+                {toggleIdSelected === 'evidence' && (
+                  <>
+                    {[
+                      ...currentHypothesis.supportingFindingParagraphIds,
+                      ...(currentHypothesis.newAddedFindingIds || []),
+                    ]
+                      .map((id) => paragraphsStates.find((p) => p.value.id === id))
+                      .filter(Boolean)
+                      .map((paragraphState, index: number) => {
+                        if (!paragraphState) return null;
+                        return (
+                          <EuiPanel color="plain" key={paragraphState.value.id}>
+                            <Paragraphs
+                              paragraphState={paragraphState}
+                              index={index}
+                              deletePara={() => {}}
+                              scrollToPara={() => {}}
+                            />
+                          </EuiPanel>
+                        );
+                      })}
+                  </>
+                )}
 
-              {toggleIdSelected === 'next' && (
-                <>
-                  <EuiPanel color="plain">
-                    <EuiText className="markdown-output-text">Section 1</EuiText>
-                  </EuiPanel>
-                  <EuiSpacer size="m" />
-                  <EuiPanel color="plain">
-                    <EuiText className="markdown-output-text">Section 2</EuiText>
-                  </EuiPanel>
-                </>
-              )}
+                {toggleIdSelected === 'next' && (
+                  <>
+                    <EuiPanel color="plain">
+                      <EuiText className="markdown-output-text">Section 1</EuiText>
+                    </EuiPanel>
+                    <EuiPanel color="plain">
+                      <EuiText className="markdown-output-text">Section 2</EuiText>
+                    </EuiPanel>
+                  </>
+                )}
+              </EuiFlexGroup>
             </EuiPageContentBody>
           </EuiPageContent>
         </div>
