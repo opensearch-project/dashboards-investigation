@@ -13,14 +13,14 @@ export const HypothesisItem: React.FC<{
   hypothesis: HypothesisItemProps;
   onClickHypothesis: (hypothesisId: string) => void;
 }> = ({ index, hypothesis, onClickHypothesis }) => {
-  const { title, description, likelihood } = hypothesis;
+  const { title, description, likelihood, id } = hypothesis;
   return (
     <EuiFlexGroup
       gutterSize="none"
       dir="row"
       alignItems="center"
       justifyContent="spaceBetween"
-      onClick={() => onClickHypothesis('1')}
+      onClick={() => onClickHypothesis(id)}
       style={{
         cursor: 'pointer',
       }}
