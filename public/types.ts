@@ -50,7 +50,7 @@ export type NoteBookServices = CoreStart &
     appMountService?: AppMountParameters;
     paragraphService: ParagraphServiceSetup;
     contextService: ContextServiceSetup;
-    updateContext: (context: Record<string, unknown>) => void;
+    updateContext: (level: number, context: Record<string, unknown> | null) => void;
     findingService: FindingService;
   };
 

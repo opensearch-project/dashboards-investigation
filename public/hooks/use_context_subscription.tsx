@@ -9,41 +9,32 @@ import { combineLatest } from 'rxjs';
 import { NoteBookServices } from 'public/types';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
-import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
+import { SubRouter, useSubRouter } from './use_sub_router';
 
 export const useContextSubscription = () => {
   const context = useContext(NotebookReactContext);
   const {
     services: { updateContext, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
+  const { page } = useSubRouter();
   const { paragraphs, context: topLevelContext, title } = context.state.value;
   useEffect(() => {
-    const subscription = combineLatest([
-      topLevelContext.getValue$(),
-      ...paragraphs.map((paragraph) => paragraph.getValue$()),
-    ]).subscribe(async () => {
-      const finalContext = await generateContextPromptFromParagraphs({
-        paragraphService,
-        paragraphs: context.state.getParagraphsValue(),
-        notebookInfo: topLevelContext.value,
+    if (page === SubRouter.Investigation) {
+      const subscription = combineLatest([
+        topLevelContext.getValue$(),
+        ...paragraphs.map((paragraph) => paragraph.getValue$()),
+      ]).subscribe(async () => {
+        console.log('useContextSubscription - updateContext');
+        updateContext(0, {
+          displayName: `Investigation: ${title}`,
+          notebookId: context.state.value.id,
+          contextContent: topLevelContext.value,
+        });
       });
 
-      console.log('useContextSubscription - updateContext');
-      updateContext({
-        investigation: [
-          {
-            level: 0,
-            displayName: `Investigation: ${title}`,
-            notebookId: context.state.value.id,
-            contextContent: finalContext,
-            notebookInfo: topLevelContext.value,
-          },
-        ],
-      });
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [paragraphs, topLevelContext, context.state, paragraphService, updateContext, title]);
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [paragraphs, topLevelContext, context.state, paragraphService, updateContext, title, page]);
 };

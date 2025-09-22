@@ -25,7 +25,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useContext } from 'react';
 import { useEffectOnce, useObservable } from 'react-use';
 import { useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
 
 import { NoteBookServices } from 'public/types';
 import { ParagraphState } from '../../../../common/state/paragraph_state';
@@ -57,6 +56,7 @@ import { SummaryCard } from './summary_card';
 import { useContextSubscription } from '../../../hooks/use_context_subscription';
 import { HypothesisDetail } from './hypothesis/hypothesis_detail';
 import { HypothesesPanel } from './hypothesis/hypotheses_panel';
+import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -419,7 +419,7 @@ export const Notebook = ({ openedNoteId, ...rest }: NotebookProps) => {
   const {
     services: { dataSource },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const location = useLocation();
+  const { page } = useSubRouter();
   const stateRef = useRef(
     getDefaultState({
       id: openedNoteId,
@@ -427,12 +427,11 @@ export const Notebook = ({ openedNoteId, ...rest }: NotebookProps) => {
     })
   );
 
-  const isHypothesisRoute = location.pathname.includes('/hypothesis/');
   return (
     <NotebookContextProvider state={stateRef.current}>
       <>
-        {isHypothesisRoute && <HypothesisDetail />}
-        <div style={{ display: isHypothesisRoute ? 'none' : 'block' }}>
+        {page === SubRouter.Hypothesis && <HypothesisDetail />}
+        <div style={{ display: page === SubRouter.Hypothesis ? 'none' : 'block' }}>
           <NotebookComponent {...rest} />
         </div>
       </>
