@@ -54,6 +54,7 @@ import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearc
 import { AlertPanel } from './alert_panel';
 import { GlobalPanel } from './global_panel';
 import { NotebookHeader } from './notebook_header';
+import { SummaryCard } from './summary_card';
 import { useContextSubscription } from '../../../hooks/use_context_subscription';
 import { HypothesisDetail } from './hypothesis/hypothesis_detail';
 import { HypothesesPanel } from './hypothesis/hypotheses_panel';
@@ -285,6 +286,12 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                 </EuiSmallButton>
               </EuiCallOut>
             </EuiFlexItem>
+          )}
+          {source === NoteBookSource.DISCOVER && (
+            <>
+              <SummaryCard />
+              <EuiSpacer />
+            </>
           )}
           {source === NoteBookSource.ALERTING && (
             <>
