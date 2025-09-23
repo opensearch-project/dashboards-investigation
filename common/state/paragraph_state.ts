@@ -28,7 +28,6 @@ export interface ParagraphStateValue<
       distributionLoading?: boolean;
       error?: string;
     };
-    ppl?: { isWaitingForPPLResult?: boolean; error?: string };
   }>;
 }
 

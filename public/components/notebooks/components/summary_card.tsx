@@ -11,6 +11,8 @@ import {
   EuiLink,
   EuiCode,
   EuiSplitPanel,
+  EuiTitle,
+  EuiSpacer,
 } from '@elastic/eui';
 import React, { useContext } from 'react';
 import moment from 'moment';
@@ -69,6 +71,11 @@ export const SummaryCard = () => {
 
   return (
     <EuiSplitPanel.Outer borderRadius="l">
+      <EuiSpacer size="s" />
+      <EuiTitle>
+        <h2 style={{ paddingLeft: '20px' }}>Issue summary and impact</h2>
+      </EuiTitle>
+      <EuiSpacer size="s" />
       <EuiSplitPanel.Inner
         grow={false}
         color="subdued"

@@ -40,12 +40,7 @@ export const Paragraphs = (props: ParagraphProps) => {
     paragraphService.getParagraphRegistry(getInputType(paragraphValue)) || {};
 
   return (
-    <EuiPanel
-      className="notebookParagraphWrapper"
-      hasShadow={false}
-      paddingSize="none"
-      hasBorder={false}
-    >
+    <EuiPanel className="notebookParagraphWrapper">
       <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
       {ParagraphComponent && (
         <div key={paragraph.value.id} className={paraClass}>
