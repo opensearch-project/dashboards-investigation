@@ -73,7 +73,7 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
           \`\`\`
         `;
   },
-  runParagraph: async ({ paragraphState, saveParagraph }) => {
+  runParagraph: async ({ paragraphState }) => {
     const paragraphValue = paragraphState.getBackendValue();
     const inputText = paragraphValue.input.inputText;
     const queryType = inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
@@ -97,14 +97,6 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
     });
 
     try {
-      await saveParagraph({
-        paragraphStateValue: paragraphValue,
-      });
-
-      paragraphState.updateUIState({
-        isRunning: true,
-      });
-
       const queryResponse = await (queryType === '_sql'
         ? callOpenSearchCluster({
             http: getClient(),
