@@ -31,13 +31,14 @@ import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opense
 import { HypothesisBadge } from './hypothesis_badge';
 import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
 
-import './hypothesis_detail.scss';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { Paragraphs } from '../paragraph_components/paragraphs';
+import { generateParagraphPrompt } from '../../../../services/helpers/per_agent';
+import './hypothesis_detail.scss';
 
 export const HypothesisDetail: React.FC = () => {
   const {
-    services: { chrome, http, updateContext },
+    services: { chrome, http, updateContext, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
   const history = useHistory();
   const location = useLocation();
@@ -54,38 +55,48 @@ export const HypothesisDetail: React.FC = () => {
   const [toggleIdSelected, setToggleIdSelected] = useState('evidence');
 
   useEffect(() => {
-    if (!currentHypothesis) return;
+    if (!currentHypothesis) {
+      updateContext(1, null);
+      return;
+    }
     console.log('hypothesis - updateContext', currentHypothesis);
-    updateContext({
-      investigation: [
-        {
-          level: 0,
-          displayName: `Investigation: ${notebookContext.state.value.title}`,
-          notebookId: notebookContext.state.value.id,
-          contextContent: '',
-        },
-        {
-          level: 1,
-          displayName: `Hypothesis: ${currentHypothesis.title}`,
-          notebookId: notebookContext.state.value.id,
-          contextContent:
-            `` +
-            `## Hypothesis\n` +
-            `${currentHypothesis.title}\n` +
-            `## Hypothesis Description\n` +
-            `${currentHypothesis.description}\n` +
-            `## Hypothesis Findings\n` +
-            '```json\n' +
-            `${JSON.stringify(currentHypothesis.supportingFindingParagraphIds, null, 2)}\n` +
-            '```\n',
-        },
-      ],
-    });
+    (async () => {
+      const includedParagraphs = paragraphsStates.filter((item) =>
+        currentHypothesis.supportingFindingParagraphIds.includes(item.value.id)
+      );
+      updateContext(1, {
+        displayName: `Hypothesis: ${currentHypothesis.title}`,
+        notebookId: notebookContext.state.value.id,
+        hypothesisId: currentHypothesis.id,
+        contextContent: `
+            ## Hypothesis
+            ${currentHypothesis.title}
+            ## Hypothesis Description
+            ${currentHypothesis.description}
+            ## Hypothesis Findings
+            ${(
+              await generateParagraphPrompt({
+                paragraphService,
+                paragraphs: includedParagraphs.map((paragraph) => paragraph.value),
+              })
+            )
+              .filter((item) => item)
+              .map((item) => item)
+              .join('\n')}
+          `,
+      });
+    })();
+
+    return () => {
+      updateContext(1, null);
+    };
   }, [
     currentHypothesis,
     notebookContext.state.value.id,
     notebookContext.state.value.title,
     updateContext,
+    paragraphService,
+    paragraphsStates,
   ]);
 
   useEffect(() => {
@@ -265,14 +276,13 @@ export const HypothesisDetail: React.FC = () => {
                       .map((paragraphState, index: number) => {
                         if (!paragraphState) return null;
                         return (
-                          <EuiPanel color="plain" key={paragraphState.value.id}>
-                            <Paragraphs
-                              paragraphState={paragraphState}
-                              index={index}
-                              deletePara={() => {}}
-                              scrollToPara={() => {}}
-                            />
-                          </EuiPanel>
+                          <Paragraphs
+                            key={paragraphState.value.id}
+                            paragraphState={paragraphState}
+                            index={index}
+                            deletePara={() => {}}
+                            scrollToPara={() => {}}
+                          />
                         );
                       })}
                   </>
