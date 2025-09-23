@@ -211,6 +211,10 @@ export const usePrecheck = () => {
                 });
               }
             });
+        } else if (res.context?.initialGoal) {
+          res.doInvestigate({
+            investigationQuestion: res.context.initialGoal,
+          });
         }
       },
       [createParagraph, runParagraph]
