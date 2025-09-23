@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { useContext, useState, useCallback, useRef } from 'react';
 import { timer } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 import { useObservable } from 'react-use';
@@ -276,11 +276,7 @@ const convertParagraphsToFindings = (paragraphs: Array<ParagraphStateValue<unkno
   );
 };
 
-interface InvestigationOptions {
-  question?: string;
-}
-
-export const useInvestigation = ({ question }: InvestigationOptions) => {
+export const useInvestigation = () => {
   const context = useContext(NotebookReactContext);
   const {
     services: { http },
@@ -293,7 +289,6 @@ export const useInvestigation = ({ question }: InvestigationOptions) => {
   paragraphLengthRef.current = paragraphStates?.length ?? 0;
   const hypothesesRef = useRef(contextStateValue?.hypotheses);
   hypothesesRef.current = contextStateValue?.hypotheses;
-  const hasHypotheses = (contextStateValue?.hypotheses?.length ?? 0) > 0;
 
   const [isInvestigating, setIsInvestigating] = useState(false);
 
@@ -448,7 +443,7 @@ ${existingFindingsPrompt}
 ## New added findings
 ${newFindingsPrompt}
       `.trim()
-          : notebookContextPrompt;
+          : `${notebookContextPrompt}${convertParagraphsToFindings(allParagraphs)}`;
 
         const result = await executePERAgent({
           http,
@@ -553,23 +548,6 @@ ${newFindingsPrompt}
     },
     [createParagraph, updateHypotheses, runParagraph]
   );
-
-  useEffect(() => {
-    console.log('use investigation');
-    if (!question || hasHypotheses) {
-      return;
-    }
-    const abortController = new AbortController();
-
-    doInvestigateRef.current({
-      investigationQuestion: question,
-      abortController,
-    });
-
-    return () => {
-      abortController.abort('question or data source id changed');
-    };
-  }, [question, context.state.value.context.value.dataSourceId, hasHypotheses]);
 
   return {
     isInvestigating,

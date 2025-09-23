@@ -94,12 +94,15 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
     }
     paragraphState.updateUIState({
       isRunning: true,
-      ppl: { isWaitingForPPLResult: true },
     });
 
     try {
       await saveParagraph({
         paragraphStateValue: paragraphValue,
+      });
+
+      paragraphState.updateUIState({
+        isRunning: true,
       });
 
       const queryResponse = await (queryType === '_sql'
@@ -123,13 +126,14 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
       paragraphState.updateFullfilledOutput(queryResponse);
       paragraphState.updateUIState({
         isRunning: false,
-        ppl: { isWaitingForPPLResult: false },
       });
     } catch (err) {
       paragraphState.resetFullfilledOutput();
+      paragraphState.updateFullfilledOutput({
+        error: err.message,
+      });
       paragraphState.updateUIState({
         isRunning: false,
-        ppl: { error: err.message, isWaitingForPPLResult: false },
       });
       getNotifications().toasts.addDanger(`Error executing query: ${err.message}`);
     }

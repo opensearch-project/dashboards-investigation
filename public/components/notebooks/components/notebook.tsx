@@ -222,7 +222,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         await start({
           context: notebookContext.state.value.context.value,
           paragraphs: res.paragraphs,
-          doInvestigate: (props: { investigationQuestion: string }) => doInvestigate(props),
+          doInvestigate,
         });
       })
       .catch((err) => {

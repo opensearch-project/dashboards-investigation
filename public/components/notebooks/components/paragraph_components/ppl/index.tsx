@@ -90,7 +90,7 @@ export const PPLParagraph = ({
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const { saveParagraph } = useParagraphs();
   const queryObject = paragraphValue.fullfilledOutput;
-  const { isWaitingForPPLResult, error } = paragraphValue?.uiState?.ppl || {};
+  const error = queryObject?.error;
 
   const context = useContext(NotebookReactContext);
   const paragraphRegistry = paragraphService.getParagraphRegistry(getInputType(paragraphValue));
@@ -194,7 +194,7 @@ export const PPLParagraph = ({
           />
         </div>
       </EuiCompressedFormRow>
-      {isRunning || isWaitingForPPLResult ? (
+      {isRunning ? (
         <EuiLoadingContent />
       ) : (
         <>
