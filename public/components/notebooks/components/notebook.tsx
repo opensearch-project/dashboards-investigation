@@ -106,9 +106,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const isSavedObjectNotebook = isValidUUID(openedNoteId);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
-  const { isInvestigating, doInvestigate, addNewFinding } = useInvestigation({
-    question: initialGoal,
-  });
+  const { isInvestigating, doInvestigate, addNewFinding } = useInvestigation();
 
   // Initialize finding integration for automatic UI updates when findings are added
   useNotebookFindingIntegration({
@@ -222,6 +220,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         await start({
           context: notebookContext.state.value.context.value,
           paragraphs: res.paragraphs,
+          hypotheses: res.hypotheses,
           doInvestigate,
         });
       })

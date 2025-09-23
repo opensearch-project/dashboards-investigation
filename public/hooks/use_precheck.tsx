@@ -9,6 +9,7 @@ import moment from 'moment';
 import { takeUntil } from 'rxjs/operators';
 
 import {
+  HypothesisItem,
   IndexInsightContent,
   NotebookContext,
   NoteBookSource,
@@ -47,6 +48,7 @@ export const usePrecheck = () => {
         context?: NotebookContext;
         paragraphs: Array<ParagraphBackendType<unknown>>;
         doInvestigate: (props: { investigationQuestion: string }) => Promise<unknown>;
+        hypotheses?: HypothesisItem[];
       }) => {
         let logPatternParaExists = false;
         let anomalyAnalysisParaExists = false;
@@ -211,7 +213,7 @@ export const usePrecheck = () => {
                 });
               }
             });
-        } else if (res.context?.initialGoal) {
+        } else if (res.context?.initialGoal && !res.hypotheses?.length) {
           res.doInvestigate({
             investigationQuestion: res.context.initialGoal,
           });
