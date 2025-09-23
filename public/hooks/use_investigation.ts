@@ -282,7 +282,6 @@ interface InvestigationOptions {
 
 export const useInvestigation = ({ question }: InvestigationOptions) => {
   const context = useContext(NotebookReactContext);
-  const dataSourceId = context.state.value.context.value.dataSourceId;
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
@@ -404,6 +403,7 @@ ${finding.evidence}
     }) => {
       let parentInteractionId;
 
+      const dataSourceId = context.state.value.context.value.dataSourceId;
       console.log('doInvestigate');
       setIsInvestigating(true);
       try {
@@ -514,7 +514,7 @@ ${newFindingsPrompt}
         setIsInvestigating(false);
       });
     },
-    [context.state, contextStateValue?.hypotheses, dataSourceId, http, storeInvestigationResponse]
+    [context.state, contextStateValue?.hypotheses, http, storeInvestigationResponse]
   );
 
   const doInvestigateRef = useRef(doInvestigate);
@@ -569,7 +569,7 @@ ${newFindingsPrompt}
     return () => {
       abortController.abort('question or data source id changed');
     };
-  }, [question, dataSourceId, hasHypotheses]);
+  }, [question, context.state.value.context.value.dataSourceId, hasHypotheses]);
 
   return {
     isInvestigating,
