@@ -14,6 +14,7 @@ import {
   EuiSmallButton,
   EuiSpacer,
   EuiText,
+  EuiTitle,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import MarkdownRender from '@nteract/markdown';
@@ -32,6 +33,9 @@ export const MarkdownParagraph = ({
 }) => {
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const { runParagraph } = useParagraphs();
+  const output = ParagraphState.getOutput(paragraphValue);
+  const isFindingParagraph =
+    output?.result.includes('Importance:') && output.result.includes('Description:');
 
   const runParagraphHandler = async () => {
     paragraphState.updateUIState({
@@ -51,6 +55,21 @@ export const MarkdownParagraph = ({
   };
 
   const isRunning = paragraphValue.uiState?.isRunning;
+
+  if (isFindingParagraph && output) {
+    const description = /Description\:\s*(.*)\n/.exec(output.result)?.[1];
+    const evidence = /Evidence\:\s*(.*)/.exec(output.result)?.[1];
+
+    return (
+      <>
+        <EuiTitle size="xs">
+          <span>Finding: {description}</span>
+        </EuiTitle>
+        <EuiSpacer />
+        <div>{evidence}</div>
+      </>
+    );
+  }
 
   return (
     <>

@@ -48,7 +48,7 @@ export class InvestigationPlugin
     Plugin<InvestigationSetup, InvestigationStart, SetupDependencies, AppPluginStartDependencies> {
   private paragraphService: ParagraphService;
   private contextService: ContextService;
-  private chatbotContext$ = new BehaviorSubject<Record<string, unknown>>({});
+  private chatbotContext$ = new BehaviorSubject<Array<Record<string, unknown> | null>>([]);
   private startDeps: AppPluginStartDependencies | undefined;
 
   constructor() {
@@ -197,15 +197,25 @@ export class InvestigationPlugin
     this.startDeps = startDeps;
     startDeps.contextProvider?.registerContextContributor({
       appId: investigationNotebookID,
-      captureStaticContext: async () => this.chatbotContext$.getValue(),
+      captureStaticContext: async () => ({
+        investigation: this.chatbotContext$
+          .getValue()
+          .filter((item) => item)
+          .map((item, index) => ({
+            level: index,
+            ...item,
+          })),
+      }),
     });
 
     // Export so other plugins can use this flyout
     return {};
   }
 
-  private updateContext = (context: Record<string, unknown>) => {
-    this.chatbotContext$.next(context);
+  private updateContext = (level: number, context: Record<string, unknown> | null) => {
+    const value = this.chatbotContext$.getValue();
+    value[level] = context;
+    this.chatbotContext$.next(value);
     this.startDeps?.contextProvider?.refreshCurrentContext();
   };
 
