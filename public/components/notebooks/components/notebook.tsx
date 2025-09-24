@@ -79,7 +79,7 @@ export interface NotebookProps extends NotebookComponentProps {
 
 export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const {
-    services: { http, notifications, findingService },
+    services: { http, notifications, findingService, chrome, assistantDashboards },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -241,6 +241,10 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
   useEffectOnce(() => {
     loadNotebook();
+
+    // TODO: remove the optional chain after each method
+    chrome.setIsNavDrawerLocked?.(false);
+    assistantDashboards?.updateChatbotVisible?.(true);
   });
 
   return (
