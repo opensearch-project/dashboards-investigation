@@ -32,7 +32,6 @@ import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearc
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { setNavBreadCrumbs } from '../../../../common/utils/set_nav_bread_crumbs';
 import { HeaderVariant } from '../../../../../../src/core/public';
-
 import { GenerateReportLoadingModal } from './helpers/custom_modals/reporting_loading_modal';
 import { DeleteNotebookModal, getCustomModal } from './helpers/modal_containers';
 import {
@@ -44,6 +43,7 @@ import { ToggleSystemPromptSettingModal } from './helpers/custom_modals/toggle_s
 import { TopNavMenuIconData } from '../../../../../../src/plugins/navigation/public';
 import { SystemPromptSettingModal } from './helpers/custom_modals/system_prompt_setting_modal';
 import { NotebookDataSourceSelector } from './data_source_selector/notebook_data_source_selector';
+import { NotebookType } from '../../../../common/types/notebooks';
 
 export const NotebookHeader = ({
   loadNotebook,
@@ -78,7 +78,7 @@ export const NotebookHeader = ({
     isLoading,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const contextValue = useObservable(context.getValue$());
-  const { dataSourceId } = contextValue || {};
+  const { dataSourceId, notebookType } = contextValue || {};
 
   const [isReportingPluginInstalled, setIsReportingPluginInstalled] = useState(false);
   const [isReportingActionsPopoverOpen, setIsReportingActionsPopoverOpen] = useState(false);
@@ -597,14 +597,18 @@ export const NotebookHeader = ({
               />
               <HeaderControl
                 controls={[
-                  {
-                    renderComponent: (
-                      <NotebookDataSourceSelector
-                        dataSourceId={dataSourceId}
-                        isNotebookLoading={isLoading}
-                      />
-                    ),
-                  },
+                  ...(notebookType === NotebookType.AGENTIC
+                    ? [
+                        {
+                          renderComponent: (
+                            <NotebookDataSourceSelector
+                              dataSourceId={dataSourceId}
+                              isNotebookLoading={isLoading}
+                            />
+                          ),
+                        },
+                      ]
+                    : []),
                   {
                     text: i18n.translate('notebook.header.lastUpdated', {
                       defaultMessage: 'Last updated: {time}',
@@ -654,6 +658,7 @@ export const NotebookHeader = ({
       noteActionIcons,
       showReportingContextMenu,
       reportingTopButton,
+      notebookType,
     ]
   );
 

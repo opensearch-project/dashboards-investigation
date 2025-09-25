@@ -6,8 +6,8 @@
 import React, { useCallback, useContext } from 'react';
 import { useObservable } from 'react-use';
 import { EuiPanel } from '@elastic/eui';
-import { ParagraphInputType } from 'common/types/notebooks';
 import type { ParagraphState } from 'common/state/paragraph_state';
+import { NotebookType, ParagraphInputType } from '../../../../common/types/notebooks';
 import { MultiVariantInput } from './input/multi_variant_input';
 import { useParagraphs } from '../../../../public/hooks/use_paragraphs';
 import { NotebookReactContext } from '../context_provider/context_provider';
@@ -22,13 +22,13 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) =>
   const context = useContext(NotebookReactContext);
   const notebookState = useObservable(context.state.getValue$(), context.state.value);
   const paragraphs = notebookState.paragraphs.map((item) => item.value);
-  const { dataSourceId } = useObservable(
+  const { notebookType, dataSourceId: notebookDataSourceId } = useObservable(
     context.state.value.context.getValue$(),
     context.state.value.context.value
   );
 
   const handleCreateParagraph = useCallback(
-    async ({ inputText, inputType, parameters }: ParagraphInputType) => {
+    async ({ inputText, inputType, parameters }: ParagraphInputType, dataSourceId?: string) => {
       let typedInputText = inputText;
       let createInputType = inputType;
 
@@ -67,7 +67,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) =>
         console.log(`Error while creating paragraph ${err}`);
       }
     },
-    [paragraphs.length, dataSourceId, createParagraph, runParagraph, onParagraphCreated]
+    [paragraphs.length, createParagraph, runParagraph, onParagraphCreated]
   );
 
   return (
@@ -82,7 +82,10 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) =>
       }}
     >
       <EuiPanel grow borderRadius="xl" hasBorder hasShadow paddingSize="s">
-        <MultiVariantInput onSubmit={handleCreateParagraph} />
+        <MultiVariantInput
+          onSubmit={handleCreateParagraph}
+          dataSourceId={notebookType === NotebookType.CLASSIC ? '' : notebookDataSourceId}
+        />
       </EuiPanel>
     </div>
   );

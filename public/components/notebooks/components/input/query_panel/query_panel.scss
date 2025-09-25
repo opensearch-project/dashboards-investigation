@@ -53,4 +53,39 @@
         flex-shrink: 1;
         min-width: 0;
     }
+
+    &__dataSourceSelector {
+        display: flex;
+
+        .dataSourceMenuPopoverButton {
+            background: none;
+            border: none;
+
+            &::before {
+                display: none;
+            }
+        }
+
+        .dataSourceMenuPopoverButtonLabel {
+            box-shadow: none !important;
+            padding-right: 14px !important;
+
+            .euiButtonContent {
+                padding: 0 $ouiSizeS;
+            }
+
+            +.euiIcon {
+                margin: 0 0 0 -14px;
+            }
+        }
+
+        .euiButton__text {
+            display: none;
+        }
+
+        .euiIcon {
+            width: $ouiSizeM;
+            color: $ouiColorPrimary;
+        }
+    }
 }

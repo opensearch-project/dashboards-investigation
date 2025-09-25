@@ -21,8 +21,9 @@ import { VisualizationInput } from './visualization_input';
 
 interface MultiVariantInputProps<TParameters = unknown> {
   input?: ParagraphInputType<TParameters>;
-  onSubmit: (input: ParagraphInputType<TParameters>) => void;
+  onSubmit: (input: ParagraphInputType<TParameters>, dataSourceId?: string) => void;
   actionDisabled?: boolean;
+  dataSourceId?: string;
 }
 
 const MultiVariantInputContent: React.FC<{ actionDisabled?: boolean }> = ({ actionDisabled }) => {
@@ -115,7 +116,11 @@ const MultiVariantInputContent: React.FC<{ actionDisabled?: boolean }> = ({ acti
 
 export const MultiVariantInput: React.FC<MultiVariantInputProps> = (props) => {
   return (
-    <InputProvider onSubmit={props.onSubmit} input={props.input}>
+    <InputProvider
+      onSubmit={props.onSubmit}
+      input={props.input}
+      dataSourceId={props.dataSourceId || ''}
+    >
       <MultiVariantInputContent actionDisabled={props.actionDisabled} />
     </InputProvider>
   );

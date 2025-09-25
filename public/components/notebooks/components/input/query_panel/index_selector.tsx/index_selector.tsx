@@ -7,7 +7,6 @@ import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react'
 import {
   EuiButtonEmpty,
   EuiHighlight,
-  EuiIcon,
   EuiPopover,
   EuiSelectable,
   EuiSelectableOption,
@@ -23,14 +22,19 @@ import { QueryState } from '../../types';
 import './index_selector.scss';
 import { Field } from '../../../../../../../../../src/plugins/dashboard/public/types';
 
+const INITAL_INDEX_SELECTION = {
+  selectedIndex: undefined,
+  selectedTimeField: undefined,
+};
+
 interface IndexSelectorOption {
   checked?: 'on' | 'off';
   key?: string;
   label?: string;
 }
 
-export const IndexSelector: React.FC = () => {
-  const { dataSourceId, handleInputChange, inputValue } = useInputContext();
+export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ dataSourceId }) => {
+  const { handleInputChange, inputValue } = useInputContext();
   const { noDatePicker, selectedIndex } = (inputValue as QueryState) || {};
   const {
     services: {
@@ -42,12 +46,11 @@ export const IndexSelector: React.FC = () => {
   const [currentSelection, setCurrentSelection] = useState<{
     selectedIndex: IndexSelectorOption | undefined;
     selectedTimeField: IndexSelectorOption | undefined;
-  }>({
-    selectedIndex: undefined,
-    selectedTimeField: undefined,
-  });
+  }>(INITAL_INDEX_SELECTION);
 
   const tempSelectedIndexRef = useRef<IndexSelectorOption | undefined>(undefined);
+  const isFirstRender = useRef(true);
+  const previousDataSouce = useRef<string | undefined>(undefined);
 
   const [uiState, setUiState] = useState({
     isOpen: false,
@@ -62,8 +65,28 @@ export const IndexSelector: React.FC = () => {
   });
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    if (dataSourceId !== undefined) {
+      setCurrentSelection(INITAL_INDEX_SELECTION);
+      setUiState({
+        isOpen: false,
+        stage: 'index',
+        isLoading: false,
+      });
+      handleInputChange({ value: '', query: '', isPromptEditorMode: false });
+    }
+  }, [dataSourceId, handleInputChange]);
+
+  useEffect(() => {
     // TODO: consider to move the check for indices to notebook context
-    if (!uiState.isOpen || indicesData.indices.length > 0) return;
+    if (!uiState.isOpen) return;
+
+    // Prevent fetching when close and reopen the popover without changing the data source
+    if (previousDataSouce.current === dataSourceId && indicesData.indices.length > 0) return;
 
     const fetchIndices = async () => {
       setUiState((prev) => ({ ...prev, isLoading: true }));
@@ -83,25 +106,22 @@ export const IndexSelector: React.FC = () => {
       }
     };
     fetchIndices();
+    previousDataSouce.current = dataSourceId;
   }, [uiState.isOpen, indicesData.indices.length, dataSourceId, http]);
 
   useEffect(() => {
-    const initializeFromInput = async () => {
-      // Populate selected index and time field label from input state
-      if (!currentSelection.selectedIndex && !isEmpty(selectedIndex?.title)) {
-        const indexTitle = selectedIndex.title;
-        const timeField = selectedIndex.timeField;
+    // Populate selected index and time field label from input state
+    if (!isEmpty(selectedIndex?.title)) {
+      const indexTitle = selectedIndex.title;
+      const timeField = selectedIndex.timeField;
 
-        setCurrentSelection((prev) => ({
-          ...prev,
-          selectedIndex: { label: indexTitle },
-          selectedTimeField: { label: timeField },
-        }));
-      }
-    };
-
-    initializeFromInput();
-  }, [selectedIndex, currentSelection.selectedIndex]);
+      setCurrentSelection((prev) => ({
+        ...prev,
+        selectedIndex: { label: indexTitle },
+        selectedTimeField: { label: timeField },
+      }));
+    }
+  }, [selectedIndex]);
 
   const options = useMemo(() => {
     return indicesData.indices.map(({ index, uuid }) => ({ label: index, key: uuid }));
@@ -229,7 +249,6 @@ export const IndexSelector: React.FC = () => {
           textProps={{ className: 'notebookIndexSelector__textWrapper' }}
           onClick={togglePopover}
         >
-          <EuiIcon type="database" size="s" />
           <EuiText size="xs" className="notebookIndexSelector__text">
             {getButtonText()}
           </EuiText>
