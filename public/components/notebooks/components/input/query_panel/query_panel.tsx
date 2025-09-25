@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   EuiButtonEmpty,
   EuiFlexGroup,
+  EuiIcon,
   EuiLoadingSpinner,
   EuiPanel,
   EuiPopover,
@@ -32,6 +33,9 @@ import {
   QueryAssistParameters,
   QueryAssistResponse,
 } from '../../../../../../../../src/plugins/query_enhancements/common/query_assist';
+import { getDataSourceManagementSetup } from '../../../../../../public/services';
+import { dataSourceFilterFn } from '../../../../../../common/utils/shared';
+import { DataSourceOption } from '../../../../../../../../src/plugins/data_source_management/public';
 
 interface QueryPanelProps {
   prependWidget?: React.ReactNode;
@@ -61,6 +65,8 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
     services,
     services: {
       uiSettings,
+      savedObjects,
+      notifications,
       data: { indexPatterns },
     },
   } = useOpenSearchDashboards<NoteBookServices>();
@@ -70,13 +76,18 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
     dataSourceId,
     isLoading,
     paragraphInput,
+    isAgenticNotebook,
     handleInputChange,
     handleSubmit,
   } = useInputContext();
 
+  const { dataSourceManagement } = getDataSourceManagementSetup();
+  const DataSourceMenu = dataSourceManagement?.ui.getDataSourceMenu();
+
   const [promptModeIsAvailable, setPromptModeIsAvailable] = useState(false);
   const [isQueryPanelMenuOpen, setIsQueryPanelMenuOpen] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [localDataSourceId, setLocalDataSourceId] = useState(dataSourceId);
 
   const queryState = (inputValue && typeof inputValue !== 'string'
     ? inputValue
@@ -85,8 +96,8 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
 
   useEffect(() => {
     // TODO: consider move this to global state
-    getPromptModeIsAvailable(services, dataSourceId).then(setPromptModeIsAvailable);
-  }, [services, dataSourceId]);
+    getPromptModeIsAvailable(services, localDataSourceId).then(setPromptModeIsAvailable);
+  }, [services, localDataSourceId]);
 
   useEffect(() => {
     const handleInitalInput = async () => {
@@ -111,7 +122,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
           const fields = indexName
             ? await indexPatterns.getFieldsForWildcard({
                 pattern: indexName,
-                dataSourceId,
+                dataSourceId: localDataSourceId,
               })
             : [];
 
@@ -139,7 +150,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
       }
     };
     handleInitalInput();
-  }, [paragraphInput, handleInputChange, indexPatterns, dataSourceId, inputValue, isFetching]);
+  }, [paragraphInput, handleInputChange, indexPatterns, localDataSourceId, inputValue, isFetching]);
 
   const handleTimeChange = useCallback(
     (props) => {
@@ -161,38 +172,47 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
       question: editorTextRef.current,
       index: selectedIndex.title,
       language: queryLanguage,
-      dataSourceId,
+      dataSourceId: localDataSourceId,
     };
 
-    const { query } = await services.http.post<QueryAssistResponse>(
-      '/api/enhancements/assist/generate',
-      {
-        body: JSON.stringify(params),
-      }
-    );
+    try {
+      const { query } = await services.http.post<QueryAssistResponse>(
+        '/api/enhancements/assist/generate',
+        {
+          body: JSON.stringify(params),
+        }
+      );
 
-    handleInputChange({ query });
-    setIsFetching(false);
+      handleInputChange({ query });
 
-    return query;
+      return query;
+    } catch (err) {
+      console.log(`Text2ppl error: ${err}`);
+    } finally {
+      setIsFetching(false);
+    }
   }, [
     paragraphInput,
     editorTextRef,
     selectedIndex.title,
     queryLanguage,
-    dataSourceId,
+    localDataSourceId,
     services.http,
     handleInputChange,
   ]);
 
   const handleRunQuery = useCallback(async () => {
-    handleSubmit(editorTextRef.current, {
-      timeRange,
-      indexName: selectedIndex?.title,
-      timeField: selectedIndex?.timeField,
-      query: isPromptEditorMode ? await handleGenerateQuery() : '',
-      noDatePicker,
-    });
+    handleSubmit(
+      editorTextRef.current,
+      {
+        timeRange,
+        indexName: selectedIndex?.title,
+        timeField: selectedIndex?.timeField,
+        query: isPromptEditorMode ? await handleGenerateQuery() : '',
+        noDatePicker,
+      },
+      localDataSourceId
+    );
   }, [
     handleSubmit,
     handleGenerateQuery,
@@ -201,9 +221,33 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
     noDatePicker,
     selectedIndex,
     timeRange,
+    localDataSourceId,
   ]);
 
   const isQueryPanelLoading = isFetching || isLoading;
+
+  const getQueryPanelDataSourceSelector = useCallback(() => {
+    if (isAgenticNotebook) {
+      return <EuiIcon type="database" style={{ margin: '0 -4px 0 8px' }} />;
+    }
+
+    if (!DataSourceMenu) return null;
+    return (
+      <DataSourceMenu
+        componentType="DataSourceSelectable"
+        componentConfig={{
+          savedObjects: savedObjects.client,
+          notifications,
+          activeOption: [{ id: localDataSourceId || '' }],
+          onSelectedDataSources: (ds: DataSourceOption[]) => {
+            console.log(ds[0]);
+            setLocalDataSourceId(ds[0].id);
+          },
+          dataSourceFilter: dataSourceFilterFn,
+        }}
+      />
+    );
+  }, [savedObjects, notifications, localDataSourceId, DataSourceMenu, isAgenticNotebook]);
 
   if (!queryState) {
     return null;
@@ -219,8 +263,11 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
       >
         {prependWidget}
         <LanguageToggle promptModeIsAvailable={promptModeIsAvailable} />
+        <div className="notebookQueryPanelWidgets__dataSourceSelector">
+          {getQueryPanelDataSourceSelector()}
+        </div>
         <div className="notebookQueryPanelWidgets__indexSelectorWrapper">
-          <IndexSelector />
+          <IndexSelector dataSourceId={localDataSourceId} />
         </div>
         {queryLanguage === 'PPL' && !queryState?.noDatePicker && (
           <>

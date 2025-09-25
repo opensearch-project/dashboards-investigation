@@ -29,6 +29,7 @@ import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/ope
 import { MultiVariantInput } from '../../input/multi_variant_input';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
 import { addTimeRangeFilter } from '../../../../../utils/time';
+import { NotebookType } from '../../../../../../common/types/notebooks';
 
 export interface QueryObject {
   schema?: any[];
@@ -93,6 +94,13 @@ export const PPLParagraph = ({
   const { isWaitingForPPLResult, error } = paragraphValue?.uiState?.ppl || {};
 
   const context = useContext(NotebookReactContext);
+  const { notebookType, dataSourceId: notebookDataSourceId } = useObservable(
+    context.state.value.context.getValue$(),
+    context.state.value.context.value
+  );
+
+  const isClassicNotebook = notebookType === NotebookType.CLASSIC;
+
   const paragraphRegistry = paragraphService.getParagraphRegistry(getInputType(paragraphValue));
 
   useEffectOnce(() => {
@@ -126,6 +134,8 @@ export const PPLParagraph = ({
   const data = useMemo(() => getQueryOutputData(queryObject ?? {}), [queryObject]);
   const isRunning = paragraphValue.uiState?.isRunning;
 
+  const paragarphDataSource = paragraphValue?.dataSourceMDSId;
+
   if (!paragraphRegistry) {
     return null;
   }
@@ -154,7 +164,6 @@ export const PPLParagraph = ({
         }
       >
         <div style={{ width: '100%' }}>
-          <EuiSpacer size="xl" />
           <MultiVariantInput
             input={{
               inputText: inputQuery,
@@ -176,6 +185,7 @@ export const PPLParagraph = ({
               });
             }}
             actionDisabled={actionDisabled}
+            dataSourceId={isClassicNotebook ? paragarphDataSource : notebookDataSourceId}
           />
         </div>
       </EuiCompressedFormRow>

@@ -8,14 +8,18 @@ import { EuiBetaBadge, EuiContextMenuItem, EuiContextMenuPanel, EuiPopover } fro
 import classNames from 'classnames';
 import { useInputContext } from '../../input_context';
 import { QueryLanguage, QueryState } from '../../types';
-import { NotebookType } from '../../../../../../../common/types/notebooks';
 
 import './language_toggle.scss';
 
 export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
   promptModeIsAvailable,
 }) => {
-  const { inputValue, notebookType, handleInputChange, handleSetCurrInputType } = useInputContext();
+  const {
+    inputValue,
+    isAgenticNotebook,
+    handleInputChange,
+    handleSetCurrInputType,
+  } = useInputContext();
 
   const { isPromptEditorMode, queryLanguage } = (inputValue as QueryState) || {};
 
@@ -58,7 +62,7 @@ export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
       </EuiContextMenuItem>,
     ];
 
-    if (notebookType === NotebookType.CLASSIC) {
+    if (!isAgenticNotebook) {
       output.push(
         <EuiContextMenuItem
           key="SQL"
@@ -83,7 +87,7 @@ export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
     }
 
     return output;
-  }, [onItemClick, promptModeIsAvailable, notebookType]);
+  }, [onItemClick, promptModeIsAvailable, isAgenticNotebook]);
 
   return (
     // This div is needed to allow for the gradient styling
