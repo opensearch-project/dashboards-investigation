@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { EuiLoadingContent, EuiSpacer, EuiText } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
@@ -18,6 +18,7 @@ import {
   createDashboardVizObject,
   getPanelValue,
 } from '../../../../../../public/utils/visualization';
+import { useVisualizationValue } from './use_visualization_value';
 
 export const VisualizationParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
   const {
@@ -27,14 +28,13 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
     },
   } = useOpenSearchDashboards<NoteBookServices>();
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
-  const inputJSON = useMemo(
-    () => createDashboardVizObject(paragraphValue.input.parameters as VisualizationInputValue),
-    [paragraphValue.input.parameters]
+  const inputJSON: DashboardContainerInput = useMemo(
+    () => JSON.parse(paragraphValue.input.inputText),
+    [paragraphValue.input.inputText]
   );
   const { runParagraph } = useParagraphs();
-  const [visualizationValue, setVisualizationValue] = useState<VisualizationInputValue>(
-    paragraphValue.input.parameters as VisualizationInputValue
-  );
+
+  const visualizationValue: VisualizationInputValue | undefined = useVisualizationValue(inputJSON);
 
   const isRunning = paragraphValue.uiState?.isRunning;
   const dateFormat = uiSettings.get('dateFormat');
@@ -50,9 +50,9 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
     to = to === 'Invalid date' ? visualizationValue?.endTime || '' : to;
 
     return Object.entries(inputJSON.panels || {}).reduce(
-      (acc, [panelKey, panel]: [string, DashboardContainerInput['panels'][number]]) => ({
+      (acc, [panelKey, panel]) => ({
         ...acc,
-        [panelKey]: getPanelValue(panel, {
+        [panelKey]: getPanelValue(panel as DashboardContainerInput['panels'][number], {
           ...visualizationValue,
           startTime: from,
           endTime: to,
@@ -64,9 +64,8 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
 
   const handleSubmitParagraph = useCallback(
     ({ inputType, parameters }) => {
-      setVisualizationValue(parameters as VisualizationInputValue);
       paragraphState.updateInput({
-        inputText: '',
+        inputText: JSON.stringify(createDashboardVizObject(parameters)),
         inputType,
         parameters,
       });
@@ -80,11 +79,15 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
   return (
     <>
       <MultiVariantInput
-        input={{ inputText: JSON.stringify(inputJSON), inputType: 'VISUALIZATION' }}
+        input={{
+          inputText: '',
+          inputType: 'VISUALIZATION',
+          parameters: visualizationValue,
+        }}
         onSubmit={handleSubmitParagraph}
       />
       <EuiSpacer size="m" />
-      {visualizationValue.id ? (
+      {visualizationValue?.id ? (
         isRunning ? (
           <EuiLoadingContent />
         ) : panels ? (

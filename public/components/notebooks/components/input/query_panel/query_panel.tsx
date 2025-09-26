@@ -261,6 +261,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         gutterSize="none"
         dir="row"
         alignItems="center"
+        style={{ marginInlineEnd: 32 }}
       >
         {prependWidget}
         <LanguageToggle promptModeIsAvailable={promptModeIsAvailable} />
@@ -304,7 +305,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
                 button={
                   <EuiSmallButtonIcon
                     aria-label="Open input menu"
-                    iconType="boxesHorizontal"
+                    iconType="gear"
                     onClick={() => setIsQueryPanelMenuOpen(true)}
                   />
                 }

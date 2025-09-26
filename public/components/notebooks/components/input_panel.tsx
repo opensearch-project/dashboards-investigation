@@ -11,6 +11,8 @@ import { NotebookType, ParagraphInputType } from '../../../../common/types/noteb
 import { MultiVariantInput } from './input/multi_variant_input';
 import { useParagraphs } from '../../../../public/hooks/use_paragraphs';
 import { NotebookReactContext } from '../context_provider/context_provider';
+import { createDashboardVizObject } from '../../../../public/utils/visualization';
+import { VisualizationInputValue } from './input/visualization_input';
 
 interface InputPanelProps {
   onParagraphCreated?: (paragraphState: ParagraphState<unknown, unknown>) => void;
@@ -44,6 +46,10 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) =>
         case 'MARKDOWN':
           typedInputText = `%md\n${inputText}`;
           break;
+        case 'VISUALIZATION':
+          typedInputText = JSON.stringify(
+            createDashboardVizObject(parameters as VisualizationInputValue)
+          );
       }
 
       try {
@@ -53,7 +59,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) =>
           input: {
             inputText: typedInputText,
             inputType: createInputType,
-            parameters,
+            ...(inputType === 'VISUALIZATION' ? {} : { parameters }),
           },
           dataSourceMDSId: dataSourceId === undefined ? notebookDataSourceId : dataSourceId,
         });
