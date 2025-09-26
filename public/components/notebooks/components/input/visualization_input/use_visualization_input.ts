@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useState, useEffect, useMemo } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { EuiComboBoxOptionOption, EuiSelectableOption } from '@elastic/eui';
 import { NoteBookServices } from 'public/types';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
@@ -14,9 +14,8 @@ import {
   OBSERVABILITY_VISUALIZATION_TYPE,
 } from '../../../../../../common/constants/notebooks';
 import { getVisualizations } from '../../../../../../public/services';
-import { VisualizationInputValue } from '.';
 
-export const useVisualizationInput = (value: VisualizationInputValue | undefined) => {
+export const useVisualizationInput = () => {
   const {
     services: { uiSettings, dataSource, savedObjects },
   } = useOpenSearchDashboards<NoteBookServices>();
@@ -25,19 +24,6 @@ export const useVisualizationInput = (value: VisualizationInputValue | undefined
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectableOptions, setSelectableOptions] = useState<EuiSelectableOption[]>([]);
   const [visOptions, setVisOptions] = useState<EuiComboBoxOptionOption[]>([]);
-
-  const selectedOption = useMemo(() => {
-    if (!value || !visOptions.length) {
-      return undefined;
-    }
-
-    return visOptions
-      .reduce(
-        (acc, current) => [...acc, ...(current.options || [])],
-        [] as EuiComboBoxOptionOption[]
-      )
-      .find((option) => option.key === value?.id && option.datatype === value?.type);
-  }, [value, visOptions]);
 
   const fetchSavedObjectsVisualizations = useCallback(() => {
     return savedObjects.client
@@ -139,7 +125,6 @@ export const useVisualizationInput = (value: VisualizationInputValue | undefined
     setIsModalOpen,
     selectableOptions,
     setSelectableOptions,
-    selectedOption,
     onSelect,
     openModal,
   };

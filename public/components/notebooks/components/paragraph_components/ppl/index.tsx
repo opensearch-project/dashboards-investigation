@@ -142,8 +142,6 @@ export const PPLParagraph = ({
 
   return (
     <>
-      <EuiFlexGroup style={{ marginTop: 0 }} />
-      <EuiSpacer size="s" />
       <EuiCompressedFormRow
         fullWidth={true}
         helpText={<EuiSpacer size="s" />}

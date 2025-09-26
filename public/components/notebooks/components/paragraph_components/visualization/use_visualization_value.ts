@@ -3,27 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { OBSERVABILITY_VISUALIZATION_TYPE } from '../../../../../../common/constants/notebooks';
-import { createDashboardVizObject } from '../../../../../../public/utils/visualization';
-import { VisualizationInputValue } from '.';
+import { DashboardContainerInput } from '../../../../../../../../src/plugins/dashboard/public';
 
-const DEFAULT_VIZ_INPUT_VALUE = {
-  type: '',
-  id: '',
-  startTime: 'now-15m',
-  endTime: 'now',
-};
-
-export const useVisualizationValue = (inputValue: string | undefined) => {
-  const [value, setValue] = useState<VisualizationInputValue | undefined>(DEFAULT_VIZ_INPUT_VALUE);
-
+export const useVisualizationValue = (inputJSON: DashboardContainerInput) => {
   const endDate = useMemo(() => new Date(), []);
-  const inputJSON = useMemo(() => {
-    return inputValue ? JSON.parse(inputValue) : createDashboardVizObject(DEFAULT_VIZ_INPUT_VALUE);
-  }, [inputValue]);
 
-  useEffect(() => {
+  return useMemo(() => {
     const visualizationPanel = inputJSON.panels[1];
     let selectedVisualizationId: string = visualizationPanel.explicitInput.savedObjectId as string;
     const startDate = new Date(endDate.toISOString());
@@ -52,8 +39,6 @@ export const useVisualizationValue = (inputValue: string | undefined) => {
       endTime,
     };
 
-    setValue(visualizationInputValue);
+    return visualizationInputValue;
   }, [inputJSON, endDate]);
-
-  return { value, setValue };
 };
