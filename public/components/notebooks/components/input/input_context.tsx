@@ -204,6 +204,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({
   );
 
   const isInputMountedInParagraph = !!input;
+  const isAgenticNotebook = notebookType === NotebookType.AGENTIC;
 
   const handleSubmit = useCallback(
     async (inputText?: string, parameters?: any, dsId?: string) => {
@@ -220,7 +221,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({
             inputType: currInputType,
             ...(parameters ? { parameters } : {}),
           },
-          dsId || dataSourceId
+          isAgenticNotebook ? undefined : dsId
         );
 
         if (!isInputMountedInParagraph) handleCancel();
@@ -230,7 +231,14 @@ export const InputProvider: React.FC<InputProviderProps> = ({
         setIsLoading(false);
       }
     },
-    [inputValue, currInputType, onSubmit, dataSourceId, isInputMountedInParagraph, handleCancel]
+    [
+      inputValue,
+      currInputType,
+      onSubmit,
+      isInputMountedInParagraph,
+      handleCancel,
+      isAgenticNotebook,
+    ]
   );
 
   const handleSetCurrInputType = useCallback((type: InputType) => {
@@ -249,7 +257,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({
     paragraphOptions,
     dataSourceId,
     paragraphInput: input,
-    isAgenticNotebook: notebookType === NotebookType.AGENTIC,
+    isAgenticNotebook,
     handleSetCurrInputType,
     setIsParagraphSelectionOpen,
     handleInputChange,

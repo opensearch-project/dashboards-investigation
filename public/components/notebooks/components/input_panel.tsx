@@ -55,7 +55,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) =>
             inputType: createInputType,
             parameters,
           },
-          dataSourceMDSId: dataSourceId,
+          dataSourceMDSId: dataSourceId === undefined ? notebookDataSourceId : dataSourceId,
         });
         if (createParagraphRes) {
           onParagraphCreated?.(createParagraphRes);
@@ -67,7 +67,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) =>
         console.log(`Error while creating paragraph ${err}`);
       }
     },
-    [paragraphs.length, createParagraph, runParagraph, onParagraphCreated]
+    [paragraphs.length, createParagraph, runParagraph, onParagraphCreated, notebookDataSourceId]
   );
 
   return (

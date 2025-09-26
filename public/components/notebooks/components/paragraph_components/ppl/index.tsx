@@ -170,7 +170,12 @@ export const PPLParagraph = ({
               inputType: getInputType(paragraphValue).toUpperCase(),
               parameters: paragraphValue.input.parameters,
             }}
-            onSubmit={({ inputText, inputType, parameters }) => {
+            onSubmit={({ inputText, inputType, parameters }, dataSourceMDSId) => {
+              if (dataSourceMDSId) {
+                paragraphState.updateValue({
+                  dataSourceMDSId,
+                });
+              }
               paragraphState.updateInput({
                 inputText: inputType === 'SQL' ? `%sql\n${inputText}` : `%ppl\n${inputText}`,
                 parameters,

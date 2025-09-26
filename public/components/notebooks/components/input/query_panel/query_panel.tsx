@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   EuiButtonEmpty,
   EuiFlexGroup,
@@ -82,7 +82,9 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   } = useInputContext();
 
   const { dataSourceManagement } = getDataSourceManagementSetup();
-  const DataSourceMenu = dataSourceManagement?.ui.getDataSourceMenu();
+  const DataSourceMenu = useMemo(() => dataSourceManagement?.ui.getDataSourceMenu(), [
+    dataSourceManagement,
+  ]);
 
   const [promptModeIsAvailable, setPromptModeIsAvailable] = useState(false);
   const [isQueryPanelMenuOpen, setIsQueryPanelMenuOpen] = useState(false);
@@ -240,7 +242,6 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
           notifications,
           activeOption: [{ id: localDataSourceId || '' }],
           onSelectedDataSources: (ds: DataSourceOption[]) => {
-            console.log(ds[0]);
             setLocalDataSourceId(ds[0].id);
           },
           dataSourceFilter: dataSourceFilterFn,
