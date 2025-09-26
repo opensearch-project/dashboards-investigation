@@ -87,6 +87,7 @@ interface InputProviderProps<TParameters = unknown> {
   onSubmit: (input: ParagraphInputType<TParameters>, dataSourceId?: string) => void;
   input?: ParagraphInputType<TParameters>;
   dataSourceId?: string;
+  aiFeatureEnabled?: boolean;
 }
 
 export const InputProvider: React.FC<InputProviderProps> = ({
@@ -94,9 +95,10 @@ export const InputProvider: React.FC<InputProviderProps> = ({
   onSubmit,
   input,
   dataSourceId = '',
+  aiFeatureEnabled,
 }) => {
   const [currInputType, setCurrInputType] = useState<InputType>(
-    (input?.inputType as InputType) || AI_RESPONSE_TYPE
+    (input?.inputType as InputType) || (aiFeatureEnabled ? AI_RESPONSE_TYPE : 'PPL')
   );
 
   const getInitialInputValue = () => {
@@ -149,6 +151,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({
           icon: 'chatLeft',
           label: 'Ask AI',
           'data-test-subj': 'paragraph-type-nl',
+          disabled: !aiFeatureEnabled,
         },
         { key: 'PPL', icon: 'compass', label: 'Query', 'data-test-subj': 'paragraph-type-ppl' },
         {
@@ -156,7 +159,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({
           icon: 'generate',
           label: 'Continue investigation',
           'data-test-subj': 'paragraph-type-deep-research',
-          disabled: !initialGoal,
+          disabled: !initialGoal || !aiFeatureEnabled,
         },
         {
           key: 'MARKDOWN',
@@ -171,13 +174,13 @@ export const InputProvider: React.FC<InputProviderProps> = ({
           'data-test-subj': 'paragraph-type-visualization',
         },
       ].filter((item) => !item.disabled),
-    [initialGoal]
+    [initialGoal, aiFeatureEnabled]
   );
 
   const handleCancel = useCallback(() => {
     setInputValue('');
-    setCurrInputType(AI_RESPONSE_TYPE);
-  }, []);
+    setCurrInputType(aiFeatureEnabled ? AI_RESPONSE_TYPE : 'PPL');
+  }, [aiFeatureEnabled]);
 
   // const { handleAgentSelectSubmit } = useAgentSelectSubmit({
   //   http,

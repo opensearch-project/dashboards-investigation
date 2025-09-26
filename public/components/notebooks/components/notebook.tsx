@@ -33,7 +33,7 @@ import {
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   NOTEBOOKS_API_PREFIX,
 } from '../../../../common/constants/notebooks';
-import { NoteBookSource } from '../../../../common/types/notebooks';
+import { NoteBookSource, NotebookType } from '../../../../common/types/notebooks';
 import { getCustomModal, getDeleteModal } from './helpers/modal_containers';
 import { Paragraphs } from './paragraph_components/paragraphs';
 import {
@@ -72,7 +72,7 @@ export interface NotebookProps extends NotebookComponentProps {
 
 export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const {
-    services: { http, notifications },
+    services: { http, notifications, application },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -90,7 +90,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     notebookContext.state.getValue$(),
     notebookContext.state.value
   );
-  const { initialGoal } = useObservable(
+  const { initialGoal, notebookType } = useObservable(
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
   );
@@ -210,6 +210,30 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   useEffect(() => {
     loadNotebook();
   }, [loadNotebook]);
+
+  if (
+    !isLoading &&
+    !application.capabilities.investigation.agenticFeaturesEnabled &&
+    notebookType === NotebookType.AGENTIC
+  ) {
+    return (
+      <EuiPage direction="column">
+        <EuiPageBody>
+          <EuiEmptyPrompt
+            iconType="alert"
+            iconColor="danger"
+            title={<h2>Errro loading Notebook</h2>}
+            body={
+              <p>
+                You have disabled agentic notebook in your Dashboards, please contact to your
+                Administrator to open it.
+              </p>
+            }
+          />
+        </EuiPageBody>
+      </EuiPage>
+    );
+  }
 
   return (
     <>
