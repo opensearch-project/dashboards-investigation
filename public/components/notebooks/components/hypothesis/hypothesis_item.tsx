@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { EuiFlexGroup, EuiPanel, EuiFlexItem, EuiText } from '@elastic/eui';
+import { EuiFlexGroup, EuiPanel, EuiFlexItem, EuiText, EuiIcon } from '@elastic/eui';
 import { HypothesisItem as HypothesisItemProps } from 'common/types/notebooks';
 import { HypothesisBadge } from './hypothesis_badge';
 
@@ -42,6 +42,7 @@ export const HypothesisItem: React.FC<{
       <EuiFlexItem>
         <EuiPanel paddingSize="s" hasBorder={false} hasShadow={false}>
           <EuiFlexGroup dir="row" alignItems="center" gutterSize="none" style={{ gap: 8 }}>
+            <EuiIcon type="link" />
             <EuiText>
               <strong>{title}</strong>
             </EuiText>
