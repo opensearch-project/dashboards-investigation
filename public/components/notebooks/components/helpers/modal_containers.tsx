@@ -322,10 +322,8 @@ export const CreateNotebookModal = ({
             onClick={() =>
               runModal(
                 value,
-                application.capabilities.investigation.agenticFeaturesEnabled
-                  ? checked
-                    ? NotebookType.AGENTIC
-                    : NotebookType.CLASSIC
+                application.capabilities.investigation.agenticFeaturesEnabled && checked
+                  ? NotebookType.AGENTIC
                   : NotebookType.CLASSIC
               )
             }

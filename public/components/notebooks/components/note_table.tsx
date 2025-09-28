@@ -55,14 +55,7 @@ interface NoteTableProps {
 
 export function NoteTable({ deleteNotebook }: NoteTableProps) {
   const {
-    services: {
-      http,
-      notifications,
-      savedObjects: savedObjectsMDSClient,
-      dataSource,
-      chrome,
-      application,
-    },
+    services: { http, notifications, savedObjects: savedObjectsMDSClient, dataSource, chrome },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [notebooks, setNotebooks] = useState<NotebookInfo[]>([]);
@@ -94,13 +87,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
       });
   }, [http]);
 
-  let finalNotebooks = notebooks;
-
-  if (!application.capabilities.investigation.agenticFeaturesEnabled) {
-    finalNotebooks = finalNotebooks.filter(
-      (notebook) => notebook.notebookType !== NotebookType.AGENTIC
-    );
-  }
+  const finalNotebooks = notebooks;
 
   useEffect(() => {
     setNavBreadCrumbs(

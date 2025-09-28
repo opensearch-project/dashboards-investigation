@@ -4,6 +4,7 @@
  */
 
 import { schema } from '@osd/config-schema';
+import { InvestigationConfig } from 'server';
 import {
   IOpenSearchDashboardsResponse,
   IRouter,
@@ -22,7 +23,7 @@ import {
   renameNotebook,
 } from '../../adaptors/notebooks/saved_objects_notebooks_router';
 
-export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
+export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: InvestigationConfig) {
   const getUserName = (request: OpenSearchDashboardsRequest) => {
     const authInfo = auth.get<{
       authInfo?: {
@@ -50,7 +51,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
           perPage: 1000,
         });
         const userName = getUserName(request);
-        const fetchedNotebooks = fetchNotebooks(notebooksData.saved_objects, userName);
+        const fetchedNotebooks = fetchNotebooks(notebooksData.saved_objects, userName, config);
         return response.ok({
           body: {
             data: fetchedNotebooks,

@@ -20,7 +20,7 @@ export function setupRoutes({
 }) {
   // notebooks routes
   registerParaRoute(router);
-  registerNoteRoute(router, auth);
+  registerNoteRoute(router, auth, config);
   if (config.agenticFeaturesEnabled) {
     registerLogPatternRoute(router);
   }
