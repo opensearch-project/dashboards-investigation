@@ -12,14 +12,12 @@ import {
   EuiPageContentBody,
   EuiPageHeader,
   EuiPageHeaderSection,
-  EuiSimplifiedBreadcrumbs,
   EuiSmallButton,
   EuiText,
   EuiTitle,
   EuiSpacer,
   EuiPanel,
   EuiButtonGroup,
-  EuiButtonIcon,
   EuiLoadingContent,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
@@ -38,13 +36,12 @@ import './hypothesis_detail.scss';
 
 export const HypothesisDetail: React.FC = () => {
   const {
-    services: { chrome, http, updateContext, paragraphService },
+    services: { http, updateContext, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
   const history = useHistory();
   const location = useLocation();
   const { id: notebookId } = useParams<{ id: string }>();
 
-  const breadcrumbs = useObservable(chrome.getBreadcrumbs$(), []);
   const notebookContext = useContext(NotebookReactContext);
   const { paragraphs: paragraphsStates } = useObservable(
     notebookContext.state.getValue$(),
@@ -99,19 +96,6 @@ export const HypothesisDetail: React.FC = () => {
     paragraphsStates,
   ]);
 
-  useEffect(() => {
-    const headerBars = document.getElementById('globalHeaderBars');
-    if (headerBars) {
-      headerBars.style.display = 'none';
-    }
-
-    return () => {
-      if (headerBars) {
-        headerBars.style.display = '';
-      }
-    };
-  }, []);
-
   const pathParts = location.pathname.split('/');
   const hypothesisIndex = pathParts.indexOf('hypothesis');
   const hypothesisId = hypothesisIndex !== -1 ? pathParts[hypothesisIndex + 1] : null;
@@ -142,13 +126,6 @@ export const HypothesisDetail: React.FC = () => {
   if (!currentHypothesis) {
     return (
       <>
-        <EuiFlexGroup gutterSize="none" style={{ gap: 8, paddingBlock: 12, paddingInline: 16 }}>
-          <EuiSimplifiedBreadcrumbs
-            breadcrumbs={breadcrumbs}
-            max={10}
-            data-test-subj="breadcrumbs"
-          />
-        </EuiFlexGroup>
         <EuiHorizontalRule margin="none" />
         <EuiFlexGroup gutterSize="none" alignItems="center" style={{ padding: 16, gap: 10 }}>
           <EuiSmallButton
@@ -172,25 +149,6 @@ export const HypothesisDetail: React.FC = () => {
   return (
     <EuiPage className="hypothesisDetail" paddingSize="none">
       <EuiPageBody className="hypothesisDetail__body" paddingSize="none">
-        <EuiFlexGroup
-          gutterSize="none"
-          style={{ gap: 8, paddingBlock: 12, paddingInline: 16, maxHeight: 56 }}
-        >
-          <EuiSimplifiedBreadcrumbs
-            breadcrumbs={breadcrumbs}
-            max={10}
-            data-test-subj="breadcrumbs"
-          />
-          <HypothesisBadge label="Active" color="hollow" />
-          <HypothesisBadge label="P0: Critical" color="danger" />
-          <EuiText size="s" color="subdued">
-            Duration: 15 minutes
-          </EuiText>
-          <div style={{ marginLeft: 'auto' }}>
-            <EuiButtonIcon iconType="share" aria-label="share" display="base" />
-          </div>
-        </EuiFlexGroup>
-
         <EuiHorizontalRule margin="none" />
         <div style={{ overflow: 'auto', padding: 16 }}>
           <EuiPageHeader alignItems="center" bottomBorder={false}>
@@ -215,7 +173,26 @@ export const HypothesisDetail: React.FC = () => {
                 Back
               </EuiSmallButton>
               <EuiTitle size="m">
-                <strong style={{ fontWeight: 600 }}>Hypothesis: {currentHypothesis.title}</strong>
+                <span>
+                  <strong>Hypothesis: {currentHypothesis.title}</strong>
+                  <span style={{ letterSpacing: 'normal', marginInlineStart: 12 }}>
+                    <HypothesisBadge label="Active" color="hollow" />
+                  </span>
+                  <span style={{ letterSpacing: 'normal', marginInlineStart: 12 }}>
+                    <HypothesisBadge label="P0: Critical" color="danger" />
+                  </span>
+                  <EuiText
+                    size="s"
+                    color="subdued"
+                    style={{
+                      display: 'inline-block',
+                      letterSpacing: 'normal',
+                      marginInlineStart: 12,
+                    }}
+                  >
+                    Duration: 15 minutes
+                  </EuiText>
+                </span>
               </EuiTitle>
             </EuiPageHeaderSection>
             <EuiPageHeaderSection style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
