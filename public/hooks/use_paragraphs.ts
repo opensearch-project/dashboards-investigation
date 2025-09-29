@@ -16,6 +16,9 @@ import { ParagraphState, ParagraphStateValue } from '../../common/state/paragrap
 import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
+import { getInputType } from '../../common/utils/paragraph';
+
+const actionKey = 'paragraphs';
 
 export const useParagraphs = () => {
   const context = useContext(NotebookReactContext);
@@ -182,7 +185,7 @@ export const useParagraphs = () => {
     [context.state]
   );
 
-  return {
+  const payload = {
     createParagraph,
     deleteParagraph: (index: number) => {
       if (index < 0) {
@@ -286,6 +289,12 @@ export const useParagraphs = () => {
           .then(async (res) => {
             const paragraphState = context.state.value.paragraphs[index];
             paragraphState.updateValue(res);
+
+            await paragraphService.getParagraphRegistry(getInputType(res))?.runParagraph({
+              paragraphState,
+              saveParagraph,
+              notebookStateValue: context.state.value,
+            });
           })
           .catch((err) => {
             if (err?.body?.statusCode === 413)
@@ -301,7 +310,17 @@ export const useParagraphs = () => {
             });
           });
       },
-      [context.state, http, notifications.toasts, paragraphService]
+      [context.state, http, notifications.toasts, paragraphService, saveParagraph]
     ),
   };
+
+  const actionResult = context.getAction<typeof payload>(actionKey);
+
+  if (actionResult) {
+    return actionResult;
+  }
+
+  context.attachAction(actionKey, payload);
+
+  return payload;
 };

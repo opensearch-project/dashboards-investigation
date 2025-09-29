@@ -89,9 +89,9 @@ export const PPLParagraph = ({
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
-  const { saveParagraph } = useParagraphs();
+  const { saveParagraph, runParagraph } = useParagraphs();
   const queryObject = paragraphValue.fullfilledOutput;
-  const { isWaitingForPPLResult, error } = paragraphValue?.uiState?.ppl || {};
+  const error = queryObject?.error;
 
   const context = useContext(NotebookReactContext);
   const { notebookType, dataSourceId: notebookDataSourceId } = useObservable(
@@ -104,13 +104,11 @@ export const PPLParagraph = ({
   const paragraphRegistry = paragraphService.getParagraphRegistry(getInputType(paragraphValue));
 
   useEffectOnce(() => {
-    (async () => {
-      await paragraphRegistry?.runParagraph({
-        paragraphState,
-        saveParagraph,
-        notebookStateValue: context.state.value,
-      });
-    })();
+    paragraphRegistry?.runParagraph({
+      paragraphState,
+      saveParagraph,
+      notebookStateValue: context.state.value,
+    });
   });
 
   const inputQuery = useMemo(
@@ -181,10 +179,8 @@ export const PPLParagraph = ({
               paragraphState.updateUIState({
                 isOutputStale: true,
               });
-              paragraphRegistry?.runParagraph({
-                paragraphState,
-                saveParagraph,
-                notebookStateValue: context.state.value,
+              runParagraph({
+                id: paragraphValue.id,
               });
             }}
             actionDisabled={actionDisabled}
@@ -192,7 +188,7 @@ export const PPLParagraph = ({
           />
         </div>
       </EuiCompressedFormRow>
-      {isRunning || isWaitingForPPLResult ? (
+      {isRunning ? (
         <EuiLoadingContent />
       ) : (
         <>

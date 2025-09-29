@@ -77,7 +77,7 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
           \`\`\`
         `;
   },
-  runParagraph: async ({ paragraphState, saveParagraph, notebookStateValue }) => {
+  runParagraph: async ({ paragraphState, notebookStateValue }) => {
     const paragraphValue = paragraphState.getBackendValue();
     const inputText = paragraphValue.input.inputText;
     const queryType = inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
@@ -100,14 +100,9 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
     }
     paragraphState.updateUIState({
       isRunning: true,
-      ppl: { isWaitingForPPLResult: true },
     });
 
     try {
-      await saveParagraph({
-        paragraphStateValue: paragraphValue,
-      });
-
       const queryResponse = await (queryType === '_sql'
         ? callOpenSearchCluster({
             http: getClient(),
@@ -132,13 +127,14 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
       paragraphState.updateFullfilledOutput(queryResponse);
       paragraphState.updateUIState({
         isRunning: false,
-        ppl: { isWaitingForPPLResult: false },
       });
     } catch (err) {
       paragraphState.resetFullfilledOutput();
+      paragraphState.updateFullfilledOutput({
+        error: err.message,
+      });
       paragraphState.updateUIState({
         isRunning: false,
-        ppl: { error: err.message, isWaitingForPPLResult: false },
       });
       getNotifications().toasts.addDanger(`Error executing query: ${err.message}`);
     }
