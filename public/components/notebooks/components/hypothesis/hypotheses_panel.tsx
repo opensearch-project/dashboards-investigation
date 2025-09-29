@@ -95,7 +95,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
                   hypothesis={hypothesis}
                   onClickHypothesis={handleClickHypothesis}
                 />
-                <EuiFlexGroup justifyContent="flexEnd">
+                <EuiFlexGroup justifyContent="flexEnd" direction="column">
                   <EuiFlexItem grow={false}>
                     <EuiSmallButton disabled={isInvestigating} onClick={() => showModal(index)}>
                       Add Finding

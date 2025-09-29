@@ -51,7 +51,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
           perPage: 1000,
         });
         const userName = getUserName(request);
-        const fetchedNotebooks = fetchNotebooks(notebooksData.saved_objects, userName, config);
+        const fetchedNotebooks = fetchNotebooks(notebooksData.saved_objects as any, userName);
         return response.ok({
           body: {
             data: fetchedNotebooks,
@@ -230,7 +230,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
           request.params.noteId
         );
         return response.ok({
-          body: notebookinfo.attributes.savedNotebook,
+          body: (notebookinfo.attributes as any).savedNotebook,
         });
       } catch (error) {
         return response.custom({
@@ -264,7 +264,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
           request.body.noteId
         );
         const createCloneNotebook = cloneNotebook(
-          getNotebook.attributes.savedNotebook,
+          (getNotebook.attributes as any).savedNotebook,
           request.body.name
         );
         const createdNotebook = await opensearchNotebooksClient.create(
@@ -377,6 +377,94 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
         return response.ok({
           body: sampleNotebooks,
         });
+      } catch (error) {
+        return response.custom({
+          statusCode: error.statusCode || 500,
+          body: error.message,
+        });
+      }
+    }
+  );
+
+  router.delete(
+    {
+      path: `${NOTEBOOKS_API_PREFIX}/note/deleteHypothesis/{notebookId}/{hypothesisId}`,
+      validate: {
+        params: schema.object({
+          notebookId: schema.string(),
+          hypothesisId: schema.string(),
+        }),
+      },
+    },
+    async (
+      context,
+      request,
+      response
+    ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
+      const opensearchNotebooksClient: SavedObjectsClientContract =
+        context.core.savedObjects.client;
+      try {
+        const notebook = await opensearchNotebooksClient.get(
+          NOTEBOOK_SAVED_OBJECT,
+          request.params.notebookId
+        );
+        const savedNotebook = (notebook.attributes as any).savedNotebook;
+        const updatedHypotheses =
+          savedNotebook.hypotheses?.filter((h: any) => h.id !== request.params.hypothesisId) || [];
+
+        await opensearchNotebooksClient.update(NOTEBOOK_SAVED_OBJECT, request.params.notebookId, {
+          savedNotebook: {
+            ...savedNotebook,
+            hypotheses: updatedHypotheses,
+            dateModified: new Date().toISOString(),
+          },
+        });
+        return response.ok({ body: { success: true } });
+      } catch (error) {
+        return response.custom({
+          statusCode: error.statusCode || 500,
+          body: error.message,
+        });
+      }
+    }
+  );
+
+  router.delete(
+    {
+      path: `${NOTEBOOKS_API_PREFIX}/note/deleteAllHypotheses/{notebookId}`,
+      validate: {
+        params: schema.object({
+          notebookId: schema.string(),
+        }),
+      },
+    },
+    async (
+      context,
+      request,
+      response
+    ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
+      const opensearchNotebooksClient: SavedObjectsClientContract =
+        context.core.savedObjects.client;
+      try {
+        const notebook = await opensearchNotebooksClient.get(
+          NOTEBOOK_SAVED_OBJECT,
+          request.params.notebookId
+        );
+        const savedNotebook = (notebook.attributes as any).savedNotebook;
+
+        const res = await opensearchNotebooksClient.update(
+          NOTEBOOK_SAVED_OBJECT,
+          request.params.notebookId,
+          {
+            savedNotebook: {
+              ...savedNotebook,
+              hypotheses: [],
+              dateModified: new Date().toISOString(),
+            },
+          }
+        );
+        console.log('delete', res);
+        return response.ok({ body: { success: true } });
       } catch (error) {
         return response.custom({
           statusCode: error.statusCode || 500,
