@@ -111,7 +111,7 @@ interface UseQueryPanelEditorProps {
   handleRun: () => void;
   handleEscape: () => void;
   handleSpaceBar: () => void;
-  handleChange: () => void;
+  handleChange: (value: string) => void;
   editorTextRef: React.MutableRefObject<string>;
   editorRef: React.MutableRefObject<IStandaloneCodeEditor | null>;
   selectedIndexRef: React.MutableRefObject<QueryIndexState>;
@@ -129,7 +129,6 @@ export interface UseQueryPanelEditorReturnType {
   options: IEditorConstructionOptions;
   placeholder: string;
   promptIsTyping: boolean;
-  showPlaceholder: boolean;
   useLatestTheme: true;
   value: string;
 }
@@ -150,7 +149,6 @@ export const useQueryPanelEditor = ({
   isQueryEditorDirty,
 }: UseQueryPanelEditorProps): UseQueryPanelEditorReturnType => {
   const { promptIsTyping, handleChangeForPromptIsTyping } = usePromptIsTyping();
-  const [editorText, setEditorText] = useState<string>(userQueryString);
   const [editorIsFocused, setEditorIsFocused] = useState(false);
   const isQueryMode = !isPromptMode;
   const isPromptModeRef = useRef(isPromptMode);
@@ -160,19 +158,15 @@ export const useQueryPanelEditor = ({
 
   // Keep the refs updated with latest context
   useEffect(() => {
-    editorTextRef.current = editorText;
     isPromptModeRef.current = isPromptMode;
     promptModeIsAvailableRef.current = promptModeIsAvailable;
     handleRunRef.current = handleRun;
-  }, [editorText, editorTextRef, isPromptMode, promptModeIsAvailable, handleRun, userQueryString]);
-  useEffect(() => {
-    setEditorText(userQueryString);
-  }, [userQueryString]);
+  }, [isPromptMode, promptModeIsAvailable, handleRun, userQueryString]);
 
   // The 'triggerSuggestOnFocus' prop of CodeEditor only happens on mount, so I am intentionally not passing it
   // and programmatically doing it here. We should only trigger autosuggestion on focus while on isQueryMode and there is text
   useEffect(() => {
-    if (isQueryMode && !!editorText.length) {
+    if (isQueryMode && !!editorTextRef.current.length) {
       const onDidFocusDisposable = editorRef.current?.onDidFocusEditorWidget(() => {
         editorRef.current?.trigger('keyboard', 'editor.action.triggerSuggest', {});
       });
@@ -181,7 +175,7 @@ export const useQueryPanelEditor = ({
         onDidFocusDisposable?.dispose();
       };
     }
-  }, [isQueryMode, editorRef, editorText]);
+  }, [isQueryMode, editorRef, editorTextRef]);
 
   const setEditorRef = useCallback(
     (editor: IStandaloneCodeEditor) => {
@@ -355,11 +349,11 @@ export const useQueryPanelEditor = ({
 
   const onChange = useCallback(
     (newText: string) => {
-      setEditorText(newText);
-      if (!isQueryEditorDirty) handleChange();
+      editorTextRef.current = newText;
+      if (!isQueryEditorDirty) handleChange(newText);
       if (isPromptMode) handleChangeForPromptIsTyping();
     },
-    [isPromptMode, handleChangeForPromptIsTyping, isQueryEditorDirty, handleChange]
+    [isPromptMode, handleChangeForPromptIsTyping, isQueryEditorDirty, handleChange, editorTextRef]
   );
 
   return {
@@ -373,8 +367,7 @@ export const useQueryPanelEditor = ({
     options,
     placeholder,
     promptIsTyping,
-    showPlaceholder: !editorText.length,
     useLatestTheme: true,
-    value: editorText,
+    value: editorTextRef.current,
   };
 };

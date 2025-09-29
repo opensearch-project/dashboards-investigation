@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { NoteBookServices } from 'public/types';
 import {
@@ -28,6 +28,12 @@ export const QueryPanelEditor: React.FC<{
 
   const selectedIndexRef = useRef<any>();
 
+  const [showPlaceholder, setShowPlaceholder] = useState(false);
+
+  useEffect(() => {
+    setShowPlaceholder(!editorTextRef.current.length);
+  }, [editorTextRef]);
+
   useEffect(() => {
     selectedIndexRef.current = selectedIndex;
   }, [selectedIndex]);
@@ -38,7 +44,6 @@ export const QueryPanelEditor: React.FC<{
     onEditorClick,
     placeholder,
     promptIsTyping,
-    showPlaceholder,
     ...editorProps
   } = useQueryPanelEditor({
     promptModeIsAvailable: queryLanguage === 'SQL' ? false : promptModeIsAvailable,
@@ -52,7 +57,9 @@ export const QueryPanelEditor: React.FC<{
     handleSpaceBar: useCallback(() => {
       handleInputChange({ isPromptEditorMode: true });
     }, [handleInputChange]),
-    handleChange: () => {},
+    handleChange: (val) => {
+      setShowPlaceholder(!val.length);
+    },
     isQueryEditorDirty: false,
     services,
     editorRef,

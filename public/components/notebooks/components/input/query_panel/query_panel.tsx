@@ -77,6 +77,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
     isLoading,
     paragraphInput,
     isAgenticNotebook,
+    isInputMountedInParagraph,
     handleInputChange,
     handleSubmit,
   } = useInputContext();
@@ -205,7 +206,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
 
   const handleRunQuery = useCallback(async () => {
     handleSubmit(
-      editorTextRef.current,
+      editorTextRef.current || `source = ${selectedIndex?.title}`,
       {
         timeRange,
         indexName: selectedIndex?.title,
@@ -261,7 +262,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         gutterSize="none"
         dir="row"
         alignItems="center"
-        style={{ marginInlineEnd: 32 }}
+        style={{ marginInlineEnd: isInputMountedInParagraph ? 32 : 0 }}
       >
         {prependWidget}
         <LanguageToggle promptModeIsAvailable={promptModeIsAvailable} />
@@ -271,21 +272,23 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         <div className="notebookQueryPanelWidgets__indexSelectorWrapper">
           <IndexSelector dataSourceId={localDataSourceId} />
         </div>
-        {queryLanguage === 'PPL' && !queryState?.noDatePicker && (
-          <>
-            <div className="notebookQueryPanelWidgets__verticalSeparator" />
-            <div className="notebookQueryPanelWidgets__datePicker">
-              <EuiSuperDatePicker
-                start={timeRange?.from}
-                end={timeRange?.to}
-                onTimeChange={handleTimeChange}
-                compressed
-                showUpdateButton={false}
-                dateFormat={uiSettings!.get('dateFormat')}
-              />
-            </div>
-          </>
-        )}
+        {queryLanguage === 'PPL' &&
+          !queryState?.noDatePicker &&
+          queryState?.selectedIndex?.timeField !== undefined && ( // Hide picker for legacy paragraph
+            <>
+              <div className="notebookQueryPanelWidgets__verticalSeparator" />
+              <div className="notebookQueryPanelWidgets__datePicker">
+                <EuiSuperDatePicker
+                  start={timeRange?.from}
+                  end={timeRange?.to}
+                  onTimeChange={handleTimeChange}
+                  compressed
+                  showUpdateButton={false}
+                  dateFormat={uiSettings!.get('dateFormat')}
+                />
+              </div>
+            </>
+          )}
         <EuiFlexGroup gutterSize="none" dir="row" justifyContent="flexEnd" alignItems="center">
           {isQueryPanelLoading && <EuiLoadingSpinner size="m" />}
           <EuiButtonEmpty
