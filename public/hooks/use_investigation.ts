@@ -211,12 +211,14 @@ const executePERAgent = async ({
   agentId,
   http,
   question,
+  prompt,
   dataSourceId,
 }: {
   context: string;
   http: CoreStart['http'];
   agentId: string;
   question: string;
+  prompt: string;
   dataSourceId?: string;
 }) =>
   executeMLCommonsAgent({
@@ -224,7 +226,7 @@ const executePERAgent = async ({
     agentId,
     async: true,
     parameters: {
-      system_prompt: plannerSystemPrompt,
+      system_prompt: prompt,
       question,
       planner_prompt_template: `
       ## AVAILABLE TOOLS
@@ -314,7 +316,7 @@ export const useInvestigation = () => {
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { updateHypotheses } = useNotebook();
+  const { updateHypotheses, deleteHypotheses } = useNotebook();
   const { createParagraph, runParagraph } = useParagraphs();
   const contextStateValue = useObservable(context.state.getValue$());
   const paragraphStates = useObservable(context.state.getParagraphStates$());
@@ -329,9 +331,11 @@ export const useInvestigation = () => {
     async ({
       payload,
       hypothesisIndex,
+      isReinvestigate,
     }: {
       payload: PERAgentInvestigationResponse;
       hypothesisIndex?: number;
+      isReinvestigate?: boolean;
     }) => {
       const findingId2ParagraphId: { [key: string]: string } = {};
       const originalHypothesis =
@@ -358,6 +362,7 @@ ${finding.evidence}
 
               `.trim(),
               inputType: 'MARKDOWN',
+              parameters: { findingId: finding.id },
             },
           });
           startParagraphIndex++;
@@ -394,13 +399,17 @@ ${finding.evidence}
         ],
       };
       try {
-        const newHypotheses = contextStateValue?.hypotheses ?? [];
+        if (isReinvestigate) {
+          await deleteHypotheses();
+        }
+
+        const newHypotheses = isReinvestigate ? [] : contextStateValue?.hypotheses ?? [];
         if (
           typeof hypothesisIndex === 'undefined' ||
           !newHypotheses[hypothesisIndex] ||
           payload.operation === 'CREATE'
         ) {
-          newHypotheses.push(newHypothesis);
+          newHypotheses.push(newHypothesis as any);
           // Clear old hypothesis new finding array
           if (typeof hypothesisIndex !== 'undefined' && newHypotheses[hypothesisIndex]) {
             newHypotheses[hypothesisIndex] = {
@@ -409,14 +418,123 @@ ${finding.evidence}
             };
           }
         } else {
-          newHypotheses[hypothesisIndex] = newHypothesis;
+          newHypotheses[hypothesisIndex] = newHypothesis as any;
         }
+
         await updateHypotheses(newHypotheses);
       } catch (e) {
         console.error('Failed to update investigation result', e);
       }
     },
-    [updateHypotheses, createParagraph, runParagraph, contextStateValue?.hypotheses]
+    [
+      updateHypotheses,
+      createParagraph,
+      runParagraph,
+      deleteHypotheses,
+      contextStateValue?.hypotheses,
+    ]
+  );
+
+  const executeInvestigation = useCallback(
+    async ({
+      question,
+      contextPrompt,
+      hypothesisIndex,
+      isReinvestigate = false,
+      abortController,
+    }: {
+      question: string;
+      contextPrompt: string;
+      hypothesisIndex?: number;
+      isReinvestigate?: boolean;
+      abortController?: AbortController;
+    }) => {
+      const dataSourceId = context.state.value.context.value.dataSourceId;
+      setIsInvestigating(true);
+
+      try {
+        const agentId = (
+          await getMLCommonsConfig({
+            http,
+            signal: abortController?.signal,
+            configName: 'os_deep_research',
+            dataSourceId,
+          })
+        ).configuration.agent_id;
+
+        const result = await executePERAgent({
+          http,
+          agentId,
+          dataSourceId,
+          question,
+          context: contextPrompt,
+          prompt: plannerSystemPrompt,
+        });
+
+        const parentInteractionId = extractParentInteractionId(result);
+        if (!parentInteractionId) {
+          setIsInvestigating(false);
+          return;
+        }
+
+        return new Promise((resolve, reject) => {
+          const subscription = timer(0, 5000)
+            .pipe(
+              concatMap(() => {
+                return getMLCommonsMessage({
+                  messageId: parentInteractionId,
+                  http,
+                  signal: abortController?.signal,
+                  dataSourceId,
+                });
+              }),
+              takeWhile((message) => !message.response, true)
+            )
+            .subscribe(async (message) => {
+              if (!message.response) {
+                return;
+              }
+              let responseJson;
+              try {
+                responseJson = JSON.parse(message.response);
+              } catch (error) {
+                console.error('Failed to parse response message', message.response);
+                return;
+              }
+              if (!isValidPERAgentInvestigationResponse(responseJson)) {
+                console.error('Investigation response not valid', responseJson);
+                return;
+              }
+              try {
+                await storeInvestigationResponse({
+                  payload: responseJson,
+                  hypothesisIndex,
+                  isReinvestigate,
+                });
+                resolve(undefined);
+              } catch (e) {
+                console.error('Failed to store investigation response', e);
+                reject(e);
+              } finally {
+                subscription.unsubscribe();
+              }
+            });
+
+          const abortHandler = () => {
+            subscription.unsubscribe();
+            abortController?.signal.removeEventListener('abort', abortHandler);
+            reject(new Error('Investigation aborted'));
+          };
+          abortController?.signal.addEventListener('abort', abortHandler);
+        }).finally(() => {
+          setIsInvestigating(false);
+        });
+      } catch (e) {
+        console.error('Failed to execute per agent', e);
+        setIsInvestigating(false);
+      }
+    },
+    [context.state, http, storeInvestigationResponse]
   );
 
   const doInvestigate = useCallback(
@@ -429,40 +547,26 @@ ${finding.evidence}
       hypothesisIndex?: number;
       abortController?: AbortController;
     }) => {
-      let parentInteractionId;
-
-      const dataSourceId = context.state.value.context.value.dataSourceId;
-      console.log('doInvestigate');
-      setIsInvestigating(true);
-      try {
-        const agentId = (
-          await getMLCommonsConfig({
-            http,
-            signal: abortController?.signal,
-            configName: 'os_deep_research',
-            dataSourceId,
-          })
-        ).configuration.agent_id;
-        const originalHypothesis =
-          typeof hypothesisIndex !== 'undefined'
-            ? contextStateValue?.hypotheses?.[hypothesisIndex]
-            : undefined;
-        const allParagraphs = context.state.getParagraphsValue();
-        const notebookContextPrompt = await getNotebookTopLevelContextPrompt(
-          context.state.value.context.value
-        );
-        const existingFindingsPrompt = convertParagraphsToFindings(
-          allParagraphs.filter((paragraph) =>
-            originalHypothesis?.supportingFindingParagraphIds.includes(paragraph.id)
-          )
-        );
-        const newFindingsPrompt = convertParagraphsToFindings(
-          allParagraphs.filter((paragraph) =>
-            originalHypothesis?.newAddedFindingIds?.includes(paragraph.id)
-          )
-        );
-        const contextPrompt = originalHypothesis
-          ? `
+      const originalHypothesis =
+        typeof hypothesisIndex !== 'undefined'
+          ? contextStateValue?.hypotheses?.[hypothesisIndex]
+          : undefined;
+      const allParagraphs = context.state.getParagraphsValue();
+      const notebookContextPrompt = await getNotebookTopLevelContextPrompt(
+        context.state.value.context.value
+      );
+      const existingFindingsPrompt = convertParagraphsToFindings(
+        allParagraphs.filter((paragraph) =>
+          originalHypothesis?.supportingFindingParagraphIds.includes(paragraph.id)
+        )
+      );
+      const newFindingsPrompt = convertParagraphsToFindings(
+        allParagraphs.filter((paragraph) =>
+          originalHypothesis?.newAddedFindingIds?.includes(paragraph.id)
+        )
+      );
+      const contextPrompt = originalHypothesis
+        ? `
 ${notebookContextPrompt}
 
 ## Original hypothesis
@@ -476,73 +580,16 @@ ${existingFindingsPrompt}
 ## New added findings
 ${newFindingsPrompt}
       `.trim()
-          : `${notebookContextPrompt}${convertParagraphsToFindings(allParagraphs)}`;
+        : `${notebookContextPrompt}${convertParagraphsToFindings(allParagraphs)}`;
 
-        const result = await executePERAgent({
-          http,
-          agentId,
-          dataSourceId,
-          question: investigationQuestion,
-          context: contextPrompt,
-        });
-        parentInteractionId = extractParentInteractionId(result);
-      } catch (e) {
-        console.error('Failed to execute per agent', e);
-      }
-      if (!parentInteractionId) {
-        setIsInvestigating(false);
-        return;
-      }
-      return new Promise((resolve, reject) => {
-        const subscription = timer(0, 5000)
-          .pipe(
-            concatMap(() => {
-              return getMLCommonsMessage({
-                messageId: parentInteractionId,
-                http,
-                signal: abortController?.signal,
-                dataSourceId,
-              });
-            }),
-            takeWhile((message) => !message.response, true)
-          )
-          .subscribe(async (message) => {
-            if (!message.response) {
-              return;
-            }
-            let responseJson;
-            try {
-              responseJson = JSON.parse(message.response);
-            } catch (error) {
-              console.error('Failed to parse response message', message.response);
-              return;
-            }
-            if (!isValidPERAgentInvestigationResponse(responseJson)) {
-              console.error('Investigation response not valid', responseJson);
-              return;
-            }
-            try {
-              await storeInvestigationResponse({ payload: responseJson, hypothesisIndex });
-              resolve(undefined);
-            } catch (e) {
-              console.error('Failed to store investigation response', e);
-              reject(e);
-            } finally {
-              subscription.unsubscribe();
-            }
-          });
-
-        const abortHandler = () => {
-          subscription.unsubscribe();
-          abortController?.signal.removeEventListener('abort', abortHandler);
-          reject(new Error('Investigation aborted'));
-        };
-        abortController?.signal.addEventListener('abort', abortHandler);
-      }).finally(() => {
-        setIsInvestigating(false);
+      return executeInvestigation({
+        question: investigationQuestion,
+        contextPrompt,
+        hypothesisIndex,
+        abortController,
       });
     },
-    [context.state, contextStateValue?.hypotheses, http, storeInvestigationResponse]
+    [contextStateValue?.hypotheses, context.state, executeInvestigation]
   );
 
   const doInvestigateRef = useRef(doInvestigate);
@@ -582,9 +629,123 @@ ${newFindingsPrompt}
     [createParagraph, updateHypotheses, runParagraph]
   );
 
+  const rerunInvestigation = async ({ abortController }: { abortController?: AbortController }) => {
+    const allParagraphs = context.state.getParagraphsValue();
+    const question = context.state.value.context.value.initialGoal || '';
+
+    const originalHypotheses = contextStateValue?.hypotheses || [];
+    const rerunPrompt = originalHypotheses.reduce(
+      (acc, hypothesis, index) => {
+        const existingFindingsPrompt = convertParagraphsToFindings(
+          allParagraphs.filter((paragraph) =>
+            hypothesis?.supportingFindingParagraphIds.includes(paragraph.id)
+          )
+        );
+        const newFindingsPrompt = convertParagraphsToFindings(
+          allParagraphs.filter((paragraph) =>
+            hypothesis?.newAddedFindingIds?.includes(paragraph.id)
+          )
+        );
+        return (acc = `${acc}
+## Hypothesis ${index + 1}
+
+Title: ${hypothesis.title}
+
+Description: ${hypothesis.description}
+
+Likelihood: ${hypothesis.likelihood}
+
+### Supporting Findings
+${existingFindingsPrompt}
+
+### Additional Findings
+${newFindingsPrompt}
+    `);
+      },
+      `You are a thoughtful and analytical planner agent specializing in RE-INVESTIGATION. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
+
+ORIGINAL QUESTION: "${question}"
+This is the original question that the user asked which generated the hypotheses below. Your re-investigation should address this same question while updating the hypotheses based on current evidence.
+
+RE-INVESTIGATION PRINCIPLES:
+1. REUSE existing findings that are still valid and relevant
+2. Only create NEW findings when absolutely necessary
+3. Update hypothesis likelihood based on all available evidence
+4. Maintain continuity with previous investigation work
+
+CRITICAL FINDINGS HANDLING:
+- MINIMIZE new findings: Return empty findings array [] unless absolutely necessary
+- New hypotheses MUST reference existing paragraph IDs in supportingFindingParagraphIds
+- Generate new findings ONLY for completely novel evidence not covered by existing findings
+- Existing findings remain available - original hypotheses will be replaced but findings persist
+- Prefer reusing existing findings over creating new ones
+
+OPERATION REQUIREMENT: Use "REPLACE" operation for all hypotheses - this is a re-investigation that updates existing hypotheses, not creation of new ones.
+
+Response Instructions:
+Only respond in JSON format. Always follow the given response instructions. Do not return any content that does not follow the response instructions. Do not add anything before or after the expected JSON.
+Always respond with a valid JSON object that strictly follows the below schema:
+{
+  "steps": array[string],
+  "result": string
+}
+Use "steps" to return an array of strings where each string is a step to complete the objective, leave it empty if you know the final result. Please wrap each step in quotes and escape any special characters within the string.
+Use "result" to return the final response when you have enough information, leave it empty if you want to execute more steps. When providing the final result, it MUST be a stringified JSON object with the following structure:
+{
+    "findings": array[object],
+    "hypothesis": object,
+    "operation": string
+}
+Where each finding object has this structure:
+{
+    "id": string,
+    "description": string,
+    "importance": number,
+    "evidence": string
+}
+
+And the hypothesis object has this structure:
+{
+    "id": string,
+    "title": string,
+    "description": string,
+    "likelihood": number,
+    "supporting_findings": array[string]
+}
+
+The operation field MUST be "REPLACE" for re-investigation.
+
+Important rules for the response:
+1. Do not use commas within individual steps
+2. **CRITICAL: For tool parameters use commas without spaces (e.g., "param1,param2,param3") - This rule must be followed exactly**
+3. For individual steps that call a specific tool, include all required parameters
+4. Do not add any content before or after the JSON
+5. Only respond with a pure JSON object
+6. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
+7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
+8. **CRITICAL: ALWAYS USE "REPLACE" OPERATION FOR RE-INVESTIGATION**
+
+The final response should create a clear chain of evidence where findings support your hypothesis while maximizing reuse of existing evidence.
+
+CRITICAL: You MUST thoroughly analyze the Current Investigation State below. Each existing hypothesis and finding contains valuable evidence that should be carefully evaluated for reuse. Do not ignore or overlook any existing findings - they represent completed investigative work that should be preserved whenever possible.
+
+HYPOTHESIS SUPPORT REQUIREMENT: Every hypothesis you generate MUST be supported by findings. If existing findings cannot adequately support your updated hypothesis, you MUST create new findings to provide proper evidence. A hypothesis without supporting findings is invalid.
+
+# Current Investigation State:`
+    );
+
+    return executeInvestigation({
+      question,
+      contextPrompt: rerunPrompt,
+      isReinvestigate: true,
+      abortController,
+    });
+  };
+
   return {
     isInvestigating,
     doInvestigate,
     addNewFinding,
+    rerunInvestigation,
   };
 };
