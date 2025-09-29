@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { InvestigationConfig } from 'server';
 import { NotebookBackendType, NotebookType } from '../../../common/types/notebooks';
 import { SavedObject, SavedObjectsClientContract } from '../../../../../src/core/server/types';
 import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved_object_attributes';
@@ -10,7 +11,8 @@ import { getSampleNotebooks } from '../../../server/common/helpers/notebooks/sam
 
 export function fetchNotebooks(
   savedObjectNotebooks: Array<SavedObject<{ savedNotebook: NotebookBackendType }>>,
-  userName?: string
+  userName?: string,
+  config?: InvestigationConfig
 ) {
   const notebooks: Array<{
     dateCreated: string;
@@ -23,6 +25,12 @@ export function fetchNotebooks(
       const notebookOwner = savedObject.attributes.savedNotebook.owner;
       const shouldFilterByOwner = userName && notebookOwner && notebookOwner !== userName;
       if (shouldFilterByOwner) return;
+
+      if (
+        !config?.agenticFeaturesEnabled &&
+        savedObject.attributes.savedNotebook.context?.notebookType === NotebookType.AGENTIC
+      )
+        return;
 
       notebooks.push({
         dateCreated: savedObject.attributes.savedNotebook.dateCreated,

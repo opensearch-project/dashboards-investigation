@@ -87,6 +87,8 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
       });
   }, [http]);
 
+  const finalNotebooks = notebooks;
+
   useEffect(() => {
     setNavBreadCrumbs(
       [],
@@ -97,10 +99,10 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
         },
       ],
       chrome,
-      notebooks.length
+      finalNotebooks.length
     );
     fetchNotebooks();
-  }, [notebooks.length, fetchNotebooks, chrome]);
+  }, [finalNotebooks.length, fetchNotebooks, chrome]);
 
   const closeModal = useCallback(() => {
     setIsModalVisible(false);
@@ -458,7 +460,8 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
                 <EuiPageContentHeaderSection>
                   <EuiTitle size="s" data-test-subj="notebookTableTitle">
                     <h3>
-                      Notebooks<span className="panel-header-count"> ({notebooks.length})</span>
+                      Notebooks
+                      <span className="panel-header-count"> ({finalNotebooks.length})</span>
                     </h3>
                   </EuiTitle>
                   <EuiSpacer size="s" />
@@ -498,7 +501,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
                 </EuiPageContentHeaderSection>
               </EuiPageContentHeader>
             )}
-            {notebooks.length > 0 ? (
+            {finalNotebooks.length > 0 ? (
               <>
                 <EuiFlexGroup gutterSize="s" alignItems="center">
                   <EuiFlexItem grow={false}>
@@ -528,10 +531,10 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
                   loading={loading}
                   items={
                     searchQuery
-                      ? notebooks.filter((notebook) =>
+                      ? finalNotebooks.filter((notebook) =>
                           notebook.path.toLowerCase().includes(searchQuery.toLowerCase())
                         )
-                      : notebooks
+                      : finalNotebooks
                   }
                   itemId="id"
                   columns={tableColumns}

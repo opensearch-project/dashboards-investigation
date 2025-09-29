@@ -22,6 +22,7 @@ import {
 } from '../../../../../test/notebooks_constants';
 import { Notebook, NotebookProps } from '../notebook';
 import {
+  applicationServiceMock,
   chromeServiceMock,
   notificationServiceMock,
   savedObjectsServiceMock,
@@ -139,6 +140,7 @@ jest.mock('../../../../../public/services', () => ({
 }));
 
 const ContextAwareNotebook = (props: NotebookProps & { dataSourceEnabled?: boolean }) => {
+  const applicationMock = applicationServiceMock.createStartContract();
   return (
     <OpenSearchDashboardsContextProvider
       services={{
@@ -169,6 +171,16 @@ const ContextAwareNotebook = (props: NotebookProps & { dataSourceEnabled?: boole
           getParagraphRegistry: jest.fn().mockReturnValue({
             ParagraphComponent: () => <div data-test-subj="mock-paragraph" />,
           }),
+        },
+        application: {
+          ...applicationMock,
+          capabilities: {
+            ...applicationMock.capabilities,
+            investigation: {
+              ...applicationMock.capabilities.investigation,
+              agenticFeaturesEnabled: true,
+            },
+          },
         },
       }}
     >
