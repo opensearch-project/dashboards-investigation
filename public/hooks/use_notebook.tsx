@@ -214,9 +214,34 @@ export const useNotebook = () => {
     [context.state, http]
   );
 
+  const deleteHypotheses = useCallback(
+    async (hypothesisId?: string) => {
+      const { id: openedNoteId } = context.state.value;
+      try {
+        const endpoint = hypothesisId
+          ? `${NOTEBOOKS_API_PREFIX}/note/deleteHypothesis/${openedNoteId}/${hypothesisId}`
+          : `${NOTEBOOKS_API_PREFIX}/note/deleteAllHypotheses/${openedNoteId}`;
+
+        await http.delete(endpoint);
+
+        const currentHypotheses = context.state.value.hypotheses || [];
+        const updatedHypotheses = hypothesisId
+          ? currentHypotheses.filter((h) => h.id !== hypothesisId)
+          : [];
+
+        context.state.updateValue({ hypotheses: updatedHypotheses });
+      } catch (error) {
+        console.error('Error deleting hypotheses:', error);
+        throw error;
+      }
+    },
+    [context.state, http]
+  );
+
   return {
     loadNotebook,
     updateNotebookContext,
     updateHypotheses,
+    deleteHypotheses,
   };
 };
