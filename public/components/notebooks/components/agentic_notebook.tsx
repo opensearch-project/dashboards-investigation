@@ -95,15 +95,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     notebookId: openedNoteId,
   });
 
-  const allSupportingFindingParagraphIds = useMemo(() => {
-    if (!hypotheses) return [];
-    const ids: string[] = [];
-    hypotheses.forEach((hypothesis) => {
-      ids.push(...hypothesis.supportingFindingParagraphIds);
-    });
-    return ids;
-  }, [hypotheses]);
-
   const hypothesesContext = useMemo(() => {
     if (!hypotheses) return '';
     return hypotheses
@@ -119,10 +110,8 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   }, [hypotheses]);
 
   const includedParagraphs = useMemo(() => {
-    return paragraphsStates.filter((item) =>
-      allSupportingFindingParagraphIds.includes(item.value.id)
-    );
-  }, [allSupportingFindingParagraphIds, paragraphsStates]);
+    return paragraphsStates.filter((item) => item.value.input.inputType !== 'CODE');
+  }, [paragraphsStates]);
 
   useEffect(() => {
     if (page === SubRouter.Hypothesis) {
