@@ -9,7 +9,6 @@ import { EuiPanel } from '@elastic/eui';
 import type { ParagraphState } from 'common/state/paragraph_state';
 import { NotebookType, ParagraphInputType } from '../../../../common/types/notebooks';
 import { MultiVariantInput } from './input/multi_variant_input';
-import { useParagraphs } from '../../../../public/hooks/use_paragraphs';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { createDashboardVizObject } from '../../../../public/utils/visualization';
 import { VisualizationInputValue } from './input/visualization_input';
@@ -20,7 +19,7 @@ interface InputPanelProps {
 }
 
 export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) => {
-  const { createParagraph, runParagraph } = useParagraphs();
+  const { createParagraph, runParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const {
     services: { application },
   } = useOpenSearchDashboards();

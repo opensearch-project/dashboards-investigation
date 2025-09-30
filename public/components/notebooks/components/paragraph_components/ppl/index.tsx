@@ -18,7 +18,6 @@ import {
 import { useObservable, useEffectOnce } from 'react-use';
 import { NoteBookServices } from 'public/types';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
-import { useParagraphs } from '../../../../../hooks/use_paragraphs';
 import {
   PPL_DOCUMENTATION_URL,
   SQL_DOCUMENTATION_URL,
@@ -89,11 +88,11 @@ export const PPLParagraph = ({
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
-  const { saveParagraph, runParagraph } = useParagraphs();
   const queryObject = paragraphValue.fullfilledOutput;
   const error = queryObject?.error;
 
   const context = useContext(NotebookReactContext);
+  const { saveParagraph, runParagraph } = context.paragraphHooks;
   const { notebookType, dataSourceId: notebookDataSourceId } = useObservable(
     context.state.value.context.getValue$(),
     context.state.value.context.value

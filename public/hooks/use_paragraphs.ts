@@ -3,25 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useContext, useCallback } from 'react';
+import { useCallback } from 'react';
 import { ParagraphBackendType } from 'common/types/notebooks';
 import { NoteBookServices } from 'public/types';
+import { NotebookState } from 'common/state/notebook_state';
 import {
   AI_RESPONSE_TYPE,
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   NOTEBOOKS_API_PREFIX,
 } from '../../common/constants/notebooks';
-import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
 import { getInputType } from '../../common/utils/paragraph';
 
-const actionKey = 'paragraphs';
-
-export const useParagraphs = () => {
-  const context = useContext(NotebookReactContext);
+export const useParagraphs = (context: { state: NotebookState }) => {
   const {
     services: { notifications, http, contextService, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
@@ -313,14 +310,6 @@ export const useParagraphs = () => {
       [context.state, http, notifications.toasts, paragraphService, saveParagraph]
     ),
   };
-
-  const actionResult = context.getAction<typeof payload>(actionKey);
-
-  if (actionResult) {
-    return actionResult;
-  }
-
-  context.attachAction(actionKey, payload);
 
   return payload;
 };

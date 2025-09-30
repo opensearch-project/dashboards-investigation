@@ -33,7 +33,6 @@ import { DataDistributionInput } from './embeddable/types';
 import { EmbeddableRenderer } from '../../../../../../../src/plugins/embeddable/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { generateAllFieldCharts } from './render_data_distribution_vega';
-import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { DATA_DISTRIBUTION_PARAGRAPH_TYPE } from '../../../../../common/constants/notebooks';
@@ -58,7 +57,7 @@ export const DataDistributionContainer = ({
   const { result } = ParagraphState.getOutput(paragraph)! || {};
   const { fieldComparison } = result! || {};
   const { timeRange, timeField, index, source } = topContextValue;
-  const { saveParagraph } = useParagraphs();
+  const { saveParagraph } = context.paragraphHooks;
   const [activePage, setActivePage] = useState(0);
   const [distributionModalExpand, setDistributionModalExpand] = useState(false);
   const factory = embeddable.getEmbeddableFactory<DataDistributionInput>('vega_visualization');

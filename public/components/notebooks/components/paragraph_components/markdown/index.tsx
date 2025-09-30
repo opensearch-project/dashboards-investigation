@@ -16,8 +16,9 @@ import {
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import MarkdownRender from '@nteract/markdown';
+import { useContext } from 'react';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
-import { useParagraphs } from '../../../../../hooks/use_paragraphs';
+import { NotebookReactContext } from '../../../context_provider/context_provider';
 
 const inputPlaceholderString =
   'Type %md on the first line to define the input type. \nCode block starts here.';
@@ -30,7 +31,7 @@ export const MarkdownParagraph = ({
   actionDisabled: boolean;
 }) => {
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
-  const { runParagraph } = useParagraphs();
+  const { runParagraph } = useContext(NotebookReactContext).paragraphHooks;
 
   const runParagraphHandler = async () => {
     paragraphState.updateUIState({

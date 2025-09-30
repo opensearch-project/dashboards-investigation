@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useRef } from 'react';
+import React from 'react';
 import { NotebookState, NotebookStateValue } from '../../../../common/state/notebook_state';
 import { TopContextState } from '../../../../common/state/top_context_state';
+import { useParagraphs } from '../../../hooks/use_paragraphs';
 
 export interface NotebookContextProviderProps {
   children: React.ReactChild;
@@ -29,25 +30,22 @@ export const getDefaultState = (props?: Partial<NotebookStateValue>) => {
 
 export const NotebookReactContext = React.createContext<{
   state: NotebookState;
-  getAction: <T = unknown>(actionName: string) => T | undefined;
-  attachAction: <T>(actionName: string, action: T) => void;
+  paragraphHooks: ReturnType<typeof useParagraphs>;
 }>({
   state: getDefaultState(),
-  getAction: () => undefined,
-  attachAction: () => {},
+  paragraphHooks: {} as ReturnType<typeof useParagraphs>,
 });
 
 export const NotebookContextProvider = (props: NotebookContextProviderProps) => {
-  const actionsRef = useRef<Record<string, unknown>>({});
-
+  const context = {
+    state: props.state,
+  };
+  const paragraphHooks = useParagraphs(context);
   return (
     <NotebookReactContext.Provider
       value={{
-        state: props.state,
-        attachAction: (actionName: string, action: unknown) => {
-          actionsRef.current[actionName] = action;
-        },
-        getAction: (actionName: string) => (actionsRef.current[actionName] as unknown) as any,
+        ...context,
+        paragraphHooks,
       }}
     >
       {props.children}

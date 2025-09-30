@@ -12,7 +12,6 @@ import {
   NotebookContext,
 } from 'common/types/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
-import { useParagraphs } from './use_paragraphs';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
@@ -21,7 +20,7 @@ import { parsePPLQuery } from '../../common/utils';
 
 export const useNotebook = () => {
   const context = useContext(NotebookReactContext);
-  const { showParagraphRunning } = useParagraphs();
+  const { showParagraphRunning } = context.paragraphHooks;
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
