@@ -34,7 +34,7 @@ import { LogSequence } from './log_analytics/components/log_sequence';
 import { useDataDistribution } from './data_distribution/hooks/use_data_distribution';
 import { useLogPatternAnalysis } from './log_analytics/hooks/useLogPatternAnalysis';
 
-export interface CombinedAnalysisProps {
+export interface PreInvestigationAnalysisProps {
   source: NoteBookSource;
   index: string;
   timeRange: {
@@ -65,7 +65,7 @@ export interface CombinedAnalysisProps {
 
 const ITEMS_PER_PAGE = 3;
 
-export const CombinedAnalysis: React.FC<CombinedAnalysisProps> = ({
+export const PreInvestigationAnalysis: React.FC<PreInvestigationAnalysisProps> = ({
   timeRange,
   timeField,
   index,
@@ -101,6 +101,7 @@ export const CombinedAnalysis: React.FC<CombinedAnalysisProps> = ({
       index,
       timeField,
       timeRange,
+      // TODO: Call index insight API the get real result
       indexInsight: {
         index_name: index,
         is_log_index: true, // No need for this value
@@ -119,7 +120,7 @@ export const CombinedAnalysis: React.FC<CombinedAnalysisProps> = ({
   } = useLogPatternAnalysis(http, analysisParameters, undefined, undefined);
 
   const dataDistributionSpecs = useMemo(() => {
-    if (dataDistribution) {
+    if (dataDistribution && dataDistribution.length > 0) {
       return generateAllFieldCharts(dataDistribution, source);
     }
     return [];
@@ -141,7 +142,7 @@ export const CombinedAnalysis: React.FC<CombinedAnalysisProps> = ({
   const dataDistributionTitle = (
     <EuiTitle size="s">
       <h3>
-        {i18n.translate('data.distribution.paragraph.title', {
+        {i18n.translate('notebook.data.distribution.paragraph.title', {
           defaultMessage: 'Data distribution analysis',
         })}
       </h3>
@@ -150,7 +151,7 @@ export const CombinedAnalysis: React.FC<CombinedAnalysisProps> = ({
 
   const dataDistributionSubtitle = (
     <EuiText size="s" color="subdued">
-      {i18n.translate('data.distribution.paragraph.subtitle', {
+      {i18n.translate('notebook.data.distribution.paragraph.subtitle', {
         defaultMessage: 'Visualization the values for key fields associated with the {source}',
         values: {
           source: source === NoteBookSource.DISCOVER ? 'discover' : 'alert',
@@ -260,13 +261,13 @@ export const CombinedAnalysis: React.FC<CombinedAnalysisProps> = ({
           <>
             <EuiTitle size="s">
               <h3>
-                {i18n.translate('log.sequence.paragraph.title', {
+                {i18n.translate('notebook.log.sequence.paragraph.title', {
                   defaultMessage: 'Log sequence analysis',
                 })}
               </h3>
             </EuiTitle>
             <EuiText size="s" color="subdued">
-              {i18n.translate('log.sequence.paragraph.subtitle', {
+              {i18n.translate('notebook.log.sequence.paragraph.subtitle', {
                 defaultMessage:
                   'Analyzing log patterns from {index} index by comparing two time periods',
                 values: {

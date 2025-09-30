@@ -76,6 +76,9 @@ export const useDataDistribution = ({
         const singleDataDistribution = await dataService.getSingleDataDistribution(pplData);
         setDataDistribution(singleDataDistribution);
       } else {
+        if (!timeRange.baselineFrom || !timeRange.baselineTo) {
+          throw new Error('Baseline time range is required for comparison mode');
+        }
         const comparisonData = await dataService.fetchComparisonData({
           timeRange: {
             selectionFrom: timeRange.selectionFrom,
