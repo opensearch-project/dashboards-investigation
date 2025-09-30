@@ -5,7 +5,10 @@
 
 import semver from 'semver';
 import { SavedObject } from '../../../../src/core/public';
-import { DataSourceAttributes } from '../../../../src/plugins/data_source/common/data_sources';
+import {
+  DataSourceAttributes,
+  DataSourceEngineType,
+} from '../../../../src/plugins/data_source/common/data_sources';
 import * as pluginManifest from '../../opensearch_dashboards.json';
 
 /**
@@ -23,8 +26,13 @@ export function get<T = unknown>(obj: Record<string, any>, path: string, default
 export const dataSourceFilterFn = (dataSource: SavedObject<DataSourceAttributes>) => {
   const dataSourceVersion = dataSource?.attributes?.dataSourceVersion || '';
   const installedPlugins = dataSource?.attributes?.installedPlugins || [];
+  const isServerless =
+    dataSource.attributes.dataSourceEngineType === DataSourceEngineType.OpenSearchServerless;
   return (
-    semver.satisfies(dataSourceVersion, pluginManifest.supportedOSDataSourceVersions) &&
-    pluginManifest.requiredOSDataSourcePlugins.every((plugin) => installedPlugins.includes(plugin))
+    isServerless ||
+    (semver.satisfies(dataSourceVersion, pluginManifest.supportedOSDataSourceVersions) &&
+      pluginManifest.requiredOSDataSourcePlugins.every((plugin) =>
+        installedPlugins.includes(plugin)
+      ))
   );
 };
