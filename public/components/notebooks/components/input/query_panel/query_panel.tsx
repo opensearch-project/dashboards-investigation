@@ -240,7 +240,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         componentConfig={{
           savedObjects: savedObjects.client,
           notifications,
-          activeOption: [{ id: localDataSourceId || '' }],
+          activeOption: localDataSourceId !== undefined ? [{ id: localDataSourceId }] : [],
           onSelectedDataSources: (ds: DataSourceOption[]) => {
             setLocalDataSourceId(ds[0].id);
           },
