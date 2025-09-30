@@ -103,7 +103,7 @@ export async function addSampleNotes(
   try {
     for (const item of notebooks) {
       const finalSaveItem = item;
-      if (dataSourceId) {
+      if (dataSourceId !== undefined) {
         finalSaveItem.savedNotebook.paragraphs = item.savedNotebook.paragraphs.map((paragraph) => ({
           ...paragraph,
           dataSourceMDSId: dataSourceId,
