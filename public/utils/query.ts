@@ -6,6 +6,7 @@
 import { PPL_ENDPOINT } from '../../common/constants/shared';
 import { HttpSetup } from '../../../../src/core/public';
 import { callOpenSearchCluster } from '../../public/plugin_helpers/plugin_proxy_call';
+import { NotebookType } from '../../common/types/notebooks';
 
 /**
  * The size that query result should always be sampling to
@@ -55,7 +56,7 @@ interface PPLQueryParams {
   query: string;
 }
 
-const executePPLQuery = (params: PPLQueryParams, query: string) => {
+const callClusterWithPPlQuery = (params: PPLQueryParams, query: string) => {
   return callOpenSearchCluster({
     http: params.http,
     dataSourceId: params.dataSourceId,
@@ -67,16 +68,21 @@ const executePPLQuery = (params: PPLQueryParams, query: string) => {
   });
 };
 
-export const executePPLQueryWithSampling = async (params: PPLQueryParams) => {
+export const executePPLQuery = async (params: PPLQueryParams, notebookType: NotebookType) => {
   const { query } = params;
+
+  // No need sampling for classic notebook
+  if (notebookType === NotebookType.CLASSIC) {
+    return callClusterWithPPlQuery(params, query);
+  }
 
   // Skip count check if query already has count aggregation to avoid conflicts
   if (query.toLowerCase().includes('stats count()')) {
-    return executePPLQuery(params, `${query} | head ${QUERY_RESULT_SAMPLE_SIZE}`);
+    return callClusterWithPPlQuery(params, `${query} | head ${QUERY_RESULT_SAMPLE_SIZE}`);
   }
 
   try {
-    const countResponse = await executePPLQuery(params, `${query} | stats count()`);
+    const countResponse = await callClusterWithPPlQuery(params, `${query} | stats count()`);
     const count = countResponse?.datarows?.[0]?.[0];
 
     if (count === 0) {
@@ -91,11 +97,11 @@ export const executePPLQueryWithSampling = async (params: PPLQueryParams) => {
       ? addSamplingFilter(query, count)
       : `${query} | head ${QUERY_RESULT_SAMPLE_SIZE}`;
 
-    const result = await executePPLQuery(params, finalQuery);
+    const result = await callClusterWithPPlQuery(params, finalQuery);
 
     return needsSampling ? removeRandomScoreFromResponse(result) : result;
   } catch (error) {
     // Fallback to simple head limit if count query fails
-    return executePPLQuery(params, `${query} | head ${QUERY_RESULT_SAMPLE_SIZE}`);
+    return callClusterWithPPlQuery(params, `${query} | head ${QUERY_RESULT_SAMPLE_SIZE}`);
   }
 };
