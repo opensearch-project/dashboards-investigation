@@ -202,7 +202,7 @@ export const useQueryPanelEditor = ({
           query: model.getValue(), // Use the current editor content, using the local query results in a race condition where we can get stale query data
           selectionStart: model.getOffsetAt(position),
           selectionEnd: model.getOffsetAt(position),
-          language: effectiveLanguage,
+          language: effectiveLanguage === 'PPL' ? 'PPL_Simplified' : effectiveLanguage, // TODO: use getEffectiveLanguageForAutoComplete from data plugin
           baseLanguage: queryLanguage, // Pass the original language before transformation
           indexPattern: selectedIndexRef.current as any, // Supply necessary parameters to getQuerySuggestions
           datasetType: 'INDEX', // TODO: if we support index pattern in the future
