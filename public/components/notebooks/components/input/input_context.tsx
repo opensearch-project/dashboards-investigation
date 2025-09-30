@@ -94,7 +94,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({
   children,
   onSubmit,
   input,
-  dataSourceId = '',
+  dataSourceId,
   aiFeatureEnabled,
 }) => {
   const [currInputType, setCurrInputType] = useState<InputType>(

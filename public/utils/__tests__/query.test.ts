@@ -3,11 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  addSamplingFilter,
-  executePPLQueryWithSampling,
-  removeRandomScoreFromResponse,
-} from '../query';
+import { addSamplingFilter, executePPLQuery, removeRandomScoreFromResponse } from '../query';
 import { callOpenSearchCluster } from '../../plugin_helpers/plugin_proxy_call';
 
 jest.mock('../../plugin_helpers/plugin_proxy_call');
@@ -53,7 +49,7 @@ describe('Query Utils', () => {
     });
   });
 
-  describe('executePPLQueryWithSampling', () => {
+  describe('executePPLQuery', () => {
     it('should execute query with head limit when count is small', async () => {
       const countResponse = { datarows: [[50]] };
       const queryResponse = { schema: [], datarows: [] };
@@ -68,7 +64,7 @@ describe('Query Utils', () => {
         query: 'source=logs',
       };
 
-      await executePPLQueryWithSampling(params);
+      await executePPLQuery(params, true);
 
       expect(mockCallOpenSearchCluster).toHaveBeenCalledTimes(2);
       expect(mockCallOpenSearchCluster).toHaveBeenLastCalledWith({
@@ -96,7 +92,7 @@ describe('Query Utils', () => {
         query: 'source=logs',
       };
 
-      await executePPLQueryWithSampling(params);
+      await executePPLQuery(params, true);
 
       expect(mockCallOpenSearchCluster).toHaveBeenLastCalledWith({
         http: mockHttp,
@@ -121,7 +117,7 @@ describe('Query Utils', () => {
         query: 'source=logs | stats count()',
       };
 
-      await executePPLQueryWithSampling(params);
+      await executePPLQuery(params, true);
 
       expect(mockCallOpenSearchCluster).toHaveBeenCalledTimes(1);
       expect(mockCallOpenSearchCluster).toHaveBeenCalledWith({
@@ -149,7 +145,7 @@ describe('Query Utils', () => {
         query: 'source=logs',
       };
 
-      await executePPLQueryWithSampling(params);
+      await executePPLQuery(params, true);
 
       expect(mockCallOpenSearchCluster).toHaveBeenCalledTimes(2);
       expect(mockCallOpenSearchCluster).toHaveBeenLastCalledWith({
@@ -159,6 +155,30 @@ describe('Query Utils', () => {
           path: '/_plugins/_ppl',
           method: 'POST',
           body: JSON.stringify({ query: 'source=logs | head 100' }),
+        },
+      });
+    });
+
+    it('should not apply sampling when notebookType is classic', async () => {
+      const queryResponse = { schema: [], datarows: [] };
+      mockCallOpenSearchCluster.mockResolvedValueOnce(queryResponse);
+
+      const params = {
+        http: mockHttp as any,
+        dataSourceId: 'test-datasource',
+        query: 'source=logs',
+      };
+
+      await executePPLQuery(params, false);
+
+      expect(mockCallOpenSearchCluster).toHaveBeenCalledTimes(1);
+      expect(mockCallOpenSearchCluster).toHaveBeenCalledWith({
+        http: mockHttp,
+        dataSourceId: 'test-datasource',
+        request: {
+          path: '/_plugins/_ppl',
+          method: 'POST',
+          body: JSON.stringify({ query: 'source=logs' }),
         },
       });
     });

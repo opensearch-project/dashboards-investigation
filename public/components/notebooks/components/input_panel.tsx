@@ -94,7 +94,7 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) =>
       <EuiPanel grow borderRadius="xl" hasBorder hasShadow paddingSize="s">
         <MultiVariantInput
           onSubmit={handleCreateParagraph}
-          dataSourceId={notebookType === NotebookType.CLASSIC ? '' : notebookDataSourceId}
+          dataSourceId={notebookType === NotebookType.CLASSIC ? undefined : notebookDataSourceId}
           aiFeatureEnabled={application?.capabilities.investigation.agenticFeaturesEnabled}
         />
       </EuiPanel>

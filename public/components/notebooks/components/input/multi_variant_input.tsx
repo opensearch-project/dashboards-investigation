@@ -120,7 +120,7 @@ export const MultiVariantInput: React.FC<MultiVariantInputProps> = (props) => {
     <InputProvider
       onSubmit={props.onSubmit}
       input={props.input}
-      dataSourceId={props.dataSourceId || ''}
+      dataSourceId={props.dataSourceId}
       aiFeatureEnabled={props.aiFeatureEnabled}
     >
       <MultiVariantInputContent actionDisabled={props.actionDisabled} />
