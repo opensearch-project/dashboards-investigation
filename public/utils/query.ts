@@ -6,7 +6,6 @@
 import { PPL_ENDPOINT } from '../../common/constants/shared';
 import { HttpSetup } from '../../../../src/core/public';
 import { callOpenSearchCluster } from '../../public/plugin_helpers/plugin_proxy_call';
-import { NotebookType } from '../../common/types/notebooks';
 
 /**
  * The size that query result should always be sampling to
@@ -68,11 +67,11 @@ const callClusterWithPPlQuery = (params: PPLQueryParams, query: string) => {
   });
 };
 
-export const executePPLQuery = async (params: PPLQueryParams, notebookType: NotebookType) => {
+export const executePPLQuery = async (params: PPLQueryParams, shouldSampling: boolean) => {
   const { query } = params;
 
   // No need sampling for classic notebook
-  if (notebookType === NotebookType.CLASSIC) {
+  if (!shouldSampling) {
     return callClusterWithPPlQuery(params, query);
   }
 

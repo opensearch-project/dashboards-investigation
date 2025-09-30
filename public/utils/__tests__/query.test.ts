@@ -5,7 +5,6 @@
 
 import { addSamplingFilter, executePPLQuery, removeRandomScoreFromResponse } from '../query';
 import { callOpenSearchCluster } from '../../plugin_helpers/plugin_proxy_call';
-import { NotebookType } from '../../../common/types/notebooks';
 
 jest.mock('../../plugin_helpers/plugin_proxy_call');
 const mockCallOpenSearchCluster = callOpenSearchCluster as jest.MockedFunction<
@@ -65,7 +64,7 @@ describe('Query Utils', () => {
         query: 'source=logs',
       };
 
-      await executePPLQuery(params, NotebookType.AGENTIC);
+      await executePPLQuery(params, true);
 
       expect(mockCallOpenSearchCluster).toHaveBeenCalledTimes(2);
       expect(mockCallOpenSearchCluster).toHaveBeenLastCalledWith({
@@ -93,7 +92,7 @@ describe('Query Utils', () => {
         query: 'source=logs',
       };
 
-      await executePPLQuery(params, NotebookType.AGENTIC);
+      await executePPLQuery(params, true);
 
       expect(mockCallOpenSearchCluster).toHaveBeenLastCalledWith({
         http: mockHttp,
@@ -118,7 +117,7 @@ describe('Query Utils', () => {
         query: 'source=logs | stats count()',
       };
 
-      await executePPLQuery(params, NotebookType.AGENTIC);
+      await executePPLQuery(params, true);
 
       expect(mockCallOpenSearchCluster).toHaveBeenCalledTimes(1);
       expect(mockCallOpenSearchCluster).toHaveBeenCalledWith({
@@ -146,7 +145,7 @@ describe('Query Utils', () => {
         query: 'source=logs',
       };
 
-      await executePPLQuery(params, NotebookType.AGENTIC);
+      await executePPLQuery(params, true);
 
       expect(mockCallOpenSearchCluster).toHaveBeenCalledTimes(2);
       expect(mockCallOpenSearchCluster).toHaveBeenLastCalledWith({
@@ -170,7 +169,7 @@ describe('Query Utils', () => {
         query: 'source=logs',
       };
 
-      await executePPLQuery(params, NotebookType.CLASSIC);
+      await executePPLQuery(params, false);
 
       expect(mockCallOpenSearchCluster).toHaveBeenCalledTimes(1);
       expect(mockCallOpenSearchCluster).toHaveBeenCalledWith({

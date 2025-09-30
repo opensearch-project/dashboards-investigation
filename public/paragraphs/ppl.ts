@@ -51,7 +51,7 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
               dataSourceId: dataSourceMDSId,
               query,
             },
-            NotebookType.AGENTIC
+            true
           ));
 
       if (!queryObject || queryObject.error) {
@@ -126,7 +126,7 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
               dataSourceId: paragraphValue.dataSourceMDSId,
               query: addTimeRangeFilter(currentSearchQuery, queryParams),
             },
-            notebookType ?? NotebookType.CLASSIC
+            notebookType === NotebookType.AGENTIC
           ));
 
       paragraphState.updateFullfilledOutput(queryResponse);
