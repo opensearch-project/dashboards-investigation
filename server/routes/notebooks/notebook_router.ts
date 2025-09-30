@@ -304,6 +304,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
       validate: {
         body: schema.object({
           visIds: schema.arrayOf(schema.string()),
+          dataSourceId: schema.maybe(schema.string()),
         }),
       },
     },
@@ -317,7 +318,8 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
       try {
         const sampleNotebooks = await addSampleNotes(
           opensearchNotebooksClient,
-          request.body.visIds
+          request.body.visIds,
+          request.body.dataSourceId
         );
         return response.ok({
           body: sampleNotebooks,

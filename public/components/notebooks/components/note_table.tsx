@@ -334,7 +334,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
         });
       await http
         .post(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook/addSampleNotebooks`, {
-          body: JSON.stringify({ visIds }),
+          body: JSON.stringify({ visIds, dataSourceId: dataSourceMDSId }),
         })
         .then((res) => {
           const newData = res.body.map((notebook: any) => ({
