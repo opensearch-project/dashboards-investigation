@@ -22,7 +22,6 @@ import { useHistory } from 'react-router-dom';
 import moment from 'moment';
 import { useObservable } from 'react-use';
 import { i18n } from '@osd/i18n';
-import { isEmpty } from 'lodash';
 
 import type { NoteBookServices } from 'public/types';
 
@@ -662,7 +661,7 @@ export const NotebookHeader = ({
     ]
   );
 
-  if (isEmpty(contextValue) || path === '') {
+  if (path === '') {
     return null;
   }
 

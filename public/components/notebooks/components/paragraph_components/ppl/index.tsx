@@ -201,9 +201,11 @@ export const PPLParagraph = ({
               >
                 <b>{inputQueryWithTimeFilter}</b>
               </EuiText>
-              <EuiFlexGroup justifyContent="flexEnd" gutterSize="none">
-                <EuiIconTip content="A maximum of 100 random results are displayed" />
-              </EuiFlexGroup>
+              {!isClassicNotebook && (
+                <EuiFlexGroup justifyContent="flexEnd" gutterSize="none">
+                  <EuiIconTip content="A maximum of 100 random results are displayed" />
+                </EuiFlexGroup>
+              )}
               <EuiSpacer size="xs" />
               <QueryDataGridMemo
                 rowCount={queryObject?.datarows?.length || 0}
