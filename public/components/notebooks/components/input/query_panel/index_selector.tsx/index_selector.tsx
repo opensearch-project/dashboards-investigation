@@ -79,8 +79,10 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         stage: 'index',
         isLoading: false,
       });
-      handleInputChange(DEFAULT_QUERY_STATE);
-      editorTextRef.current = '';
+      if (previousDataSouce.current !== undefined) {
+        handleInputChange(DEFAULT_QUERY_STATE);
+        editorTextRef.current = '';
+      }
     }
   }, [dataSourceId, handleInputChange, editorTextRef]);
 
@@ -221,9 +223,10 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         timeField: selected?.label,
       };
 
-      handleInputChange({ selectedIndex: indexData });
+      editorTextRef.current = '';
+      handleInputChange({ ...DEFAULT_QUERY_STATE, selectedIndex: indexData });
     },
-    [indicesData.allFields, handleInputChange]
+    [indicesData.allFields, handleInputChange, editorTextRef]
   );
 
   const handleBack = () => {
