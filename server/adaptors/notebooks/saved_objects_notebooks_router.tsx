@@ -95,12 +95,20 @@ export function renameNotebook(noteBookObj: { name: string; noteId: string }) {
 
 export async function addSampleNotes(
   opensearchNotebooksClient: SavedObjectsClientContract,
-  visIds: string[]
+  visIds: string[],
+  dataSourceId?: string
 ) {
   const notebooks = getSampleNotebooks(visIds);
   const sampleNotebooks = [];
   try {
     for (const item of notebooks) {
+      const finalSaveItem = item;
+      if (dataSourceId !== undefined) {
+        finalSaveItem.savedNotebook.paragraphs = item.savedNotebook.paragraphs.map((paragraph) => ({
+          ...paragraph,
+          dataSourceMDSId: dataSourceId,
+        }));
+      }
       const createdNotebooks = await opensearchNotebooksClient.create(NOTEBOOK_SAVED_OBJECT, item);
       sampleNotebooks.push({
         dateCreated: createdNotebooks.attributes.savedNotebook.dateCreated,
