@@ -3,13 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useContext, useMemo } from 'react';
 import { EuiLoadingContent, EuiSpacer, EuiText } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
 import moment from 'moment';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
-import { useParagraphs } from '../../../../../hooks/use_paragraphs';
 import { VisualizationInputValue } from '../../input/visualization_input';
 import { DashboardContainerInput } from '../../../../../../../../src/plugins/dashboard/public';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
@@ -19,6 +18,7 @@ import {
   getPanelValue,
 } from '../../../../../../public/utils/visualization';
 import { useVisualizationValue } from './use_visualization_value';
+import { NotebookReactContext } from '../../../context_provider/context_provider';
 
 export const VisualizationParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
   const {
@@ -32,7 +32,7 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
     () => JSON.parse(paragraphValue.input.inputText),
     [paragraphValue.input.inputText]
   );
-  const { runParagraph } = useParagraphs();
+  const { runParagraph } = useContext(NotebookReactContext).paragraphHooks;
 
   const visualizationValue: VisualizationInputValue | undefined = useVisualizationValue(inputJSON);
 

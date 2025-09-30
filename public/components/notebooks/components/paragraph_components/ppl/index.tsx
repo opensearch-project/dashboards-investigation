@@ -18,7 +18,6 @@ import {
 import { useObservable, useEffectOnce } from 'react-use';
 import { NoteBookServices } from 'public/types';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
-import { useParagraphs } from '../../../../../hooks/use_paragraphs';
 import {
   PPL_DOCUMENTATION_URL,
   SQL_DOCUMENTATION_URL,
@@ -89,11 +88,11 @@ export const PPLParagraph = ({
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
-  const { saveParagraph } = useParagraphs();
   const queryObject = paragraphValue.fullfilledOutput;
-  const { isWaitingForPPLResult, error } = paragraphValue?.uiState?.ppl || {};
+  const error = queryObject?.error;
 
   const context = useContext(NotebookReactContext);
+  const { saveParagraph, runParagraph } = context.paragraphHooks;
   const { notebookType, dataSourceId: notebookDataSourceId } = useObservable(
     context.state.value.context.getValue$(),
     context.state.value.context.value
@@ -104,13 +103,11 @@ export const PPLParagraph = ({
   const paragraphRegistry = paragraphService.getParagraphRegistry(getInputType(paragraphValue));
 
   useEffectOnce(() => {
-    (async () => {
-      await paragraphRegistry?.runParagraph({
-        paragraphState,
-        saveParagraph,
-        notebookStateValue: context.state.value,
-      });
-    })();
+    paragraphRegistry?.runParagraph({
+      paragraphState,
+      saveParagraph,
+      notebookStateValue: context.state.value,
+    });
   });
 
   const inputQuery = useMemo(
@@ -181,10 +178,8 @@ export const PPLParagraph = ({
               paragraphState.updateUIState({
                 isOutputStale: true,
               });
-              paragraphRegistry?.runParagraph({
-                paragraphState,
-                saveParagraph,
-                notebookStateValue: context.state.value,
+              runParagraph({
+                id: paragraphValue.id,
               });
             }}
             actionDisabled={actionDisabled}
@@ -192,7 +187,7 @@ export const PPLParagraph = ({
           />
         </div>
       </EuiCompressedFormRow>
-      {isRunning || isWaitingForPPLResult ? (
+      {isRunning ? (
         <EuiLoadingContent />
       ) : (
         <>

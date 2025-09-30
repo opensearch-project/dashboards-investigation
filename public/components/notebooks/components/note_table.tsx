@@ -274,7 +274,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
           },
         })
         .then((resp) => {
-          if (dataSourceEnabled) {
+          if (dataSourceMDSId) {
             const searchTitle = `[Logs] Response Codes Over Time + Annotations_${dataSourceMDSLabel}`;
             const savedObjects = resp.saved_objects;
 
@@ -297,7 +297,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
           },
         })
         .then((resp) => {
-          if (dataSourceEnabled) {
+          if (dataSourceMDSId) {
             const searchTitle = `[Logs] Unique Visitors vs. Average Bytes_${dataSourceMDSLabel}`;
             const savedObjects = resp.saved_objects;
 
@@ -320,7 +320,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
           },
         })
         .then((resp) => {
-          if (dataSourceEnabled) {
+          if (dataSourceMDSId) {
             const searchTitle = `[Flights] Flight Count and Average Ticket Price_${dataSourceMDSLabel}`;
             const savedObjects = resp.saved_objects;
 

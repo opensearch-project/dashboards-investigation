@@ -42,7 +42,6 @@ import {
   getDefaultState,
 } from '../context_provider/context_provider';
 import { InputPanel } from './input_panel';
-import { useParagraphs } from '../../../hooks/use_paragraphs';
 import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
 import { usePrecheck } from '../../../hooks/use_precheck';
@@ -77,7 +76,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
-  const { createParagraph, deleteParagraph } = useParagraphs();
+  const { createParagraph, deleteParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start, setInitialGoal } = usePrecheck();
 
