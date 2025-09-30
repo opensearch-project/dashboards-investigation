@@ -22,6 +22,8 @@ import { QueryState } from '../../types';
 import './index_selector.scss';
 import { Field } from '../../../../../../../../../src/plugins/dashboard/public/types';
 
+const DEFAULT_QUERY_STATE = { value: '', query: '', isPromptEditorMode: false };
+
 const INITAL_INDEX_SELECTION = {
   selectedIndex: undefined,
   selectedTimeField: undefined,
@@ -34,7 +36,7 @@ interface IndexSelectorOption {
 }
 
 export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ dataSourceId }) => {
-  const { handleInputChange, inputValue } = useInputContext();
+  const { handleInputChange, inputValue, editorTextRef } = useInputContext();
   const { noDatePicker, selectedIndex } = (inputValue as QueryState) || {};
   const {
     services: {
@@ -77,9 +79,10 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         stage: 'index',
         isLoading: false,
       });
-      handleInputChange({ value: '', query: '', isPromptEditorMode: false });
+      handleInputChange(DEFAULT_QUERY_STATE);
+      editorTextRef.current = '';
     }
-  }, [dataSourceId, handleInputChange]);
+  }, [dataSourceId, handleInputChange, editorTextRef]);
 
   useEffect(() => {
     // TODO: consider to move the check for indices to notebook context
@@ -167,34 +170,39 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
   const handleIndexChange = useCallback(
     async (newOptions: EuiSelectableOption[]) => {
       const selected = newOptions.find((option) => option.checked === 'on');
-      tempSelectedIndexRef.current = selected;
+      if (selected) {
+        tempSelectedIndexRef.current = selected;
 
-      if (noDatePicker) {
-        // Skip time field selection and directly set the index
-        setCurrentSelection((prev) => ({ ...prev, selectedIndex: selected }));
-        setUiState((prev) => ({ ...prev, isOpen: false }));
+        if (noDatePicker) {
+          // Skip time field selection and directly set the index
+          setCurrentSelection((prev) => ({ ...prev, selectedIndex: selected }));
+          setUiState((prev) => ({ ...prev, isOpen: false }));
 
-        try {
-          const res = await indexPatterns.getFieldsForWildcard({
-            pattern: selected?.label,
-            dataSourceId,
-          });
+          handleInputChange(DEFAULT_QUERY_STATE);
+          editorTextRef.current = '';
 
-          handleInputChange({
-            selectedIndex: {
-              title: selected?.label!,
-              fields: res,
-              timeField: undefined,
-            },
-          });
-        } catch (err) {
-          console.log('error', err);
+          try {
+            const res = await indexPatterns.getFieldsForWildcard({
+              pattern: selected.label,
+              dataSourceId,
+            });
+
+            handleInputChange({
+              selectedIndex: {
+                title: selected.label!,
+                fields: res,
+                timeField: undefined,
+              },
+            });
+          } catch (err) {
+            console.log('error', err);
+          }
+        } else {
+          fetchTimeFields(selected?.label);
         }
-      } else {
-        fetchTimeFields(selected?.label);
       }
     },
-    [noDatePicker, indexPatterns, dataSourceId, handleInputChange, fetchTimeFields]
+    [noDatePicker, indexPatterns, dataSourceId, handleInputChange, fetchTimeFields, editorTextRef]
   );
 
   const handleTimeFieldChange = useCallback(
