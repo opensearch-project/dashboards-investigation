@@ -205,8 +205,9 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   ]);
 
   const handleRunQuery = useCallback(async () => {
+    const defaultQuery = selectedIndex?.title ? `source = ${selectedIndex?.title}` : '';
     handleSubmit(
-      editorTextRef.current || selectedIndex?.title ? `source = ${selectedIndex?.title}` : '',
+      editorTextRef.current || defaultQuery,
       {
         timeRange,
         indexName: selectedIndex?.title,
