@@ -150,10 +150,19 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         }
       } else if (typeof inputValue === 'string' || isEmpty(inputValue)) {
         handleInputChange(QUERY_PANEL_INITIAL_STATE);
+        editorTextRef.current = '';
       }
     };
     handleInitalInput();
-  }, [paragraphInput, handleInputChange, indexPatterns, localDataSourceId, inputValue, isFetching]);
+  }, [
+    paragraphInput,
+    handleInputChange,
+    indexPatterns,
+    localDataSourceId,
+    inputValue,
+    isFetching,
+    editorTextRef,
+  ]);
 
   const handleTimeChange = useCallback(
     (props) => {
@@ -191,6 +200,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
       return query;
     } catch (err) {
       console.log(`Text2ppl error: ${err}`);
+      throw err;
     } finally {
       setIsFetching(false);
     }
@@ -206,8 +216,10 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
 
   const handleRunQuery = useCallback(async () => {
     const defaultQuery = selectedIndex?.title ? `source = ${selectedIndex?.title}` : '';
+    const queryToExecute = editorTextRef.current || defaultQuery;
+    handleInputChange({ value: queryToExecute });
     handleSubmit(
-      editorTextRef.current || defaultQuery,
+      queryToExecute,
       {
         timeRange,
         indexName: selectedIndex?.title,
@@ -220,6 +232,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   }, [
     handleSubmit,
     handleGenerateQuery,
+    handleInputChange,
     editorTextRef,
     isPromptEditorMode,
     noDatePicker,

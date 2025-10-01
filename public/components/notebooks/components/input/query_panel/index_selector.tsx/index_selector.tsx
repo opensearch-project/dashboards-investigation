@@ -125,6 +125,8 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         selectedIndex: { label: indexTitle },
         selectedTimeField: { label: timeField },
       }));
+    } else {
+      setCurrentSelection(INITAL_INDEX_SELECTION);
     }
   }, [selectedIndex]);
 

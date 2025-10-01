@@ -17,6 +17,7 @@ export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
   const {
     inputValue,
     isAgenticNotebook,
+    editorTextRef,
     handleInputChange,
     handleSetCurrInputType,
   } = useInputContext();
@@ -41,12 +42,13 @@ export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
         queryLanguage: actualLanguage,
         isPromptEditorMode: isAI,
       });
+      editorTextRef.current = '';
 
       if (!isAI) {
         handleSetCurrInputType(actualLanguage);
       }
     },
-    [closePopover, handleInputChange, handleSetCurrInputType]
+    [closePopover, handleInputChange, handleSetCurrInputType, editorTextRef]
   );
 
   const badgeLabel = isPromptEditorMode ? 'AI' : queryLanguage || 'PPL';

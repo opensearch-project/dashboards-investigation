@@ -31,8 +31,13 @@ export const QueryPanelEditor: React.FC<{
   const [showPlaceholder, setShowPlaceholder] = useState(false);
 
   useEffect(() => {
-    setShowPlaceholder(!editorTextRef.current.length);
-  }, [editorTextRef]);
+    const shouldShow = !editorTextRef.current.length;
+    if (showPlaceholder !== shouldShow) {
+      setShowPlaceholder(shouldShow);
+    }
+    // When set the editorTextRef.current to empty string, we want setShowPlaceholder to true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorTextRef.current, showPlaceholder]);
 
   useEffect(() => {
     selectedIndexRef.current = selectedIndex;

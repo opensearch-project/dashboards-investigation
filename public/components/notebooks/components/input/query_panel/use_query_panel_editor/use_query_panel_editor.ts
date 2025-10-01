@@ -158,10 +158,11 @@ export const useQueryPanelEditor = ({
 
   // Keep the refs updated with latest context
   useEffect(() => {
+    editorTextRef.current = userQueryString;
     isPromptModeRef.current = isPromptMode;
     promptModeIsAvailableRef.current = promptModeIsAvailable;
     handleRunRef.current = handleRun;
-  }, [isPromptMode, promptModeIsAvailable, handleRun, userQueryString]);
+  }, [isPromptMode, promptModeIsAvailable, handleRun, userQueryString, editorTextRef]);
 
   // The 'triggerSuggestOnFocus' prop of CodeEditor only happens on mount, so I am intentionally not passing it
   // and programmatically doing it here. We should only trigger autosuggestion on focus while on isQueryMode and there is text
