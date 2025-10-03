@@ -77,7 +77,6 @@ interface InputContextValue<T extends InputType = InputType> {
 
   // For query editor
   editorRef: React.MutableRefObject<monaco.editor.IStandaloneCodeEditor | null>;
-  editorTextRef: React.MutableRefObject<string>;
 }
 
 const InputContext = createContext<InputContextValue | undefined>(undefined);
@@ -119,7 +118,6 @@ export const InputProvider: React.FC<InputProviderProps> = ({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const editorTextRef = useRef(input?.inputText ? input?.inputText : '');
 
   const handleInputChange = useCallback((value: Partial<InputValueType<typeof currInputType>>) => {
     if (typeof value === 'object') {
@@ -254,7 +252,6 @@ export const InputProvider: React.FC<InputProviderProps> = ({
     isParagraphSelectionOpen,
     textareaRef,
     editorRef,
-    editorTextRef,
     isLoading,
     isInputMountedInParagraph,
     paragraphOptions,

@@ -36,7 +36,7 @@ interface IndexSelectorOption {
 }
 
 export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ dataSourceId }) => {
-  const { handleInputChange, inputValue, editorTextRef } = useInputContext();
+  const { handleInputChange, inputValue } = useInputContext();
   const { noDatePicker, selectedIndex } = (inputValue as QueryState) || {};
   const {
     services: {
@@ -79,12 +79,9 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         stage: 'index',
         isLoading: false,
       });
-      if (previousDataSouce.current !== undefined) {
-        handleInputChange(DEFAULT_QUERY_STATE);
-        editorTextRef.current = '';
-      }
+      handleInputChange(DEFAULT_QUERY_STATE);
     }
-  }, [dataSourceId, handleInputChange, editorTextRef]);
+  }, [dataSourceId, handleInputChange]);
 
   useEffect(() => {
     // TODO: consider to move the check for indices to notebook context
@@ -125,6 +122,8 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         selectedIndex: { label: indexTitle },
         selectedTimeField: { label: timeField },
       }));
+    } else {
+      setCurrentSelection(INITAL_INDEX_SELECTION);
     }
   }, [selectedIndex]);
 
@@ -181,7 +180,6 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
           setUiState((prev) => ({ ...prev, isOpen: false }));
 
           handleInputChange(DEFAULT_QUERY_STATE);
-          editorTextRef.current = '';
 
           try {
             const res = await indexPatterns.getFieldsForWildcard({
@@ -204,7 +202,7 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         }
       }
     },
-    [noDatePicker, indexPatterns, dataSourceId, handleInputChange, fetchTimeFields, editorTextRef]
+    [noDatePicker, indexPatterns, dataSourceId, handleInputChange, fetchTimeFields]
   );
 
   const handleTimeFieldChange = useCallback(
@@ -223,10 +221,9 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         timeField: selected?.label,
       };
 
-      editorTextRef.current = '';
       handleInputChange({ ...DEFAULT_QUERY_STATE, selectedIndex: indexData });
     },
-    [indicesData.allFields, handleInputChange, editorTextRef]
+    [indicesData.allFields, handleInputChange]
   );
 
   const handleBack = () => {

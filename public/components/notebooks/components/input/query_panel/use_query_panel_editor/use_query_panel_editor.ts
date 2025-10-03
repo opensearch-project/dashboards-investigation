@@ -107,12 +107,11 @@ interface UseQueryPanelEditorProps {
   promptModeIsAvailable: boolean;
   isPromptEditorMode: boolean;
   queryLanguage: string;
-  userQueryString: string;
+  editorTextValue: string;
   handleRun: () => void;
   handleEscape: () => void;
   handleSpaceBar: () => void;
   handleChange: (value: string) => void;
-  editorTextRef: React.MutableRefObject<string>;
   editorRef: React.MutableRefObject<IStandaloneCodeEditor | null>;
   selectedIndexRef: React.MutableRefObject<QueryIndexState>;
   isQueryEditorDirty: boolean;
@@ -130,7 +129,6 @@ export interface UseQueryPanelEditorReturnType {
   placeholder: string;
   promptIsTyping: boolean;
   useLatestTheme: true;
-  value: string;
 }
 
 export const useQueryPanelEditor = ({
@@ -138,12 +136,11 @@ export const useQueryPanelEditor = ({
   promptModeIsAvailable,
   isPromptEditorMode: isPromptMode,
   queryLanguage,
-  userQueryString,
+  editorTextValue,
   handleRun,
   handleEscape,
   handleSpaceBar,
   handleChange,
-  editorTextRef,
   editorRef,
   selectedIndexRef,
   isQueryEditorDirty,
@@ -155,18 +152,26 @@ export const useQueryPanelEditor = ({
   const promptModeIsAvailableRef = useRef(promptModeIsAvailable);
   const handleRunRef = useRef(handleRun);
   const completionProviderRef = useRef<monaco.IDisposable>();
+  const editorTextRef = useRef(editorTextValue);
 
   // Keep the refs updated with latest context
   useEffect(() => {
+    editorTextRef.current = editorTextValue;
+  }, [editorTextValue]);
+  useEffect(() => {
     isPromptModeRef.current = isPromptMode;
+  }, [isPromptMode]);
+  useEffect(() => {
     promptModeIsAvailableRef.current = promptModeIsAvailable;
+  }, [promptModeIsAvailable]);
+  useEffect(() => {
     handleRunRef.current = handleRun;
-  }, [isPromptMode, promptModeIsAvailable, handleRun, userQueryString]);
+  }, [handleRun]);
 
   // The 'triggerSuggestOnFocus' prop of CodeEditor only happens on mount, so I am intentionally not passing it
   // and programmatically doing it here. We should only trigger autosuggestion on focus while on isQueryMode and there is text
   useEffect(() => {
-    if (isQueryMode && !!editorTextRef.current.length) {
+    if (isQueryMode && !!editorTextValue.length) {
       const onDidFocusDisposable = editorRef.current?.onDidFocusEditorWidget(() => {
         editorRef.current?.trigger('keyboard', 'editor.action.triggerSuggest', {});
       });
@@ -175,7 +180,7 @@ export const useQueryPanelEditor = ({
         onDidFocusDisposable?.dispose();
       };
     }
-  }, [isQueryMode, editorRef, editorTextRef]);
+  }, [isQueryMode, editorRef, editorTextValue]);
 
   const setEditorRef = useCallback(
     (editor: IStandaloneCodeEditor) => {
@@ -324,7 +329,7 @@ export const useQueryPanelEditor = ({
         return editor;
       };
     },
-    [setEditorRef, handleEscape, setEditorIsFocused, editorTextRef, handleSpaceBar]
+    [setEditorRef, handleEscape, setEditorIsFocused, handleSpaceBar]
   );
 
   const options = useMemo(() => (isQueryMode ? queryEditorOptions : promptEditorOptions), [
@@ -349,11 +354,10 @@ export const useQueryPanelEditor = ({
 
   const onChange = useCallback(
     (newText: string) => {
-      editorTextRef.current = newText;
       if (!isQueryEditorDirty) handleChange(newText);
       if (isPromptMode) handleChangeForPromptIsTyping();
     },
-    [isPromptMode, handleChangeForPromptIsTyping, isQueryEditorDirty, handleChange, editorTextRef]
+    [isPromptMode, handleChangeForPromptIsTyping, isQueryEditorDirty, handleChange]
   );
 
   return {
@@ -368,6 +372,5 @@ export const useQueryPanelEditor = ({
     placeholder,
     promptIsTyping,
     useLatestTheme: true,
-    value: editorTextRef.current,
   };
 };

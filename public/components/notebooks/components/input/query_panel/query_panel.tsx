@@ -71,7 +71,6 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
     },
   } = useOpenSearchDashboards<NoteBookServices>();
   const {
-    editorTextRef,
     inputValue,
     dataSourceId,
     isLoading,
@@ -95,7 +94,14 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   const queryState = (inputValue && typeof inputValue !== 'string'
     ? inputValue
     : QUERY_PANEL_INITIAL_STATE) as QueryState;
-  const { queryLanguage, isPromptEditorMode, selectedIndex, timeRange, noDatePicker } = queryState;
+  const {
+    value,
+    queryLanguage,
+    isPromptEditorMode,
+    selectedIndex,
+    timeRange,
+    noDatePicker,
+  } = queryState;
 
   useEffect(() => {
     // TODO: consider move this to global state
@@ -113,7 +119,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         // Set up input value from paragraph input
         try {
           setIsFetching(true);
-          const value = paragraphInput.inputText;
+          const val = paragraphInput.inputText;
           const {
             timeRange: inputTimeRange,
             query,
@@ -130,7 +136,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
             : [];
 
           handleInputChange({
-            value,
+            value: val,
             query,
             queryLanguage: paragraphInput.inputType as QueryLanguage,
             // If question is defined, indicate the user executed t2ppl previously
@@ -163,16 +169,13 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   );
 
   const handleGenerateQuery = useCallback(async () => {
-    if (
-      paragraphInput?.inputText &&
-      editorTextRef.current === (paragraphInput?.parameters as any)?.question
-    ) {
+    if (paragraphInput?.inputText && value === (paragraphInput?.parameters as any)?.question) {
       // Don't regenerate PPL query if the input NL question isn't changed
       return paragraphInput?.inputText;
     }
     setIsFetching(true);
     const params: QueryAssistParameters = {
-      question: editorTextRef.current,
+      question: value,
       index: selectedIndex.title,
       language: queryLanguage,
       dataSourceId: localDataSourceId,
@@ -191,12 +194,13 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
       return query;
     } catch (err) {
       console.log(`Text2ppl error: ${err}`);
+      throw err;
     } finally {
       setIsFetching(false);
     }
   }, [
     paragraphInput,
-    editorTextRef,
+    value,
     selectedIndex.title,
     queryLanguage,
     localDataSourceId,
@@ -206,8 +210,10 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
 
   const handleRunQuery = useCallback(async () => {
     const defaultQuery = selectedIndex?.title ? `source = ${selectedIndex?.title}` : '';
+    const queryToExecute = value || defaultQuery;
+    handleInputChange({ value: queryToExecute });
     handleSubmit(
-      editorTextRef.current || defaultQuery,
+      queryToExecute,
       {
         timeRange,
         indexName: selectedIndex?.title,
@@ -220,7 +226,8 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   }, [
     handleSubmit,
     handleGenerateQuery,
-    editorTextRef,
+    handleInputChange,
+    value,
     isPromptEditorMode,
     noDatePicker,
     selectedIndex,
