@@ -22,7 +22,7 @@ export const QueryPanelEditor: React.FC<{
   handleRunQuery: () => void;
 }> = ({ queryState, handleRunQuery, promptModeIsAvailable }) => {
   const { services } = useOpenSearchDashboards<NoteBookServices>();
-  const { editorRef, editorTextRef, handleInputChange } = useInputContext();
+  const { editorRef, handleInputChange } = useInputContext();
 
   const { value, queryLanguage, isPromptEditorMode, selectedIndex } = queryState;
 
@@ -31,13 +31,11 @@ export const QueryPanelEditor: React.FC<{
   const [showPlaceholder, setShowPlaceholder] = useState(false);
 
   useEffect(() => {
-    const shouldShow = !editorTextRef.current.length;
+    const shouldShow = !value.length;
     if (showPlaceholder !== shouldShow) {
       setShowPlaceholder(shouldShow);
     }
-    // When set the editorTextRef.current to empty string, we want setShowPlaceholder to true
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editorTextRef.current, showPlaceholder]);
+  }, [value, showPlaceholder]);
 
   useEffect(() => {
     selectedIndexRef.current = selectedIndex;
@@ -54,7 +52,7 @@ export const QueryPanelEditor: React.FC<{
     promptModeIsAvailable: queryLanguage === 'SQL' ? false : promptModeIsAvailable,
     isPromptEditorMode,
     queryLanguage,
-    userQueryString: value || '',
+    editorTextValue: value || '',
     handleRun: handleRunQuery,
     handleEscape: useCallback(() => {
       handleInputChange({ isPromptEditorMode: false, query: '' });
@@ -63,12 +61,11 @@ export const QueryPanelEditor: React.FC<{
       handleInputChange({ isPromptEditorMode: true });
     }, [handleInputChange]),
     handleChange: (val) => {
-      setShowPlaceholder(!val.length);
+      handleInputChange({ value: val });
     },
     isQueryEditorDirty: false,
     services,
     editorRef,
-    editorTextRef,
     selectedIndexRef,
   });
   return (
@@ -83,7 +80,7 @@ export const QueryPanelEditor: React.FC<{
       data-test-subj="notebookQueryPanelEditor"
       onClick={onEditorClick}
     >
-      <CodeEditor {...editorProps} />
+      <CodeEditor value={value} {...editorProps} />
       {showPlaceholder ? (
         <div className={`notebookQueryPanelEditor__placeholder`}>{placeholder}</div>
       ) : null}
