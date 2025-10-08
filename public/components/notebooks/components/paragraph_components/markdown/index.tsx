@@ -6,7 +6,6 @@
 import React from 'react';
 import {
   EuiBadge,
-  EuiCodeBlock,
   EuiCompressedTextArea,
   EuiFlexGroup,
   EuiFlexItem,
@@ -36,7 +35,7 @@ export const MarkdownParagraph = ({
   const { runParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const output = ParagraphState.getOutput(paragraphValue);
   const isFindingParagraph =
-    output?.result.includes('Importance:') && output.result.includes('Description:');
+    output?.result.startsWith('Importance:') && output.result.includes('Description:');
 
   const runParagraphHandler = async () => {
     paragraphState.updateUIState({
@@ -74,59 +73,51 @@ export const MarkdownParagraph = ({
 
   return (
     <>
-      <EuiSpacer size="s" />
       <div style={{ width: '100%' }}>
         {paragraphValue.uiState?.viewMode !== 'output_only' ? (
-          <EuiCompressedTextArea
-            data-test-subj={`editorArea-${paragraphValue.id}`}
-            placeholder={inputPlaceholderString}
-            id={`editorArea-${paragraphValue.id}`}
-            className="editorArea"
-            fullWidth
-            disabled={!!isRunning || actionDisabled}
-            onChange={(evt) => {
-              paragraphState.updateInput({
-                inputText: evt.target.value,
-              });
-              paragraphState.updateUIState({
-                isOutputStale: true,
-              });
-            }}
-            onKeyPress={(evt) => {
-              if (evt.key === 'Enter' && evt.shiftKey) {
-                runParagraphHandler();
-              }
-            }}
-            value={paragraphValue.input.inputText}
-            autoFocus
-          />
-        ) : (
-          <EuiCodeBlock
-            data-test-subj={`paraInputCodeBlock-${paragraphValue.id}`}
-            language={paragraphValue.input.inputText.match(/^%(sql|md)/)?.[1]}
-            overflowHeight={200}
-            paddingSize="s"
-          >
-            {paragraphValue.input.inputText}
-          </EuiCodeBlock>
-        )}
-      </div>
-      <EuiSpacer size="m" />
-      {actionDisabled ? null : (
-        <EuiFlexGroup alignItems="center" gutterSize="s">
-          <EuiFlexItem grow={false}>
-            <EuiSmallButton
-              data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
-              onClick={() => {
-                runParagraphHandler();
+          <>
+            <EuiCompressedTextArea
+              data-test-subj={`editorArea-${paragraphValue.id}`}
+              placeholder={inputPlaceholderString}
+              id={`editorArea-${paragraphValue.id}`}
+              className="editorArea"
+              fullWidth
+              disabled={!!isRunning || actionDisabled}
+              onChange={(evt) => {
+                paragraphState.updateInput({
+                  inputText: evt.target.value,
+                });
+                paragraphState.updateUIState({
+                  isOutputStale: true,
+                });
               }}
-            >
-              {ParagraphState.getOutput(paragraphValue)?.result !== '' ? 'Refresh' : 'Run'}
-            </EuiSmallButton>
-          </EuiFlexItem>
-        </EuiFlexGroup>
-      )}
-      <EuiSpacer size="m" />
+              onKeyPress={(evt) => {
+                if (evt.key === 'Enter' && evt.shiftKey) {
+                  runParagraphHandler();
+                }
+              }}
+              value={paragraphValue.input.inputText}
+              autoFocus
+            />
+            <EuiSpacer size="m" />
+            {actionDisabled ? null : (
+              <EuiFlexGroup alignItems="center" gutterSize="s">
+                <EuiFlexItem grow={false}>
+                  <EuiSmallButton
+                    data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
+                    onClick={() => {
+                      runParagraphHandler();
+                    }}
+                  >
+                    {ParagraphState.getOutput(paragraphValue)?.result !== '' ? 'Refresh' : 'Run'}
+                  </EuiSmallButton>
+                </EuiFlexItem>
+              </EuiFlexGroup>
+            )}
+            <EuiSpacer size="m" />
+          </>
+        ) : null}
+      </div>
       {paragraphValue.aiGenerated && <EuiBadge>AI Generated</EuiBadge>}
       {isRunning ? (
         <EuiLoadingContent />

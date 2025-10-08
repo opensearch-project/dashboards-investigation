@@ -24,7 +24,7 @@ import { ParagraphServiceSetup } from './services/paragraph_service';
 import { ContextServiceSetup } from './services/context_service';
 import { ContextProviderStart } from '../../../src/plugins/context_provider/public';
 import { FindingService } from './services/finding_service';
-import { AssistantSetup } from '../../dashboards-assistant/public';
+import { AssistantSetup, AssistantPublicPluginStart } from '../../dashboards-assistant/public';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -36,6 +36,7 @@ export interface AppPluginStartDependencies {
   expressions: ExpressionsStart;
   visualizations: VisualizationsStart;
   contextProvider?: ContextProviderStart;
+  assistantDashboards?: AssistantPublicPluginStart;
 }
 
 export interface SetupDependencies {
