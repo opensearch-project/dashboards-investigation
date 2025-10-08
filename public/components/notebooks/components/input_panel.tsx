@@ -19,7 +19,7 @@ interface InputPanelProps {
 }
 
 export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) => {
-  const { createParagraph, runParagraph } = useContext(NotebookReactContext).paragraphHooks;
+  const { createParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const {
     services: { application },
   } = useOpenSearchDashboards();
@@ -68,15 +68,12 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) =>
         });
         if (createParagraphRes) {
           onParagraphCreated?.(createParagraphRes);
-          await runParagraph({
-            id: createParagraphRes.value.id,
-          });
         }
       } catch (err) {
         console.log(`Error while creating paragraph ${err}`);
       }
     },
-    [paragraphs.length, createParagraph, runParagraph, onParagraphCreated, notebookDataSourceId]
+    [paragraphs.length, createParagraph, onParagraphCreated, notebookDataSourceId]
   );
 
   return (

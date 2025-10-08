@@ -37,7 +37,7 @@ interface IndexSelectorOption {
 
 export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ dataSourceId }) => {
   const { handleInputChange, inputValue } = useInputContext();
-  const { noDatePicker, selectedIndex } = (inputValue as QueryState) || {};
+  const { noDatePicker, selectedIndex, queryLanguage } = (inputValue as QueryState) || {};
   const {
     services: {
       http,
@@ -174,7 +174,7 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
       if (selected) {
         tempSelectedIndexRef.current = selected;
 
-        if (noDatePicker) {
+        if (noDatePicker || queryLanguage === 'SQL') {
           // Skip time field selection and directly set the index
           setCurrentSelection((prev) => ({ ...prev, selectedIndex: selected }));
           setUiState((prev) => ({ ...prev, isOpen: false }));
@@ -202,7 +202,7 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         }
       }
     },
-    [noDatePicker, indexPatterns, dataSourceId, handleInputChange, fetchTimeFields]
+    [noDatePicker, indexPatterns, queryLanguage, dataSourceId, handleInputChange, fetchTimeFields]
   );
 
   const handleTimeFieldChange = useCallback(
@@ -213,13 +213,15 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         selectedTimeField: selected,
         selectedIndex: tempSelectedIndexRef.current,
       }));
-      setUiState((prev) => ({ ...prev, isOpen: false }));
 
       const indexData = {
         title: tempSelectedIndexRef.current?.label!,
         fields: indicesData.allFields,
         timeField: selected?.label,
       };
+
+      setUiState((prev) => ({ ...prev, isOpen: false, stage: 'index' }));
+      tempSelectedIndexRef.current = undefined;
 
       handleInputChange({ ...DEFAULT_QUERY_STATE, selectedIndex: indexData });
     },
@@ -233,7 +235,7 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
   };
 
   const getButtonText = () => {
-    if (noDatePicker) {
+    if (noDatePicker || queryLanguage === 'SQL') {
       return currentSelection.selectedIndex?.label || 'Select an index';
     }
     if (currentSelection.selectedTimeField) {
