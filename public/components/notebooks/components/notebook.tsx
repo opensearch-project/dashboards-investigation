@@ -20,14 +20,13 @@ import {
   EuiText,
 } from '@elastic/eui';
 import CSS from 'csstype';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 
 import { useContext } from 'react';
 import { useEffectOnce, useObservable } from 'react-use';
 import { useCallback } from 'react';
 
 import { NoteBookServices } from 'public/types';
-import { useMemo } from 'react';
 import { ParagraphState } from '../../../../common/state/paragraph_state';
 import {
   CREATE_NOTE_MESSAGE,
