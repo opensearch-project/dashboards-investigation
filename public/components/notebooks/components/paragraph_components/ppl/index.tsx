@@ -98,7 +98,7 @@ export const PPLParagraph = ({
     context.state.value.context.value
   );
 
-  const isClassicNotebook = notebookType === NotebookType.CLASSIC;
+  const isAgenticNotebook = notebookType === NotebookType.AGENTIC;
 
   const paragraphRegistry = paragraphService.getParagraphRegistry(getInputType(paragraphValue));
 
@@ -183,7 +183,7 @@ export const PPLParagraph = ({
               });
             }}
             actionDisabled={actionDisabled}
-            dataSourceId={isClassicNotebook ? paragarphDataSource : notebookDataSourceId}
+            dataSourceId={isAgenticNotebook ? notebookDataSourceId : paragarphDataSource}
           />
         </div>
       </EuiCompressedFormRow>
@@ -201,7 +201,7 @@ export const PPLParagraph = ({
               >
                 <b>{inputQueryWithTimeFilter}</b>
               </EuiText>
-              {!isClassicNotebook && (
+              {isAgenticNotebook && (
                 <EuiFlexGroup justifyContent="flexEnd" gutterSize="none">
                   <EuiIconTip content="A maximum of 100 random results are displayed" />
                 </EuiFlexGroup>
