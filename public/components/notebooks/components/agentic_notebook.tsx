@@ -113,17 +113,15 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     return paragraphsStates.filter((item) => item.value.input.inputType !== 'CODE');
   }, [paragraphsStates]);
 
+  const [contextData, setContextData] = useState<Record<string, unknown> | null>(null);
+
   useEffect(() => {
-    if (page === SubRouter.Hypothesis) {
-      return;
-    }
-
     if (!hypotheses) {
-      updateContext(1, null);
+      setContextData(null);
       return;
     }
 
-    const updateContextData = async () => {
+    const generateContextData = async () => {
       try {
         const paragraphPrompt = await generateParagraphPrompt({
           paragraphService,
@@ -137,35 +135,39 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
             .map((item) => item)
             .join('\n')}`;
 
-        const contextData = {
+        const data = {
           displayName: 'Hypotheses and findings',
           notebookId: notebookContext.state.value.id,
           contextContent: hypothesesContext + '\n' + findingsContext,
         };
 
-        updateContext(1, contextData);
+        setContextData(data);
       } catch (error) {
         console.error('Failed to generate context:', error);
-        updateContext(1, null);
+        setContextData(null);
       }
     };
 
-    updateContextData();
-
-    return () => {
-      updateContext(1, null);
-    };
+    generateContextData();
   }, [
     hypotheses,
     notebookContext.state.value.id,
-    notebookContext.state.value.title,
-    updateContext,
-    paragraphsStates,
-    page,
     hypothesesContext,
     includedParagraphs,
     paragraphService,
   ]);
+
+  useEffect(() => {
+    if (page === SubRouter.Hypothesis) {
+      return;
+    }
+
+    updateContext(1, contextData);
+
+    return () => {
+      updateContext(1, null);
+    };
+  }, [updateContext, page, contextData]);
 
   useEffect(() => {
     findingService.initialize(openedNoteId);
