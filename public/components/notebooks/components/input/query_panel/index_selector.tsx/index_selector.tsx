@@ -37,7 +37,8 @@ interface IndexSelectorOption {
 
 export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ dataSourceId }) => {
   const { handleInputChange, inputValue } = useInputContext();
-  const { noDatePicker, selectedIndex } = (inputValue as QueryState) || {};
+  const { noDatePicker, selectedIndex, queryLanguage, timeRange } =
+    (inputValue as QueryState) || {};
   const {
     services: {
       http,
@@ -79,7 +80,13 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         stage: 'index',
         isLoading: false,
       });
-      handleInputChange(DEFAULT_QUERY_STATE);
+      handleInputChange({
+        ...DEFAULT_QUERY_STATE,
+        selectedIndex: {
+          title: '',
+          fields: [],
+        },
+      });
     }
   }, [dataSourceId, handleInputChange]);
 
@@ -174,12 +181,19 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
       if (selected) {
         tempSelectedIndexRef.current = selected;
 
-        if (noDatePicker) {
+        if (noDatePicker || queryLanguage === 'SQL') {
           // Skip time field selection and directly set the index
           setCurrentSelection((prev) => ({ ...prev, selectedIndex: selected }));
           setUiState((prev) => ({ ...prev, isOpen: false }));
 
-          handleInputChange(DEFAULT_QUERY_STATE);
+          if (selectedIndex?.title) {
+            /**
+             * Don't clear currnet query input if previously no index is selected. This is to
+             * ensure for legacy notebook, the user don't have to re-enter the query after
+             * select the correct index for an existing query.
+             */
+            handleInputChange(DEFAULT_QUERY_STATE);
+          }
 
           try {
             const res = await indexPatterns.getFieldsForWildcard({
@@ -202,7 +216,15 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         }
       }
     },
-    [noDatePicker, indexPatterns, dataSourceId, handleInputChange, fetchTimeFields]
+    [
+      noDatePicker,
+      indexPatterns,
+      queryLanguage,
+      dataSourceId,
+      selectedIndex?.title,
+      handleInputChange,
+      fetchTimeFields,
+    ]
   );
 
   const handleTimeFieldChange = useCallback(
@@ -213,7 +235,6 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         selectedTimeField: selected,
         selectedIndex: tempSelectedIndexRef.current,
       }));
-      setUiState((prev) => ({ ...prev, isOpen: false }));
 
       const indexData = {
         title: tempSelectedIndexRef.current?.label!,
@@ -221,9 +242,16 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
         timeField: selected?.label,
       };
 
-      handleInputChange({ ...DEFAULT_QUERY_STATE, selectedIndex: indexData });
+      setUiState((prev) => ({ ...prev, isOpen: false, stage: 'index' }));
+      tempSelectedIndexRef.current = undefined;
+
+      handleInputChange({
+        ...(selectedIndex?.title ? DEFAULT_QUERY_STATE : {}),
+        ...(isEmpty(timeRange) ? { timeRange: { from: 'now-15m', to: 'now' } } : {}),
+        selectedIndex: indexData,
+      });
     },
-    [indicesData.allFields, handleInputChange]
+    [indicesData.allFields, selectedIndex?.title, timeRange, handleInputChange]
   );
 
   const handleBack = () => {
@@ -233,7 +261,7 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
   };
 
   const getButtonText = () => {
-    if (noDatePicker) {
+    if (noDatePicker || queryLanguage === 'SQL') {
       return currentSelection.selectedIndex?.label || 'Select an index';
     }
     if (currentSelection.selectedTimeField) {

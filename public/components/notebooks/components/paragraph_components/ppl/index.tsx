@@ -8,7 +8,6 @@ import {
   EuiCodeBlock,
   EuiCompressedFormRow,
   EuiFlexGroup,
-  EuiIcon,
   EuiIconTip,
   EuiLink,
   EuiLoadingContent,
@@ -146,15 +145,16 @@ export const PPLParagraph = ({
         error={
           <EuiText size="s">
             {error}.{' '}
-            {getInputType(paragraphState.getBackendValue()) === 'ppl' ? (
-              <EuiLink href={PPL_DOCUMENTATION_URL} target="_blank">
-                Learn More
-              </EuiLink>
-            ) : (
-              <EuiLink href={SQL_DOCUMENTATION_URL} target="_blank">
-                <EuiIcon type="popout" size="s" />
-              </EuiLink>
-            )}
+            <EuiLink
+              href={
+                getInputType(paragraphState.getBackendValue()) === 'ppl'
+                  ? PPL_DOCUMENTATION_URL
+                  : SQL_DOCUMENTATION_URL
+              }
+              target="_blank"
+            >
+              Learn More
+            </EuiLink>
           </EuiText>
         }
       >
@@ -178,6 +178,7 @@ export const PPLParagraph = ({
               paragraphState.updateUIState({
                 isOutputStale: true,
               });
+              paragraphState.resetFullfilledOutput();
               runParagraph({
                 id: paragraphValue.id,
               });

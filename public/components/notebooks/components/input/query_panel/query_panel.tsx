@@ -90,6 +90,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   const [isQueryPanelMenuOpen, setIsQueryPanelMenuOpen] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [localDataSourceId, setLocalDataSourceId] = useState(dataSourceId);
+  const [isEditorInitialized, setIsEditorInitialized] = useState(!isInputMountedInParagraph);
 
   const queryState = (inputValue && typeof inputValue !== 'string'
     ? inputValue
@@ -103,13 +104,18 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
     noDatePicker,
   } = queryState;
 
+  // Initialize editor when value exists and in paragraph mode
+  if (isInputMountedInParagraph && value && !isEditorInitialized) {
+    setIsEditorInitialized(true);
+  }
+
   useEffect(() => {
     // TODO: consider move this to global state
     getPromptModeIsAvailable(services, localDataSourceId).then(setPromptModeIsAvailable);
   }, [services, localDataSourceId]);
 
   useEffect(() => {
-    const handleInitalInput = async () => {
+    const handleInitialInput = async () => {
       if (
         !isFetching &&
         paragraphInput &&
@@ -158,7 +164,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         handleInputChange(QUERY_PANEL_INITIAL_STATE);
       }
     };
-    handleInitalInput();
+    handleInitialInput();
   }, [paragraphInput, handleInputChange, indexPatterns, localDataSourceId, inputValue, isFetching]);
 
   const handleTimeChange = useCallback(
@@ -209,7 +215,11 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   ]);
 
   const handleRunQuery = useCallback(async () => {
-    const defaultQuery = selectedIndex?.title ? `source = ${selectedIndex?.title}` : '';
+    const defaultQuery = selectedIndex?.title
+      ? queryLanguage === 'PPL'
+        ? `source = ${selectedIndex?.title}`
+        : `SELECT * FROM ${selectedIndex?.title}`
+      : '';
     const queryToExecute = value || defaultQuery;
     handleInputChange({ value: queryToExecute });
     handleSubmit(
@@ -233,9 +243,12 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
     selectedIndex,
     timeRange,
     localDataSourceId,
+    queryLanguage,
   ]);
 
   const isQueryPanelLoading = isFetching || isLoading;
+  // Select index can run default query on PPL and SQL but not t2ppl
+  const isQueryEmpty = (!Boolean(selectedIndex?.title) || isPromptEditorMode) && !value;
 
   const getQueryPanelDataSourceSelector = useCallback(() => {
     if (isAgenticNotebook) {
@@ -304,7 +317,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
             size="s"
             aria-label="run button"
             onClick={handleRunQuery}
-            disabled={isQueryPanelLoading || isDisabled}
+            disabled={isQueryPanelLoading || isQueryEmpty || isDisabled}
           >
             Run
           </EuiButtonEmpty>
@@ -345,11 +358,13 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         </EuiFlexGroup>
       </EuiFlexGroup>
       <EuiSpacer size="xs" />
-      <QueryPanelEditor
-        queryState={queryState}
-        promptModeIsAvailable={promptModeIsAvailable}
-        handleRunQuery={handleRunQuery}
-      />
+      {isEditorInitialized && (
+        <QueryPanelEditor
+          queryState={queryState}
+          promptModeIsAvailable={promptModeIsAvailable}
+          handleRunQuery={handleRunQuery}
+        />
+      )}
       <QueryPanelGeneratedQuery />
     </EuiPanel>
   );

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef } from 'react';
 import classNames from 'classnames';
 import { NoteBookServices } from 'public/types';
 import {
@@ -27,19 +27,9 @@ export const QueryPanelEditor: React.FC<{
   const { value, queryLanguage, isPromptEditorMode, selectedIndex } = queryState;
 
   const selectedIndexRef = useRef<any>();
+  selectedIndexRef.current = selectedIndex;
 
-  const [showPlaceholder, setShowPlaceholder] = useState(false);
-
-  useEffect(() => {
-    const shouldShow = !value.length;
-    if (showPlaceholder !== shouldShow) {
-      setShowPlaceholder(shouldShow);
-    }
-  }, [value, showPlaceholder]);
-
-  useEffect(() => {
-    selectedIndexRef.current = selectedIndex;
-  }, [selectedIndex]);
+  const showPlaceholder = !value.length;
 
   const {
     isFocused,
@@ -81,9 +71,9 @@ export const QueryPanelEditor: React.FC<{
       onClick={onEditorClick}
     >
       <CodeEditor value={value} {...editorProps} />
-      {showPlaceholder ? (
+      {showPlaceholder && (
         <div className={`notebookQueryPanelEditor__placeholder`}>{placeholder}</div>
-      ) : null}
+      )}
     </div>
   );
 };
