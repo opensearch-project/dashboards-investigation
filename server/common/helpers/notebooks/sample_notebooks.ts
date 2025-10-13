@@ -15,6 +15,9 @@ const getDemoNotebook = (dateString: string, visId: string) => {
     dateCreated: dateString,
     dateModified: dateString,
     backend: 'kibana_1.0',
+    context: {
+      notebookType: 'Classic',
+    },
     paragraphs: [
       {
         output: [
@@ -194,6 +197,9 @@ const getRootCauseNotebook = (dateString: string, visIds: string[]) => {
     dateCreated: dateString,
     dateModified: dateString,
     backend: 'kibana_1.0',
+    context: {
+      notebookType: 'Classic',
+    },
     paragraphs: [
       {
         output: [
@@ -710,6 +716,9 @@ const getSQLNotebook = (dateString: string) => {
     dateCreated: dateString,
     dateModified: dateString,
     backend: 'kibana_1.0',
+    context: {
+      notebookType: 'Classic',
+    },
     paragraphs: [
       {
         output: [
@@ -970,6 +979,9 @@ const getPPLNotebook = (dateString: string) => {
     dateCreated: dateString,
     dateModified: dateString,
     backend: 'kibana_1.0',
+    context: {
+      notebookType: 'Classic',
+    },
     paragraphs: [
       {
         output: [
