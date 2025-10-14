@@ -149,6 +149,8 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const [contextData, setContextData] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
+    let changed = false;
+
     if (!hypotheses) {
       setContextData(null);
       return;
@@ -174,14 +176,22 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           contextContent: hypothesesContext + '\n' + findingsContext,
         };
 
-        setContextData(data);
+        if (!changed) {
+          setContextData(data);
+        }
       } catch (error) {
         console.error('Failed to generate context:', error);
-        setContextData(null);
+        if (!changed) {
+          setContextData(null);
+        }
       }
     };
 
     generateContextData();
+
+    return () => {
+      changed = true;
+    };
   }, [
     hypotheses,
     notebookContext.state.value.id,
