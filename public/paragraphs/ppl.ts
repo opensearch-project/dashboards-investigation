@@ -12,20 +12,19 @@ import {
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
 import { getClient, getNotifications } from '../services';
-import { executePPLQuery } from '../../public/utils/query';
+import { executePPLQueryWithHeadFilter } from '../../public/utils/query';
 import { parsePPLQuery } from '../../common/utils';
 import { addTimeRangeFilter } from '../utils/time';
-import { NotebookType } from '../../common/types/notebooks';
 
 export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObject> = {
   ParagraphComponent: PPLParagraph,
   getContext: async (paragraph) => {
     const { output, dataSourceMDSId } = paragraph || {};
-    if (!output?.[0].result && !paragraph?.fullfilledOutput) {
+    if (!output?.[0].result) {
       return '';
     }
 
-    const query = output?.[0].result;
+    const query = output[0].result;
     const isSqlQuery = paragraph?.input?.inputText.substring(0, 4) === '%sql';
     const queryType = isSqlQuery ? '_sql' : '_ppl';
     const queryTypeName = isSqlQuery ? 'SQL' : 'PPL';
@@ -45,14 +44,11 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
               }),
             },
           })
-        : executePPLQuery(
-            {
-              http: getClient(),
-              dataSourceId: dataSourceMDSId,
-              query,
-            },
-            true
-          ));
+        : executePPLQueryWithHeadFilter({
+            http: getClient(),
+            dataSourceId: dataSourceMDSId,
+            query,
+          }));
 
       if (!queryObject || queryObject.error) {
         return '';
@@ -77,14 +73,12 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
           \`\`\`
         `;
   },
-  runParagraph: async ({ paragraphState }) => {
+  runParagraph: async ({ paragraphState, saveParagraph }) => {
     const paragraphValue = paragraphState.getBackendValue();
     const inputText = paragraphValue.input.inputText;
     const queryType = inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
     const queryParams = paragraphValue.input.parameters as any;
     const inputQuery = queryParams?.query || inputText.substring(5);
-    const { notebookType } = notebookStateValue.context.value;
-
     if (isEmpty(inputQuery)) {
       return;
     }
@@ -100,9 +94,14 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
     }
     paragraphState.updateUIState({
       isRunning: true,
+      ppl: { isWaitingForPPLResult: true },
     });
 
     try {
+      await saveParagraph({
+        paragraphStateValue: paragraphValue,
+      });
+
       const queryResponse = await (queryType === '_sql'
         ? callOpenSearchCluster({
             http: getClient(),
@@ -115,26 +114,22 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
               }),
             },
           })
-        : executePPLQuery(
-            {
-              http: getClient(),
-              dataSourceId: paragraphValue.dataSourceMDSId,
-              query: addTimeRangeFilter(currentSearchQuery, queryParams),
-            },
-            notebookType === NotebookType.AGENTIC
-          ));
+        : executePPLQueryWithHeadFilter({
+            http: getClient(),
+            dataSourceId: paragraphValue.dataSourceMDSId,
+            query: addTimeRangeFilter(currentSearchQuery, queryParams),
+          }));
 
       paragraphState.updateFullfilledOutput(queryResponse);
       paragraphState.updateUIState({
         isRunning: false,
+        ppl: { isWaitingForPPLResult: false },
       });
     } catch (err) {
       paragraphState.resetFullfilledOutput();
-      paragraphState.updateFullfilledOutput({
-        error: err.message,
-      });
       paragraphState.updateUIState({
         isRunning: false,
+        ppl: { error: err.message, isWaitingForPPLResult: false },
       });
       getNotifications().toasts.addDanger(`Error executing query: ${err.message}`);
     }

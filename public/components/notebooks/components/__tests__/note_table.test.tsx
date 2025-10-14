@@ -10,7 +10,6 @@ import Adapter from 'enzyme-adapter-react-16';
 import React from 'react';
 import { NoteTable } from '../note_table';
 import {
-  applicationServiceMock,
   chromeServiceMock,
   httpServiceMock,
   notificationServiceMock,
@@ -41,7 +40,6 @@ jest.mock('../../../../../public/services', () => ({
 
 describe('<NoteTable /> spec', () => {
   configure({ adapter: new Adapter() });
-  const applicationMock = applicationServiceMock.createStartContract();
 
   const props = {
     http: {
@@ -67,16 +65,6 @@ describe('<NoteTable /> spec', () => {
     } as any,
     notifications: notificationServiceMock.createStartContract(),
     chrome: chromeServiceMock.createStartContract(),
-    application: {
-      ...applicationMock,
-      capabilities: {
-        ...applicationMock.capabilities,
-        investigation: {
-          ...applicationMock.capabilities.investigation,
-          agenticFeaturesEnabled: true,
-        },
-      },
-    },
   };
 
   const deleteNotebook = jest.fn();

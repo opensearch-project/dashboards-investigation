@@ -18,6 +18,7 @@ import {
 import { useObservable, useEffectOnce } from 'react-use';
 import { NoteBookServices } from 'public/types';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
+import { useParagraphs } from '../../../../../hooks/use_paragraphs';
 import {
   PPL_DOCUMENTATION_URL,
   SQL_DOCUMENTATION_URL,
@@ -28,7 +29,6 @@ import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/ope
 import { MultiVariantInput } from '../../input/multi_variant_input';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
 import { addTimeRangeFilter } from '../../../../../utils/time';
-import { NotebookType } from '../../../../../../common/types/notebooks';
 
 export interface QueryObject {
   schema?: any[];
@@ -88,27 +88,21 @@ export const PPLParagraph = ({
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
-  const { saveParagraph, runParagraph } = useParagraphs();
+  const { saveParagraph } = useParagraphs();
   const queryObject = paragraphValue.fullfilledOutput;
-  const error = queryObject?.error;
+  const { isWaitingForPPLResult, error } = paragraphValue?.uiState?.ppl || {};
 
   const context = useContext(NotebookReactContext);
-  const { saveParagraph, runParagraph } = context.paragraphHooks;
-  const { notebookType, dataSourceId: notebookDataSourceId } = useObservable(
-    context.state.value.context.getValue$(),
-    context.state.value.context.value
-  );
-
-  const isClassicNotebook = notebookType === NotebookType.CLASSIC;
-
   const paragraphRegistry = paragraphService.getParagraphRegistry(getInputType(paragraphValue));
 
   useEffectOnce(() => {
-    paragraphRegistry?.runParagraph({
-      paragraphState,
-      saveParagraph,
-      notebookStateValue: context.state.value,
-    });
+    (async () => {
+      await paragraphRegistry?.runParagraph({
+        paragraphState,
+        saveParagraph,
+        notebookStateValue: context.state.value,
+      });
+    })();
   });
 
   const inputQuery = useMemo(
@@ -132,17 +126,32 @@ export const PPLParagraph = ({
   const data = useMemo(() => getQueryOutputData(queryObject ?? {}), [queryObject]);
   const isRunning = paragraphValue.uiState?.isRunning;
 
-  const paragarphDataSource = paragraphValue?.dataSourceMDSId;
-
   if (!paragraphRegistry) {
     return null;
   }
 
   return (
     <>
+      <EuiFlexGroup style={{ marginTop: 0 }} />
+      <EuiSpacer size="s" />
       <EuiCompressedFormRow
         fullWidth={true}
-        helpText={<EuiSpacer size="s" />}
+        helpText={
+          <EuiText size="s">
+            Supported languages include{' '}
+            {
+              <>
+                <EuiLink href={SQL_DOCUMENTATION_URL} target="_blank">
+                  SQL
+                </EuiLink>{' '}
+                <EuiLink href={PPL_DOCUMENTATION_URL} target="_blank">
+                  PPL
+                </EuiLink>{' '}
+              </>
+            }
+            .
+          </EuiText>
+        }
         isInvalid={!!error}
         error={
           <EuiText size="s">
@@ -160,18 +169,14 @@ export const PPLParagraph = ({
         }
       >
         <div style={{ width: '100%' }}>
+          <EuiSpacer size="xl" />
           <MultiVariantInput
             input={{
               inputText: inputQuery,
               inputType: getInputType(paragraphValue).toUpperCase(),
               parameters: paragraphValue.input.parameters,
             }}
-            onSubmit={({ inputText, inputType, parameters }, dataSourceMDSId) => {
-              if (dataSourceMDSId) {
-                paragraphState.updateValue({
-                  dataSourceMDSId,
-                });
-              }
+            onSubmit={({ inputText, inputType, parameters }) => {
               paragraphState.updateInput({
                 inputText: inputType === 'SQL' ? `%sql\n${inputText}` : `%ppl\n${inputText}`,
                 parameters,
@@ -179,16 +184,17 @@ export const PPLParagraph = ({
               paragraphState.updateUIState({
                 isOutputStale: true,
               });
-              runParagraph({
-                id: paragraphValue.id,
+              paragraphRegistry?.runParagraph({
+                paragraphState,
+                saveParagraph,
+                notebookStateValue: context.state.value,
               });
             }}
             actionDisabled={actionDisabled}
-            dataSourceId={isClassicNotebook ? paragarphDataSource : notebookDataSourceId}
           />
         </div>
       </EuiCompressedFormRow>
-      {isRunning ? (
+      {isRunning || isWaitingForPPLResult ? (
         <EuiLoadingContent />
       ) : (
         <>
@@ -202,11 +208,9 @@ export const PPLParagraph = ({
               >
                 <b>{inputQueryWithTimeFilter}</b>
               </EuiText>
-              {!isClassicNotebook && (
-                <EuiFlexGroup justifyContent="flexEnd" gutterSize="none">
-                  <EuiIconTip content="A maximum of 100 random results are displayed" />
-                </EuiFlexGroup>
-              )}
+              <EuiFlexGroup justifyContent="flexEnd" gutterSize="none">
+                <EuiIconTip content="A maximum of 100 random results are displayed" />
+              </EuiFlexGroup>
               <EuiSpacer size="xs" />
               <QueryDataGridMemo
                 rowCount={queryObject?.datarows?.length || 0}

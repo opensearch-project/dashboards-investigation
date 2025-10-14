@@ -94,6 +94,7 @@ export const Main: React.FC = () => {
             render={(_props) => <NoteTable deleteNotebook={deleteNotebook} />}
           />
           <Route
+            exact
             path="/:id"
             render={(props) => {
               return <Notebook openedNoteId={props.match.params.id} showPageHeader />;

@@ -28,6 +28,7 @@ export interface ParagraphStateValue<
       distributionLoading?: boolean;
       error?: string;
     };
+    ppl?: { isWaitingForPPLResult?: boolean; error?: string };
   }>;
 }
 
@@ -66,7 +67,7 @@ export class ParagraphState<
     return {
       ...value,
       uiState: {
-        viewMode: 'output_only',
+        viewMode: 'view_both',
         ...(value.uiState as Partial<ParagraphStateValue['uiState']>),
       },
     };

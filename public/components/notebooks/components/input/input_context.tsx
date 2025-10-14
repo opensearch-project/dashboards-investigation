@@ -15,7 +15,7 @@ import React, {
 import { useObservable } from 'react-use';
 import type { monaco } from '@osd/monaco';
 import { EuiSelectableOption } from '@elastic/eui';
-import { NotebookType, ParagraphInputType } from '../../../../../common/types/notebooks';
+import { ParagraphInputType } from 'common/types/notebooks';
 // import { useAgentSelectSubmit } from './use_agent_select_submit';
 import { InputType, QueryState, InputValueType, InputTypeOption } from './types';
 import {
@@ -54,7 +54,7 @@ interface InputContextValue<T extends InputType = InputType> {
   paragraphInput: ParagraphInputType<T> | undefined;
 
   // Notebook type, agentic or classic
-  isAgenticNotebook: boolean;
+  notebookType: string | undefined;
 
   // Actions
   // Update the current state of input variant type
@@ -70,34 +70,27 @@ interface InputContextValue<T extends InputType = InputType> {
   handleCancel: () => void;
 
   // Submit and execute the current input state
-  handleSubmit: (inputText?: string, parameters?: unknown, dataSourceId?: string) => void;
+  handleSubmit: (inputText?: string, parameters?: unknown) => void;
 
   // Handle open the popover for creating blank
   handleParagraphSelection: (options: EuiSelectableOption[]) => void;
 
   // For query editor
   editorRef: React.MutableRefObject<monaco.editor.IStandaloneCodeEditor | null>;
+  editorTextRef: React.MutableRefObject<string>;
 }
 
 const InputContext = createContext<InputContextValue | undefined>(undefined);
 
 interface InputProviderProps<TParameters = unknown> {
   children: ReactNode;
-  onSubmit: (input: ParagraphInputType<TParameters>, dataSourceId?: string) => void;
+  onSubmit: (input: ParagraphInputType<TParameters>) => void;
   input?: ParagraphInputType<TParameters>;
-  dataSourceId?: string;
-  aiFeatureEnabled?: boolean;
 }
 
-export const InputProvider: React.FC<InputProviderProps> = ({
-  children,
-  onSubmit,
-  input,
-  dataSourceId,
-  aiFeatureEnabled,
-}) => {
+export const InputProvider: React.FC<InputProviderProps> = ({ children, onSubmit, input }) => {
   const [currInputType, setCurrInputType] = useState<InputType>(
-    (input?.inputType as InputType) || (aiFeatureEnabled ? AI_RESPONSE_TYPE : 'PPL')
+    (input?.inputType as InputType) || AI_RESPONSE_TYPE
   );
 
   const getInitialInputValue = () => {
@@ -118,6 +111,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const editorTextRef = useRef(input?.inputText ? input?.inputText : '');
 
   const handleInputChange = useCallback((value: Partial<InputValueType<typeof currInputType>>) => {
     if (typeof value === 'object') {
@@ -136,7 +130,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({
   }, []);
 
   const context = useContext(NotebookReactContext);
-  const { initialGoal, notebookType } = useObservable(
+  const { dataSourceId, initialGoal, notebookType } = useObservable(
     context.state.value.context.getValue$(),
     context.state.value.context.value
   );
@@ -149,7 +143,6 @@ export const InputProvider: React.FC<InputProviderProps> = ({
           icon: 'chatLeft',
           label: 'Ask AI',
           'data-test-subj': 'paragraph-type-nl',
-          disabled: !aiFeatureEnabled,
         },
         { key: 'PPL', icon: 'compass', label: 'Query', 'data-test-subj': 'paragraph-type-ppl' },
         {
@@ -157,7 +150,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({
           icon: 'generate',
           label: 'Continue investigation',
           'data-test-subj': 'paragraph-type-deep-research',
-          disabled: !initialGoal || !aiFeatureEnabled,
+          disabled: !initialGoal,
         },
         {
           key: 'MARKDOWN',
@@ -172,13 +165,13 @@ export const InputProvider: React.FC<InputProviderProps> = ({
           'data-test-subj': 'paragraph-type-visualization',
         },
       ].filter((item) => !item.disabled),
-    [initialGoal, aiFeatureEnabled]
+    [initialGoal]
   );
 
   const handleCancel = useCallback(() => {
     setInputValue('');
-    setCurrInputType(aiFeatureEnabled ? AI_RESPONSE_TYPE : 'PPL');
-  }, [aiFeatureEnabled]);
+    setCurrInputType(AI_RESPONSE_TYPE);
+  }, []);
 
   // const { handleAgentSelectSubmit } = useAgentSelectSubmit({
   //   http,
@@ -187,64 +180,47 @@ export const InputProvider: React.FC<InputProviderProps> = ({
   //   setIsLoading,
   // });
 
-  const handleParagraphSelection = useCallback(
-    (options: EuiSelectableOption[]) => {
-      const selectedOption = options.find((option) => option.checked === 'on');
-      if (selectedOption) {
-        const paragraphType = selectedOption.key as InputType;
+  const handleParagraphSelection = (options: EuiSelectableOption[]) => {
+    const selectedOption = options.find((option) => option.checked === 'on');
+    if (selectedOption) {
+      const paragraphType = selectedOption.key as InputType;
 
-        // Create empty paragraph
-        onSubmit({ inputText: '', inputType: paragraphType });
+      // Create empty paragraph
+      onSubmit({ inputText: '', inputType: paragraphType });
 
-        setIsParagraphSelectionOpen(false);
-        handleInputChange('');
-        handleCancel();
-      }
-    },
-    [onSubmit, handleInputChange, handleCancel]
-  );
+      setIsParagraphSelectionOpen(false);
+      handleInputChange('');
+      handleCancel();
+    }
+  };
 
   const isInputMountedInParagraph = !!input;
-  const isAgenticNotebook = notebookType === NotebookType.AGENTIC;
 
-  const handleSubmit = useCallback(
-    async (inputText?: string, parameters?: any, dsId?: string) => {
-      if (!inputValue && !inputText) {
-        return;
-      }
+  const handleSubmit = async (inputText?: string, parameters?: any) => {
+    if (!inputValue && !inputText) {
+      return;
+    }
 
-      setIsLoading(true);
+    setIsLoading(true);
 
-      try {
-        onSubmit(
-          {
-            inputText: inputText ?? (inputValue as string),
-            inputType: currInputType,
-            ...(parameters ? { parameters } : {}),
-          },
-          isAgenticNotebook ? undefined : dsId
-        );
+    try {
+      onSubmit({
+        inputText: inputText ?? (inputValue as string),
+        inputType: currInputType,
+        ...(parameters ? { parameters } : {}),
+      });
 
-        if (!isInputMountedInParagraph) handleCancel();
-      } catch (err) {
-        console.log('error while execute the input', err);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [
-      inputValue,
-      currInputType,
-      onSubmit,
-      isInputMountedInParagraph,
-      handleCancel,
-      isAgenticNotebook,
-    ]
-  );
+      if (!isInputMountedInParagraph) handleCancel();
+    } catch (err) {
+      console.log('error while execute the input', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const handleSetCurrInputType = useCallback((type: InputType) => {
+  const handleSetCurrInputType = (type: InputType) => {
     setCurrInputType(type);
-  }, []);
+  };
 
   const value: InputContextValue = {
     currInputType,
@@ -252,12 +228,13 @@ export const InputProvider: React.FC<InputProviderProps> = ({
     isParagraphSelectionOpen,
     textareaRef,
     editorRef,
+    editorTextRef,
     isLoading,
     isInputMountedInParagraph,
     paragraphOptions,
     dataSourceId,
     paragraphInput: input,
-    isAgenticNotebook,
+    notebookType,
     handleSetCurrInputType,
     setIsParagraphSelectionOpen,
     handleInputChange,

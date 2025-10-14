@@ -22,14 +22,12 @@ import {
   EuiSwitch,
 } from '@elastic/eui';
 import React, { useState } from 'react';
-import { NoteBookServices } from 'public/types';
 import { CoreStart, SavedObjectsStart } from '../../../../../../../src/core/public';
 import { dataSourceFilterFn } from '../../../../../common/utils/shared';
 import { CustomInputModal } from './custom_modals/custom_input_modal';
 import { getDataSourceManagementSetup } from '../../../../../public/services';
 import { DataSourceOption } from '../../../../../../../src/plugins/data_source_management/public';
 import { NotebookType } from '../../../../../common//types/notebooks';
-import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 /* The file contains helper functions for modal layouts
  * getCustomModal - returns modal with input field
@@ -259,9 +257,6 @@ export const CreateNotebookModal = ({
   openNoteName,
   helpText,
 }: CreateNotebookModalProps) => {
-  const {
-    services: { application },
-  } = useOpenSearchDashboards<NoteBookServices>();
   const [value, setValue] = useState(openNoteName || ''); // sets input value
   const [checked, setChecked] = useState(true);
 
@@ -300,18 +295,14 @@ export const CreateNotebookModal = ({
                 onChange={(e) => onChange(e)}
               />
             </EuiCompressedFormRow>
-            {application.capabilities.investigation.agenticFeaturesEnabled ? (
-              <>
-                <EuiSpacer size="m" />
-                <EuiCompressedFormRow label="Notebook Type">
-                  <EuiSwitch
-                    label={checked ? 'Agentic Notebook' : 'Classic Notebook'}
-                    checked={checked}
-                    onChange={(e) => onToggle(e)}
-                  />
-                </EuiCompressedFormRow>
-              </>
-            ) : null}
+            <EuiSpacer size="m" />
+            <EuiCompressedFormRow label="Notebook Type">
+              <EuiSwitch
+                label={checked ? 'Agentic Notebook' : 'Classic Notebook'}
+                checked={checked}
+                onChange={(e) => onToggle(e)}
+              />
+            </EuiCompressedFormRow>
           </EuiForm>
         </EuiModalBody>
 
@@ -319,14 +310,7 @@ export const CreateNotebookModal = ({
           <EuiSmallButtonEmpty onClick={closeModal}>{btn1txt}</EuiSmallButtonEmpty>
           <EuiSmallButton
             data-test-subj="custom-input-modal-confirm-button"
-            onClick={() =>
-              runModal(
-                value,
-                application.capabilities.investigation.agenticFeaturesEnabled && checked
-                  ? NotebookType.AGENTIC
-                  : NotebookType.CLASSIC
-              )
-            }
+            onClick={() => runModal(value, checked ? NotebookType.AGENTIC : NotebookType.CLASSIC)}
             fill
           >
             {btn2txt}

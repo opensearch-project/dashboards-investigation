@@ -9,18 +9,18 @@ import { ParagraphStateValue } from '../../../common/state/paragraph_state';
 import { ParagraphServiceSetup } from '../paragraph_service';
 import { getInputType } from '../../../common/utils/paragraph';
 
-interface ParagraphPromptInput {
-  paragraphService: ParagraphServiceSetup;
-  paragraphs: Array<ParagraphStateValue<unknown, unknown, {}>>;
-  ignoreInputTypes?: string[];
-}
-
-export const generateParagraphPrompt = async ({
+export const generateContextPromptFromParagraphs = async ({
   paragraphService,
   paragraphs,
+  notebookInfo,
   ignoreInputTypes = [],
-}: ParagraphPromptInput) => {
-  return await Promise.all(
+}: {
+  paragraphService: ParagraphServiceSetup;
+  paragraphs: Array<ParagraphStateValue<unknown, unknown, {}>>;
+  notebookInfo: NotebookContext;
+  ignoreInputTypes?: string[];
+}) => {
+  const allContext = await Promise.all(
     paragraphs
       .filter((paragraph) => !ignoreInputTypes.includes(paragraph.input.inputText))
       .map(async (paragraph) => {
@@ -36,24 +36,6 @@ export const generateParagraphPrompt = async ({
         return await paragraphRegistry.getContext(paragraph);
       })
   );
-};
-
-export const generateContextPromptFromParagraphs = async ({
-  paragraphService,
-  paragraphs,
-  notebookInfo,
-  ignoreInputTypes = [],
-}: {
-  paragraphService: ParagraphServiceSetup;
-  paragraphs: Array<ParagraphStateValue<unknown, unknown, {}>>;
-  notebookInfo: NotebookContext;
-  ignoreInputTypes?: string[];
-}) => {
-  const allContext = await generateParagraphPrompt({
-    paragraphService,
-    paragraphs,
-    ignoreInputTypes,
-  });
 
   return [getNotebookTopLevelContextPrompt(notebookInfo), ...allContext]
     .filter((item) => item)

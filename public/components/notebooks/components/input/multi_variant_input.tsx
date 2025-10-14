@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { EuiFlexGroup, EuiInputPopover, EuiSelectable, EuiSpacer } from '@elastic/eui';
 import autosize from 'autosize';
 import { useEffectOnce } from 'react-use';
@@ -17,14 +17,11 @@ import {
   AI_RESPONSE_TYPE,
   DEEP_RESEARCH_PARAGRAPH_TYPE,
 } from '../../../../../common/constants/notebooks';
-import { VisualizationInput } from './visualization_input';
 
 interface MultiVariantInputProps<TParameters = unknown> {
   input?: ParagraphInputType<TParameters>;
-  onSubmit: (input: ParagraphInputType<TParameters>, dataSourceId?: string) => void;
+  onSubmit: (input: ParagraphInputType<TParameters>) => void;
   actionDisabled?: boolean;
-  dataSourceId?: string;
-  aiFeatureEnabled?: boolean;
 }
 
 const MultiVariantInputContent: React.FC<{ actionDisabled?: boolean }> = ({ actionDisabled }) => {
@@ -36,17 +33,6 @@ const MultiVariantInputContent: React.FC<{ actionDisabled?: boolean }> = ({ acti
     handleParagraphSelection,
   } = useInputContext();
 
-  const getInputTypeSelector = useCallback(
-    () => (
-      <InputTypeSelector
-        allowSelect
-        current={currInputType}
-        onInputTypeChange={handleSetCurrInputType}
-      />
-    ),
-    [currInputType, handleSetCurrInputType]
-  );
-
   const getInputComponent = () => {
     switch (currInputType) {
       case AI_RESPONSE_TYPE:
@@ -55,15 +41,24 @@ const MultiVariantInputContent: React.FC<{ actionDisabled?: boolean }> = ({ acti
         );
       case 'PPL':
       case 'SQL':
-        return <QueryPanel prependWidget={getInputTypeSelector()} isDisabled={actionDisabled} />;
+        return (
+          <QueryPanel
+            prependWidget={
+              <InputTypeSelector
+                allowSelect
+                current={currInputType}
+                onInputTypeChange={handleSetCurrInputType}
+              />
+            }
+            isDisabled={actionDisabled}
+          />
+        );
       case 'MARKDOWN':
         return <MarkDownInput />;
       case DEEP_RESEARCH_PARAGRAPH_TYPE:
         return <NotebookInput placeholder="Ask question to trigger deep research agent" />;
       case 'VISUALIZATION':
-        return (
-          <VisualizationInput prependWidget={getInputTypeSelector()} isDisabled={actionDisabled} />
-        );
+        return <></>;
       default:
         return <></>;
     }
@@ -84,11 +79,15 @@ const MultiVariantInputContent: React.FC<{ actionDisabled?: boolean }> = ({ acti
 
   return (
     <>
-      {currInputType !== 'PPL' && currInputType !== 'SQL' && currInputType !== 'VISUALIZATION' && (
+      {currInputType !== 'PPL' && currInputType !== 'SQL' && (
         // Input type selector for query panel is a part of the component already
         <>
           <EuiFlexGroup dir="row" gutterSize="none" justifyContent="spaceBetween">
-            {getInputTypeSelector()}
+            <InputTypeSelector
+              allowSelect
+              current={currInputType}
+              onInputTypeChange={handleSetCurrInputType}
+            />
           </EuiFlexGroup>
           <EuiSpacer size="xs" />
         </>
@@ -117,12 +116,7 @@ const MultiVariantInputContent: React.FC<{ actionDisabled?: boolean }> = ({ acti
 
 export const MultiVariantInput: React.FC<MultiVariantInputProps> = (props) => {
   return (
-    <InputProvider
-      onSubmit={props.onSubmit}
-      input={props.input}
-      dataSourceId={props.dataSourceId}
-      aiFeatureEnabled={props.aiFeatureEnabled}
-    >
+    <InputProvider onSubmit={props.onSubmit} input={props.input}>
       <MultiVariantInputContent actionDisabled={props.actionDisabled} />
     </InputProvider>
   );

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import classNames from 'classnames';
 import { NoteBookServices } from 'public/types';
 import {
@@ -22,20 +22,11 @@ export const QueryPanelEditor: React.FC<{
   handleRunQuery: () => void;
 }> = ({ queryState, handleRunQuery, promptModeIsAvailable }) => {
   const { services } = useOpenSearchDashboards<NoteBookServices>();
-  const { editorRef, handleInputChange } = useInputContext();
+  const { editorRef, editorTextRef, handleInputChange } = useInputContext();
 
   const { value, queryLanguage, isPromptEditorMode, selectedIndex } = queryState;
 
   const selectedIndexRef = useRef<any>();
-
-  const [showPlaceholder, setShowPlaceholder] = useState(false);
-
-  useEffect(() => {
-    const shouldShow = !value.length;
-    if (showPlaceholder !== shouldShow) {
-      setShowPlaceholder(shouldShow);
-    }
-  }, [value, showPlaceholder]);
 
   useEffect(() => {
     selectedIndexRef.current = selectedIndex;
@@ -47,12 +38,13 @@ export const QueryPanelEditor: React.FC<{
     onEditorClick,
     placeholder,
     promptIsTyping,
+    showPlaceholder,
     ...editorProps
   } = useQueryPanelEditor({
     promptModeIsAvailable: queryLanguage === 'SQL' ? false : promptModeIsAvailable,
     isPromptEditorMode,
     queryLanguage,
-    editorTextValue: value || '',
+    userQueryString: value || '',
     handleRun: handleRunQuery,
     handleEscape: useCallback(() => {
       handleInputChange({ isPromptEditorMode: false, query: '' });
@@ -60,12 +52,11 @@ export const QueryPanelEditor: React.FC<{
     handleSpaceBar: useCallback(() => {
       handleInputChange({ isPromptEditorMode: true });
     }, [handleInputChange]),
-    handleChange: (val) => {
-      handleInputChange({ value: val });
-    },
+    handleChange: () => {},
     isQueryEditorDirty: false,
     services,
     editorRef,
+    editorTextRef,
     selectedIndexRef,
   });
   return (
@@ -80,7 +71,7 @@ export const QueryPanelEditor: React.FC<{
       data-test-subj="notebookQueryPanelEditor"
       onClick={onEditorClick}
     >
-      <CodeEditor value={value} {...editorProps} />
+      <CodeEditor {...editorProps} />
       {showPlaceholder ? (
         <div className={`notebookQueryPanelEditor__placeholder`}>{placeholder}</div>
       ) : null}

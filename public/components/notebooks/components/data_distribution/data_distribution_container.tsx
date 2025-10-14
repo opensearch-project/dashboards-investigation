@@ -16,11 +16,9 @@ import {
   EuiModalHeader,
   EuiPagination,
   EuiPanel,
-  EuiSmallButtonIcon,
   EuiSpacer,
   EuiText,
   EuiTitle,
-  EuiToolTip,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import { i18n } from '@osd/i18n';
@@ -33,6 +31,7 @@ import { DataDistributionInput } from './embeddable/types';
 import { EmbeddableRenderer } from '../../../../../../../src/plugins/embeddable/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { generateAllFieldCharts } from './render_data_distribution_vega';
+import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { DATA_DISTRIBUTION_PARAGRAPH_TYPE } from '../../../../../common/constants/notebooks';
@@ -57,7 +56,7 @@ export const DataDistributionContainer = ({
   const { result } = ParagraphState.getOutput(paragraph)! || {};
   const { fieldComparison } = result! || {};
   const { timeRange, timeField, index, source } = topContextValue;
-  const { saveParagraph } = context.paragraphHooks;
+  const { saveParagraph } = useParagraphs();
   const [activePage, setActivePage] = useState(0);
   const [distributionModalExpand, setDistributionModalExpand] = useState(false);
   const factory = embeddable.getEmbeddableFactory<DataDistributionInput>('vega_visualization');
@@ -118,7 +117,7 @@ export const DataDistributionContainer = ({
     };
   }, [dataDistributionSpecs, activePage]);
 
-  if (!context || !timeRange || !timeField || !index || !paragraphRegistry || !paragraph) {
+  if (!context || !timeRange || !timeField || !index || !paragraphRegistry) {
     return null;
   }
 
@@ -165,48 +164,15 @@ export const DataDistributionContainer = ({
     </EuiPanel>
   );
 
-  const excludeButton = (chartIndex: number, isSelected: boolean) => {
-    return (
-      <div style={{ paddingLeft: '10px' }}>
-        <EuiToolTip content={isSelected ? 'Exclude from the results' : 'Select from the results'}>
-          <EuiSmallButtonIcon
-            iconType={isSelected ? 'crossInCircleEmpty' : 'checkInCircleEmpty'}
-            color="text"
-            style={{ height: '16px', width: '16px' }}
-            onClick={async () => {
-              const updatedFieldComparison = [...fieldComparison];
-              updatedFieldComparison[chartIndex] = {
-                ...fieldComparison[chartIndex],
-                excludeFromContext: !isSelected,
-              };
-              await saveParagraph({
-                paragraphStateValue: ParagraphState.updateOutputResult(paragraph, {
-                  fieldComparison: updatedFieldComparison || [],
-                }),
-              });
-            }}
-            aria-label={isSelected ? 'Exclude from the results' : 'Select from the results'}
-          />
-        </EuiToolTip>
-      </div>
-    );
-  };
-
   const specsVis = !fetchDataLoading && !distributionLoading && (
     <EuiPanel hasShadow={false} borderRadius="l">
       <EuiFlexGroup>
         {paginatedSpecs.map((spec, specIndex) => {
           const uniqueKey = `${activePage * ITEMS_PER_PAGE + specIndex}`;
           const uniqueId = `dis-id-${activePage * ITEMS_PER_PAGE + specIndex}`;
-          const chartIndex = activePage * ITEMS_PER_PAGE + specIndex;
-          const isSelected = !!fieldComparison[chartIndex].excludeFromContext;
 
           return (
-            <EuiFlexItem
-              grow={false}
-              key={uniqueKey}
-              style={{ opacity: isSelected ? 0.5 : 1, height: 300, width: 300 }}
-            >
+            <EuiFlexItem grow={false} key={uniqueKey} style={{ height: 300, width: 300 }}>
               {factory && spec && (
                 <EmbeddableRenderer
                   factory={factory}
@@ -217,7 +183,6 @@ export const DataDistributionContainer = ({
                   }}
                 />
               )}
-              {excludeButton(chartIndex, isSelected)}
             </EuiFlexItem>
           );
         })}
@@ -250,10 +215,9 @@ export const DataDistributionContainer = ({
           {dataDistributionSpecs.map((spec, specIndex) => {
             const uniqueKey = `dis-modal-key-${specIndex}`;
             const uniqueId = `dis-modal-id-${specIndex}`;
-            const isSelected = !!fieldComparison[specIndex].excludeFromContext;
 
             return (
-              <EuiFlexItem key={uniqueKey} style={{ opacity: isSelected ? 0.5 : 1, height: 300 }}>
+              <EuiFlexItem key={uniqueKey} style={{ height: 300 }}>
                 {factory && spec && (
                   <EmbeddableRenderer
                     factory={factory}
@@ -264,7 +228,6 @@ export const DataDistributionContainer = ({
                     }}
                   />
                 )}
-                {excludeButton(specIndex, isSelected)}
               </EuiFlexItem>
             );
           })}

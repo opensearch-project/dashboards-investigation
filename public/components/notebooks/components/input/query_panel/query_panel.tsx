@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   EuiButtonEmpty,
   EuiFlexGroup,
-  EuiIcon,
   EuiLoadingSpinner,
   EuiPanel,
   EuiPopover,
@@ -33,9 +32,6 @@ import {
   QueryAssistParameters,
   QueryAssistResponse,
 } from '../../../../../../../../src/plugins/query_enhancements/common/query_assist';
-import { getDataSourceManagementSetup } from '../../../../../../public/services';
-import { dataSourceFilterFn } from '../../../../../../common/utils/shared';
-import { DataSourceOption } from '../../../../../../../../src/plugins/data_source_management/public';
 
 interface QueryPanelProps {
   prependWidget?: React.ReactNode;
@@ -65,48 +61,32 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
     services,
     services: {
       uiSettings,
-      savedObjects,
-      notifications,
       data: { indexPatterns },
     },
   } = useOpenSearchDashboards<NoteBookServices>();
   const {
+    editorTextRef,
     inputValue,
     dataSourceId,
     isLoading,
     paragraphInput,
-    isAgenticNotebook,
-    isInputMountedInParagraph,
     handleInputChange,
     handleSubmit,
   } = useInputContext();
 
-  const { dataSourceManagement } = getDataSourceManagementSetup();
-  const DataSourceMenu = useMemo(() => dataSourceManagement?.ui.getDataSourceMenu(), [
-    dataSourceManagement,
-  ]);
-
   const [promptModeIsAvailable, setPromptModeIsAvailable] = useState(false);
   const [isQueryPanelMenuOpen, setIsQueryPanelMenuOpen] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
-  const [localDataSourceId, setLocalDataSourceId] = useState(dataSourceId);
 
   const queryState = (inputValue && typeof inputValue !== 'string'
     ? inputValue
     : QUERY_PANEL_INITIAL_STATE) as QueryState;
-  const {
-    value,
-    queryLanguage,
-    isPromptEditorMode,
-    selectedIndex,
-    timeRange,
-    noDatePicker,
-  } = queryState;
+  const { queryLanguage, isPromptEditorMode, selectedIndex, timeRange, noDatePicker } = queryState;
 
   useEffect(() => {
     // TODO: consider move this to global state
-    getPromptModeIsAvailable(services, localDataSourceId).then(setPromptModeIsAvailable);
-  }, [services, localDataSourceId]);
+    getPromptModeIsAvailable(services, dataSourceId).then(setPromptModeIsAvailable);
+  }, [services, dataSourceId]);
 
   useEffect(() => {
     const handleInitalInput = async () => {
@@ -119,7 +99,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         // Set up input value from paragraph input
         try {
           setIsFetching(true);
-          const val = paragraphInput.inputText;
+          const value = paragraphInput.inputText;
           const {
             timeRange: inputTimeRange,
             query,
@@ -131,12 +111,12 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
           const fields = indexName
             ? await indexPatterns.getFieldsForWildcard({
                 pattern: indexName,
-                dataSourceId: localDataSourceId,
+                dataSourceId,
               })
             : [];
 
           handleInputChange({
-            value: val,
+            value,
             query,
             queryLanguage: paragraphInput.inputType as QueryLanguage,
             // If question is defined, indicate the user executed t2ppl previously
@@ -159,7 +139,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
       }
     };
     handleInitalInput();
-  }, [paragraphInput, handleInputChange, indexPatterns, localDataSourceId, inputValue, isFetching]);
+  }, [paragraphInput, handleInputChange, indexPatterns, dataSourceId, inputValue, isFetching]);
 
   const handleTimeChange = useCallback(
     (props) => {
@@ -169,95 +149,61 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   );
 
   const handleGenerateQuery = useCallback(async () => {
-    if (paragraphInput?.inputText && value === (paragraphInput?.parameters as any)?.question) {
+    if (
+      paragraphInput?.inputText &&
+      editorTextRef.current === (paragraphInput?.parameters as any)?.question
+    ) {
       // Don't regenerate PPL query if the input NL question isn't changed
       return paragraphInput?.inputText;
     }
     setIsFetching(true);
     const params: QueryAssistParameters = {
-      question: value,
+      question: editorTextRef.current,
       index: selectedIndex.title,
       language: queryLanguage,
-      dataSourceId: localDataSourceId,
+      dataSourceId,
     };
 
-    try {
-      const { query } = await services.http.post<QueryAssistResponse>(
-        '/api/enhancements/assist/generate',
-        {
-          body: JSON.stringify(params),
-        }
-      );
+    const { query } = await services.http.post<QueryAssistResponse>(
+      '/api/enhancements/assist/generate',
+      {
+        body: JSON.stringify(params),
+      }
+    );
 
-      handleInputChange({ query });
+    handleInputChange({ query });
+    setIsFetching(false);
 
-      return query;
-    } catch (err) {
-      console.log(`Text2ppl error: ${err}`);
-      throw err;
-    } finally {
-      setIsFetching(false);
-    }
+    return query;
   }, [
     paragraphInput,
-    value,
+    editorTextRef,
     selectedIndex.title,
     queryLanguage,
-    localDataSourceId,
+    dataSourceId,
     services.http,
     handleInputChange,
   ]);
 
   const handleRunQuery = useCallback(async () => {
-    const defaultQuery = selectedIndex?.title ? `source = ${selectedIndex?.title}` : '';
-    const queryToExecute = value || defaultQuery;
-    handleInputChange({ value: queryToExecute });
-    handleSubmit(
-      queryToExecute,
-      {
-        timeRange,
-        indexName: selectedIndex?.title,
-        timeField: selectedIndex?.timeField,
-        query: isPromptEditorMode ? await handleGenerateQuery() : '',
-        noDatePicker,
-      },
-      localDataSourceId
-    );
+    handleSubmit(editorTextRef.current, {
+      timeRange,
+      indexName: selectedIndex?.title,
+      timeField: selectedIndex?.timeField,
+      query: isPromptEditorMode ? await handleGenerateQuery() : '',
+      noDatePicker,
+    });
   }, [
     handleSubmit,
     handleGenerateQuery,
-    handleInputChange,
-    value,
+    editorTextRef,
     isPromptEditorMode,
     noDatePicker,
     selectedIndex,
     timeRange,
-    localDataSourceId,
   ]);
 
   const isQueryPanelLoading = isFetching || isLoading;
-
-  const getQueryPanelDataSourceSelector = useCallback(() => {
-    if (isAgenticNotebook) {
-      return <EuiIcon type="database" style={{ margin: '0 -4px 0 8px' }} />;
-    }
-
-    if (!DataSourceMenu) return null;
-    return (
-      <DataSourceMenu
-        componentType="DataSourceSelectable"
-        componentConfig={{
-          savedObjects: savedObjects.client,
-          notifications,
-          activeOption: localDataSourceId !== undefined ? [{ id: localDataSourceId }] : [],
-          onSelectedDataSources: (ds: DataSourceOption[]) => {
-            setLocalDataSourceId(ds[0].id);
-          },
-          dataSourceFilter: dataSourceFilterFn,
-        }}
-      />
-    );
-  }, [savedObjects, notifications, localDataSourceId, DataSourceMenu, isAgenticNotebook]);
 
   if (!queryState) {
     return null;
@@ -270,33 +216,27 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         gutterSize="none"
         dir="row"
         alignItems="center"
-        style={{ marginInlineEnd: isInputMountedInParagraph ? 32 : 0 }}
       >
         {prependWidget}
         <LanguageToggle promptModeIsAvailable={promptModeIsAvailable} />
-        <div className="notebookQueryPanelWidgets__dataSourceSelector">
-          {getQueryPanelDataSourceSelector()}
-        </div>
         <div className="notebookQueryPanelWidgets__indexSelectorWrapper">
-          <IndexSelector dataSourceId={localDataSourceId} />
+          <IndexSelector />
         </div>
-        {queryLanguage === 'PPL' &&
-          !queryState?.noDatePicker &&
-          queryState?.selectedIndex?.timeField !== undefined && ( // Hide picker for legacy paragraph
-            <>
-              <div className="notebookQueryPanelWidgets__verticalSeparator" />
-              <div className="notebookQueryPanelWidgets__datePicker">
-                <EuiSuperDatePicker
-                  start={timeRange?.from}
-                  end={timeRange?.to}
-                  onTimeChange={handleTimeChange}
-                  compressed
-                  showUpdateButton={false}
-                  dateFormat={uiSettings!.get('dateFormat')}
-                />
-              </div>
-            </>
-          )}
+        {queryLanguage === 'PPL' && !queryState?.noDatePicker && (
+          <>
+            <div className="notebookQueryPanelWidgets__verticalSeparator" />
+            <div className="notebookQueryPanelWidgets__datePicker">
+              <EuiSuperDatePicker
+                start={timeRange?.from}
+                end={timeRange?.to}
+                onTimeChange={handleTimeChange}
+                compressed
+                showUpdateButton={false}
+                dateFormat={uiSettings!.get('dateFormat')}
+              />
+            </div>
+          </>
+        )}
         <EuiFlexGroup gutterSize="none" dir="row" justifyContent="flexEnd" alignItems="center">
           {isQueryPanelLoading && <EuiLoadingSpinner size="m" />}
           <EuiButtonEmpty
@@ -316,7 +256,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
                 button={
                   <EuiSmallButtonIcon
                     aria-label="Open input menu"
-                    iconType="gear"
+                    iconType="boxesHorizontal"
                     onClick={() => setIsQueryPanelMenuOpen(true)}
                   />
                 }

@@ -14,18 +14,18 @@ import {
   EuiOverlayMask,
   EuiPage,
   EuiPageBody,
+  EuiPageContent,
   EuiPanel,
   EuiSmallButton,
   EuiSpacer,
   EuiText,
 } from '@elastic/eui';
 import CSS from 'csstype';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import { useContext } from 'react';
-import { useEffectOnce, useObservable } from 'react-use';
+import { useObservable } from 'react-use';
 import { useCallback } from 'react';
-
 import { NoteBookServices } from 'public/types';
 import { ParagraphState } from '../../../../common/state/paragraph_state';
 import {
@@ -33,7 +33,7 @@ import {
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   NOTEBOOKS_API_PREFIX,
 } from '../../../../common/constants/notebooks';
-import { NoteBookSource, NotebookType } from '../../../../common/types/notebooks';
+import { NoteBookSource } from '../../../../common/types/notebooks';
 import { getCustomModal, getDeleteModal } from './helpers/modal_containers';
 import { Paragraphs } from './paragraph_components/paragraphs';
 import {
@@ -42,20 +42,14 @@ import {
   getDefaultState,
 } from '../context_provider/context_provider';
 import { InputPanel } from './input_panel';
+import { useParagraphs } from '../../../hooks/use_paragraphs';
 import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
 import { usePrecheck } from '../../../hooks/use_precheck';
-import { useNotebookFindingIntegration } from '../../../hooks/use_notebook_finding_integration';
-import { useInvestigation } from '../../../hooks/use_investigation';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { AlertPanel } from './alert_panel';
 import { GlobalPanel } from './global_panel';
 import { NotebookHeader } from './notebook_header';
-import { SummaryCard } from './summary_card';
-import { useContextSubscription } from '../../../hooks/use_context_subscription';
-import { HypothesisDetail } from './hypothesis/hypothesis_detail';
-import { HypothesesPanel } from './hypothesis/hypotheses_panel';
-import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -78,16 +72,14 @@ export interface NotebookProps extends NotebookComponentProps {
 
 export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const {
-    services: { http, notifications, findingService, chrome, assistantDashboards },
+    services: { http, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
-  const { createParagraph, deleteParagraph } = useContext(NotebookReactContext).paragraphHooks;
+  const { createParagraph, deleteParagraph } = useParagraphs();
   const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start, setInitialGoal } = usePrecheck();
-
-  useContextSubscription();
 
   const notebookContext = useContext(NotebookReactContext);
   const { source } = useObservable(
@@ -98,24 +90,12 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     notebookContext.state.getValue$(),
     notebookContext.state.value
   );
-  const { initialGoal, notebookType } = useObservable(
+  const { initialGoal } = useObservable(
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
   );
   const isSavedObjectNotebook = isValidUUID(openedNoteId);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
-
-  const { isInvestigating, doInvestigate, addNewFinding } = useInvestigation();
-
-  // Initialize finding integration for automatic UI updates when findings are added
-  useNotebookFindingIntegration({
-    findingService,
-    notebookId: openedNoteId,
-  });
-
-  useEffect(() => {
-    findingService.initialize(openedNoteId);
-  }, [findingService, openedNoteId]);
 
   const showDeleteParaModal = (index: number) => {
     setModalLayout(
@@ -206,12 +186,10 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         }
         notebookContext.state.updateValue({
           dateCreated: res.dateCreated,
-          title: res.name,
           path: res.path,
           vizPrefix: res.vizPrefix,
           paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
           owner: res.owner,
-          hypotheses: res.hypotheses,
         });
         await setInitialGoal({
           context: notebookContext.state.value.context.value,
@@ -219,8 +197,6 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         await start({
           context: notebookContext.state.value.context.value,
           paragraphs: res.paragraphs,
-          hypotheses: res.hypotheses,
-          doInvestigate,
         });
       })
       .catch((err) => {
@@ -229,22 +205,11 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         );
         console.error(err);
       });
-  }, [
-    loadNotebookHook,
-    notifications.toasts,
-    notebookContext.state,
-    start,
-    setInitialGoal,
-    doInvestigate,
-  ]);
+  }, [loadNotebookHook, notifications.toasts, notebookContext.state, start, setInitialGoal]);
 
-  useEffectOnce(() => {
+  useEffect(() => {
     loadNotebook();
-
-    // TODO: remove the optional chain after each method
-    chrome.setIsNavDrawerLocked?.(false);
-    assistantDashboards?.updateChatbotVisible?.(true);
-  });
+  }, [loadNotebook]);
 
   return (
     <>
@@ -271,12 +236,6 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               </EuiCallOut>
             </EuiFlexItem>
           )}
-          {source === NoteBookSource.DISCOVER && (
-            <>
-              <SummaryCard />
-              <EuiSpacer />
-            </>
-          )}
           {source === NoteBookSource.ALERTING && (
             <>
               <AlertPanel />
@@ -285,20 +244,12 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               <EuiSpacer />
             </>
           )}
-          <HypothesesPanel
-            notebookId={openedNoteId}
-            question={initialGoal}
-            isInvestigating={isInvestigating}
-            doInvestigate={doInvestigate}
-            addNewFinding={addNewFinding}
-          />
-          <EuiSpacer />
-          {isLoading ? (
-            <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
-          ) : null}
-          {isLoading ? null : paragraphsStates.length > 0 ? (
-            paragraphsStates.map((paragraphState, index: number) => {
-              return (
+          <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
+            {isLoading ? (
+              <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
+            ) : null}
+            {isLoading ? null : paragraphsStates.length > 0 ? (
+              paragraphsStates.map((paragraphState, index: number) => (
                 <div
                   ref={(ref) => (paraDivRefs.current[index] = ref)}
                   key={`para_div_${paragraphState.value.id}`}
@@ -311,103 +262,103 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                     scrollToPara={scrollToPara}
                   />
                 </div>
-              );
-            })
-          ) : (
-            // show default paragraph if no paragraphs in this notebook
-            <div style={panelStyles}>
-              <EuiPanel>
-                <EuiSpacer size="xxl" />
-                <EuiText textAlign="center">
-                  <h2>No paragraphs</h2>
-                  <EuiText size="s">
-                    Add a paragraph to compose your document or story. Notebooks now support two
-                    types of input:
+              ))
+            ) : (
+              // show default paragraph if no paragraphs in this notebook
+              <div style={panelStyles}>
+                <EuiPanel>
+                  <EuiSpacer size="xxl" />
+                  <EuiText textAlign="center">
+                    <h2>No paragraphs</h2>
+                    <EuiText size="s">
+                      Add a paragraph to compose your document or story. Notebooks now support two
+                      types of input:
+                    </EuiText>
                   </EuiText>
-                </EuiText>
-                <EuiSpacer size="xl" />
-                {isSavedObjectNotebook && (
-                  <EuiFlexGroup justifyContent="spaceEvenly">
-                    <EuiFlexItem grow={2} />
-                    <EuiFlexItem grow={3}>
-                      <EuiCard
-                        icon={<EuiIcon size="xxl" type="editorCodeBlock" />}
-                        title="Query"
-                        description="Write contents directly using markdown, SQL or PPL."
-                        footer={
-                          <EuiSmallButton
-                            data-test-subj="emptyNotebookAddCodeBlockBtn"
-                            onClick={() =>
-                              createParagraph({
-                                index: 0,
-                                input: {
-                                  inputText: '%ppl ',
-                                  inputType: 'CODE',
-                                },
-                              })
-                            }
-                            style={{ marginBottom: 17 }}
-                          >
-                            Add query
-                          </EuiSmallButton>
-                        }
-                      />
-                    </EuiFlexItem>
-                    <EuiFlexItem grow={3}>
-                      <EuiCard
-                        icon={<EuiIcon size="xxl" type="visArea" />}
-                        title="Visualization"
-                        description="Import OpenSearch Dashboards or Observability visualizations to the notes."
-                        footer={
-                          <EuiSmallButton
-                            onClick={() =>
-                              createParagraph({
-                                index: 0,
-                                input: {
-                                  inputText: '',
-                                  inputType: 'VISUALIZATION',
-                                },
-                              })
-                            }
-                            style={{ marginBottom: 17 }}
-                          >
-                            Add visualization
-                          </EuiSmallButton>
-                        }
-                      />
-                    </EuiFlexItem>
-                    {initialGoal ? (
+                  <EuiSpacer size="xl" />
+                  {isSavedObjectNotebook && (
+                    <EuiFlexGroup justifyContent="spaceEvenly">
+                      <EuiFlexItem grow={2} />
                       <EuiFlexItem grow={3}>
                         <EuiCard
-                          icon={<EuiIcon size="xxl" type="inspect" />}
-                          title="Deep Research"
-                          description="Use deep research to analytics question."
+                          icon={<EuiIcon size="xxl" type="editorCodeBlock" />}
+                          title="Query"
+                          description="Write contents directly using markdown, SQL or PPL."
+                          footer={
+                            <EuiSmallButton
+                              data-test-subj="emptyNotebookAddCodeBlockBtn"
+                              onClick={() =>
+                                createParagraph({
+                                  index: 0,
+                                  input: {
+                                    inputText: '%ppl ',
+                                    inputType: 'CODE',
+                                  },
+                                })
+                              }
+                              style={{ marginBottom: 17 }}
+                            >
+                              Add query
+                            </EuiSmallButton>
+                          }
+                        />
+                      </EuiFlexItem>
+                      <EuiFlexItem grow={3}>
+                        <EuiCard
+                          icon={<EuiIcon size="xxl" type="visArea" />}
+                          title="Visualization"
+                          description="Import OpenSearch Dashboards or Observability visualizations to the notes."
                           footer={
                             <EuiSmallButton
                               onClick={() =>
                                 createParagraph({
                                   index: 0,
                                   input: {
-                                    inputText: initialGoal,
-                                    inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
+                                    inputText: '',
+                                    inputType: 'VISUALIZATION',
                                   },
                                 })
                               }
                               style={{ marginBottom: 17 }}
                             >
-                              Add deep research
+                              Add visualization
                             </EuiSmallButton>
                           }
                         />
                       </EuiFlexItem>
-                    ) : null}
-                    <EuiFlexItem grow={2} />
-                  </EuiFlexGroup>
-                )}
-                <EuiSpacer size="xxl" />
-              </EuiPanel>
-            </div>
-          )}
+                      {initialGoal ? (
+                        <EuiFlexItem grow={3}>
+                          <EuiCard
+                            icon={<EuiIcon size="xxl" type="inspect" />}
+                            title="Deep Research"
+                            description="Use deep research to analytics question."
+                            footer={
+                              <EuiSmallButton
+                                onClick={() =>
+                                  createParagraph({
+                                    index: 0,
+                                    input: {
+                                      inputText: initialGoal,
+                                      inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
+                                    },
+                                  })
+                                }
+                                style={{ marginBottom: 17 }}
+                              >
+                                Add deep research
+                              </EuiSmallButton>
+                            }
+                          />
+                        </EuiFlexItem>
+                      ) : null}
+                      <EuiFlexItem grow={2} />
+                    </EuiFlexGroup>
+                  )}
+                  <EuiSpacer size="xxl" />
+                </EuiPanel>
+              </div>
+            )}
+          </EuiPageContent>
         </EuiPageBody>
         <EuiSpacer />
         <InputPanel onParagraphCreated={handleInputPanelParagraphCreated} />
@@ -421,22 +372,15 @@ export const Notebook = ({ openedNoteId, ...rest }: NotebookProps) => {
   const {
     services: { dataSource },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { page } = useSubRouter();
   const stateRef = useRef(
     getDefaultState({
       id: openedNoteId,
       dataSourceEnabled: !!dataSource,
     })
   );
-
   return (
     <NotebookContextProvider state={stateRef.current}>
-      <>
-        {page === SubRouter.Hypothesis && <HypothesisDetail />}
-        <div style={{ display: page === SubRouter.Hypothesis ? 'none' : 'block' }}>
-          <NotebookComponent {...rest} />
-        </div>
-      </>
+      <NotebookComponent {...rest} />
     </NotebookContextProvider>
   );
 };

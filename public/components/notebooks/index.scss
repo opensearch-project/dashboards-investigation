@@ -32,6 +32,8 @@
 
 .notebookParagraphWrapper {
   position: relative;
+  max-width: 900px;
+  margin: 0 auto;
   &:hover {
     .notebookHeaderActionMenu {
       opacity: 1;
@@ -75,4 +77,3 @@
     margin-top: 98px;
   }
 }
-

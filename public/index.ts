@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { PluginInitializerContext } from '../../../src/core/public';
 import './components/notebooks/index.scss';
 import { InvestigationPlugin } from './plugin';
 import './variables.scss';
 
 export { InvestigationPlugin as Plugin };
 
-export const plugin = () => new InvestigationPlugin();
+export const plugin = (initializerContext: PluginInitializerContext) =>
+  new InvestigationPlugin(initializerContext);
 
-export { InvestigationStart } from './types';
+export { ObservabilityStart } from './types';

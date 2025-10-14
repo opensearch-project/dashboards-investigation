@@ -80,18 +80,6 @@ export interface ParagraphBackendType<TOutputResult, TInputParameters = unknown>
   dateModified: string;
   dateCreated: string;
   dataSourceMDSId?: string;
-  aiGenerated?: boolean;
-}
-
-export interface HypothesisItem {
-  id: string;
-  title: string;
-  description: string;
-  likelihood: number;
-  supportingFindingParagraphIds: string[];
-  newAddedFindingIds?: string[];
-  dateCreated: string;
-  dateModified: string;
 }
 
 export type ParagraphInputType<TParameters = unknown> = ParagraphBackendType<TParameters>['input'];
@@ -105,7 +93,6 @@ export interface NotebookBackendType {
   path: string;
   vizPrefix?: string;
   owner?: string;
-  hypotheses?: HypothesisItem[];
 }
 
 export interface SummaryDataItem {
@@ -116,7 +103,6 @@ export interface SummaryDataItem {
     baselinePercentage?: number;
     selectionPercentage: number;
   }>;
-  excludeFromContext?: boolean;
 }
 
 export interface AnomalyVisualizationAnalysisOutputResult {
@@ -156,25 +142,4 @@ export interface DeepResearchInputParameters {
   PERAgentContext?: string;
   prompts?: { systemPrompt?: string; executorSystemPrompt?: string };
   agentId?: string;
-}
-
-export interface PERAgentHypothesisFinding {
-  id: string;
-  description: string;
-  importance: number;
-  evidence: string;
-}
-
-export interface PERAgentHypothesisItem {
-  id: string;
-  title: string;
-  description: string;
-  likelihood: number;
-  supporting_findings: string[];
-}
-
-export interface PERAgentInvestigationResponse {
-  findings: PERAgentHypothesisFinding[];
-  hypothesis: PERAgentHypothesisItem;
-  operation: 'CREATE' | 'REPLACE';
 }

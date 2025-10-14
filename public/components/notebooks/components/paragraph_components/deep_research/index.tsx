@@ -27,6 +27,7 @@ import {
   ParagraphState,
   ParagraphStateValue,
 } from '../../../../../../common/state/paragraph_state';
+import { useParagraphs } from '../../../../../hooks/use_paragraphs';
 import { getLocalInputParameters } from '../../helpers/per_agent_helpers';
 
 import { DeepResearchOutput } from './deep_research_output';
@@ -76,7 +77,7 @@ export const DeepResearchParagraph = ({
   );
   const executorMemoryId = useObservable(observables.executorMemoryId$);
 
-  const { state, paragraphHooks } = useContext(NotebookReactContext);
+  const { state } = useContext(NotebookReactContext);
   const [showContextModal, setShowContextModal] = useState(false);
   const [traceMessageId, setTraceMessageId] = useState<string>();
   const [showSteps, setShowSteps] = useState(false);
@@ -88,7 +89,7 @@ export const DeepResearchParagraph = ({
   const taskLoaded = !!task;
   const taskFinished = task && isStateCompletedOrFailed(task.state);
 
-  const { runParagraph } = paragraphHooks;
+  const { runParagraph } = useParagraphs();
   const rawOutputResult = ParagraphState.getOutput(paragraphValue)?.result;
   // FIXME: Read paragraph out directly once all notebooks store object as output
   const outputResult = useMemo<DeepResearchOutputResult | undefined>(() => {

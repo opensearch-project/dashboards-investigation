@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { useContext } from 'react';
 import { useObservable } from 'react-use';
 import { NotebookReactContext } from '../../context_provider/context_provider';
+import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { NotebookType } from '../../../../../common/types/notebooks';
 
 export const ParagraphActionPanel = (props: {
@@ -24,12 +25,12 @@ export const ParagraphActionPanel = (props: {
 }) => {
   const { idx } = props;
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const { state, paragraphHooks } = useContext(NotebookReactContext);
+  const { state } = useContext(NotebookReactContext);
   const notebookType = state.getContext().notebookType;
   const paragraphStates = useObservable(state.getParagraphStates$(), state.value.paragraphs);
   const paragraphActions = useObservable(paragraphStates[idx]?.getValue$() ?? of(undefined))
     ?.uiState?.actions;
-  const { moveParagraph: moveParaHook, cloneParagraph } = paragraphHooks;
+  const { moveParagraph: moveParaHook, cloneParagraph } = useParagraphs();
   const movePara = (index: number, targetIndex: number) => {
     return moveParaHook(index, targetIndex).then((_res) => props.scrollToPara(targetIndex));
   };

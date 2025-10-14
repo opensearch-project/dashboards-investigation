@@ -4,7 +4,7 @@
  */
 
 import { distinctUntilChanged, map } from 'rxjs/operators';
-import { HypothesisItem, NotebookContext } from 'common/types/notebooks';
+import { NotebookContext } from 'common/types/notebooks';
 import { ObservableState } from './observable_state';
 import { ParagraphState } from './paragraph_state';
 import { TopContextState } from './top_context_state';
@@ -12,7 +12,6 @@ import { TopContextState } from './top_context_state';
 export interface NotebookStateValue {
   paragraphs: Array<ParagraphState<unknown>>;
   id: string;
-  title: string;
   context: TopContextState;
   dataSourceEnabled: boolean;
   dateCreated: string;
@@ -21,7 +20,6 @@ export interface NotebookStateValue {
   path: string;
   vizPrefix: string;
   owner?: string;
-  hypotheses?: HypothesisItem[];
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {

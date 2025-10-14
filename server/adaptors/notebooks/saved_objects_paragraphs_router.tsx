@@ -28,11 +28,9 @@ import { executePERAgentInParagraph } from '../../common/helpers/notebooks/per_a
 export function createParagraph<T>({
   input,
   dataSourceMDSId,
-  aiGenerated,
 }: {
   input: ParagraphBackendType<string, T>['input'];
   dataSourceMDSId?: string;
-  aiGenerated?: boolean;
 }) {
   const finalInput = { ...input };
   try {
@@ -62,7 +60,6 @@ export function createParagraph<T>({
       input: finalInput,
       output: outputObjects,
       dataSourceMDSId,
-      aiGenerated,
     };
 
     return newParagraph;
@@ -92,7 +89,6 @@ export async function createParagraphs<TOutput>(
     input: ParagraphBackendType<TOutput>['input'];
     dataSourceMDSId?: string;
     paragraphIndex: number;
-    aiGenerated?: boolean;
   },
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
@@ -101,7 +97,6 @@ export async function createParagraphs<TOutput>(
   const newParagraph = createParagraph({
     input: params.input,
     dataSourceMDSId: params.dataSourceMDSId,
-    aiGenerated: params.aiGenerated,
   });
   paragraphs.splice(params.paragraphIndex, 0, newParagraph);
   const updateNotebook = {
