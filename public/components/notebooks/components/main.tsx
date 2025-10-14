@@ -11,9 +11,10 @@ import { NoteBookServices } from 'public/types';
 import { NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
 import { isValidUUID } from './helpers/notebooks_parser';
 import { NoteTable } from './note_table';
-import { Notebook } from './notebook';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NotebookType } from '../../../../common/types/notebooks';
+import { ClassicNotebook } from './classic_notebook';
+import { AgenticNotebook } from './agentic_notebook';
 /*
  * "Main" component renders the whole Notebooks as a single page application
  *
@@ -94,9 +95,15 @@ export const Main: React.FC = () => {
             render={(_props) => <NoteTable deleteNotebook={deleteNotebook} />}
           />
           <Route
+            path="/agentic/:id"
+            render={(props) => {
+              return <AgenticNotebook openedNoteId={props.match.params.id} showPageHeader />;
+            }}
+          />
+          <Route
             path="/:id"
             render={(props) => {
-              return <Notebook openedNoteId={props.match.params.id} showPageHeader />;
+              return <ClassicNotebook openedNoteId={props.match.params.id} showPageHeader />;
             }}
           />
         </Switch>

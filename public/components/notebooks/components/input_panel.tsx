@@ -70,8 +70,6 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) =>
     [paragraphs.length, dataSourceId, createParagraph, runParagraph, onParagraphCreated]
   );
 
-  return null;
-
   return (
     <div
       style={{

@@ -177,3 +177,7 @@ export interface PERAgentInvestigationResponse {
   hypothesis: PERAgentHypothesisItem;
   operation: 'CREATE' | 'REPLACE';
 }
+
+export interface NotebookComponentProps {
+  showPageHeader?: boolean;
+}
