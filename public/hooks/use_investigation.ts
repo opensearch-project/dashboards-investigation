@@ -315,7 +315,7 @@ export const useInvestigation = () => {
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { updateHypotheses } = useNotebook();
+  const { updateHypotheses, deleteHypotheses } = useNotebook();
   const { createParagraph, runParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const contextStateValue = useObservable(context.state.getValue$());
   const paragraphStates = useObservable(context.state.getParagraphStates$());
