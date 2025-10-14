@@ -5,22 +5,29 @@
 
 import { schema, TypeOf } from '@osd/config-schema';
 import { PluginConfigDescriptor, PluginInitializerContext } from '../../../src/core/server';
-import { ObservabilityPlugin } from './plugin';
+import { InvestigationPlugin } from './plugin';
 
-export function plugin(initializerContext: PluginInitializerContext) {
-  return new ObservabilityPlugin(initializerContext);
+declare module '../../../src/core/types/capabilities' {
+  interface Capabilities {
+    investigation: InvestigationConfig;
+  }
 }
 
-export { ObservabilityPluginSetup, ObservabilityPluginStart } from './types';
+export function plugin(initializerContext: PluginInitializerContext) {
+  return new InvestigationPlugin(initializerContext);
+}
+
+export { InvestigationPluginSetup, InvestigationPluginStart } from './types';
 
 const investigationConfig = {
   schema: schema.object({
     enabled: schema.boolean({ defaultValue: false }),
+    agenticFeaturesEnabled: schema.boolean({ defaultValue: false }),
   }),
 };
 
-export type ObservabilityConfig = TypeOf<typeof investigationConfig.schema>;
+export type InvestigationConfig = TypeOf<typeof investigationConfig.schema>;
 
-export const config: PluginConfigDescriptor<ObservabilityConfig> = {
+export const config: PluginConfigDescriptor<InvestigationConfig> = {
   schema: investigationConfig.schema,
 };

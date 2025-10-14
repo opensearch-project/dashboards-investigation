@@ -2,217 +2,218 @@
 
 exports[`<Notebook /> spec Renders the empty component 1`] = `
 <div
-  class="euiPage euiPage--paddingMedium euiPage--column euiPage--grow"
+  style="display: block;"
 >
   <div
-    class="euiPageBody euiPageBody--borderRadiusNone"
+    class="euiPage euiPage--paddingMedium euiPage--column euiPage--grow"
   >
-    <div>
-      <div
-        class="euiFlexGroup euiFlexGroup--gutterSmall euiFlexGroup--alignItemsCenter euiFlexGroup--justifyContentSpaceBetween euiFlexGroup--directionRow euiFlexGroup--responsive"
-      >
-        <h3
-          class="euiTitle euiTitle--large"
-          data-test-subj="notebookTitle"
-        >
-          sample-notebook-1
-        </h3>
+    <div
+      class="euiPageBody euiPageBody--borderRadiusNone"
+    >
+      <div>
         <div
-          class="euiFlexItem euiFlexItem--flexGrowZero"
+          class="euiFlexGroup euiFlexGroup--gutterSmall euiFlexGroup--alignItemsCenter euiFlexGroup--justifyContentSpaceBetween euiFlexGroup--directionRow euiFlexGroup--responsive"
         >
+          <h3
+            class="euiTitle euiTitle--large"
+            data-test-subj="notebookTitle"
+          >
+            sample-notebook-1
+          </h3>
           <div
-            class="euiFlexGroup euiFlexGroup--gutterSmall euiFlexGroup--alignItemsCenter euiFlexGroup--directionRow euiFlexGroup--responsive"
+            class="euiFlexItem euiFlexItem--flexGrowZero"
           >
             <div
-              class="euiFlexGroup euiFlexGroup--gutterSmall euiFlexGroup--directionRow euiFlexGroup--responsive"
+              class="euiFlexGroup euiFlexGroup--gutterSmall euiFlexGroup--alignItemsCenter euiFlexGroup--directionRow euiFlexGroup--responsive"
             >
               <div
-                class="euiFlexItem euiFlexItem--flexGrowZero"
+                class="euiFlexGroup euiFlexGroup--gutterSmall euiFlexGroup--directionRow euiFlexGroup--responsive"
               >
-                <span
-                  class="euiToolTipAnchor"
-                >
-                  <button
-                    aria-label="Edit system prompt"
-                    class="euiButtonIcon euiButtonIcon--primary euiButtonIcon--small"
-                    data-test-subj="notebook-system-prompt-icon"
-                    type="button"
-                  >
-                    <svg
-                      aria-hidden="true"
-                      class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
-                      focusable="false"
-                      height="16"
-                      role="img"
-                      viewBox="0 0 16 16"
-                      width="16"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M5.277 10.088c.02.014.04.03.057.047.582.55 1.134.812 1.666.812.586 0 1.84-.293 3.713-.88L9 6.212V2H7v4.212l-1.723 3.876Zm-.438.987L3.539 14h8.922l-1.32-2.969C9.096 11.677 7.733 12 7 12c-.74 0-1.463-.315-2.161-.925ZM6 2H5V1h6v1h-1v4l3.375 7.594A1 1 0 0 1 12.461 15H3.54a1 1 0 0 1-.914-1.406L6 6V2Z"
-                      />
-                    </svg>
-                  </button>
-                </span>
-              </div>
-              <div
-                class="euiFlexItem euiFlexItem--flexGrowZero"
-              >
-                <span
-                  class="euiToolTipAnchor"
-                >
-                  <button
-                    aria-label="Delete"
-                    class="euiButtonIcon euiButtonIcon--danger euiButtonIcon--small"
-                    data-test-subj="notebook-delete-icon"
-                    type="button"
-                  >
-                    <svg
-                      aria-hidden="true"
-                      class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
-                      focusable="false"
-                      height="16"
-                      role="img"
-                      viewBox="0 0 16 16"
-                      width="16"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M5.277 10.088c.02.014.04.03.057.047.582.55 1.134.812 1.666.812.586 0 1.84-.293 3.713-.88L9 6.212V2H7v4.212l-1.723 3.876Zm-.438.987L3.539 14h8.922l-1.32-2.969C9.096 11.677 7.733 12 7 12c-.74 0-1.463-.315-2.161-.925ZM6 2H5V1h6v1h-1v4l3.375 7.594A1 1 0 0 1 12.461 15H3.54a1 1 0 0 1-.914-1.406L6 6V2Z"
-                      />
-                    </svg>
-                  </button>
-                </span>
-              </div>
-              <div
-                class="euiFlexItem euiFlexItem--flexGrowZero"
-              >
-                <span
-                  class="euiToolTipAnchor"
-                >
-                  <button
-                    aria-label="Edit name"
-                    class="euiButtonIcon euiButtonIcon--primary euiButtonIcon--small"
-                    data-test-subj="notebook-edit-icon"
-                    type="button"
-                  >
-                    <svg
-                      aria-hidden="true"
-                      class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
-                      focusable="false"
-                      height="16"
-                      role="img"
-                      viewBox="0 0 16 16"
-                      width="16"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M5.277 10.088c.02.014.04.03.057.047.582.55 1.134.812 1.666.812.586 0 1.84-.293 3.713-.88L9 6.212V2H7v4.212l-1.723 3.876Zm-.438.987L3.539 14h8.922l-1.32-2.969C9.096 11.677 7.733 12 7 12c-.74 0-1.463-.315-2.161-.925ZM6 2H5V1h6v1h-1v4l3.375 7.594A1 1 0 0 1 12.461 15H3.54a1 1 0 0 1-.914-1.406L6 6V2Z"
-                      />
-                    </svg>
-                  </button>
-                </span>
-              </div>
-              <div
-                class="euiFlexItem euiFlexItem--flexGrowZero"
-              >
-                <span
-                  class="euiToolTipAnchor"
-                >
-                  <button
-                    aria-label="Duplicate"
-                    class="euiButtonIcon euiButtonIcon--primary euiButtonIcon--small"
-                    data-test-subj="notebook-duplicate-icon"
-                    type="button"
-                  >
-                    <svg
-                      aria-hidden="true"
-                      class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
-                      focusable="false"
-                      height="16"
-                      role="img"
-                      viewBox="0 0 16 16"
-                      width="16"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M5.277 10.088c.02.014.04.03.057.047.582.55 1.134.812 1.666.812.586 0 1.84-.293 3.713-.88L9 6.212V2H7v4.212l-1.723 3.876Zm-.438.987L3.539 14h8.922l-1.32-2.969C9.096 11.677 7.733 12 7 12c-.74 0-1.463-.315-2.161-.925ZM6 2H5V1h6v1h-1v4l3.375 7.594A1 1 0 0 1 12.461 15H3.54a1 1 0 0 1-.914-1.406L6 6V2Z"
-                      />
-                    </svg>
-                  </button>
-                </span>
-              </div>
-            </div>
-            <div
-              class="euiFlexItem euiFlexItem--flexGrowZero"
-            >
-              <div>
                 <div
-                  class="euiPopover euiPopover--anchorDownCenter"
+                  class="euiFlexItem euiFlexItem--flexGrowZero"
                 >
-                  <div
-                    class="euiPopover__anchor"
+                  <span
+                    class="euiToolTipAnchor"
                   >
                     <button
-                      class="euiButton euiButton--primary euiButton--small"
-                      data-test-subj="reporting-actions-button"
-                      id="reportingActionsButton"
+                      aria-label="Edit system prompt"
+                      class="euiButtonIcon euiButtonIcon--primary euiButtonIcon--small"
+                      data-test-subj="notebook-system-prompt-icon"
                       type="button"
                     >
-                      <span
-                        class="euiButtonContent euiButtonContent--iconRight euiButton__content"
+                      <svg
+                        aria-hidden="true"
+                        class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                        focusable="false"
+                        height="16"
+                        role="img"
+                        viewBox="0 0 16 16"
+                        width="16"
+                        xmlns="http://www.w3.org/2000/svg"
                       >
-                        <svg
-                          aria-hidden="true"
-                          class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonContent__icon"
-                          focusable="false"
-                          height="16"
-                          role="img"
-                          viewBox="0 0 16 16"
-                          width="16"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M5.277 10.088c.02.014.04.03.057.047.582.55 1.134.812 1.666.812.586 0 1.84-.293 3.713-.88L9 6.212V2H7v4.212l-1.723 3.876Zm-.438.987L3.539 14h8.922l-1.32-2.969C9.096 11.677 7.733 12 7 12c-.74 0-1.463-.315-2.161-.925ZM6 2H5V1h6v1h-1v4l3.375 7.594A1 1 0 0 1 12.461 15H3.54a1 1 0 0 1-.914-1.406L6 6V2Z"
-                          />
-                        </svg>
-                        <span
-                          class="euiButton__text"
-                        >
-                          Reporting
-                        </span>
-                      </span>
+                        <path
+                          d="M5.277 10.088c.02.014.04.03.057.047.582.55 1.134.812 1.666.812.586 0 1.84-.293 3.713-.88L9 6.212V2H7v4.212l-1.723 3.876Zm-.438.987L3.539 14h8.922l-1.32-2.969C9.096 11.677 7.733 12 7 12c-.74 0-1.463-.315-2.161-.925ZM6 2H5V1h6v1h-1v4l3.375 7.594A1 1 0 0 1 12.461 15H3.54a1 1 0 0 1-.914-1.406L6 6V2Z"
+                        />
+                      </svg>
                     </button>
+                  </span>
+                </div>
+                <div
+                  class="euiFlexItem euiFlexItem--flexGrowZero"
+                >
+                  <span
+                    class="euiToolTipAnchor"
+                  >
+                    <button
+                      aria-label="Delete"
+                      class="euiButtonIcon euiButtonIcon--danger euiButtonIcon--small"
+                      data-test-subj="notebook-delete-icon"
+                      type="button"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                        focusable="false"
+                        height="16"
+                        role="img"
+                        viewBox="0 0 16 16"
+                        width="16"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M5.277 10.088c.02.014.04.03.057.047.582.55 1.134.812 1.666.812.586 0 1.84-.293 3.713-.88L9 6.212V2H7v4.212l-1.723 3.876Zm-.438.987L3.539 14h8.922l-1.32-2.969C9.096 11.677 7.733 12 7 12c-.74 0-1.463-.315-2.161-.925ZM6 2H5V1h6v1h-1v4l3.375 7.594A1 1 0 0 1 12.461 15H3.54a1 1 0 0 1-.914-1.406L6 6V2Z"
+                        />
+                      </svg>
+                    </button>
+                  </span>
+                </div>
+                <div
+                  class="euiFlexItem euiFlexItem--flexGrowZero"
+                >
+                  <span
+                    class="euiToolTipAnchor"
+                  >
+                    <button
+                      aria-label="Edit name"
+                      class="euiButtonIcon euiButtonIcon--primary euiButtonIcon--small"
+                      data-test-subj="notebook-edit-icon"
+                      type="button"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                        focusable="false"
+                        height="16"
+                        role="img"
+                        viewBox="0 0 16 16"
+                        width="16"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M5.277 10.088c.02.014.04.03.057.047.582.55 1.134.812 1.666.812.586 0 1.84-.293 3.713-.88L9 6.212V2H7v4.212l-1.723 3.876Zm-.438.987L3.539 14h8.922l-1.32-2.969C9.096 11.677 7.733 12 7 12c-.74 0-1.463-.315-2.161-.925ZM6 2H5V1h6v1h-1v4l3.375 7.594A1 1 0 0 1 12.461 15H3.54a1 1 0 0 1-.914-1.406L6 6V2Z"
+                        />
+                      </svg>
+                    </button>
+                  </span>
+                </div>
+                <div
+                  class="euiFlexItem euiFlexItem--flexGrowZero"
+                >
+                  <span
+                    class="euiToolTipAnchor"
+                  >
+                    <button
+                      aria-label="Duplicate"
+                      class="euiButtonIcon euiButtonIcon--primary euiButtonIcon--small"
+                      data-test-subj="notebook-duplicate-icon"
+                      type="button"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonIcon__icon"
+                        focusable="false"
+                        height="16"
+                        role="img"
+                        viewBox="0 0 16 16"
+                        width="16"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M5.277 10.088c.02.014.04.03.057.047.582.55 1.134.812 1.666.812.586 0 1.84-.293 3.713-.88L9 6.212V2H7v4.212l-1.723 3.876Zm-.438.987L3.539 14h8.922l-1.32-2.969C9.096 11.677 7.733 12 7 12c-.74 0-1.463-.315-2.161-.925ZM6 2H5V1h6v1h-1v4l3.375 7.594A1 1 0 0 1 12.461 15H3.54a1 1 0 0 1-.914-1.406L6 6V2Z"
+                        />
+                      </svg>
+                    </button>
+                  </span>
+                </div>
+              </div>
+              <div
+                class="euiFlexItem euiFlexItem--flexGrowZero"
+              >
+                <div>
+                  <div
+                    class="euiPopover euiPopover--anchorDownCenter"
+                  >
+                    <div
+                      class="euiPopover__anchor"
+                    >
+                      <button
+                        class="euiButton euiButton--primary euiButton--small"
+                        data-test-subj="reporting-actions-button"
+                        id="reportingActionsButton"
+                        type="button"
+                      >
+                        <span
+                          class="euiButtonContent euiButtonContent--iconRight euiButton__content"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            class="euiIcon euiIcon--medium euiIcon--inherit euiIcon-isLoading euiButtonContent__icon"
+                            focusable="false"
+                            height="16"
+                            role="img"
+                            viewBox="0 0 16 16"
+                            width="16"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M5.277 10.088c.02.014.04.03.057.047.582.55 1.134.812 1.666.812.586 0 1.84-.293 3.713-.88L9 6.212V2H7v4.212l-1.723 3.876Zm-.438.987L3.539 14h8.922l-1.32-2.969C9.096 11.677 7.733 12 7 12c-.74 0-1.463-.315-2.161-.925ZM6 2H5V1h6v1h-1v4l3.375 7.594A1 1 0 0 1 12.461 15H3.54a1 1 0 0 1-.914-1.406L6 6V2Z"
+                            />
+                          </svg>
+                          <span
+                            class="euiButton__text"
+                          >
+                            Reporting
+                          </span>
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
+              <div
+                class="euiFlexItem euiFlexItem--flexGrowZero"
+              />
             </div>
-            <div
-              class="euiFlexItem euiFlexItem--flexGrowZero"
-            />
           </div>
         </div>
-      </div>
-      <div
-        class="euiFlexGroup euiFlexGroup--gutterLarge euiFlexGroup--alignItemsCenter euiFlexGroup--justifyContentSpaceBetween euiFlexGroup--directionRow euiFlexGroup--responsive"
-      >
         <div
-          class="euiFlexItem euiFlexItem--flexGrowZero"
+          class="euiFlexGroup euiFlexGroup--gutterLarge euiFlexGroup--alignItemsCenter euiFlexGroup--justifyContentSpaceBetween euiFlexGroup--directionRow euiFlexGroup--responsive"
         >
-          <p>
-            Created on 12/14/2023 06:49 PM
-          </p>
+          <div
+            class="euiFlexItem euiFlexItem--flexGrowZero"
+          >
+            <p>
+              Created on 12/14/2023 06:49 PM
+            </p>
+          </div>
         </div>
+        <div
+          class="euiSpacer euiSpacer--s"
+        />
       </div>
       <div
-        class="euiSpacer euiSpacer--s"
+        class="euiSpacer euiSpacer--l"
       />
-    </div>
-    <div
-      class="euiPanel euiPanel--paddingLarge euiPanel--borderRadiusMedium euiPanel--plain euiPanel--hasShadow euiPageContent euiPageContent--horizontalCenter"
-      role="main"
-      style="width: 900px;"
-    >
       <div
         style="margin-top: 10px;"
       >
@@ -384,10 +385,10 @@ exports[`<Notebook /> spec Renders the empty component 1`] = `
         </div>
       </div>
     </div>
+    <div
+      class="euiSpacer euiSpacer--l"
+    />
+    <div />
   </div>
-  <div
-    class="euiSpacer euiSpacer--l"
-  />
-  <div />
 </div>
 `;

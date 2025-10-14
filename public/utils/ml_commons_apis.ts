@@ -207,3 +207,22 @@ export const getMLCommonsConfig = ({
     signal,
     dataSourceId,
   });
+
+export const getMLCommonsMessage = async ({
+  http,
+  messageId,
+  signal,
+  dataSourceId,
+}: {
+  http: CoreStart['http'];
+  messageId: string;
+  signal?: AbortSignal;
+  dataSourceId?: string;
+}) =>
+  callApiWithProxy({
+    http,
+    method: 'GET',
+    path: OPENSEARCH_ML_COMMONS_API.singleMessage.replace('{messageId}', messageId),
+    signal,
+    dataSourceId,
+  });

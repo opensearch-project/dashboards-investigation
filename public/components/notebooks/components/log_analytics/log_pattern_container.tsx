@@ -12,7 +12,6 @@ import { i18n } from '@osd/i18n';
 
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
-import { useParagraphs } from '../../../../hooks/use_paragraphs';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { LogInsight } from './components/log_insight';
 import { PatternDifference } from './components/pattern_difference';
@@ -33,8 +32,8 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { saveParagraph } = useParagraphs();
   const notebookReactContext = useContext(NotebookReactContext);
+  const { saveParagraph } = notebookReactContext.paragraphHooks;
 
   // each time will get a new paragraph object reference
   const paragraph = useObservable(paragraphState.getValue$());

@@ -3,16 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { addHeadFilter, executePPLQueryWithHeadFilter } from '../query';
+import { addSamplingFilter, executePPLQuery, removeRandomScoreFromResponse } from '../query';
 import { callOpenSearchCluster } from '../../plugin_helpers/plugin_proxy_call';
 
-// Mock the callOpenSearchCluster function
 jest.mock('../../plugin_helpers/plugin_proxy_call');
 const mockCallOpenSearchCluster = callOpenSearchCluster as jest.MockedFunction<
   typeof callOpenSearchCluster
 >;
 
-// Mock the http service
 const mockHttp = {
   post: jest.fn(),
 };
@@ -22,37 +20,43 @@ describe('Query Utils', () => {
     jest.clearAllMocks();
   });
 
-  describe('addHeadFilter', () => {
-    it('should append random sorting and head filter to query', () => {
+  describe('addSamplingFilter', () => {
+    it('should generate sampling filter with correct score', () => {
       const query = 'source=logs';
-      const result = addHeadFilter(query);
-
-      expect(result).toBe('source=logs | sort - _id | head 100');
-    });
-
-    it('should handle complex query', () => {
-      const query = 'source=logs | where status="error" | stats count by host';
-      const result = addHeadFilter(query);
+      const count = 1000;
+      const result = addSamplingFilter(query, count);
 
       expect(result).toBe(
-        'source=logs | where status="error" | stats count by host | sort - _id | head 100'
+        'source=logs | eval random_score=rand() | where random_score > 0.89 | head 100'
       );
     });
 
-    it('should handle empty query', () => {
-      const result = addHeadFilter('');
-      expect(result).toBe(' | sort - _id | head 100');
+    it('should handle smaller count', () => {
+      const query = 'source=logs';
+      const count = 400;
+      const result = addSamplingFilter(query, count);
+
+      expect(result).toBe(
+        'source=logs | eval random_score=rand() | where random_score > 0.74 | head 100'
+      );
+    });
+
+    it('should handle very small counts with minimum score of 0', () => {
+      const result = addSamplingFilter('source=logs', 50);
+      expect(result).toBe(
+        'source=logs | eval random_score=rand() | where random_score > 0 | head 100'
+      );
     });
   });
 
-  describe('executePPLQueryWithHeadFilter', () => {
-    it('should call callOpenSearchCluster with correct parameters', async () => {
-      const mockResponse = {
-        schema: [{ name: 'FlightNum', type: 'string' }],
-        datarows: [['8EY59TH']],
-      };
+  describe('executePPLQuery', () => {
+    it('should execute query with head limit when count is small', async () => {
+      const countResponse = { datarows: [[50]] };
+      const queryResponse = { schema: [], datarows: [] };
 
-      mockCallOpenSearchCluster.mockResolvedValue(mockResponse);
+      mockCallOpenSearchCluster
+        .mockResolvedValueOnce(countResponse)
+        .mockResolvedValueOnce(queryResponse);
 
       const params = {
         http: mockHttp as any,
@@ -60,34 +64,213 @@ describe('Query Utils', () => {
         query: 'source=logs',
       };
 
-      const result = await executePPLQueryWithHeadFilter(params);
+      await executePPLQuery(params, true);
 
-      expect(mockCallOpenSearchCluster).toHaveBeenCalledWith({
+      expect(mockCallOpenSearchCluster).toHaveBeenCalledTimes(2);
+      expect(mockCallOpenSearchCluster).toHaveBeenLastCalledWith({
+        http: mockHttp,
+        dataSourceId: 'test-datasource',
+        request: {
+          path: '/_plugins/_ppl',
+          method: 'POST',
+          body: JSON.stringify({ query: 'source=logs | head 100' }),
+        },
+      });
+    });
+
+    it('should execute query with sampling when count is large', async () => {
+      const countResponse = { datarows: [[1000]] };
+      const queryResponse = { schema: [], datarows: [] };
+
+      mockCallOpenSearchCluster
+        .mockResolvedValueOnce(countResponse)
+        .mockResolvedValueOnce(queryResponse);
+
+      const params = {
+        http: mockHttp as any,
+        dataSourceId: 'test-datasource',
+        query: 'source=logs',
+      };
+
+      await executePPLQuery(params, true);
+
+      expect(mockCallOpenSearchCluster).toHaveBeenLastCalledWith({
         http: mockHttp,
         dataSourceId: 'test-datasource',
         request: {
           path: '/_plugins/_ppl',
           method: 'POST',
           body: JSON.stringify({
-            query: 'source=logs | sort - _id | head 100',
+            query: 'source=logs | eval random_score=rand() | where random_score > 0.89 | head 100',
           }),
         },
       });
-
-      expect(result).toEqual(mockResponse);
     });
 
-    it('should propagate errors from callOpenSearchCluster', async () => {
-      const mockError = new Error('Query execution failed');
-      mockCallOpenSearchCluster.mockRejectedValue(mockError);
+    it('should skip count check for queries with stats count()', async () => {
+      const queryResponse = { schema: [], datarows: [] };
+      mockCallOpenSearchCluster.mockResolvedValueOnce(queryResponse);
 
       const params = {
         http: mockHttp as any,
         dataSourceId: 'test-datasource',
-        query: 'invalid query',
+        query: 'source=logs | stats count()',
       };
 
-      await expect(executePPLQueryWithHeadFilter(params)).rejects.toThrow('Query execution failed');
+      await executePPLQuery(params, true);
+
+      expect(mockCallOpenSearchCluster).toHaveBeenCalledTimes(1);
+      expect(mockCallOpenSearchCluster).toHaveBeenCalledWith({
+        http: mockHttp,
+        dataSourceId: 'test-datasource',
+        request: {
+          path: '/_plugins/_ppl',
+          method: 'POST',
+          body: JSON.stringify({ query: 'source=logs | stats count() | head 100' }),
+        },
+      });
+    });
+
+    it('should fallback to head limit when count query fails', async () => {
+      const mockError = new Error('Count query failed');
+      const queryResponse = { schema: [], datarows: [] };
+
+      mockCallOpenSearchCluster
+        .mockRejectedValueOnce(mockError)
+        .mockResolvedValueOnce(queryResponse);
+
+      const params = {
+        http: mockHttp as any,
+        dataSourceId: 'test-datasource',
+        query: 'source=logs',
+      };
+
+      await executePPLQuery(params, true);
+
+      expect(mockCallOpenSearchCluster).toHaveBeenCalledTimes(2);
+      expect(mockCallOpenSearchCluster).toHaveBeenLastCalledWith({
+        http: mockHttp,
+        dataSourceId: 'test-datasource',
+        request: {
+          path: '/_plugins/_ppl',
+          method: 'POST',
+          body: JSON.stringify({ query: 'source=logs | head 100' }),
+        },
+      });
+    });
+
+    it('should not apply sampling when notebookType is classic', async () => {
+      const queryResponse = { schema: [], datarows: [] };
+      mockCallOpenSearchCluster.mockResolvedValueOnce(queryResponse);
+
+      const params = {
+        http: mockHttp as any,
+        dataSourceId: 'test-datasource',
+        query: 'source=logs',
+      };
+
+      await executePPLQuery(params, false);
+
+      expect(mockCallOpenSearchCluster).toHaveBeenCalledTimes(1);
+      expect(mockCallOpenSearchCluster).toHaveBeenCalledWith({
+        http: mockHttp,
+        dataSourceId: 'test-datasource',
+        request: {
+          path: '/_plugins/_ppl',
+          method: 'POST',
+          body: JSON.stringify({ query: 'source=logs' }),
+        },
+      });
+    });
+  });
+
+  describe('removeRandomScoreFromResponse', () => {
+    it('should remove random_score from schema and datarows', () => {
+      const response = {
+        schema: [
+          { name: 'FlightNum', type: 'string' },
+          { name: 'random_score', type: 'float' },
+        ],
+        datarows: [
+          ['8EY59TH', 0.4150576],
+          ['IK60892', 0.53712994],
+        ],
+      };
+
+      const result = removeRandomScoreFromResponse(response);
+
+      expect(result.schema).toEqual([{ name: 'FlightNum', type: 'string' }]);
+      expect(result.datarows).toEqual([['8EY59TH'], ['IK60892']]);
+    });
+
+    it('should handle response without schema', () => {
+      const response = {
+        datarows: [
+          ['data1', 0.123],
+          ['data2', 0.456],
+        ],
+      };
+
+      const result = removeRandomScoreFromResponse(response);
+      expect(result.datarows).toEqual([
+        ['data1', 0.123],
+        ['data2', 0.456],
+      ]);
+    });
+
+    it('should not remove datarows when random_score not in schema', () => {
+      const response = {
+        schema: [
+          { name: 'FlightNum', type: 'string' },
+          { name: 'Origin', type: 'string' },
+        ],
+        datarows: [
+          ['8EY59TH', 'NYC'],
+          ['IK60892', 'LAX'],
+        ],
+      };
+
+      const result = removeRandomScoreFromResponse(response);
+
+      expect(result.schema).toEqual([
+        { name: 'FlightNum', type: 'string' },
+        { name: 'Origin', type: 'string' },
+      ]);
+      expect(result.datarows).toEqual([
+        ['8EY59TH', 'NYC'],
+        ['IK60892', 'LAX'],
+      ]);
+    });
+
+    it('should remove random_score from middle position', () => {
+      const response = {
+        schema: [
+          { name: 'FlightNum', type: 'string' },
+          { name: 'random_score', type: 'float' },
+          { name: 'Origin', type: 'string' },
+        ],
+        datarows: [
+          ['8EY59TH', 0.4150576, 'NYC'],
+          ['IK60892', 0.53712994, 'LAX'],
+        ],
+      };
+
+      const result = removeRandomScoreFromResponse(response);
+
+      expect(result.schema).toEqual([
+        { name: 'FlightNum', type: 'string' },
+        { name: 'Origin', type: 'string' },
+      ]);
+      expect(result.datarows).toEqual([
+        ['8EY59TH', 'NYC'],
+        ['IK60892', 'LAX'],
+      ]);
+    });
+
+    it('should handle empty response', () => {
+      const response = {};
+      const result = removeRandomScoreFromResponse(response);
+      expect(result).toEqual({});
     });
   });
 });

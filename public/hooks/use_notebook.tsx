@@ -6,13 +6,13 @@
 import { useContext, useCallback } from 'react';
 import { NoteBookServices } from 'public/types';
 import {
+  HypothesisItem,
   IndexInsight,
   IndexInsightContent,
   NotebookBackendType,
   NotebookContext,
 } from 'common/types/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
-import { useParagraphs } from './use_paragraphs';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
@@ -21,7 +21,7 @@ import { parsePPLQuery } from '../../common/utils';
 
 export const useNotebook = () => {
   const context = useContext(NotebookReactContext);
-  const { showParagraphRunning } = useParagraphs();
+  const { showParagraphRunning } = context.paragraphHooks;
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
@@ -189,8 +189,33 @@ export const useNotebook = () => {
     return promise;
   }, [context.state, http, showParagraphRunning, fetchIndexInsights]);
 
+  const updateHypotheses = useCallback(
+    async (hypotheses: HypothesisItem[]) => {
+      const { id: openedNoteId } = context.state.value;
+      try {
+        const response = await http.put(`${NOTEBOOKS_API_PREFIX}/note/updateHypotheses`, {
+          body: JSON.stringify({
+            notebookId: openedNoteId,
+            hypotheses,
+          }),
+        });
+
+        context.state.updateValue({
+          hypotheses,
+        });
+
+        return response;
+      } catch (error) {
+        console.error('Error updating notebook investigation result:', error);
+        throw error;
+      }
+    },
+    [context.state, http]
+  );
+
   return {
     loadNotebook,
     updateNotebookContext,
+    updateHypotheses,
   };
 };
