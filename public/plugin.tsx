@@ -39,6 +39,7 @@ import { NOTEBOOK_APP_NAME } from '../common/constants/notebooks';
 import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opensearch_dashboards_react/public';
 import { paragraphRegistry } from './paragraphs';
 import { ContextService } from './services/context_service';
+import { PreInvestigationAnalysis } from './components/notebooks/components/pre_invetigation';
 
 export class InvestigationPlugin
   implements
@@ -130,6 +131,7 @@ export class InvestigationPlugin
     return {
       ui: {
         getNotebook,
+        PreInvestigationAnalysis,
       },
     };
   }
@@ -144,7 +146,11 @@ export class InvestigationPlugin
     setVisualizations(startDeps.visualizations);
 
     // Export so other plugins can use this flyout
-    return {};
+    return {
+      ui: {
+        PreInvestigationAnalysis,
+      },
+    };
   }
 
   public stop() {}
