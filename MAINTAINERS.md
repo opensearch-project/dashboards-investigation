@@ -10,4 +10,5 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Tianyu Ga               | [raintygao](https://github.com/raintygao)       | Amazon      |
 | Lin Wang                | [wanglam](https://github.com/wanglam)           | Amazon      |
 | Hailong Cui             | [Hailong-am](https://github.com/Hailong-am)     | Amazon      |
-| Owen Wang               | [FriedhelmWS](https://github.com/FriedhelmWS)   | Amazon |
+| Owen Wang               | [FriedhelmWS](https://github.com/FriedhelmWS)   | Amazon      |
+| Yubo Luo                | [yubonluo](https://github.com/yubonluo)         | Amazon      |
