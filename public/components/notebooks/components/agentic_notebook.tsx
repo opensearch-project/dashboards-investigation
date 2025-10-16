@@ -109,10 +109,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       .join('\n');
   }, [hypotheses]);
 
-  const includedParagraphs = useMemo(() => {
-    return paragraphsStates.filter((item) => item.value.input.inputType !== 'CODE');
-  }, [paragraphsStates]);
-
   const [contextData, setContextData] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
@@ -127,15 +123,12 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       try {
         const paragraphPrompt = await generateParagraphPrompt({
           paragraphService,
-          paragraphs: includedParagraphs.map((paragraph) => paragraph.value),
+          paragraphs: paragraphsStates.map((paragraph) => paragraph.value),
         });
 
         const findingsContext = `
           ## Findings
-          ${paragraphPrompt
-            .filter((item) => item)
-            .map((item) => item)
-            .join('\n')}`;
+          ${paragraphPrompt.filter((item) => item).join('\n')}`;
 
         const data = {
           displayName: 'Hypotheses and findings',
@@ -163,7 +156,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     hypotheses,
     notebookContext.state.value.id,
     hypothesesContext,
-    includedParagraphs,
+    paragraphsStates,
     paragraphService,
   ]);
 
