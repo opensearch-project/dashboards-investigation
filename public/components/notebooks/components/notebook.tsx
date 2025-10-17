@@ -20,7 +20,7 @@ import {
   EuiText,
 } from '@elastic/eui';
 import CSS from 'csstype';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 
 import { useContext } from 'react';
 import { useEffectOnce, useObservable } from 'react-use';
@@ -57,6 +57,7 @@ import { useContextSubscription } from '../../../hooks/use_context_subscription'
 import { HypothesisDetail } from './hypothesis/hypothesis_detail';
 import { HypothesesPanel } from './hypothesis/hypotheses_panel';
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
+import { generateParagraphPrompt } from '../../../services/helpers/per_agent';
 
 const panelStyles: CSS.Properties = {
   marginTop: '10px',
@@ -79,8 +80,18 @@ export interface NotebookProps extends NotebookComponentProps {
 
 export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const {
-    services: { http, notifications, findingService, chrome, assistantDashboards },
+    services: {
+      http,
+      notifications,
+      findingService,
+      chrome,
+      assistantDashboards,
+      updateContext,
+      paragraphService,
+    },
   } = useOpenSearchDashboards<NoteBookServices>();
+
+  const { page } = useSubRouter();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
@@ -95,10 +106,13 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
   );
-  const { id: openedNoteId, paragraphs: paragraphsStates, path, isLoading } = useObservable(
-    notebookContext.state.getValue$(),
-    notebookContext.state.value
-  );
+  const {
+    id: openedNoteId,
+    paragraphs: paragraphsStates,
+    path,
+    isLoading,
+    hypotheses,
+  } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const { initialGoal } = useObservable(
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
@@ -113,6 +127,83 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     findingService,
     notebookId: openedNoteId,
   });
+
+  const hypothesesContext = useMemo(() => {
+    if (!hypotheses) return '';
+    return hypotheses
+      .map(
+        (hypothesis, index) => `
+        ## Hypothesis ${index + 1}
+        ${hypothesis.title}
+        ## Hypothesis Description
+        ${hypothesis.description}
+      `
+      )
+      .join('\n');
+  }, [hypotheses]);
+
+  const [contextData, setContextData] = useState<Record<string, unknown> | null>(null);
+
+  useEffect(() => {
+    let changed = false;
+
+    if (!hypotheses) {
+      setContextData(null);
+      return;
+    }
+
+    const generateContextData = async () => {
+      try {
+        const paragraphPrompt = await generateParagraphPrompt({
+          paragraphService,
+          paragraphs: paragraphsStates.map((paragraph) => paragraph.value),
+        });
+
+        const findingsContext = `
+          ## Findings
+          ${paragraphPrompt.filter((item) => item).join('\n')}`;
+
+        const data = {
+          displayName: 'Hypotheses and findings',
+          notebookId: notebookContext.state.value.id,
+          contextContent: hypothesesContext + '\n' + findingsContext,
+        };
+
+        if (!changed) {
+          setContextData(data);
+        }
+      } catch (error) {
+        console.error('Failed to generate context:', error);
+        if (!changed) {
+          setContextData(null);
+        }
+      }
+    };
+
+    generateContextData();
+
+    return () => {
+      changed = true;
+    };
+  }, [
+    hypotheses,
+    notebookContext.state.value.id,
+    hypothesesContext,
+    paragraphsStates,
+    paragraphService,
+  ]);
+
+  useEffect(() => {
+    if (page === SubRouter.Hypothesis) {
+      return;
+    }
+
+    updateContext(1, contextData);
+
+    return () => {
+      updateContext(1, null);
+    };
+  }, [updateContext, page, contextData]);
 
   useEffect(() => {
     findingService.initialize(openedNoteId);
