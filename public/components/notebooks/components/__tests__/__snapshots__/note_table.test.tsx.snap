@@ -280,7 +280,9 @@ exports[`<NoteTable /> spec renders the component 1`] = `
           >
             <caption
               class="euiScreenReaderOnly euiTableCaption"
-            />
+            >
+              This table contains 5 rows out of 5 rows; Page 1 of 1.
+            </caption>
             <thead>
               <tr>
                 <th
