@@ -384,7 +384,15 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
       sortable: true,
       truncateText: true,
       render: (value, record) => (
-        <EuiLink href={`#/${record.id}`}>{truncate(value, { length: 100 })}</EuiLink>
+        <EuiLink
+          href={
+            record.notebookType === NotebookType.AGENTIC
+              ? `#/agentic/${record.id}`
+              : `#/${record.id}`
+          }
+        >
+          {truncate(value, { length: 100 })}
+        </EuiLink>
       ),
     },
     {
