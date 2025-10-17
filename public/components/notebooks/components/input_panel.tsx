@@ -76,8 +76,6 @@ export const InputPanel: React.FC<InputPanelProps> = ({ onParagraphCreated }) =>
     [paragraphs.length, createParagraph, onParagraphCreated, notebookDataSourceId]
   );
 
-  return null;
-
   return (
     <div
       style={{

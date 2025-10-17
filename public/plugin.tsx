@@ -37,7 +37,10 @@ import {
   setVisualizations,
   FindingService,
 } from './services';
-import { Notebook, NotebookProps } from './components/notebooks/components/notebook';
+import {
+  ClassicNotebook,
+  ClassicNotebookProps,
+} from './components/notebooks/components/classic_notebook';
 import { NOTEBOOK_APP_NAME } from '../common/constants/notebooks';
 import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opensearch_dashboards_react/public';
 import { paragraphRegistry } from './paragraphs';
@@ -171,12 +174,13 @@ export class InvestigationPlugin
           }
     );
 
-    const getNotebook = async ({ openedNoteId }: Pick<NotebookProps, 'openedNoteId'>) => {
+    // TODO: check if we need to expose agentic notebook
+    const getNotebook = async ({ openedNoteId }: Pick<ClassicNotebookProps, 'openedNoteId'>) => {
       const services = await getServices();
 
       return (
         <OpenSearchDashboardsContextProvider services={services}>
-          <Notebook openedNoteId={openedNoteId} />
+          <ClassicNotebook openedNoteId={openedNoteId} />
         </OpenSearchDashboardsContextProvider>
       );
     };
