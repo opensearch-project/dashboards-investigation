@@ -17,6 +17,7 @@ export const getDefaultState = (props?: Partial<NotebookStateValue>) => {
   return new NotebookState({
     paragraphs: [],
     id: '',
+    title: '',
     context: new TopContextState({}),
     dataSourceEnabled: false,
     dateCreated: '',

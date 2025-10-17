@@ -9,6 +9,7 @@ import moment from 'moment';
 import { takeUntil } from 'rxjs/operators';
 
 import {
+  HypothesisItem,
   IndexInsightContent,
   NotebookContext,
   NoteBookSource,
@@ -18,13 +19,11 @@ import { ParagraphState, ParagraphStateValue } from '../../common/state/paragrap
 import {
   DATA_DISTRIBUTION_PARAGRAPH_TYPE,
   dateFormat,
-  DEEP_RESEARCH_PARAGRAPH_TYPE,
   LOG_PATTERN_PARAGRAPH_TYPE,
   PPL_PARAGRAPH_TYPE,
 } from '../../common/constants/notebooks';
 import { useNotebook } from './use_notebook';
 import { getInputType } from '../../common/utils/paragraph';
-import { getLocalInputParameters } from '../components/notebooks/components/helpers/per_agent_helpers';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 
 export const usePrecheck = () => {
@@ -49,6 +48,8 @@ export const usePrecheck = () => {
       async (res: {
         context?: NotebookContext;
         paragraphs: Array<ParagraphBackendType<unknown>>;
+        doInvestigate: (props: { investigationQuestion: string }) => Promise<unknown>;
+        hypotheses?: HypothesisItem[];
       }) => {
         let logPatternParaExists = false;
         let anomalyAnalysisParaExists = false;
@@ -208,17 +209,15 @@ export const usePrecheck = () => {
                 deepResearchParaCreated.current = true;
                 subscribeDestroy$.next();
 
-                await createParagraph({
-                  index: totalParagraphLength + paragraphStates.length,
-                  input: {
-                    inputText: '',
-                    inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
-                    parameters: getLocalInputParameters(res.context?.dataSourceId),
-                  },
-                  dataSourceMDSId: res.context?.dataSourceId,
+                res.doInvestigate({
+                  investigationQuestion: res.context?.initialGoal || '',
                 });
               }
             });
+        } else if (res.context?.initialGoal && !res.hypotheses?.length) {
+          res.doInvestigate({
+            investigationQuestion: res.context.initialGoal,
+          });
         }
       },
       [createParagraph, runParagraph]

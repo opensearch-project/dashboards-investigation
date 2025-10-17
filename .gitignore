@@ -6,3 +6,7 @@ coverage/
 .cypress/videos
 .cypress/downloads
 .eslintcache
+.kiro/
+.claude/
+.vscode/
+.idea/
