@@ -22,7 +22,6 @@ import { extractParentInteractionId } from '../../common/utils/task';
 import { PERAgentInvestigationResponse } from '../../common/types/notebooks';
 import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_agent';
 import { useNotebook } from './use_notebook';
-import { useParagraphs } from './use_paragraphs';
 import { CoreStart } from '../../../../src/core/public';
 import { getNotebookTopLevelContextPrompt } from '../services/helpers/per_agent';
 
@@ -315,7 +314,7 @@ export const useInvestigation = () => {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { updateHypotheses } = useNotebook();
-  const { createParagraph, runParagraph } = useParagraphs();
+  const { createParagraph, runParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const contextStateValue = useObservable(context.state.getValue$());
   const paragraphStates = useObservable(context.state.getParagraphStates$());
   const paragraphLengthRef = useRef(0);

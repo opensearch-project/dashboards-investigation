@@ -122,6 +122,7 @@ describe('<NoteTable /> spec', () => {
     await waitFor(() => {
       expect(utils.container.querySelectorAll('.euiTableRow').length).toEqual(5);
     });
+    await utils.findByText(/This table contains /);
     expect(utils.container.firstChild).toMatchSnapshot();
     fireEvent.click(utils.getByText('Add sample notebooks'));
     fireEvent.click(utils.getAllByLabelText('Select this row')[0]);

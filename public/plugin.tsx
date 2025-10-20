@@ -104,7 +104,7 @@ export class InvestigationPlugin
       return Observability({ ...services, appMountService: params }, params!);
     };
 
-    setupDeps.assistantDashboards?.registerSuggestionProvider({
+    setupDeps.assistantDashboards?.registerSuggestionProvider?.({
       id: 'finding',
       priority: 1,
       isEnabled: () => true,

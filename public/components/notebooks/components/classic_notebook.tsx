@@ -41,7 +41,6 @@ import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NotebookHeader } from './notebook_header';
-import { useParagraphs } from '../../../hooks/use_paragraphs';
 
 export interface ClassicNotebookProps extends NotebookComponentProps {
   openedNoteId: string;
@@ -54,7 +53,6 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
-  const { createParagraph, deleteParagraph } = useParagraphs();
   const { loadNotebook: loadNotebookHook } = useNotebook();
 
   const notebookContext = useContext(NotebookReactContext);
@@ -68,6 +66,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   );
   const isSavedObjectNotebook = isValidUUID(openedNoteId);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const { createParagraph, deleteParagraph } = notebookContext.paragraphHooks;
 
   const showDeleteParaModal = (index: number) => {
     setModalLayout(
