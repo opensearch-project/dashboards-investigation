@@ -44,7 +44,7 @@ import { AlertPanel } from './alert_panel';
 import { GlobalPanel } from './global_panel';
 import { NotebookHeader } from './notebook_header';
 import { SummaryCard } from './summary_card';
-import { useContextSubscription } from '../../../hooks/use_context_subscription';
+import { useChatContextProvider } from '../../../hooks/use_chat';
 import { HypothesisDetail } from './hypothesis/hypothesis_detail';
 import { HypothesesPanel } from './hypothesis/hypotheses_panel';
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
@@ -65,6 +65,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       updateContext,
       paragraphService,
     },
+    services: { notifications, findingService, chrome },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { page } = useSubRouter();
 
@@ -74,7 +75,8 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start, setInitialGoal } = usePrecheck();
 
-  useContextSubscription();
+  // provide context to chatbot
+  useChatContextProvider();
 
   const notebookContext = useContext(NotebookReactContext);
   const { initialGoal, source, notebookType } = useObservable(
@@ -246,7 +248,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
     // TODO: remove the optional chain after each method
     (chrome as any).setIsNavDrawerLocked?.(false);
-    (assistantDashboards as any)?.updateChatbotVisible?.(true);
+    // (assistantDashboards as any)?.updateChatbotVisible?.(true);
   });
 
   if (!isLoading && notebookType === NotebookType.CLASSIC) {
@@ -256,7 +258,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           <EuiEmptyPrompt
             iconType="alert"
             iconColor="danger"
-            title={<h2>Error loading Notebook</h2>}
+            title={<h2>Error loading Notebook${notebookType}</h2>}
             body={<p>Incorrect notebook type</p>}
           />
         </EuiPageBody>

@@ -28,7 +28,6 @@ export const useChatContextProvider = () => {
       description: 'Metadata information for the investigation',
       value: {
         notebookId: id,
-        // TODO we need a better format to show the metadata
         topLevelContext: topLevelContextValue,
       },
       categories: ['chat', 'investigation'],
