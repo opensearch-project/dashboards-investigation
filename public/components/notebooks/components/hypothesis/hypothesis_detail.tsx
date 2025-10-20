@@ -51,51 +51,6 @@ export const HypothesisDetail: React.FC = () => {
   const [currentHypothesis, setCurrentHypothesis] = useState<HypothesisItemProps | undefined>();
   const [toggleIdSelected, setToggleIdSelected] = useState('evidence');
 
-  useEffect(() => {
-    if (!currentHypothesis) {
-      updateContext(1, null);
-      return;
-    }
-    console.log('hypothesis - updateContext', currentHypothesis);
-    (async () => {
-      const includedParagraphs = paragraphsStates.filter((item) =>
-        currentHypothesis.supportingFindingParagraphIds.includes(item.value.id)
-      );
-      updateContext(1, {
-        displayName: `Hypothesis: ${currentHypothesis.title}`,
-        notebookId: notebookContext.state.value.id,
-        hypothesisId: currentHypothesis.id,
-        contextContent: `
-            ## Hypothesis
-            ${currentHypothesis.title}
-            ## Hypothesis Description
-            ${currentHypothesis.description}
-            ## Hypothesis Findings
-            ${(
-              await generateParagraphPrompt({
-                paragraphService,
-                paragraphs: includedParagraphs.map((paragraph) => paragraph.value),
-              })
-            )
-              .filter((item) => item)
-              .map((item) => item)
-              .join('\n')}
-          `,
-      });
-    })();
-
-    return () => {
-      updateContext(1, null);
-    };
-  }, [
-    currentHypothesis,
-    notebookContext.state.value.id,
-    notebookContext.state.value.title,
-    updateContext,
-    paragraphService,
-    paragraphsStates,
-  ]);
-
   const pathParts = location.pathname.split('/');
   const hypothesisIndex = pathParts.indexOf('hypothesis');
   const hypothesisId = hypothesisIndex !== -1 ? pathParts[hypothesisIndex + 1] : null;
@@ -111,6 +66,56 @@ export const HypothesisDetail: React.FC = () => {
     };
     fetchHypothesis();
   }, [http, hypothesisId, notebookId]);
+
+  useEffect(() => {
+    const contextId = `Invetigation-${notebookId}-${hypothesisId}`;
+    if (!currentHypothesis) {
+      updateContext(contextId, undefined);
+      return;
+    }
+    console.log('hypothesis - updateContext', currentHypothesis);
+    (async () => {
+      const includedParagraphs = paragraphsStates.filter((item) =>
+        currentHypothesis.supportingFindingParagraphIds.includes(item.value.id)
+      );
+      updateContext(contextId, {
+        label: `Hypothesis: ${currentHypothesis.title}`,
+        description: 'Current hypothesis you are working on',
+        categories: ['chat', 'investigation', 'hypothesis'],
+        value: {
+          notebookId,
+          hypothesisId: currentHypothesis.id,
+          hypothesisContext: `
+            ## Hypothesis
+            ${currentHypothesis.title}
+            ## Hypothesis Description
+            ${currentHypothesis.description}
+            ## Hypothesis Findings
+            ${(
+              await generateParagraphPrompt({
+                paragraphService,
+                paragraphs: includedParagraphs.map((paragraph) => paragraph.value),
+              })
+            )
+              .filter((item) => item)
+              .map((item) => item)
+              .join('\n')}
+          `,
+        },
+      });
+    })();
+
+    return () => {
+      updateContext(contextId, undefined);
+    };
+  }, [
+    currentHypothesis,
+    updateContext,
+    paragraphService,
+    paragraphsStates,
+    notebookId,
+    hypothesisId,
+  ]);
 
   const toggleButtons = [
     {
@@ -157,16 +162,6 @@ export const HypothesisDetail: React.FC = () => {
                 iconType="sortLeft"
                 style={{ borderRadius: '9999px' }}
                 onClick={() => {
-                  updateContext({
-                    investigation: [
-                      {
-                        level: 0,
-                        displayName: `Investigation: ${notebookContext.state.value.title}`,
-                        notebookId: notebookContext.state.value.id,
-                        contextContent: '',
-                      },
-                    ],
-                  });
                   history.goBack();
                 }}
               >
