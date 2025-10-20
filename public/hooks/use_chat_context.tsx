@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
@@ -17,9 +17,22 @@ export const useChatContextProvider = () => {
     services: { updateContext, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { page } = useSubRouter();
-  const { context: topLevelContext, title, id, paragraphs } = context.state.value;
+  const { context: topLevelContext, title, id, paragraphs, hypotheses } = context.state.value;
   const topLevelContextValue = useObservable(topLevelContext.getValue$(), topLevelContext.value);
-  console.log('useContextSubscription - updateContext');
+
+  const hypothesesContext = useMemo(() => {
+    if (!hypotheses) return '';
+    return hypotheses
+      .map(
+        (hypothesis, index) => `
+          ## Hypothesis ${index + 1}
+          ${hypothesis.title}
+          ## Hypothesis Description
+          ${hypothesis.description}
+        `
+      )
+      .join('\n');
+  }, [hypotheses]);
 
   useEffect(() => {
     // Invesitagation metadata
@@ -34,16 +47,17 @@ export const useChatContextProvider = () => {
     });
 
     async function updateContextWithParagraphs() {
-      const prompt = await generateParagraphPrompt({
+      const paragraphPrompt = await generateParagraphPrompt({
         paragraphService,
         paragraphs: paragraphs.map((para) => para.value),
       });
+      const findingsContext = `## Findings\n\n${paragraphPrompt.filter((item) => item).join('\n')}`;
       updateContext(`Investigation-${id}-findings`, {
-        label: `Findings: ${title}`,
-        description: 'Findigns information for the investigation',
+        label: `Hypothesis & Findings: ${title}`,
+        description: 'Hypothesis and findings information for current investigation',
         value: {
           notebookId: id,
-          paragraphContext: prompt.join('\n'),
+          paragraphContext: hypothesesContext + '\n\n' + findingsContext,
         },
         categories: ['chat', 'paragraphs'],
       });
@@ -57,5 +71,14 @@ export const useChatContextProvider = () => {
       updateContext(`Investigation-${id}`, undefined);
       updateContext(`Investigation-${id}-findings`, undefined);
     };
-  }, [updateContext, title, page, id, topLevelContextValue, paragraphService, paragraphs]);
+  }, [
+    updateContext,
+    title,
+    page,
+    id,
+    topLevelContextValue,
+    paragraphService,
+    paragraphs,
+    hypothesesContext,
+  ]);
 };

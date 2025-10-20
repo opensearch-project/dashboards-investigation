@@ -73,7 +73,6 @@ export const HypothesisDetail: React.FC = () => {
       updateContext(contextId, undefined);
       return;
     }
-    console.log('hypothesis - updateContext', currentHypothesis);
     (async () => {
       const includedParagraphs = paragraphsStates.filter((item) =>
         currentHypothesis.supportingFindingParagraphIds.includes(item.value.id)

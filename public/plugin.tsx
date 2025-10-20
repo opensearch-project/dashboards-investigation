@@ -46,7 +46,7 @@ import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opense
 import { paragraphRegistry } from './paragraphs';
 import { ContextService } from './services/context_service';
 import { ChatContext, ISuggestionProvider } from '../../dashboards-assistant/public';
-import { AssistantContext } from '../common/types/assistant_context';
+import { NoteBookAssistantContext } from '../common/types/assistant_context';
 
 export class InvestigationPlugin
   implements
@@ -125,7 +125,6 @@ export class InvestigationPlugin
             actionType: 'customize',
             message: 'Add current result to investigation as a finding',
             action: async () => {
-              console.log('Adding a new finding from chatbot plugin...');
               const input = context.messageHistory.findLast((message) => message.type === 'input')
                 ?.content;
               const output = context.currentMessage?.content;
@@ -213,12 +212,10 @@ export class InvestigationPlugin
     );
     this.startDeps = startDeps;
 
-    // Export so other plugins can use this flyout
     return {};
   }
 
-  private updateContext = (id: string, chatConetxt: AssistantContext | undefined) => {
-    console.log('updateContext', id, chatConetxt);
+  private updateContext = (id: string, chatConetxt: NoteBookAssistantContext | undefined) => {
     const contextStore = this.startDeps?.contextProvider?.getAssistantContextStore();
     if (!contextStore) return;
     contextStore.removeContextById(id);

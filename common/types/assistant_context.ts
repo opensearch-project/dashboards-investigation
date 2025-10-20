@@ -6,7 +6,7 @@
 import { AssistantContextOptions } from '../../../../src/plugins/context_provider/public';
 import { NotebookContext } from './notebooks';
 
-export interface AssistantContext extends AssistantContextOptions {
+export interface NoteBookAssistantContext extends AssistantContextOptions {
   value: {
     notebookId: string;
     hypothesisId?: string;

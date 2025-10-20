@@ -25,7 +25,7 @@ import { ContextServiceSetup } from './services/context_service';
 import { ContextProviderStart } from '../../../src/plugins/context_provider/public';
 import { FindingService } from './services/finding_service';
 import { AssistantSetup, AssistantPublicPluginStart } from '../../dashboards-assistant/public';
-import { AssistantContext } from '../common/types/assistant_context';
+import { NoteBookAssistantContext } from '../common/types/assistant_context';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -56,7 +56,7 @@ export type NoteBookServices = CoreStart &
     appMountService?: AppMountParameters;
     paragraphService: ParagraphServiceSetup;
     contextService: ContextServiceSetup;
-    updateContext: (id: string, chatConetxt: AssistantContext | undefined) => void;
+    updateContext: (id: string, chatConetxt: NoteBookAssistantContext | undefined) => void;
     findingService: FindingService;
   };
 
