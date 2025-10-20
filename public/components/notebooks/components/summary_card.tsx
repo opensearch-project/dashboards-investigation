@@ -46,11 +46,7 @@ export const SummaryCard = () => {
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text).then(() => {
-      notifications.toasts.add({
-        title: `${label} copied to clipboard`,
-        color: 'success',
-        iconType: 'check',
-      });
+      notifications.toasts.addSuccess(`${label} copied to clipboard`);
     });
   };
 
