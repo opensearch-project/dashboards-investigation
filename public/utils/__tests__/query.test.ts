@@ -3,7 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { addSamplingFilter, executePPLQuery, removeRandomScoreFromResponse } from '../query';
+import {
+  addSamplingFilter,
+  removeRandomScoreFromResponse,
+  jsonArrayToTsv,
+  flattenObject,
+  executePPLQuery,
+} from '../query';
 import { callOpenSearchCluster } from '../../plugin_helpers/plugin_proxy_call';
 
 jest.mock('../../plugin_helpers/plugin_proxy_call');
@@ -271,6 +277,82 @@ describe('Query Utils', () => {
       const response = {};
       const result = removeRandomScoreFromResponse(response);
       expect(result).toEqual({});
+    });
+  });
+
+  describe('flattenObject', () => {
+    it('should flatten simple object', () => {
+      const obj = { id: 1, name: 'John' };
+      const result = flattenObject(obj);
+      expect(result).toEqual({ id: 1, name: 'John' });
+    });
+
+    it('should flatten nested objects with dot notation', () => {
+      const obj = { user: { name: 'John', details: { age: 30 } } };
+      const result = flattenObject(obj);
+      expect(result).toEqual({ 'user.name': 'John', 'user.details.age': 30 });
+    });
+
+    it('should convert arrays to JSON strings', () => {
+      const obj = { tags: ['admin', 'user'], scores: [95, 87] };
+      const result = flattenObject(obj);
+      expect(result).toEqual({ tags: '["admin","user"]', scores: '[95,87]' });
+    });
+
+    it('should handle null values as primitives', () => {
+      const obj = { id: 1, value: null };
+      const result = flattenObject(obj);
+      expect(result).toEqual({ id: 1, value: null });
+    });
+
+    it('should use prefix when provided', () => {
+      const obj = { name: 'John', age: 30 };
+      const result = flattenObject(obj, 'user');
+      expect(result).toEqual({ 'user.name': 'John', 'user.age': 30 });
+    });
+  });
+
+  describe('jsonArrayToTsv', () => {
+    it('should return empty string for empty array', () => {
+      expect(jsonArrayToTsv([])).toBe('');
+    });
+
+    it('should convert simple objects to TSV', () => {
+      const data = [
+        { id: 1, name: 'John' },
+        { id: 2, name: 'Jane' },
+      ];
+      const result = jsonArrayToTsv(data);
+      expect(result).toBe('id\tname\n1\tJohn\n2\tJane');
+    });
+
+    it('should flatten nested objects', () => {
+      const data = [
+        { id: 1, user: { name: 'John', age: 30 } },
+        { id: 2, user: { name: 'Jane' } },
+      ];
+      const result = jsonArrayToTsv(data);
+      expect(result).toBe('id\tuser.name\tuser.age\n1\tJohn\t30\n2\tJane\t');
+    });
+
+    it('should handle arrays by converting to JSON strings', () => {
+      const data = [
+        { id: 1, tags: ['admin', 'user'] },
+        { id: 2, tags: ['guest'] },
+      ];
+      const result = jsonArrayToTsv(data);
+      expect(result).toBe('id\ttags\n1\t["admin","user"]\n2\t["guest"]');
+    });
+
+    it('should handle mixed object structures', () => {
+      const data = [
+        { id: 1, user: { name: 'John' }, active: true },
+        { id: 2, metadata: { created: '2023-01-01' }, active: false },
+      ];
+      const result = jsonArrayToTsv(data);
+      expect(result).toBe(
+        'id\tuser.name\tactive\tmetadata.created\n1\tJohn\ttrue\t\n2\t\tfalse\t2023-01-01'
+      );
     });
   });
 });

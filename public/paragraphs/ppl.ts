@@ -12,7 +12,7 @@ import {
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
 import { getClient, getNotifications } from '../services';
-import { executePPLQuery } from '../../public/utils/query';
+import { executePPLQuery, jsonArrayToTsv } from '../../public/utils/query';
 import { parsePPLQuery } from '../../common/utils';
 import { addTimeRangeFilter } from '../utils/time';
 import { NotebookType } from '../../common/types/notebooks';
@@ -20,13 +20,13 @@ import { NotebookType } from '../../common/types/notebooks';
 export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObject> = {
   ParagraphComponent: PPLParagraph,
   getContext: async (paragraph) => {
-    const { output, dataSourceMDSId } = paragraph || {};
-    if (!output?.[0].result) {
+    const { input, dataSourceMDSId } = paragraph || {};
+    if (!input?.inputText) {
       return '';
     }
 
-    const query = output[0].result;
-    const isSqlQuery = paragraph?.input?.inputText.substring(0, 4) === '%sql';
+    const query = input.inputText.substring(5);
+    const isSqlQuery = input?.inputText.substring(0, 4) === '%sql';
     const queryType = isSqlQuery ? '_sql' : '_ppl';
     const queryTypeName = isSqlQuery ? 'SQL' : 'PPL';
 
@@ -72,8 +72,8 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
           ## Step result:
           User has executed the following ${queryTypeName} query: '${query}' which returned the following results:
           
-          \`\`\`json
-          ${JSON.stringify(data)}
+          \`\`\`tsv
+          ${jsonArrayToTsv(data)}
           \`\`\`
         `;
   },
