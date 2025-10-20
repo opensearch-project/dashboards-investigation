@@ -5,10 +5,7 @@
 
 import semver from 'semver';
 import { SavedObject } from '../../../../src/core/public';
-import {
-  DataSourceAttributes,
-  DataSourceEngineType,
-} from '../../../../src/plugins/data_source/common/data_sources';
+import { DataSourceAttributes } from '../../../../src/plugins/data_source/common/data_sources';
 import * as pluginManifest from '../../opensearch_dashboards.json';
 
 /**
@@ -26,8 +23,8 @@ export function get<T = unknown>(obj: Record<string, any>, path: string, default
 export const dataSourceFilterFn = (dataSource: SavedObject<DataSourceAttributes>) => {
   const dataSourceVersion = dataSource?.attributes?.dataSourceVersion || '';
   const installedPlugins = dataSource?.attributes?.installedPlugins || [];
-  const isServerless =
-    dataSource.attributes.dataSourceEngineType === DataSourceEngineType.OpenSearchServerless;
+  // Using DataSourceEngineType.opensearchServerless requires make data source as a required bundles of investigation.
+  const isServerless = dataSource.attributes.dataSourceEngineType === 'OpenSearch Serverless';
   return (
     isServerless ||
     (semver.satisfies(dataSourceVersion, pluginManifest.supportedOSDataSourceVersions) &&
