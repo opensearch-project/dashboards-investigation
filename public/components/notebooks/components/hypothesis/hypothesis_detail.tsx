@@ -68,7 +68,7 @@ export const HypothesisDetail: React.FC = () => {
   }, [http, hypothesisId, notebookId]);
 
   useEffect(() => {
-    const contextId = `Invetigation-${notebookId}-${hypothesisId}`;
+    const contextId = `Investigation-${notebookId}-${hypothesisId}`;
     if (!currentHypothesis) {
       updateContext(contextId, undefined);
       return;
