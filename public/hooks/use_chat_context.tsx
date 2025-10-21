@@ -59,7 +59,7 @@ export const useChatContextProvider = () => {
           notebookId: id,
           paragraphContext: hypothesesContext + '\n\n' + findingsContext,
         },
-        categories: ['chat', 'paragraphs'],
+        categories: ['chat', 'investigation', 'hypothesis', 'finding'],
       });
     }
 

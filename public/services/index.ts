@@ -4,7 +4,6 @@
  */
 
 import { CoreStart } from '../../../../src/core/public';
-import { ContextProviderStart } from '../../../../src/plugins/context_provider/public';
 import { DataPublicPluginStart, ISearchStart } from '../../../../src/plugins/data/public';
 import { DataSourceManagementPluginSetup } from '../../../../src/plugins/data_source_management/public';
 import { EmbeddableStart } from '../../../../src/plugins/embeddable/public';
@@ -23,10 +22,6 @@ export const [getDataSourceManagementSetup, setDataSourceManagementSetup] = crea
   | { enabled: true; dataSourceManagement: DataSourceManagementPluginSetup }
   | { enabled: false; dataSourceManagement: undefined }
 >('DataSourceManagementSetup');
-export const [getContextProvider, setContextProvider] = createGetterSetter<
-  | { enabled: true; contextProvider: ContextProviderStart }
-  | { enabled: false; contextProvider: undefined }
->('contextProvider');
 export const [getClient, setClient] = createGetterSetter<CoreStart['http']>('http');
 export const [getNotifications, setNotifications] = createGetterSetter<CoreStart['notifications']>(
   'notifications'

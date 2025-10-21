@@ -35,7 +35,6 @@ import {
   setNotifications,
   setVisualizations,
   FindingService,
-  setContextProvider,
 } from './services';
 import {
   ClassicNotebook,
@@ -199,17 +198,6 @@ export class InvestigationPlugin
     setEmbeddable(startDeps.embeddable);
     setNotifications(core.notifications);
     setVisualizations(startDeps.visualizations);
-    setContextProvider(
-      startDeps.contextProvider
-        ? {
-            enabled: true,
-            contextProvider: startDeps.contextProvider,
-          }
-        : {
-            enabled: false,
-            contextProvider: undefined,
-          }
-    );
     this.startDeps = startDeps;
 
     return {};
