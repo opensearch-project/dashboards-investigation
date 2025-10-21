@@ -170,7 +170,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           <EuiEmptyPrompt
             iconType="alert"
             iconColor="danger"
-            title={<h2>Error loading Notebook$</h2>}
+            title={<h2>Error loading Notebook</h2>}
             body={<p>Incorrect notebook type</p>}
           />
         </EuiPageBody>
