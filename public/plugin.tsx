@@ -4,7 +4,6 @@
  */
 
 import React from 'react';
-import { BehaviorSubject } from 'rxjs';
 import { first } from 'rxjs/operators';
 import { AppMountParameters, CoreSetup, CoreStart, Plugin } from '../../../src/core/public';
 import {
@@ -46,13 +45,13 @@ import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opense
 import { paragraphRegistry } from './paragraphs';
 import { ContextService } from './services/context_service';
 import { ChatContext, ISuggestionProvider } from '../../dashboards-assistant/public';
+import { NoteBookAssistantContext } from '../common/types/assistant_context';
 
 export class InvestigationPlugin
   implements
     Plugin<InvestigationSetup, InvestigationStart, SetupDependencies, AppPluginStartDependencies> {
   private paragraphService: ParagraphService;
   private contextService: ContextService;
-  private chatbotContext$ = new BehaviorSubject<Array<Record<string, unknown> | null>>([]);
   private startDeps: AppPluginStartDependencies | undefined;
 
   constructor() {
@@ -125,7 +124,6 @@ export class InvestigationPlugin
             actionType: 'customize',
             message: 'Add current result to investigation as a finding',
             action: async () => {
-              console.log('Adding a new finding from chatbot plugin...');
               const input = context.messageHistory.findLast((message) => message.type === 'input')
                 ?.content;
               const output = context.currentMessage?.content;
@@ -201,28 +199,18 @@ export class InvestigationPlugin
     setNotifications(core.notifications);
     setVisualizations(startDeps.visualizations);
     this.startDeps = startDeps;
-    startDeps.contextProvider?.registerContextContributor({
-      appId: investigationNotebookID,
-      captureStaticContext: async () => ({
-        investigation: this.chatbotContext$
-          .getValue()
-          .filter((item) => item)
-          .map((item, index) => ({
-            level: index,
-            ...item,
-          })),
-      }),
-    });
 
-    // Export so other plugins can use this flyout
     return {};
   }
 
-  private updateContext = (level: number, context: Record<string, unknown> | null) => {
-    const value = this.chatbotContext$.getValue();
-    value[level] = context;
-    this.chatbotContext$.next(value);
-    this.startDeps?.contextProvider?.refreshCurrentContext();
+  private updateContext = (id: string, chatConetxt: NoteBookAssistantContext | undefined) => {
+    const contextStore = this.startDeps?.contextProvider?.getAssistantContextStore();
+    if (!contextStore) return;
+    contextStore.removeContextById(id);
+    if (chatConetxt) {
+      chatConetxt.id = id;
+      contextStore.addContext(chatConetxt);
+    }
   };
 
   public stop() {}

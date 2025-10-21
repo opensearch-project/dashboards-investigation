@@ -52,7 +52,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   const history = useHistory();
 
   const handleClickHypothesis = (hypothesisId: string) => {
-    history.push(`/${notebookId}/hypothesis/${hypothesisId}`);
+    history.push(`/agentic/${notebookId}/hypothesis/${hypothesisId}`);
   };
 
   // State for the Add Finding modal

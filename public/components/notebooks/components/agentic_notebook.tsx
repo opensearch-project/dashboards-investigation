@@ -18,7 +18,7 @@ import {
   EuiSpacer,
   EuiText,
 } from '@elastic/eui';
-import React, { useState, useRef, useEffect, useCallback, useContext, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
 import { useEffectOnce, useObservable } from 'react-use';
 
 import { NoteBookServices } from 'public/types';
@@ -44,11 +44,10 @@ import { AlertPanel } from './alert_panel';
 import { GlobalPanel } from './global_panel';
 import { NotebookHeader } from './notebook_header';
 import { SummaryCard } from './summary_card';
-import { useContextSubscription } from '../../../hooks/use_context_subscription';
+import { useChatContextProvider } from '../../../hooks/use_chat_context';
 import { HypothesisDetail } from './hypothesis/hypothesis_detail';
 import { HypothesesPanel } from './hypothesis/hypotheses_panel';
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
-import { generateParagraphPrompt } from '../../../services/helpers/per_agent';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
   openedNoteId: string;
@@ -56,17 +55,8 @@ interface AgenticNotebookProps extends NotebookComponentProps {
 
 function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const {
-    services: {
-      notifications,
-      application,
-      findingService,
-      chrome,
-      assistantDashboards,
-      updateContext,
-      paragraphService,
-    },
+    services: { notifications, findingService, chrome },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { page } = useSubRouter();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
@@ -74,14 +64,15 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start, setInitialGoal } = usePrecheck();
 
-  useContextSubscription();
+  // provide context to chatbot
+  useChatContextProvider();
 
   const notebookContext = useContext(NotebookReactContext);
   const { initialGoal, source, notebookType } = useObservable(
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
   );
-  const { id: openedNoteId, paragraphs: paragraphsStates, isLoading, hypotheses } = useObservable(
+  const { id: openedNoteId, paragraphs: paragraphsStates, isLoading } = useObservable(
     notebookContext.state.getValue$(),
     notebookContext.state.value
   );
@@ -94,83 +85,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     findingService,
     notebookId: openedNoteId,
   });
-
-  const hypothesesContext = useMemo(() => {
-    if (!hypotheses) return '';
-    return hypotheses
-      .map(
-        (hypothesis, index) => `
-        ## Hypothesis ${index + 1}
-        ${hypothesis.title}
-        ## Hypothesis Description
-        ${hypothesis.description}
-      `
-      )
-      .join('\n');
-  }, [hypotheses]);
-
-  const [contextData, setContextData] = useState<Record<string, unknown> | null>(null);
-
-  useEffect(() => {
-    let changed = false;
-
-    if (!hypotheses) {
-      setContextData(null);
-      return;
-    }
-
-    const generateContextData = async () => {
-      try {
-        const paragraphPrompt = await generateParagraphPrompt({
-          paragraphService,
-          paragraphs: paragraphsStates.map((paragraph) => paragraph.value),
-        });
-
-        const findingsContext = `
-          ## Findings
-          ${paragraphPrompt.filter((item) => item).join('\n')}`;
-
-        const data = {
-          displayName: 'Hypotheses and findings',
-          notebookId: notebookContext.state.value.id,
-          contextContent: hypothesesContext + '\n' + findingsContext,
-        };
-
-        if (!changed) {
-          setContextData(data);
-        }
-      } catch (error) {
-        console.error('Failed to generate context:', error);
-        if (!changed) {
-          setContextData(null);
-        }
-      }
-    };
-
-    generateContextData();
-
-    return () => {
-      changed = true;
-    };
-  }, [
-    hypotheses,
-    notebookContext.state.value.id,
-    hypothesesContext,
-    paragraphsStates,
-    paragraphService,
-  ]);
-
-  useEffect(() => {
-    if (page === SubRouter.Hypothesis) {
-      return;
-    }
-
-    updateContext(1, contextData);
-
-    return () => {
-      updateContext(1, null);
-    };
-  }, [updateContext, page, contextData]);
 
   useEffect(() => {
     findingService.initialize(openedNoteId);
@@ -246,7 +160,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
     // TODO: remove the optional chain after each method
     (chrome as any).setIsNavDrawerLocked?.(false);
-    (assistantDashboards as any)?.updateChatbotVisible?.(true);
+    // (assistantDashboards as any)?.updateChatbotVisible?.(true);
   });
 
   if (!isLoading && notebookType === NotebookType.CLASSIC) {
