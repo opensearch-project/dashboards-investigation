@@ -281,4 +281,87 @@ export function registerHypothesisRoute(router: IRouter) {
       }
     }
   );
+
+  router.delete(
+    {
+      path: `${NOTEBOOKS_API_PREFIX}/savedNotebook/{notebookId}/deleteHypothesis/{hypothesisId}`,
+      validate: {
+        params: schema.object({
+          notebookId: schema.string(),
+          hypothesisId: schema.string(),
+        }),
+      },
+    },
+    async (
+      context,
+      request,
+      response
+    ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
+      const opensearchNotebooksClient: SavedObjectsClientContract =
+        context.core.savedObjects.client;
+      try {
+        const notebook = await opensearchNotebooksClient.get(
+          NOTEBOOK_SAVED_OBJECT,
+          request.params.notebookId
+        );
+        const savedNotebook = (notebook.attributes as any).savedNotebook;
+        const updatedHypotheses =
+          savedNotebook.hypotheses?.filter((h: any) => h.id !== request.params.hypothesisId) || [];
+
+        await opensearchNotebooksClient.update(NOTEBOOK_SAVED_OBJECT, request.params.notebookId, {
+          savedNotebook: {
+            ...savedNotebook,
+            hypotheses: updatedHypotheses,
+            dateModified: new Date().toISOString(),
+          },
+        });
+        return response.ok({ body: { success: true } });
+      } catch (error) {
+        return response.custom({
+          statusCode: error.statusCode || 500,
+          body: error.message,
+        });
+      }
+    }
+  );
+
+  router.delete(
+    {
+      path: `${NOTEBOOKS_API_PREFIX}/savedNotebook/{notebookId}/deleteAllHypotheses`,
+      validate: {
+        params: schema.object({
+          notebookId: schema.string(),
+        }),
+      },
+    },
+    async (
+      context,
+      request,
+      response
+    ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
+      const opensearchNotebooksClient: SavedObjectsClientContract =
+        context.core.savedObjects.client;
+      try {
+        const notebook = await opensearchNotebooksClient.get(
+          NOTEBOOK_SAVED_OBJECT,
+          request.params.notebookId
+        );
+        const savedNotebook = (notebook.attributes as any).savedNotebook;
+
+        await opensearchNotebooksClient.update(NOTEBOOK_SAVED_OBJECT, request.params.notebookId, {
+          savedNotebook: {
+            ...savedNotebook,
+            hypotheses: [],
+            dateModified: new Date().toISOString(),
+          },
+        });
+        return response.ok({ body: { success: true } });
+      } catch (error) {
+        return response.custom({
+          statusCode: error.statusCode || 500,
+          body: error.message,
+        });
+      }
+    }
+  );
 }

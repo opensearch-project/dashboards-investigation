@@ -13,6 +13,8 @@ import {
   EuiSplitPanel,
   EuiTitle,
   EuiSpacer,
+  EuiButton,
+  EuiLoadingSpinner,
 } from '@elastic/eui';
 import React, { useContext } from 'react';
 import moment from 'moment';
@@ -23,6 +25,7 @@ import { NotebookReactContext } from '../context_provider/context_provider';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NoteBookSource } from '../../../../common/types/notebooks';
 import { Filter } from '../../../../../../src/plugins/data/common';
+import { useInvestigation } from '../../../../public/hooks/use_investigation';
 
 interface ContextData {
   variables: {
@@ -43,6 +46,7 @@ export const SummaryCard = () => {
   const {
     services: { uiSettings, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
+  const { rerunInvestigation, isInvestigating } = useInvestigation();
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -68,9 +72,18 @@ export const SummaryCard = () => {
   return (
     <EuiSplitPanel.Outer borderRadius="l">
       <EuiSpacer size="s" />
-      <EuiTitle>
-        <h2 style={{ paddingLeft: '20px' }}>Issue summary and impact</h2>
-      </EuiTitle>
+      <EuiFlexGroup gutterSize="none" justifyContent="spaceBetween">
+        <EuiTitle>
+          <h2 style={{ paddingLeft: '20px' }}>Issue summary and impact</h2>
+        </EuiTitle>
+        <EuiButton
+          style={{ marginRight: '20px' }}
+          onClick={() => rerunInvestigation({})}
+          disabled={isInvestigating}
+        >
+          {isInvestigating && <EuiLoadingSpinner />} Reinvestigate
+        </EuiButton>
+      </EuiFlexGroup>
       <EuiSpacer size="s" />
       <EuiSplitPanel.Inner
         grow={false}
