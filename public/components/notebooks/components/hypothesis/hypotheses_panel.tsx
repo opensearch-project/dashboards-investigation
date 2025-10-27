@@ -33,7 +33,6 @@ interface HypothesesPanelProps {
   notebookId: string;
   question?: string;
   isInvestigating: boolean;
-  doInvestigate: (props: { investigationQuestion: string; hypothesisIndex?: number }) => void;
   addNewFinding: (newFinding: { hypothesisIndex: number; text: string }) => Promise<void>;
 }
 
@@ -41,7 +40,6 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   notebookId,
   question,
   isInvestigating,
-  doInvestigate,
   addNewFinding,
 }) => {
   const notebookContext = useContext(NotebookReactContext);
@@ -99,19 +97,6 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
                   <EuiFlexItem grow={false}>
                     <EuiSmallButton disabled={isInvestigating} onClick={() => showModal(index)}>
                       Add Finding
-                    </EuiSmallButton>
-                  </EuiFlexItem>
-                  <EuiFlexItem grow={false}>
-                    <EuiSmallButton
-                      disabled={isInvestigating}
-                      onClick={() => {
-                        doInvestigate({
-                          investigationQuestion: question,
-                          hypothesisIndex: index,
-                        });
-                      }}
-                    >
-                      Rerun investigation
                     </EuiSmallButton>
                   </EuiFlexItem>
                 </EuiFlexGroup>

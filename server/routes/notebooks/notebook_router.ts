@@ -51,7 +51,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
           perPage: 1000,
         });
         const userName = getUserName(request);
-        const fetchedNotebooks = fetchNotebooks(notebooksData.saved_objects as any, userName);
+        const fetchedNotebooks = fetchNotebooks(notebooksData.saved_objects, userName, config);
         return response.ok({
           body: {
             data: fetchedNotebooks,
@@ -230,7 +230,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
           request.params.noteId
         );
         return response.ok({
-          body: (notebookinfo.attributes as any).savedNotebook,
+          body: notebookinfo.attributes.savedNotebook,
         });
       } catch (error) {
         return response.custom({
@@ -264,7 +264,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
           request.body.noteId
         );
         const createCloneNotebook = cloneNotebook(
-          (getNotebook.attributes as any).savedNotebook,
+          getNotebook.attributes.savedNotebook,
           request.body.name
         );
         const createdNotebook = await opensearchNotebooksClient.create(

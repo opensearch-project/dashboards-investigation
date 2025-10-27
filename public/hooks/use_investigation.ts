@@ -399,6 +399,7 @@ ${finding.evidence}
       };
       try {
         if (isReinvestigate) {
+          // TODO: only delete hypothesis that will the replaced
           await deleteHypotheses();
         }
 
@@ -657,7 +658,7 @@ Likelihood: ${hypothesis.likelihood}
 ### Supporting Findings
 ${existingFindingsPrompt}
 
-### Additional Findings
+### Additional Findings (Manually Added - Pay Special Attention)
 ${newFindingsPrompt}
     `);
       },
@@ -673,13 +674,12 @@ RE-INVESTIGATION PRINCIPLES:
 4. Maintain continuity with previous investigation work
 
 CRITICAL FINDINGS HANDLING:
-- MINIMIZE new findings: Return empty findings array [] unless absolutely necessary
-- New hypotheses MUST reference existing paragraph IDs in supportingFindingParagraphIds
+- New hypotheses may reference both existing paragraph IDs and new findings in supportingFindingParagraphIds
 - Generate new findings ONLY for completely novel evidence not covered by existing findings
 - Existing findings remain available - original hypotheses will be replaced but findings persist
 - Prefer reusing existing findings over creating new ones
 
-OPERATION REQUIREMENT: Use "REPLACE" operation for all hypotheses - this is a re-investigation that updates existing hypotheses, not creation of new ones.
+OPERATION GUIDANCE: Always use CREATE operation for all hypotheses. Old hypotheses will be deleted, so create new hypotheses with fresh IDs for all conclusions, regardless of similarity to existing hypotheses.
 
 Response Instructions:
 Only respond in JSON format. Always follow the given response instructions. Do not return any content that does not follow the response instructions. Do not add anything before or after the expected JSON.
@@ -712,7 +712,7 @@ And the hypothesis object has this structure:
     "supporting_findings": array[string]
 }
 
-The operation field MUST be "REPLACE" for re-investigation.
+The operation field must be either "CREATE" (if creating a new hypothesis) or "REPLACE" (if replacing an existing hypothesis).
 
 Important rules for the response:
 1. Do not use commas within individual steps
@@ -722,7 +722,7 @@ Important rules for the response:
 5. Only respond with a pure JSON object
 6. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
 7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
-8. **CRITICAL: ALWAYS USE "REPLACE" OPERATION FOR RE-INVESTIGATION**
+8. **CRITICAL: Follow the CREATE vs REPLACE decision rules outlined above**
 
 The final response should create a clear chain of evidence where findings support your hypothesis while maximizing reuse of existing evidence.
 
