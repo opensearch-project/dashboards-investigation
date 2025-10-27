@@ -64,3 +64,10 @@ export const createDashboardVizObject = (value: VisualizationInputValue) => {
   };
   return newVizObject;
 };
+
+export const DEFAULT_VIZ_INPUT_VALUE = {
+  type: '',
+  id: '',
+  startTime: 'now-15m',
+  endTime: 'now',
+};

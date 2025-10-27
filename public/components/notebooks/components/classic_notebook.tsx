@@ -41,6 +41,7 @@ import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NotebookHeader } from './notebook_header';
+import { createDashboardVizObject, DEFAULT_VIZ_INPUT_VALUE } from '../../../utils/visualization';
 
 export interface ClassicNotebookProps extends NotebookComponentProps {
   openedNoteId: string;
@@ -289,8 +290,11 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                                 createParagraph({
                                   index: 0,
                                   input: {
-                                    inputText: '',
+                                    inputText: JSON.stringify(
+                                      createDashboardVizObject(DEFAULT_VIZ_INPUT_VALUE)
+                                    ),
                                     inputType: 'VISUALIZATION',
+                                    parameters: DEFAULT_VIZ_INPUT_VALUE,
                                   },
                                 })
                               }

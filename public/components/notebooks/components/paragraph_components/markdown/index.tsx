@@ -15,7 +15,7 @@ import {
   EuiText,
   EuiTitle,
 } from '@elastic/eui';
-import { useObservable } from 'react-use';
+import { useEffectOnce, useObservable } from 'react-use';
 import MarkdownRender from '@nteract/markdown';
 import { useContext } from 'react';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
@@ -53,6 +53,22 @@ export const MarkdownParagraph = ({
       });
     }
   };
+
+  useEffectOnce(() => {
+    paragraphState.updateUIState({
+      actions: [
+        {
+          name: 'Edit',
+          action: () => {
+            paragraphState.updateUIState({ viewMode: 'view_both' });
+          },
+        },
+      ],
+    });
+    if (!output?.result) {
+      runParagraphHandler();
+    }
+  });
 
   const isRunning = paragraphValue.uiState?.isRunning;
 
@@ -107,9 +123,10 @@ export const MarkdownParagraph = ({
                     data-test-subj={`runRefreshBtn-${paragraphValue.id}`}
                     onClick={() => {
                       runParagraphHandler();
+                      paragraphState.updateUIState({ viewMode: 'output_only' });
                     }}
                   >
-                    {ParagraphState.getOutput(paragraphValue)?.result !== '' ? 'Refresh' : 'Run'}
+                    {ParagraphState.getOutput(paragraphValue)?.result !== '' ? 'Save' : 'Run'}
                   </EuiSmallButton>
                 </EuiFlexItem>
               </EuiFlexGroup>
