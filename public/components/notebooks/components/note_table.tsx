@@ -105,6 +105,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
   }, [finalNotebooks.length, fetchNotebooks, chrome]);
 
   const closeModal = useCallback(() => {
+    window.location.assign('#/');
     setIsModalVisible(false);
   }, []);
   const showModal = () => {
