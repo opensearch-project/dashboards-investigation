@@ -31,13 +31,7 @@ import { observabilityLogsID } from '../../../../../../common/constants/shared';
 import { OBSERVABILITY_VISUALIZATION_TYPE } from '../../../../../../common/constants/notebooks';
 import { useVisualizationInput } from './use_visualization_input';
 import { useInputContext } from '../input_context';
-
-const DEFAULT_VIZ_INPUT_VALUE = {
-  type: '',
-  id: '',
-  startTime: 'now-15m',
-  endTime: 'now',
-};
+import { DEFAULT_VIZ_INPUT_VALUE } from '../../../../../utils/visualization';
 
 export interface VisualizationInputValue {
   type: string;

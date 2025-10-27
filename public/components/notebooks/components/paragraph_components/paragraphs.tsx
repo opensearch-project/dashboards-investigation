@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { EuiPanel } from '@elastic/eui';
 import React from 'react';
 import { useContext } from 'react';
 import { useObservable } from 'react-use';
@@ -40,7 +39,7 @@ export const Paragraphs = (props: ParagraphProps) => {
     paragraphService.getParagraphRegistry(getInputType(paragraphValue)) || {};
 
   return (
-    <EuiPanel className="notebookParagraphWrapper">
+    <div className="notebookParagraphWrapper">
       <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
       {ParagraphComponent && (
         <div key={paragraph.value.id} className={paraClass}>
@@ -53,6 +52,6 @@ export const Paragraphs = (props: ParagraphProps) => {
           />
         </div>
       )}
-    </EuiPanel>
+    </div>
   );
 };

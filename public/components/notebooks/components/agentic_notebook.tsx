@@ -207,7 +207,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
             notebookId={openedNoteId}
             question={initialGoal}
             isInvestigating={isInvestigating}
-            doInvestigate={doInvestigate}
             addNewFinding={addNewFinding}
           />
           <EuiSpacer />
