@@ -16,6 +16,7 @@ import { executePPLQuery, jsonArrayToTsv } from '../../public/utils/query';
 import { parsePPLQuery } from '../../common/utils';
 import { addTimeRangeFilter } from '../utils/time';
 import { NotebookType } from '../../common/types/notebooks';
+import { ParagraphState } from '../../common/state/paragraph_state';
 
 export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObject> = {
   ParagraphComponent: PPLParagraph,
@@ -25,7 +26,7 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
       return '';
     }
 
-    const query = input.inputText.substring(5);
+    const query = ParagraphState.getOutput(paragraph)?.result || input.inputText.substring(5);
     const isSqlQuery = input?.inputText.substring(0, 4) === '%sql';
     const queryType = isSqlQuery ? '_sql' : '_ppl';
     const queryTypeName = isSqlQuery ? 'SQL' : 'PPL';
@@ -82,7 +83,10 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
     const inputText = paragraphValue.input.inputText;
     const queryType = inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
     const queryParams = paragraphValue.input.parameters as any;
-    const inputQuery = queryParams?.query || inputText.substring(5);
+    const inputQuery =
+      ParagraphState.getOutput(paragraphValue)?.result ||
+      queryParams?.query ||
+      inputText.substring(5);
     const { notebookType } = notebookStateValue.context.value;
 
     if (isEmpty(inputQuery)) {
