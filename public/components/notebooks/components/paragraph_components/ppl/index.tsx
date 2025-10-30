@@ -117,12 +117,16 @@ export const PPLParagraph = ({
     [paragraphValue.input.inputText]
   );
 
+  const outputQuery = useMemo(() => ParagraphState.getOutput(paragraphValue)?.result, [
+    paragraphValue,
+  ]);
+
   const inputQueryWithTimeFilter = useMemo(() => {
     const params = paragraphValue.input.parameters as any;
     return paragraphValue.input.inputText.startsWith('%sql')
       ? inputQuery
-      : params?.query || addTimeRangeFilter(inputQuery, params);
-  }, [inputQuery, paragraphValue.input.parameters, paragraphValue.input.inputText]);
+      : params?.query || addTimeRangeFilter(outputQuery || inputQuery, params);
+  }, [inputQuery, paragraphValue.input.parameters, paragraphValue.input.inputText, outputQuery]);
 
   const columns = useMemo(() => createQueryColumns(queryObject?.schema || []), [
     queryObject?.schema,
