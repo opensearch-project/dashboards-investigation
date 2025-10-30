@@ -6,6 +6,7 @@
 import React from 'react';
 import { EuiFlexGroup, EuiPanel, EuiFlexItem, EuiText, EuiIcon } from '@elastic/eui';
 import { HypothesisItem as HypothesisItemProps } from 'common/types/notebooks';
+import moment from 'moment';
 import { HypothesisBadge } from './hypothesis_badge';
 
 export const HypothesisItem: React.FC<{
@@ -13,7 +14,7 @@ export const HypothesisItem: React.FC<{
   hypothesis: HypothesisItemProps;
   onClickHypothesis: (hypothesisId: string) => void;
 }> = ({ index, hypothesis, onClickHypothesis }) => {
-  const { title, description, likelihood, id } = hypothesis;
+  const { title, description, likelihood, id, dateModified } = hypothesis;
   return (
     <EuiFlexGroup
       gutterSize="none"
@@ -47,9 +48,11 @@ export const HypothesisItem: React.FC<{
               <strong>{title}</strong>
             </EuiText>
             <HypothesisBadge label={`Strong evidence ${likelihood}%`} color="#DCFCE7" />
-            <EuiText size="xs" color="subdued">
-              Updated 2 min ago
-            </EuiText>
+            {dateModified && (
+              <EuiText size="xs" color="subdued">
+                Updated {moment(dateModified).fromNow()}
+              </EuiText>
+            )}
           </EuiFlexGroup>
           <EuiText size="s">{description}</EuiText>
         </EuiPanel>

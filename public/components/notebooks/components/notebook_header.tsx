@@ -507,18 +507,6 @@ export const NotebookHeader = ({
 
   const topNavMenuConfig = useMemo(
     () => [
-      {
-        tooltip: i18n.translate('notebook.systemPromptSettingButton.tooltip', {
-          defaultMessage: 'Edit system prompt',
-        }),
-        ariaLabel: i18n.translate('notebook.systemPromptSettingButton.tooltip', {
-          defaultMessage: 'Edit system prompt',
-        }),
-        testId: 'notebook-system-prompt-icon',
-        run: () => setIsSystemPromptsModalOpen(true),
-        iconType: 'setting',
-        controlType: 'icon',
-      } as TopNavMenuIconData,
       ...(isSavedObjectNotebook
         ? [
             {

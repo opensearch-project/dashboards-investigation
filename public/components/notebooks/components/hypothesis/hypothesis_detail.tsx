@@ -25,6 +25,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { useHistory, useLocation, useParams } from 'react-router-dom';
 import { NoteBookServices } from 'public/types';
 import { HypothesisItem as HypothesisItemProps } from 'common/types/notebooks';
+import moment from 'moment';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { HypothesisBadge } from './hypothesis_badge';
 import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
@@ -121,10 +122,6 @@ export const HypothesisDetail: React.FC = () => {
       id: 'evidence',
       label: 'Evidence and reasoning',
     },
-    {
-      id: `next`,
-      label: 'Suggested next steps',
-    },
   ];
 
   if (!currentHypothesis) {
@@ -189,12 +186,16 @@ export const HypothesisDetail: React.FC = () => {
                 </span>
               </EuiTitle>
             </EuiPageHeaderSection>
-            <EuiPageHeaderSection style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* 
+              The following code block is a hypothesis confirmation function, temporarily commented out
+              TODO: Wait for the requirements to be clarified.
+            */}
+            {/* <EuiPageHeaderSection style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <EuiSmallButton style={{ borderRadius: '9999px' }}>Rule out</EuiSmallButton>
               <EuiSmallButton fill style={{ borderRadius: '9999px' }}>
                 Confirm hypothesis
               </EuiSmallButton>
-            </EuiPageHeaderSection>
+            </EuiPageHeaderSection> */}
           </EuiPageHeader>
           <EuiSpacer size="m" />
           <EuiPageContent
@@ -209,9 +210,11 @@ export const HypothesisDetail: React.FC = () => {
                 <EuiText color="subdued" size="s">
                   Created By: AI Agent
                 </EuiText>
-                <EuiText color="subdued" size="s">
-                  Update 2 min ago
-                </EuiText>
+                {currentHypothesis?.dateModified && (
+                  <EuiText size="s" color="subdued">
+                    Updated {moment(currentHypothesis.dateModified).fromNow()}
+                  </EuiText>
+                )}
                 <HypothesisBadge label="Under investigation" color="hollow" icon="pulse" />
                 <HypothesisBadge
                   label={`Strong evidence ${currentHypothesis.likelihood}%`}
@@ -220,11 +223,6 @@ export const HypothesisDetail: React.FC = () => {
               </EuiFlexGroup>
               <EuiSpacer size="s" />
               <EuiText>{currentHypothesis.description}</EuiText>
-              <EuiSpacer size="s" />
-
-              <EuiPanel color="plain" style={{ height: 50 }}>
-                Graph
-              </EuiPanel>
               <EuiSpacer size="m" />
               <EuiButtonGroup
                 className="hypothesisDetail__findingsButtonGroup"
