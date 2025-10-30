@@ -169,6 +169,8 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
               likelihood: schema.number(),
               supportingFindingParagraphIds: schema.arrayOf(schema.string()),
               newAddedFindingIds: schema.maybe(schema.arrayOf(schema.string())),
+              dateCreated: schema.string(),
+              dateModified: schema.string(),
             })
           ),
         }),

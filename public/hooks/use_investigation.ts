@@ -396,6 +396,8 @@ ${finding.evidence}
             .map((findingId) => findingId2ParagraphId[findingId])
             .filter((id) => !!id),
         ],
+        dateCreated: new Date().toISOString(),
+        dateModified: new Date().toISOString(),
       };
       try {
         if (isReinvestigate) {
