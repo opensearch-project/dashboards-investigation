@@ -19,7 +19,8 @@
     "dataSource",
     "dataSourceManagement",
     "contextProvider",
-    "assistantDashboards"
+    "assistantDashboards",
+    "explore"
   ],
   "configPath": [
     "investigation"
