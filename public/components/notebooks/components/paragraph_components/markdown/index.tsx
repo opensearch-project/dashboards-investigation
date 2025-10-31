@@ -65,9 +65,6 @@ export const MarkdownParagraph = ({
         },
       ],
     });
-    if (!output?.result) {
-      runParagraphHandler();
-    }
   });
 
   const isRunning = paragraphValue.uiState?.isRunning;

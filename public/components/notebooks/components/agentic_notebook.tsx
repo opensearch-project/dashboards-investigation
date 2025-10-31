@@ -45,8 +45,7 @@ import { GlobalPanel } from './global_panel';
 import { NotebookHeader } from './notebook_header';
 import { SummaryCard } from './summary_card';
 import { useChatContextProvider } from '../../../hooks/use_chat_context';
-import { HypothesisDetail } from './hypothesis/hypothesis_detail';
-import { HypothesesPanel } from './hypothesis/hypotheses_panel';
+import { HypothesisDetail, HypothesesPanel, ReinvestigateModal } from './hypothesis';
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
@@ -59,9 +58,12 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isReinvestigateModalVisible, setIsReinvestigateModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
-  const { createParagraph, deleteParagraph } = useContext(NotebookReactContext).paragraphHooks;
-  const { loadNotebook: loadNotebookHook } = useNotebook();
+  const { createParagraph, deleteParagraph, deleteParagraphsByIds } = useContext(
+    NotebookReactContext
+  ).paragraphHooks;
+  const { loadNotebook: loadNotebookHook, deleteHypotheses } = useNotebook();
   const { start, setInitialGoal } = usePrecheck();
 
   // provide context to chatbot
@@ -78,7 +80,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   );
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
-  const { isInvestigating, doInvestigate, addNewFinding } = useInvestigation();
+  const { isInvestigating, doInvestigate, addNewFinding, rerunInvestigation } = useInvestigation();
 
   // Initialize finding integration for automatic UI updates when findings are added
   useNotebookFindingIntegration({
@@ -163,6 +165,37 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     // (assistantDashboards as any)?.updateChatbotVisible?.(true);
   });
 
+  const handleReinvestigate = useCallback(
+    async (value: string, isReinvestigate: boolean) => {
+      if (isReinvestigate) {
+        rerunInvestigation({ investigationQuestion: value });
+      } else {
+        await deleteHypotheses();
+
+        const findingPraragraphIds = paragraphsStates
+          .filter((paragraphState) => (paragraphState.value.input.parameters as any)?.findingId)
+          .map((paragraphState) => paragraphState.value.id);
+
+        if (findingPraragraphIds.length > 0) {
+          // Delete all existing finding paragraphs
+          await deleteParagraphsByIds(findingPraragraphIds);
+        }
+
+        doInvestigate({ investigationQuestion: value });
+      }
+
+      setIsReinvestigateModalVisible(false);
+    },
+    [
+      rerunInvestigation,
+      deleteHypotheses,
+      deleteParagraphsByIds,
+      paragraphsStates,
+      doInvestigate,
+      setIsReinvestigateModalVisible,
+    ]
+  );
+
   if (!isLoading && notebookType === NotebookType.CLASSIC) {
     return (
       <EuiPage direction="column">
@@ -191,7 +224,10 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           )}
           {source === NoteBookSource.DISCOVER && (
             <>
-              <SummaryCard />
+              <SummaryCard
+                isInvestigating={isInvestigating}
+                openReinvestigateModal={() => setIsReinvestigateModalVisible(true)}
+              />
               <EuiSpacer />
             </>
           )}
@@ -221,12 +257,13 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                   key={`para_div_${paragraphState.value.id}`}
                 >
                   {index > 0 && <EuiSpacer size="s" />}
-                  <Paragraphs
-                    paragraphState={paragraphState}
-                    index={index}
-                    deletePara={showDeleteParaModal}
-                    scrollToPara={scrollToPara}
-                  />
+                  <EuiPanel>
+                    <Paragraphs
+                      index={index}
+                      deletePara={showDeleteParaModal}
+                      scrollToPara={scrollToPara}
+                    />
+                  </EuiPanel>
                 </div>
               );
             })
@@ -306,6 +343,13 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         </EuiPageBody>
       </EuiPage>
       {isModalVisible && modalLayout}
+      {isReinvestigateModalVisible && (
+        <ReinvestigateModal
+          initialGoal={initialGoal || ''}
+          confirm={handleReinvestigate}
+          closeModal={() => setIsReinvestigateModalVisible(false)}
+        />
+      )}
     </>
   );
 }

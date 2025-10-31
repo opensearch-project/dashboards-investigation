@@ -25,7 +25,6 @@ import { NotebookReactContext } from '../context_provider/context_provider';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NoteBookSource } from '../../../../common/types/notebooks';
 import { Filter } from '../../../../../../src/plugins/data/common';
-import { useInvestigation } from '../../../../public/hooks/use_investigation';
 
 interface ContextData {
   variables: {
@@ -41,12 +40,14 @@ interface ContextData {
   initialGoal?: string;
 }
 
-export const SummaryCard = () => {
+export const SummaryCard: React.FC<{
+  isInvestigating: boolean;
+  openReinvestigateModal: () => void;
+}> = ({ isInvestigating, openReinvestigateModal }) => {
   const notebookContext = useContext(NotebookReactContext);
   const {
     services: { uiSettings, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { rerunInvestigation, isInvestigating } = useInvestigation();
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -78,10 +79,16 @@ export const SummaryCard = () => {
         </EuiTitle>
         <EuiButton
           style={{ marginRight: '20px' }}
-          onClick={() => rerunInvestigation({})}
+          onClick={() => openReinvestigateModal()}
           disabled={isInvestigating}
         >
-          {isInvestigating && <EuiLoadingSpinner />} Reinvestigate
+          {isInvestigating ? (
+            <>
+              <EuiLoadingSpinner /> Investigating
+            </>
+          ) : (
+            'ReInvestigate'
+          )}
         </EuiButton>
       </EuiFlexGroup>
       <EuiSpacer size="s" />

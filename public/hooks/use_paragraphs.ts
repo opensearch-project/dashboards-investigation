@@ -216,6 +216,34 @@ export const useParagraphs = (context: { state: NotebookState }) => {
           console.error(err);
         });
     },
+    deleteParagraphsByIds: (paragraphIds: string[]) => {
+      return http
+        .delete(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraphs`, {
+          body: JSON.stringify({
+            noteId: id,
+            paragraphIds,
+          }),
+        })
+        .then((_res) => {
+          const newParagraphs = context.state.value.paragraphs.filter(
+            (paragraph) => !paragraphIds.includes(paragraph.value.id)
+          );
+          context.state.updateValue({
+            paragraphs: newParagraphs,
+          });
+          // Clean up context for deleted paragraphs
+          paragraphIds.forEach((paragraphId) => {
+            contextService.deleteParagraphContext(id, paragraphId);
+          });
+          return _res;
+        })
+        .catch((err) => {
+          notifications.toasts.addDanger(
+            'Error deleting paragraphs, please make sure you have the correct permission.'
+          );
+          console.error(err);
+        });
+    },
     // Assigns Loading, Running & inQueue for paragraphs in current notebook
     showParagraphRunning,
     moveParagraph,
