@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { i18n } from '@osd/i18n';
 import React from 'react';
 import { first } from 'rxjs/operators';
 import { AppMountParameters, CoreSetup, CoreStart, Plugin } from '../../../src/core/public';
@@ -46,6 +47,7 @@ import { paragraphRegistry } from './paragraphs';
 import { ContextService } from './services/context_service';
 import { ChatContext, ISuggestionProvider } from '../../dashboards-assistant/public';
 import { NoteBookAssistantContext } from '../common/types/assistant_context';
+import { createInvestigateLogActionComponent } from './components/notebooks/components/discover_explorer';
 
 export class InvestigationPlugin
   implements
@@ -199,6 +201,23 @@ export class InvestigationPlugin
     setNotifications(core.notifications);
     setVisualizations(startDeps.visualizations);
     this.startDeps = startDeps;
+
+    startDeps.explore?.registerLogAction({
+      id: 'investigate-single',
+      displayName: i18n.translate('investigate.logAction.investigate-single', {
+        defaultMessage: 'Investigate',
+      }),
+      iconType: 'notebookApp',
+      order: 100,
+      isCompatible: () => true,
+      component: createInvestigateLogActionComponent({
+        services: {
+          data: startDeps.data,
+          http: core.http,
+          application: core.application,
+        },
+      }),
+    });
 
     return {};
   }

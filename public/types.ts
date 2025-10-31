@@ -26,6 +26,7 @@ import { ContextProviderStart } from '../../../src/plugins/context_provider/publ
 import { FindingService } from './services/finding_service';
 import { AssistantSetup, AssistantPublicPluginStart } from '../../dashboards-assistant/public';
 import { NoteBookAssistantContext } from '../common/types/assistant_context';
+import type { ExplorePluginStart } from '../../../src/plugins/explore/public';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -38,6 +39,7 @@ export interface AppPluginStartDependencies {
   visualizations: VisualizationsStart;
   contextProvider?: ContextProviderStart;
   assistantDashboards?: AssistantPublicPluginStart;
+  explore?: ExplorePluginStart;
 }
 
 export interface SetupDependencies {
