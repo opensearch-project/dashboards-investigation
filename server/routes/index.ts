@@ -9,6 +9,7 @@ import { registerNoteRoute } from './notebooks/notebook_router';
 import { registerParaRoute } from './notebooks/paragraph_router';
 import { registerLogPatternRoute } from './notebooks/log_pattern_router';
 import { registerHypothesisRoute } from './notebooks/hypothesis_router';
+import { registerMLServiceRoute } from './notebooks/ml_service_router';
 
 export function setupRoutes({
   router,
@@ -24,4 +25,5 @@ export function setupRoutes({
   registerNoteRoute(router, auth, config);
   registerLogPatternRoute(router);
   registerHypothesisRoute(router);
+  registerMLServiceRoute(router);
 }
