@@ -67,7 +67,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   );
   const isSavedObjectNotebook = isValidUUID(openedNoteId);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const { createParagraph, deleteParagraph } = notebookContext.paragraphHooks;
+  const { createParagraph, deleteParagraph, runParagraph } = notebookContext.paragraphHooks;
 
   const showDeleteParaModal = (index: number) => {
     setModalLayout(
@@ -146,9 +146,18 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     }, 0);
   }, []);
 
-  const handleInputPanelParagraphCreated = useCallback(() => {
-    scrollToPara(paraDivRefs.current.length - 1);
-  }, [scrollToPara]);
+  const handleInputPanelParagraphCreated = useCallback(
+    (createParagraphRes) => {
+      scrollToPara(paraDivRefs.current.length - 1);
+
+      // FIXME run paragraph should handle by input
+      const paragraphStateValue = createParagraphRes?.value;
+      if (paragraphStateValue.input.inputType === 'MARKDOWN') {
+        runParagraph({ id: paragraphStateValue.id });
+      }
+    },
+    [scrollToPara, runParagraph]
+  );
 
   const loadNotebook = useCallback(() => {
     loadNotebookHook()
@@ -228,7 +237,6 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                 >
                   {index > 0 && <EuiSpacer size="s" />}
                   <Paragraphs
-                    paragraphState={paragraphState}
                     index={index}
                     deletePara={showDeleteParaModal}
                     scrollToPara={scrollToPara}

@@ -16,6 +16,7 @@ import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved
 import {
   createParagraphs,
   deleteParagraphs,
+  deleteParagraphsByIds,
   updateFetchParagraph,
   updateRunFetchParagraph,
 } from '../../adaptors/notebooks/saved_objects_paragraphs_router';
@@ -163,6 +164,37 @@ export function registerParaRoute(router: IRouter) {
         );
         return response.ok({
           body: saveResponse,
+        });
+      } catch (error) {
+        return response.custom({
+          statusCode: error.statusCode || 500,
+          body: error.message,
+        });
+      }
+    }
+  );
+  router.delete(
+    {
+      path: `${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraphs`,
+      validate: {
+        body: schema.object({
+          noteId: schema.string(),
+          paragraphIds: schema.arrayOf(schema.string()),
+        }),
+      },
+    },
+    async (
+      context,
+      request,
+      response
+    ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
+      try {
+        const deleteResponse = await deleteParagraphsByIds(
+          request.body,
+          context.core.savedObjects.client
+        );
+        return response.ok({
+          body: deleteResponse,
         });
       } catch (error) {
         return response.custom({

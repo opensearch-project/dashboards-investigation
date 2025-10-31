@@ -10,13 +10,11 @@ import { uiSettingsService } from '../../../../../common/utils';
 import { ParagraphActionPanel } from './paragraph_actions_panel';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { getInputType } from '../../../../../common/utils/paragraph';
-import { ParagraphState } from '../../../../../common/state/paragraph_state';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NoteBookServices } from '../../../../types';
 import { isAgenticRunBefore } from './utils';
 
 export interface ParagraphProps {
-  paragraphState: ParagraphState<unknown>;
   index: number;
   deletePara: (index: number) => void;
   scrollToPara: (idx: number) => void;
