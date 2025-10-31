@@ -143,6 +143,29 @@ export async function deleteParagraphs(
   }
 }
 
+export async function deleteParagraphsByIds(
+  params: { noteId: string; paragraphIds: string[] },
+  opensearchNotebooksClient: SavedObjectsClientContract
+) {
+  const notebookinfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
+  const updatedparagraphs = notebookinfo.attributes.savedNotebook.paragraphs.filter(
+    (paragraph) => !params.paragraphIds.includes(paragraph.id)
+  );
+
+  const updateNotebook = {
+    paragraphs: updatedparagraphs,
+    dateModified: new Date().toISOString(),
+  };
+  try {
+    await opensearchNotebooksClient.update(NOTEBOOK_SAVED_OBJECT, params.noteId, {
+      savedNotebook: updateNotebook,
+    });
+    return { paragraphs: updatedparagraphs };
+  } catch (error) {
+    throw new Error('delete Paragraphs Error:' + error);
+  }
+}
+
 export async function updateRunFetchParagraph<TOutput>(
   params: {
     noteId: string;
