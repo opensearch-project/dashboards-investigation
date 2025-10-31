@@ -4,6 +4,7 @@
  */
 
 import { schema } from '@osd/config-schema';
+import { InvestigationConfig } from 'server';
 import {
   IOpenSearchDashboardsResponse,
   IRouter,
@@ -22,7 +23,7 @@ import {
   renameNotebook,
 } from '../../adaptors/notebooks/saved_objects_notebooks_router';
 
-export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
+export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: InvestigationConfig) {
   const getUserName = (request: OpenSearchDashboardsRequest) => {
     const authInfo = auth.get<{
       authInfo?: {
@@ -50,7 +51,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
           perPage: 1000,
         });
         const userName = getUserName(request);
-        const fetchedNotebooks = fetchNotebooks(notebooksData.saved_objects, userName);
+        const fetchedNotebooks = fetchNotebooks(notebooksData.saved_objects, userName, config);
         return response.ok({
           body: {
             data: fetchedNotebooks,
@@ -147,6 +148,61 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
           statusCode: error.statusCode || 500,
           body: {
             message: `Failed to update notebook context: ${error.message}`,
+            error: error.name,
+          },
+        });
+      }
+    }
+  );
+
+  router.put(
+    {
+      path: `${NOTEBOOKS_API_PREFIX}/note/updateHypotheses`,
+      validate: {
+        body: schema.object({
+          notebookId: schema.string(),
+          hypotheses: schema.arrayOf(
+            schema.object({
+              id: schema.string(),
+              title: schema.string(),
+              description: schema.string(),
+              likelihood: schema.number(),
+              supportingFindingParagraphIds: schema.arrayOf(schema.string()),
+              newAddedFindingIds: schema.maybe(schema.arrayOf(schema.string())),
+              dateCreated: schema.string(),
+              dateModified: schema.string(),
+            })
+          ),
+        }),
+      },
+    },
+    async (
+      context,
+      request,
+      response
+    ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
+      const opensearchNotebooksClient: SavedObjectsClientContract =
+        context.core.savedObjects.client;
+      try {
+        const noteObject = {
+          hypotheses: request.body.hypotheses,
+          dateModified: new Date().toISOString(),
+        };
+        const updateResponse = await opensearchNotebooksClient.update(
+          NOTEBOOK_SAVED_OBJECT,
+          request.body.notebookId,
+          {
+            savedNotebook: noteObject,
+          }
+        );
+        return response.ok({
+          body: updateResponse,
+        });
+      } catch (error) {
+        return response.custom({
+          statusCode: error.statusCode || 500,
+          body: {
+            message: `Failed to hypotheses: ${error.message}`,
             error: error.name,
           },
         });
@@ -303,6 +359,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
       validate: {
         body: schema.object({
           visIds: schema.arrayOf(schema.string()),
+          dataSourceId: schema.maybe(schema.string()),
         }),
       },
     },
@@ -316,7 +373,8 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
       try {
         const sampleNotebooks = await addSampleNotes(
           opensearchNotebooksClient,
-          request.body.visIds
+          request.body.visIds,
+          request.body.dataSourceId
         );
         return response.ok({
           body: sampleNotebooks,

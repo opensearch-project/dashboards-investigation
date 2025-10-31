@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import classNames from 'classnames';
 import { NoteBookServices } from 'public/types';
 import {
@@ -22,15 +22,14 @@ export const QueryPanelEditor: React.FC<{
   handleRunQuery: () => void;
 }> = ({ queryState, handleRunQuery, promptModeIsAvailable }) => {
   const { services } = useOpenSearchDashboards<NoteBookServices>();
-  const { editorRef, editorTextRef, handleInputChange } = useInputContext();
+  const { editorRef, handleInputChange } = useInputContext();
 
   const { value, queryLanguage, isPromptEditorMode, selectedIndex } = queryState;
 
   const selectedIndexRef = useRef<any>();
+  selectedIndexRef.current = selectedIndex;
 
-  useEffect(() => {
-    selectedIndexRef.current = selectedIndex;
-  }, [selectedIndex]);
+  const showPlaceholder = !value.length;
 
   const {
     isFocused,
@@ -38,13 +37,12 @@ export const QueryPanelEditor: React.FC<{
     onEditorClick,
     placeholder,
     promptIsTyping,
-    showPlaceholder,
     ...editorProps
   } = useQueryPanelEditor({
     promptModeIsAvailable: queryLanguage === 'SQL' ? false : promptModeIsAvailable,
     isPromptEditorMode,
     queryLanguage,
-    userQueryString: value || '',
+    editorTextValue: value || '',
     handleRun: handleRunQuery,
     handleEscape: useCallback(() => {
       handleInputChange({ isPromptEditorMode: false, query: '' });
@@ -52,11 +50,12 @@ export const QueryPanelEditor: React.FC<{
     handleSpaceBar: useCallback(() => {
       handleInputChange({ isPromptEditorMode: true });
     }, [handleInputChange]),
-    handleChange: () => {},
+    handleChange: (val) => {
+      handleInputChange({ value: val });
+    },
     isQueryEditorDirty: false,
     services,
     editorRef,
-    editorTextRef,
     selectedIndexRef,
   });
   return (
@@ -71,10 +70,10 @@ export const QueryPanelEditor: React.FC<{
       data-test-subj="notebookQueryPanelEditor"
       onClick={onEditorClick}
     >
-      <CodeEditor {...editorProps} />
-      {showPlaceholder ? (
+      <CodeEditor value={value} {...editorProps} />
+      {showPlaceholder && (
         <div className={`notebookQueryPanelEditor__placeholder`}>{placeholder}</div>
-      ) : null}
+      )}
     </div>
   );
 };

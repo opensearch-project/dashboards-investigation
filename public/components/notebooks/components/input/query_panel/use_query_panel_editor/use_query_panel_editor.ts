@@ -107,12 +107,11 @@ interface UseQueryPanelEditorProps {
   promptModeIsAvailable: boolean;
   isPromptEditorMode: boolean;
   queryLanguage: string;
-  userQueryString: string;
+  editorTextValue: string;
   handleRun: () => void;
   handleEscape: () => void;
   handleSpaceBar: () => void;
-  handleChange: () => void;
-  editorTextRef: React.MutableRefObject<string>;
+  handleChange: (value: string) => void;
   editorRef: React.MutableRefObject<IStandaloneCodeEditor | null>;
   selectedIndexRef: React.MutableRefObject<QueryIndexState>;
   isQueryEditorDirty: boolean;
@@ -129,9 +128,7 @@ export interface UseQueryPanelEditorReturnType {
   options: IEditorConstructionOptions;
   placeholder: string;
   promptIsTyping: boolean;
-  showPlaceholder: boolean;
   useLatestTheme: true;
-  value: string;
 }
 
 export const useQueryPanelEditor = ({
@@ -139,40 +136,42 @@ export const useQueryPanelEditor = ({
   promptModeIsAvailable,
   isPromptEditorMode: isPromptMode,
   queryLanguage,
-  userQueryString,
+  editorTextValue,
   handleRun,
   handleEscape,
   handleSpaceBar,
   handleChange,
-  editorTextRef,
   editorRef,
   selectedIndexRef,
   isQueryEditorDirty,
 }: UseQueryPanelEditorProps): UseQueryPanelEditorReturnType => {
   const { promptIsTyping, handleChangeForPromptIsTyping } = usePromptIsTyping();
-  const [editorText, setEditorText] = useState<string>(userQueryString);
   const [editorIsFocused, setEditorIsFocused] = useState(false);
   const isQueryMode = !isPromptMode;
   const isPromptModeRef = useRef(isPromptMode);
   const promptModeIsAvailableRef = useRef(promptModeIsAvailable);
   const handleRunRef = useRef(handleRun);
   const completionProviderRef = useRef<monaco.IDisposable>();
+  const editorTextRef = useRef(editorTextValue);
 
   // Keep the refs updated with latest context
   useEffect(() => {
-    editorTextRef.current = editorText;
-    isPromptModeRef.current = isPromptMode;
-    promptModeIsAvailableRef.current = promptModeIsAvailable;
-    handleRunRef.current = handleRun;
-  }, [editorText, editorTextRef, isPromptMode, promptModeIsAvailable, handleRun, userQueryString]);
+    editorTextRef.current = editorTextValue;
+  }, [editorTextValue]);
   useEffect(() => {
-    setEditorText(userQueryString);
-  }, [userQueryString]);
+    isPromptModeRef.current = isPromptMode;
+  }, [isPromptMode]);
+  useEffect(() => {
+    promptModeIsAvailableRef.current = promptModeIsAvailable;
+  }, [promptModeIsAvailable]);
+  useEffect(() => {
+    handleRunRef.current = handleRun;
+  }, [handleRun]);
 
   // The 'triggerSuggestOnFocus' prop of CodeEditor only happens on mount, so I am intentionally not passing it
   // and programmatically doing it here. We should only trigger autosuggestion on focus while on isQueryMode and there is text
   useEffect(() => {
-    if (isQueryMode && !!editorText.length) {
+    if (isQueryMode && !!editorTextValue.length) {
       const onDidFocusDisposable = editorRef.current?.onDidFocusEditorWidget(() => {
         editorRef.current?.trigger('keyboard', 'editor.action.triggerSuggest', {});
       });
@@ -181,7 +180,7 @@ export const useQueryPanelEditor = ({
         onDidFocusDisposable?.dispose();
       };
     }
-  }, [isQueryMode, editorRef, editorText]);
+  }, [isQueryMode, editorRef, editorTextValue]);
 
   const setEditorRef = useCallback(
     (editor: IStandaloneCodeEditor) => {
@@ -208,7 +207,7 @@ export const useQueryPanelEditor = ({
           query: model.getValue(), // Use the current editor content, using the local query results in a race condition where we can get stale query data
           selectionStart: model.getOffsetAt(position),
           selectionEnd: model.getOffsetAt(position),
-          language: effectiveLanguage,
+          language: effectiveLanguage === 'PPL' ? 'PPL_Simplified' : effectiveLanguage, // TODO: use getEffectiveLanguageForAutoComplete from data plugin
           baseLanguage: queryLanguage, // Pass the original language before transformation
           indexPattern: selectedIndexRef.current as any, // Supply necessary parameters to getQuerySuggestions
           datasetType: 'INDEX', // TODO: if we support index pattern in the future
@@ -330,7 +329,7 @@ export const useQueryPanelEditor = ({
         return editor;
       };
     },
-    [setEditorRef, handleEscape, setEditorIsFocused, editorTextRef, handleSpaceBar]
+    [setEditorRef, handleEscape, setEditorIsFocused, handleSpaceBar]
   );
 
   const options = useMemo(() => (isQueryMode ? queryEditorOptions : promptEditorOptions), [
@@ -355,8 +354,7 @@ export const useQueryPanelEditor = ({
 
   const onChange = useCallback(
     (newText: string) => {
-      setEditorText(newText);
-      if (!isQueryEditorDirty) handleChange();
+      if (!isQueryEditorDirty) handleChange(newText);
       if (isPromptMode) handleChangeForPromptIsTyping();
     },
     [isPromptMode, handleChangeForPromptIsTyping, isQueryEditorDirty, handleChange]
@@ -373,8 +371,6 @@ export const useQueryPanelEditor = ({
     options,
     placeholder,
     promptIsTyping,
-    showPlaceholder: !editorText.length,
     useLatestTheme: true,
-    value: editorText,
   };
 };

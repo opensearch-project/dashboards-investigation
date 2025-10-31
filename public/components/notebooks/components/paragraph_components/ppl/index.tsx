@@ -8,7 +8,6 @@ import {
   EuiCodeBlock,
   EuiCompressedFormRow,
   EuiFlexGroup,
-  EuiIcon,
   EuiIconTip,
   EuiLink,
   EuiLoadingContent,
@@ -18,7 +17,6 @@ import {
 import { useObservable, useEffectOnce } from 'react-use';
 import { NoteBookServices } from 'public/types';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
-import { useParagraphs } from '../../../../../hooks/use_paragraphs';
 import {
   PPL_DOCUMENTATION_URL,
   SQL_DOCUMENTATION_URL,
@@ -29,6 +27,7 @@ import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/ope
 import { MultiVariantInput } from '../../input/multi_variant_input';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
 import { addTimeRangeFilter } from '../../../../../utils/time';
+import { NotebookType } from '../../../../../../common/types/notebooks';
 
 export interface QueryObject {
   schema?: any[];
@@ -88,21 +87,26 @@ export const PPLParagraph = ({
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
-  const { saveParagraph } = useParagraphs();
   const queryObject = paragraphValue.fullfilledOutput;
-  const { isWaitingForPPLResult, error } = paragraphValue?.uiState?.ppl || {};
+  const error = queryObject?.error;
 
   const context = useContext(NotebookReactContext);
+  const { saveParagraph, runParagraph } = context.paragraphHooks;
+  const { notebookType, dataSourceId: notebookDataSourceId } = useObservable(
+    context.state.value.context.getValue$(),
+    context.state.value.context.value
+  );
+
+  const isAgenticNotebook = notebookType === NotebookType.AGENTIC;
+
   const paragraphRegistry = paragraphService.getParagraphRegistry(getInputType(paragraphValue));
 
   useEffectOnce(() => {
-    (async () => {
-      await paragraphRegistry?.runParagraph({
-        paragraphState,
-        saveParagraph,
-        notebookStateValue: context.state.value,
-      });
-    })();
+    paragraphRegistry?.runParagraph({
+      paragraphState,
+      saveParagraph,
+      notebookStateValue: context.state.value,
+    });
   });
 
   const inputQuery = useMemo(
@@ -113,12 +117,16 @@ export const PPLParagraph = ({
     [paragraphValue.input.inputText]
   );
 
+  const outputQuery = useMemo(() => ParagraphState.getOutput(paragraphValue)?.result, [
+    paragraphValue,
+  ]);
+
   const inputQueryWithTimeFilter = useMemo(() => {
     const params = paragraphValue.input.parameters as any;
     return paragraphValue.input.inputText.startsWith('%sql')
       ? inputQuery
-      : params?.query || addTimeRangeFilter(inputQuery, params);
-  }, [inputQuery, paragraphValue.input.parameters, paragraphValue.input.inputText]);
+      : params?.query || addTimeRangeFilter(outputQuery || inputQuery, params);
+  }, [inputQuery, paragraphValue.input.parameters, paragraphValue.input.inputText, outputQuery]);
 
   const columns = useMemo(() => createQueryColumns(queryObject?.schema || []), [
     queryObject?.schema,
@@ -126,57 +134,47 @@ export const PPLParagraph = ({
   const data = useMemo(() => getQueryOutputData(queryObject ?? {}), [queryObject]);
   const isRunning = paragraphValue.uiState?.isRunning;
 
+  const paragarphDataSource = paragraphValue?.dataSourceMDSId;
+
   if (!paragraphRegistry) {
     return null;
   }
 
   return (
     <>
-      <EuiFlexGroup style={{ marginTop: 0 }} />
-      <EuiSpacer size="s" />
       <EuiCompressedFormRow
         fullWidth={true}
-        helpText={
-          <EuiText size="s">
-            Supported languages include{' '}
-            {
-              <>
-                <EuiLink href={SQL_DOCUMENTATION_URL} target="_blank">
-                  SQL
-                </EuiLink>{' '}
-                <EuiLink href={PPL_DOCUMENTATION_URL} target="_blank">
-                  PPL
-                </EuiLink>{' '}
-              </>
-            }
-            .
-          </EuiText>
-        }
+        helpText={<EuiSpacer size="s" />}
         isInvalid={!!error}
         error={
           <EuiText size="s">
             {error}.{' '}
-            {getInputType(paragraphState.getBackendValue()) === 'ppl' ? (
-              <EuiLink href={PPL_DOCUMENTATION_URL} target="_blank">
-                Learn More
-              </EuiLink>
-            ) : (
-              <EuiLink href={SQL_DOCUMENTATION_URL} target="_blank">
-                <EuiIcon type="popout" size="s" />
-              </EuiLink>
-            )}
+            <EuiLink
+              href={
+                getInputType(paragraphState.getBackendValue()) === 'ppl'
+                  ? PPL_DOCUMENTATION_URL
+                  : SQL_DOCUMENTATION_URL
+              }
+              target="_blank"
+            >
+              Learn More
+            </EuiLink>
           </EuiText>
         }
       >
         <div style={{ width: '100%' }}>
-          <EuiSpacer size="xl" />
           <MultiVariantInput
             input={{
               inputText: inputQuery,
               inputType: getInputType(paragraphValue).toUpperCase(),
               parameters: paragraphValue.input.parameters,
             }}
-            onSubmit={({ inputText, inputType, parameters }) => {
+            onSubmit={({ inputText, inputType, parameters }, dataSourceMDSId) => {
+              if (dataSourceMDSId) {
+                paragraphState.updateValue({
+                  dataSourceMDSId,
+                });
+              }
               paragraphState.updateInput({
                 inputText: inputType === 'SQL' ? `%sql\n${inputText}` : `%ppl\n${inputText}`,
                 parameters,
@@ -184,17 +182,17 @@ export const PPLParagraph = ({
               paragraphState.updateUIState({
                 isOutputStale: true,
               });
-              paragraphRegistry?.runParagraph({
-                paragraphState,
-                saveParagraph,
-                notebookStateValue: context.state.value,
+              paragraphState.resetFullfilledOutput();
+              runParagraph({
+                id: paragraphValue.id,
               });
             }}
             actionDisabled={actionDisabled}
+            dataSourceId={isAgenticNotebook ? notebookDataSourceId : paragarphDataSource}
           />
         </div>
       </EuiCompressedFormRow>
-      {isRunning || isWaitingForPPLResult ? (
+      {isRunning ? (
         <EuiLoadingContent />
       ) : (
         <>
@@ -208,9 +206,11 @@ export const PPLParagraph = ({
               >
                 <b>{inputQueryWithTimeFilter}</b>
               </EuiText>
-              <EuiFlexGroup justifyContent="flexEnd" gutterSize="none">
-                <EuiIconTip content="A maximum of 100 random results are displayed" />
-              </EuiFlexGroup>
+              {isAgenticNotebook && (
+                <EuiFlexGroup justifyContent="flexEnd" gutterSize="none">
+                  <EuiIconTip content="A maximum of 100 random results are displayed" />
+                </EuiFlexGroup>
+              )}
               <EuiSpacer size="xs" />
               <QueryDataGridMemo
                 rowCount={queryObject?.datarows?.length || 0}

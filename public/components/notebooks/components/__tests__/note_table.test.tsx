@@ -10,6 +10,7 @@ import Adapter from 'enzyme-adapter-react-16';
 import React from 'react';
 import { NoteTable } from '../note_table';
 import {
+  applicationServiceMock,
   chromeServiceMock,
   httpServiceMock,
   notificationServiceMock,
@@ -40,6 +41,7 @@ jest.mock('../../../../../public/services', () => ({
 
 describe('<NoteTable /> spec', () => {
   configure({ adapter: new Adapter() });
+  const applicationMock = applicationServiceMock.createStartContract();
 
   const props = {
     http: {
@@ -65,6 +67,16 @@ describe('<NoteTable /> spec', () => {
     } as any,
     notifications: notificationServiceMock.createStartContract(),
     chrome: chromeServiceMock.createStartContract(),
+    application: {
+      ...applicationMock,
+      capabilities: {
+        ...applicationMock.capabilities,
+        investigation: {
+          ...applicationMock.capabilities.investigation,
+          agenticFeaturesEnabled: true,
+        },
+      },
+    },
   };
 
   const deleteNotebook = jest.fn();
@@ -110,6 +122,7 @@ describe('<NoteTable /> spec', () => {
     await waitFor(() => {
       expect(utils.container.querySelectorAll('.euiTableRow').length).toEqual(5);
     });
+    await utils.findByText(/This table contains /);
     expect(utils.container.firstChild).toMatchSnapshot();
     fireEvent.click(utils.getByText('Add sample notebooks'));
     fireEvent.click(utils.getAllByLabelText('Select this row')[0]);

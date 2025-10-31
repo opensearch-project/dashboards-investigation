@@ -7,11 +7,6 @@
     display: flex;
     overflow: hidden;
 
-
-    > :last-child {
-        margin-right: auto;
-    }
-
     &__verticalSeparator {
         width: 1px;
         height: $ouiSizeS * 2;
@@ -27,7 +22,7 @@
         }
 
         * {
-            background-color: white;
+            background-color: $ouiColorEmptyShade;
             border: none !important;
             padding: 0;
             font-size: 14px;
@@ -57,5 +52,40 @@
     &__indexSelectorWrapper {
         flex-shrink: 1;
         min-width: 0;
+    }
+
+    &__dataSourceSelector {
+        display: flex;
+
+        .dataSourceMenuPopoverButton {
+            background: none;
+            border: none;
+
+            &::before {
+                display: none;
+            }
+        }
+
+        .dataSourceMenuPopoverButtonLabel {
+            box-shadow: none !important;
+            padding-right: 14px !important;
+
+            .euiButtonContent {
+                padding: 0 $ouiSizeS;
+            }
+
+            +.euiIcon {
+                margin: 0 0 0 -14px !important;
+            }
+        }
+
+        .euiButton__text {
+            display: none;
+        }
+
+        .euiIcon {
+            width: $ouiSizeM;
+            color: $ouiColorPrimary;
+        }
     }
 }

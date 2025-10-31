@@ -6,36 +6,31 @@
 import React from 'react';
 import {
   EuiBasicTable,
+  EuiButtonIcon,
   EuiCodeBlock,
   EuiEmptyPrompt,
   EuiTableFieldDataColumnType,
   EuiText,
+  EuiToolTip,
 } from '@elastic/eui';
 import { LogSequenceEntry } from '../../../../../../common/types/log_pattern';
 import { SequenceItem } from './sequence_item';
 import { LogAnalyticsLoadingPanel } from './log_analytics_loading_panel';
 
 interface LogSequenceProps {
-  exceptionalSequences?: LogSequenceEntry;
-  baselineSequences?: LogSequenceEntry;
+  exceptionalSequences?: LogSequenceEntry[];
+  baselineSequences?: LogSequenceEntry[];
   isLoadingLogSequence: boolean;
+  isNotApplicable: boolean;
+  onExclude?: (item: LogSequenceEntry) => void;
 }
 
 export const LogSequence: React.FC<LogSequenceProps> = ({
   exceptionalSequences,
   isLoadingLogSequence,
+  isNotApplicable,
+  onExclude,
 }) => {
-  // Helper function to convert map to array for table rendering
-  const convertMapToSequenceArray = (
-    map: { [key: string]: string } | undefined
-  ): LogSequenceEntry[] => {
-    if (!map) return [];
-    return Object.entries(map).map(([traceId, sequence]) => ({
-      traceId,
-      sequence,
-    }));
-  };
-
   // Columns for sequence entries table
   const sequenceColumns: Array<EuiTableFieldDataColumnType<LogSequenceEntry>> = [
     {
@@ -63,8 +58,8 @@ export const LogSequence: React.FC<LogSequenceProps> = ({
           <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
             {sequenceItems.length > 0 ? (
               <ol>
-                {sequenceItems.map((item, index) => (
-                  <SequenceItem key={index} item={item} index={index} />
+                {sequenceItems.reverse().map((item, index) => (
+                  <SequenceItem key={index} item={item} index={sequenceItems.length - index} />
                 ))}
               </ol>
             ) : (
@@ -77,27 +72,57 @@ export const LogSequence: React.FC<LogSequenceProps> = ({
       },
       width: '70%',
     },
+    ...(onExclude
+      ? [
+          {
+            field: '',
+            name: 'Actions',
+            render: (record: LogSequenceEntry) => (
+              <EuiToolTip content="Exclude from the results">
+                <EuiButtonIcon
+                  key={`deselect-${record.traceId}`}
+                  iconType="crossInCircleEmpty"
+                  aria-label="Deselect item"
+                  onClick={() => onExclude(record)}
+                  color="subdued"
+                />
+              </EuiToolTip>
+            ),
+            width: '10%',
+          },
+        ]
+      : []),
   ];
-
-  const exceptionalArray = convertMapToSequenceArray(exceptionalSequences);
 
   const renderSection = () => {
     const title = 'Exceptional Sequences';
-    const emptyMessage = 'No exceptional log sequences detected during the analysis period.';
+    const emptyMessage = isNotApplicable
+      ? 'Log sequence detection is not applicable due to no baseline.'
+      : 'No exceptional log sequences detected during the analysis period.';
+    const emptyResultTitle = isNotApplicable ? 'Not applicable' : `No ${title.toLowerCase()} found`;
     return (
       <>
-        {exceptionalArray.length === 0 ? (
+        {!exceptionalSequences || exceptionalSequences.length === 0 ? (
           <EuiEmptyPrompt
             iconType="search"
-            title={<h4>No {title.toLowerCase()} found</h4>}
+            title={<h4>{emptyResultTitle}</h4>}
             body={<p>{emptyMessage}</p>}
           />
         ) : (
           <EuiBasicTable
-            items={exceptionalArray}
+            items={exceptionalSequences}
             columns={sequenceColumns}
             tableCaption={title}
             noItemsMessage={emptyMessage}
+            rowProps={(item) => ({
+              style: item.excluded
+                ? {
+                    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                    color: 'var(--euiColorSubdued)',
+                    opacity: 0.3,
+                  }
+                : undefined,
+            })}
           />
         )}
       </>

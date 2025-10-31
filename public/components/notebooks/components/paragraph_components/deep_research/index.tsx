@@ -29,7 +29,6 @@ import {
   ParagraphState,
   ParagraphStateValue,
 } from '../../../../../../common/state/paragraph_state';
-import { useParagraphs } from '../../../../../hooks/use_paragraphs';
 import { getLocalInputParameters } from '../../helpers/per_agent_helpers';
 
 import { DeepResearchOutput } from './deep_research_output';
@@ -130,7 +129,7 @@ export const DeepResearchParagraph = ({
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
 
-  const { state } = useContext(NotebookReactContext);
+  const { state, paragraphHooks } = useContext(NotebookReactContext);
   const [showContextModal, setShowContextModal] = useState(false);
   const [traceMessageId, setTraceMessageId] = useState<string>();
   const [showSteps, setShowSteps] = useState(false);
@@ -155,8 +154,7 @@ export const DeepResearchParagraph = ({
   const messageFinished = !!message && !!message.response;
   const executorMemoryId = useObservable(PERAgentServices.executorMemoryId$);
 
-  // Get paragraph runner and parse output result
-  const { runParagraph } = useParagraphs();
+  const { runParagraph } = paragraphHooks;
   const rawOutputResult = ParagraphState.getOutput(paragraphValue)?.result;
   // FIXME: Read paragraph out directly once all notebooks store object as output
   const outputResult = useMemo(() => parseOutputResult(rawOutputResult), [rawOutputResult]);
@@ -172,13 +170,13 @@ export const DeepResearchParagraph = ({
     async (inputPayload?: Partial<ParagraphStateValue['input']>) => {
       paragraphState.updateInput({
         ...inputPayload,
-        parameters: getLocalInputParameters(),
+        parameters: getLocalInputParameters(contextValue.dataSourceId),
       });
       await runParagraph({
         id: paragraphValue.id,
       });
     },
-    [runParagraph, paragraphState, paragraphValue.id]
+    [runParagraph, paragraphState, paragraphValue.id, contextValue.dataSourceId]
   );
 
   // Auto-run paragraph if there's an initial goal

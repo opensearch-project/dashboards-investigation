@@ -12,7 +12,7 @@ export const generateAgentIdKey = (dataSourceId?: string) =>
     typeof dataSourceId === 'undefined' ? 'undefined' : dataSourceId
   );
 
-export const getLocalStoredAgentId = (dataSourceId?: string) => {
+export const getLocalStoredAgentId = (dataSourceId: string | undefined) => {
   return localStorage.getItem(generateAgentIdKey(dataSourceId)) ?? undefined;
 };
 
@@ -28,9 +28,9 @@ export const getSystemPrompts = () => {
   return prompts;
 };
 
-export const getLocalInputParameters = () => {
+export const getLocalInputParameters = (dataSourceId: string | undefined) => {
   return {
     prompts: getSystemPrompts(),
-    agentId: getLocalStoredAgentId(),
+    agentId: getLocalStoredAgentId(dataSourceId),
   };
 };

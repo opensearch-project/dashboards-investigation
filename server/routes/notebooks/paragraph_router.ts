@@ -30,6 +30,7 @@ const paragraphOutputValidation = schema.arrayOf(
   schema.object({
     outputType: schema.string(),
     result: schema.oneOf([schema.string(), schema.object({}, { unknowns: 'allow' })]),
+    execution_time: schema.maybe(schema.string()),
   })
 );
 
@@ -43,6 +44,7 @@ export function registerParaRoute(router: IRouter) {
           paragraphIndex: schema.number(),
           input: paragraphInputValidation,
           dataSourceMDSId: schema.maybe(schema.string()),
+          aiGenerated: schema.maybe(schema.boolean()),
         }),
       },
     },

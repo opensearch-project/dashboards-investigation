@@ -71,7 +71,13 @@ export const addTimeRangeFilter = (query: string, params: any) => {
     return query;
   }
 
-  const { timeRange, timeField } = params as { timeRange: TimeRange; timeField: string };
-  const { fromDate, toDate } = formatTimePickerDate(timeRange, dateFormat);
+  const { timeRange, timeField } = params as {
+    timeRange: TimeRange | undefined;
+    timeField: string;
+  };
+  const { fromDate, toDate } = formatTimePickerDate(
+    timeRange ?? { from: 'now-15m', to: 'now' },
+    dateFormat
+  );
   return getPPLQueryWithTimeRange(query, fromDate, toDate, timeField);
 };

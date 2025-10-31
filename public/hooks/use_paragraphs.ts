@@ -3,22 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useContext, useCallback } from 'react';
+import { useCallback } from 'react';
 import { ParagraphBackendType } from 'common/types/notebooks';
 import { NoteBookServices } from 'public/types';
+import { NotebookState } from 'common/state/notebook_state';
 import {
   AI_RESPONSE_TYPE,
   DEEP_RESEARCH_PARAGRAPH_TYPE,
   NOTEBOOKS_API_PREFIX,
 } from '../../common/constants/notebooks';
-import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
+import { getInputType } from '../../common/utils/paragraph';
 
-export const useParagraphs = () => {
-  const context = useContext(NotebookReactContext);
+export const useParagraphs = (context: { state: NotebookState }) => {
   const {
     services: { notifications, http, contextService, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
@@ -29,12 +29,14 @@ export const useParagraphs = () => {
       index: number;
       input: ParagraphBackendType<unknown, TInput>['input'];
       dataSourceMDSId?: string;
+      aiGenerated?: boolean;
     }) => {
       const addParaObj = {
         noteId: context.state.value.id,
         input: props.input,
         paragraphIndex: props.index,
         dataSourceMDSId: props.dataSourceMDSId,
+        aiGenerated: !!props.aiGenerated,
       };
 
       return http
@@ -182,7 +184,7 @@ export const useParagraphs = () => {
     [context.state]
   );
 
-  return {
+  const payload = {
     createParagraph,
     deleteParagraph: (index: number) => {
       if (index < 0) {
@@ -286,6 +288,12 @@ export const useParagraphs = () => {
           .then(async (res) => {
             const paragraphState = context.state.value.paragraphs[index];
             paragraphState.updateValue(res);
+
+            await paragraphService.getParagraphRegistry(getInputType(res))?.runParagraph({
+              paragraphState,
+              saveParagraph,
+              notebookStateValue: context.state.value,
+            });
           })
           .catch((err) => {
             if (err?.body?.statusCode === 413)
@@ -301,7 +309,9 @@ export const useParagraphs = () => {
             });
           });
       },
-      [context.state, http, notifications.toasts, paragraphService]
+      [context.state, http, notifications.toasts, paragraphService, saveParagraph]
     ),
   };
+
+  return payload;
 };

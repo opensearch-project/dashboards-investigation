@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { EuiLoadingSpinner, EuiSmallButtonIcon, EuiTextArea } from '@elastic/eui';
 import { useInputContext } from '../input_context';
 import './index.scss';
+import { getLocalInputParameters } from '../../helpers/per_agent_helpers';
 
 interface NotebookInputProps {
   placeholder: string;
@@ -14,7 +15,9 @@ interface NotebookInputProps {
 
 export const NotebookInput: React.FC<NotebookInputProps> = ({ placeholder }) => {
   const { inputValue, textareaRef, handleInputChange, isLoading } = useInputContext();
-  const { handleSubmit } = useInputContext();
+  const { handleSubmit, dataSourceId } = useInputContext();
+
+  const inputParameters = useMemo(() => getLocalInputParameters(dataSourceId), [dataSourceId]);
 
   useEffect(() => {
     handleInputChange('');
@@ -35,7 +38,7 @@ export const NotebookInput: React.FC<NotebookInputProps> = ({ placeholder }) => 
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSubmit();
+            handleSubmit(inputValue as string, inputParameters);
           }
         }}
         disabled={isLoading}
@@ -60,7 +63,7 @@ export const NotebookInput: React.FC<NotebookInputProps> = ({ placeholder }) => 
           <EuiSmallButtonIcon
             iconType="rocket"
             className="notebook-input__button"
-            onClick={() => handleSubmit()}
+            onClick={() => handleSubmit(inputValue as string, inputParameters)}
             aria-label="submit input"
           />
         </div>

@@ -20,8 +20,9 @@ import {
   notebookPutResponse,
   runCodeBlockResponse,
 } from '../../../../../test/notebooks_constants';
-import { Notebook, NotebookProps } from '../notebook';
+import { ClassicNotebook, ClassicNotebookProps } from '../classic_notebook';
 import {
+  applicationServiceMock,
   chromeServiceMock,
   notificationServiceMock,
   savedObjectsServiceMock,
@@ -138,7 +139,8 @@ jest.mock('../../../../../public/services', () => ({
   })),
 }));
 
-const ContextAwareNotebook = (props: NotebookProps & { dataSourceEnabled?: boolean }) => {
+const ContextAwareNotebook = (props: ClassicNotebookProps & { dataSourceEnabled?: boolean }) => {
+  const applicationMock = applicationServiceMock.createStartContract();
   return (
     <OpenSearchDashboardsContextProvider
       services={{
@@ -170,9 +172,23 @@ const ContextAwareNotebook = (props: NotebookProps & { dataSourceEnabled?: boole
             ParagraphComponent: () => <div data-test-subj="mock-paragraph" />,
           }),
         },
+        application: {
+          ...applicationMock,
+          capabilities: {
+            ...applicationMock.capabilities,
+            investigation: {
+              ...applicationMock.capabilities.investigation,
+              agenticFeaturesEnabled: true,
+            },
+          },
+        },
+        updateContext: jest.fn(),
+        findingService: {
+          initialize: jest.fn(),
+        },
       }}
     >
-      <Notebook {...props} />
+      <ClassicNotebook {...props} />
     </OpenSearchDashboardsContextProvider>
   );
 };
@@ -185,7 +201,7 @@ describe('<Notebook /> spec', () => {
   const history = jest.fn() as any;
   history.replace = jest.fn();
   history.push = jest.fn();
-  const defaultProps: NotebookProps = {
+  const defaultProps: ClassicNotebookProps = {
     openedNoteId: '458e1320-3f05-11ef-bd29-e58626f102c0',
     showPageHeader: true,
   };

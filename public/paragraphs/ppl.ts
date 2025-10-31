@@ -12,20 +12,22 @@ import {
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
 import { getClient, getNotifications } from '../services';
-import { executePPLQueryWithHeadFilter } from '../../public/utils/query';
+import { executePPLQuery, jsonArrayToTsv } from '../../public/utils/query';
 import { parsePPLQuery } from '../../common/utils';
 import { addTimeRangeFilter } from '../utils/time';
+import { NotebookType } from '../../common/types/notebooks';
+import { ParagraphState } from '../../common/state/paragraph_state';
 
 export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObject> = {
   ParagraphComponent: PPLParagraph,
   getContext: async (paragraph) => {
-    const { output, dataSourceMDSId } = paragraph || {};
-    if (!output?.[0].result) {
+    const { input, dataSourceMDSId } = paragraph || {};
+    if (!input?.inputText) {
       return '';
     }
 
-    const query = output[0].result;
-    const isSqlQuery = paragraph?.input?.inputText.substring(0, 4) === '%sql';
+    const query = ParagraphState.getOutput(paragraph)?.result || input.inputText.substring(5);
+    const isSqlQuery = input?.inputText.substring(0, 4) === '%sql';
     const queryType = isSqlQuery ? '_sql' : '_ppl';
     const queryTypeName = isSqlQuery ? 'SQL' : 'PPL';
 
@@ -44,11 +46,14 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
               }),
             },
           })
-        : executePPLQueryWithHeadFilter({
-            http: getClient(),
-            dataSourceId: dataSourceMDSId,
-            query,
-          }));
+        : executePPLQuery(
+            {
+              http: getClient(),
+              dataSourceId: dataSourceMDSId,
+              query,
+            },
+            true
+          ));
 
       if (!queryObject || queryObject.error) {
         return '';
@@ -68,17 +73,22 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
           ## Step result:
           User has executed the following ${queryTypeName} query: '${query}' which returned the following results:
           
-          \`\`\`json
-          ${JSON.stringify(data)}
+          \`\`\`tsv
+          ${jsonArrayToTsv(data)}
           \`\`\`
         `;
   },
-  runParagraph: async ({ paragraphState, saveParagraph }) => {
+  runParagraph: async ({ paragraphState, notebookStateValue }) => {
     const paragraphValue = paragraphState.getBackendValue();
     const inputText = paragraphValue.input.inputText;
     const queryType = inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
     const queryParams = paragraphValue.input.parameters as any;
-    const inputQuery = queryParams?.query || inputText.substring(5);
+    const inputQuery =
+      ParagraphState.getOutput(paragraphValue)?.result ||
+      queryParams?.query ||
+      inputText.substring(5);
+    const { notebookType } = notebookStateValue.context.value;
+
     if (isEmpty(inputQuery)) {
       return;
     }
@@ -94,14 +104,9 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
     }
     paragraphState.updateUIState({
       isRunning: true,
-      ppl: { isWaitingForPPLResult: true },
     });
 
     try {
-      await saveParagraph({
-        paragraphStateValue: paragraphValue,
-      });
-
       const queryResponse = await (queryType === '_sql'
         ? callOpenSearchCluster({
             http: getClient(),
@@ -114,22 +119,26 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
               }),
             },
           })
-        : executePPLQueryWithHeadFilter({
-            http: getClient(),
-            dataSourceId: paragraphValue.dataSourceMDSId,
-            query: addTimeRangeFilter(currentSearchQuery, queryParams),
-          }));
+        : executePPLQuery(
+            {
+              http: getClient(),
+              dataSourceId: paragraphValue.dataSourceMDSId,
+              query: addTimeRangeFilter(currentSearchQuery, queryParams),
+            },
+            notebookType === NotebookType.AGENTIC
+          ));
 
       paragraphState.updateFullfilledOutput(queryResponse);
       paragraphState.updateUIState({
         isRunning: false,
-        ppl: { isWaitingForPPLResult: false },
       });
     } catch (err) {
       paragraphState.resetFullfilledOutput();
+      paragraphState.updateFullfilledOutput({
+        error: err.message,
+      });
       paragraphState.updateUIState({
         isRunning: false,
-        ppl: { error: err.message, isWaitingForPPLResult: false },
       });
       getNotifications().toasts.addDanger(`Error executing query: ${err.message}`);
     }

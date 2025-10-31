@@ -20,7 +20,6 @@ import {
   EuiSpacer,
   EuiText,
 } from '@elastic/eui';
-import CSS from 'csstype';
 import React, { useState, useEffect, useRef } from 'react';
 
 import { useContext } from 'react';
@@ -28,12 +27,8 @@ import { useObservable } from 'react-use';
 import { useCallback } from 'react';
 import { NoteBookServices } from 'public/types';
 import { ParagraphState } from '../../../../common/state/paragraph_state';
-import {
-  CREATE_NOTE_MESSAGE,
-  DEEP_RESEARCH_PARAGRAPH_TYPE,
-  NOTEBOOKS_API_PREFIX,
-} from '../../../../common/constants/notebooks';
-import { NoteBookSource } from '../../../../common/types/notebooks';
+import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
+import { NotebookComponentProps, NotebookType } from '../../../../common/types/notebooks';
 import { getCustomModal, getDeleteModal } from './helpers/modal_containers';
 import { Paragraphs } from './paragraph_components/paragraphs';
 import {
@@ -42,31 +37,13 @@ import {
   getDefaultState,
 } from '../context_provider/context_provider';
 import { InputPanel } from './input_panel';
-import { useParagraphs } from '../../../hooks/use_paragraphs';
 import { isValidUUID } from './helpers/notebooks_parser';
 import { useNotebook } from '../../../hooks/use_notebook';
-import { usePrecheck } from '../../../hooks/use_precheck';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
-import { AlertPanel } from './alert_panel';
-import { GlobalPanel } from './global_panel';
 import { NotebookHeader } from './notebook_header';
+import { createDashboardVizObject, DEFAULT_VIZ_INPUT_VALUE } from '../../../utils/visualization';
 
-const panelStyles: CSS.Properties = {
-  marginTop: '10px',
-};
-
-interface NotebookComponentProps {
-  showPageHeader?: boolean;
-}
-
-/*
- * "Notebook" component is used to display an open notebook
- *
- * Props taken in as params are:
- * DashboardContainerByValueRenderer - Dashboard container renderer for visualization
- * http object - for making API requests
- */
-export interface NotebookProps extends NotebookComponentProps {
+export interface ClassicNotebookProps extends NotebookComponentProps {
   openedNoteId: string;
 }
 
@@ -77,25 +54,20 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
-  const { createParagraph, deleteParagraph } = useParagraphs();
   const { loadNotebook: loadNotebookHook } = useNotebook();
-  const { start, setInitialGoal } = usePrecheck();
 
   const notebookContext = useContext(NotebookReactContext);
-  const { source } = useObservable(
-    notebookContext.state.value.context.getValue$(),
-    notebookContext.state.value.context.value
-  );
   const { id: openedNoteId, paragraphs: paragraphsStates, path, isLoading } = useObservable(
     notebookContext.state.getValue$(),
     notebookContext.state.value
   );
-  const { initialGoal } = useObservable(
+  const { notebookType } = useObservable(
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
   );
   const isSavedObjectNotebook = isValidUUID(openedNoteId);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const { createParagraph, deleteParagraph } = notebookContext.paragraphHooks;
 
   const showDeleteParaModal = (index: number) => {
     setModalLayout(
@@ -191,13 +163,6 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
           owner: res.owner,
         });
-        await setInitialGoal({
-          context: notebookContext.state.value.context.value,
-        });
-        await start({
-          context: notebookContext.state.value.context.value,
-          paragraphs: res.paragraphs,
-        });
       })
       .catch((err) => {
         notifications.toasts.addDanger(
@@ -205,11 +170,26 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         );
         console.error(err);
       });
-  }, [loadNotebookHook, notifications.toasts, notebookContext.state, start, setInitialGoal]);
+  }, [loadNotebookHook, notifications.toasts, notebookContext.state]);
 
   useEffect(() => {
     loadNotebook();
   }, [loadNotebook]);
+
+  if (!isLoading && notebookType === NotebookType.AGENTIC) {
+    return (
+      <EuiPage direction="column">
+        <EuiPageBody>
+          <EuiEmptyPrompt
+            iconType="alert"
+            iconColor="danger"
+            title={<h2>Error loading Notebook</h2>}
+            body={<p>Incorrect notebook type</p>}
+          />
+        </EuiPageBody>
+      </EuiPage>
+    );
+  }
 
   return (
     <>
@@ -236,14 +216,6 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               </EuiCallOut>
             </EuiFlexItem>
           )}
-          {source === NoteBookSource.ALERTING && (
-            <>
-              <AlertPanel />
-              <EuiSpacer />
-              <GlobalPanel />
-              <EuiSpacer />
-            </>
-          )}
           <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
             {isLoading ? (
               <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
@@ -265,7 +237,11 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               ))
             ) : (
               // show default paragraph if no paragraphs in this notebook
-              <div style={panelStyles}>
+              <div
+                style={{
+                  marginTop: '10px',
+                }}
+              >
                 <EuiPanel>
                   <EuiSpacer size="xxl" />
                   <EuiText textAlign="center">
@@ -314,8 +290,11 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                                 createParagraph({
                                   index: 0,
                                   input: {
-                                    inputText: '',
+                                    inputText: JSON.stringify(
+                                      createDashboardVizObject(DEFAULT_VIZ_INPUT_VALUE)
+                                    ),
                                     inputType: 'VISUALIZATION',
+                                    parameters: DEFAULT_VIZ_INPUT_VALUE,
                                   },
                                 })
                               }
@@ -326,31 +305,6 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                           }
                         />
                       </EuiFlexItem>
-                      {initialGoal ? (
-                        <EuiFlexItem grow={3}>
-                          <EuiCard
-                            icon={<EuiIcon size="xxl" type="inspect" />}
-                            title="Deep Research"
-                            description="Use deep research to analytics question."
-                            footer={
-                              <EuiSmallButton
-                                onClick={() =>
-                                  createParagraph({
-                                    index: 0,
-                                    input: {
-                                      inputText: initialGoal,
-                                      inputType: DEEP_RESEARCH_PARAGRAPH_TYPE,
-                                    },
-                                  })
-                                }
-                                style={{ marginBottom: 17 }}
-                              >
-                                Add deep research
-                              </EuiSmallButton>
-                            }
-                          />
-                        </EuiFlexItem>
-                      ) : null}
                       <EuiFlexItem grow={2} />
                     </EuiFlexGroup>
                   )}
@@ -368,7 +322,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   );
 }
 
-export const Notebook = ({ openedNoteId, ...rest }: NotebookProps) => {
+export const ClassicNotebook = ({ openedNoteId, ...rest }: ClassicNotebookProps) => {
   const {
     services: { dataSource },
   } = useOpenSearchDashboards<NoteBookServices>();

@@ -13,12 +13,19 @@ import {
 import { DataSourceManagementPluginSetup } from '../../../src/plugins/data_source_management/public';
 import { EmbeddableSetup, EmbeddableStart } from '../../../src/plugins/embeddable/public';
 import { NavigationPublicPluginStart } from '../../../src/plugins/navigation/public';
-import { VisualizationsSetup } from '../../../src/plugins/visualizations/public';
+import {
+  VisualizationsSetup,
+  VisualizationsStart,
+} from '../../../src/plugins/visualizations/public';
 import { ExpressionsStart } from '../../../src/plugins/expressions/public';
 import { AppMountParameters, CoreStart } from '../../../src/core/public';
 import PPLService from './services/requests/ppl';
 import { ParagraphServiceSetup } from './services/paragraph_service';
 import { ContextServiceSetup } from './services/context_service';
+import { ContextProviderStart } from '../../../src/plugins/context_provider/public';
+import { FindingService } from './services/finding_service';
+import { AssistantSetup, AssistantPublicPluginStart } from '../../dashboards-assistant/public';
+import { NoteBookAssistantContext } from '../common/types/assistant_context';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -28,6 +35,9 @@ export interface AppPluginStartDependencies {
   data: DataPublicPluginStart;
   dataSource: DataSourcePluginStart;
   expressions: ExpressionsStart;
+  visualizations: VisualizationsStart;
+  contextProvider?: ContextProviderStart;
+  assistantDashboards?: AssistantPublicPluginStart;
 }
 
 export interface SetupDependencies {
@@ -36,6 +46,7 @@ export interface SetupDependencies {
   data: DataPublicPluginSetup;
   dataSource: DataSourcePluginSetup;
   dataSourceManagement?: DataSourceManagementPluginSetup;
+  assistantDashboards?: AssistantSetup; // Optional assistant plugin setup
 }
 
 export type NoteBookServices = CoreStart &
@@ -45,6 +56,8 @@ export type NoteBookServices = CoreStart &
     appMountService?: AppMountParameters;
     paragraphService: ParagraphServiceSetup;
     contextService: ContextServiceSetup;
+    updateContext: (id: string, chatConetxt: NoteBookAssistantContext | undefined) => void;
+    findingService: FindingService;
   };
 
 export interface InvestigationSetup {

@@ -22,7 +22,7 @@ export const SequenceItem: React.FC<SequenceItemProps> = ({ item, index }) => {
   return (
     <li>
       <EuiText color={isError ? 'danger' : 'default'} size="s">
-        {index + 1}. {item}
+        {index}. {item}
       </EuiText>
     </li>
   );
