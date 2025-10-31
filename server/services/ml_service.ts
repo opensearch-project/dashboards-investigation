@@ -88,4 +88,19 @@ export class MLService {
         }
       )
       .then(({ body }) => body);
+
+  createMemory = ({
+    transport,
+    name,
+  }: {
+    transport: OpenSearchClient['transport'];
+    name: string;
+  }) =>
+    transport
+      .request({
+        path: OPENSEARCH_ML_COMMONS_API.memory,
+        method: 'POST',
+        body: { name },
+      })
+      .then(({ body }) => body);
 }

@@ -133,6 +133,25 @@ export const getMLCommonsMessageTraces = async ({
         : {},
   });
 
+export const getMLCommonsMessage = async ({
+  http,
+  messageId,
+  signal,
+  dataSourceId,
+}: {
+  http: CoreStart['http'];
+  messageId: string;
+  signal?: AbortSignal;
+  dataSourceId?: string;
+}) =>
+  callApiWithProxy({
+    http,
+    method: 'GET',
+    path: OPENSEARCH_ML_COMMONS_API.singleMessage.replace('{messageId}', messageId),
+    signal,
+    dataSourceId,
+  });
+
 export const searchMLCommonsAgents = ({
   http,
   signal,
@@ -204,25 +223,6 @@ export const getMLCommonsConfig = ({
     http,
     method: 'GET',
     path: OPENSEARCH_ML_COMMONS_API.singleConfig.replace('{configName}', configName),
-    signal,
-    dataSourceId,
-  });
-
-export const getMLCommonsMessage = async ({
-  http,
-  messageId,
-  signal,
-  dataSourceId,
-}: {
-  http: CoreStart['http'];
-  messageId: string;
-  signal?: AbortSignal;
-  dataSourceId?: string;
-}) =>
-  callApiWithProxy({
-    http,
-    method: 'GET',
-    path: OPENSEARCH_ML_COMMONS_API.singleMessage.replace('{messageId}', messageId),
     signal,
     dataSourceId,
   });

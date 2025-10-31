@@ -18,6 +18,8 @@ import {
   EuiTabbedContent,
   EuiText,
 } from '@elastic/eui';
+import { combineLatest } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 import type { NoteBookServices } from 'public/types';
 import type { DeepResearchInputParameters, DeepResearchOutputResult } from 'common/types/notebooks';
@@ -35,12 +37,86 @@ import {
   AI_RESPONSE_TYPE,
   DEEP_RESEARCH_PARAGRAPH_TYPE,
 } from '../../../../../../common/constants/notebooks';
-import { isStateCompletedOrFailed } from '../../../../../../common/utils/task';
 import { getInputType } from '../../../../../../common/utils/paragraph';
+import { extractParentInteractionId } from '../../../../../../common/utils/task';
+import { CoreStart } from '../../../../../../../../src/core/public';
 
 import { PERAgentTaskService } from './services/per_agent_task_service';
 import { MessageTraceFlyout } from './message_trace_flyout';
 import { PERAgentMemoryService } from './services/per_agent_memory_service';
+import { PERAgentMessageService } from './services/per_agent_message_service';
+
+/**
+ * Custom hook to initialize and manage PER Agent services
+ */
+const usePERAgentServices = (
+  http: CoreStart['http'],
+  paragraphState: ParagraphState<Partial<DeepResearchOutputResult>, DeepResearchInputParameters>
+) => {
+  // Initialize services
+  // FIXME: Remove the task service in the production
+  const taskService = useMemo(() => new PERAgentTaskService(http), [http]);
+  const messageService = useMemo(() => new PERAgentMessageService(http), [http]);
+
+  // Create executor memory ID observable
+  const executorMemoryId$ = useMemo(
+    () =>
+      combineLatest([paragraphState.getValue$(), taskService.getExecutorMemoryId$()]).pipe(
+        map(([currentParagraphValue, executorMemoryId]) => {
+          if (
+            currentParagraphValue &&
+            !ParagraphState.getOutput(currentParagraphValue)?.result.executorAgentMemoryId
+          ) {
+            return executorMemoryId;
+          }
+          return ParagraphState.getOutput(currentParagraphValue)?.result.executorAgentMemoryId;
+        })
+      ),
+    [paragraphState, taskService]
+  );
+
+  // Initialize executor memory service
+  const executorMemoryService = useMemo(
+    () =>
+      new PERAgentMemoryService(http, executorMemoryId$, () => {
+        return !messageService.getMessageValue()?.response;
+      }),
+    [http, executorMemoryId$, messageService]
+  );
+
+  return {
+    task: taskService,
+    message: messageService,
+    executorMemory: executorMemoryService,
+    executorMemoryId$,
+  };
+};
+
+/**
+ * Parse raw output result into a structured format
+ */
+const parseOutputResult = (rawOutputResult: any): Partial<DeepResearchOutputResult> | undefined => {
+  if (typeof rawOutputResult !== 'string' || typeof rawOutputResult === 'undefined') {
+    return rawOutputResult;
+  }
+
+  if (!rawOutputResult) {
+    return undefined;
+  }
+
+  try {
+    const parsedResult = JSON.parse(rawOutputResult) as { task_id?: string };
+    if (typeof parsedResult?.task_id === 'string') {
+      return {
+        taskId: parsedResult.task_id,
+      };
+    }
+  } catch (e) {
+    console.error('Failed to parse output result', e);
+  }
+
+  return undefined;
+};
 
 export const DeepResearchParagraph = ({
   paragraphState,
@@ -52,65 +128,36 @@ export const DeepResearchParagraph = ({
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const PERAgentServices = useMemo(() => {
-    const taskService = new PERAgentTaskService(http);
-    const executorMemoryService = new PERAgentMemoryService(
-      http,
-      taskService.getExecutorMemoryId$(),
-      () => {
-        const task = taskService.getTaskValue();
-        return !!task && !isStateCompletedOrFailed(task.state);
-      }
-    );
-    return {
-      task: taskService,
-      executorMemory: executorMemoryService,
-    };
-  }, [http]);
-  const observables = useMemo(
-    () => ({
-      executorMemoryId$: PERAgentServices.task.getExecutorMemoryId$(),
-      task$: PERAgentServices.task.getTask$(),
-    }),
-    [PERAgentServices.task]
-  );
-  const executorMemoryId = useObservable(observables.executorMemoryId$);
 
   const { state, paragraphHooks } = useContext(NotebookReactContext);
   const [showContextModal, setShowContextModal] = useState(false);
   const [traceMessageId, setTraceMessageId] = useState<string>();
   const [showSteps, setShowSteps] = useState(false);
+
+  // Get paragraph and context values from observables
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const contextValue = useObservable(state.value.context.getValue$(), state.value.context.value);
-  const task = useObservable(observables.task$);
+
+  // Initialize PER Agent services
+  const PERAgentServices = usePERAgentServices(http, paragraphState);
+
+  // Get message observable and current message
+  const message$ = useMemo(() => PERAgentServices.message.getMessage$(), [
+    PERAgentServices.message,
+  ]);
+  const message = useObservable(message$);
+
+  // Get input parameters and message status
   const input =
     (paragraphValue.input.parameters as DeepResearchInputParameters) || paragraphValue.input;
-  const taskLoaded = !!task;
-  const taskFinished = task && isStateCompletedOrFailed(task.state);
+  const messageLoaded = !!message;
+  const messageFinished = !!message && !!message.response;
+  const executorMemoryId = useObservable(PERAgentServices.executorMemoryId$);
 
   const { runParagraph } = paragraphHooks;
   const rawOutputResult = ParagraphState.getOutput(paragraphValue)?.result;
   // FIXME: Read paragraph out directly once all notebooks store object as output
-  const outputResult = useMemo<DeepResearchOutputResult | undefined>(() => {
-    if (typeof rawOutputResult !== 'string' || typeof rawOutputResult === 'undefined') {
-      return rawOutputResult;
-    }
-    if (!rawOutputResult) {
-      return undefined;
-    }
-    let parsedResult;
-    try {
-      parsedResult = JSON.parse(rawOutputResult);
-    } catch (e) {
-      console.error('Failed to parse output result', e);
-    }
-    if (typeof parsedResult?.task_id === 'string') {
-      return {
-        taskId: parsedResult.task_id,
-      };
-    }
-    return undefined;
-  }, [rawOutputResult]);
+  const outputResult = useMemo(() => parseOutputResult(rawOutputResult), [rawOutputResult]);
   const isFirstDeepResearchParagraph = useMemo(() => {
     const firstDeepResearchParagraph = state.value.paragraphs.find(
       (item) => getInputType(item.value) === DEEP_RESEARCH_PARAGRAPH_TYPE
@@ -118,6 +165,7 @@ export const DeepResearchParagraph = ({
     return firstDeepResearchParagraph?.value.id === paragraphValue.id;
   }, [state.value.paragraphs, paragraphValue]);
 
+  // Handler for running paragraphs
   const runParagraphHandler = useCallback(
     async (inputPayload?: Partial<ParagraphStateValue['input']>) => {
       paragraphState.updateInput({
@@ -131,6 +179,7 @@ export const DeepResearchParagraph = ({
     [runParagraph, paragraphState, paragraphValue.id, contextValue.dataSourceId]
   );
 
+  // Auto-run paragraph if there's an initial goal
   useEffect(() => {
     if (
       !paragraphValue.uiState?.isRunning &&
@@ -139,96 +188,185 @@ export const DeepResearchParagraph = ({
       contextValue.initialGoal &&
       !outputResult?.taskId
     ) {
-      // automatically run paragraph if there is initial goal
       runParagraphHandler({
         inputText: contextValue.initialGoal,
       });
     }
   }, [contextValue, paragraphValue, outputResult, runParagraphHandler]);
 
+  // Update UI state with available actions
   useEffect(() => {
-    paragraphState.updateUIState({
-      actions: [
-        ...(executorMemoryId && taskFinished
-          ? [
-              {
-                name: `${showSteps ? 'Hide' : 'Show'} steps`,
-                action: () => {
-                  setShowSteps((flag) => !flag);
-                },
-              },
-            ]
-          : []),
-        ...(outputResult?.taskId
-          ? [
-              {
-                name: 'Show agent inputs',
-                action: () => {
-                  setShowContextModal(true);
-                },
-              },
-            ]
-          : []),
-        ...((paragraphValue.input.inputType === AI_RESPONSE_TYPE || isFirstDeepResearchParagraph) &&
-        !actionDisabled
-          ? [
-              {
-                name: 'Re-Run',
-                action: runParagraphHandler,
-              },
-            ]
-          : []),
-      ],
-    });
+    const actions = [];
+
+    // Add show/hide steps action if executor memory and response exist
+    if (executorMemoryId && !!message?.response) {
+      actions.push({
+        name: `${showSteps ? 'Hide' : 'Show'} steps`,
+        action: () => setShowSteps((flag) => !flag),
+      });
+    }
+
+    // Add show agent inputs action if message or task ID exists
+    if (outputResult?.messageId || outputResult?.taskId) {
+      actions.push({
+        name: 'Show agent inputs',
+        action: () => setShowContextModal(true),
+      });
+    }
+
+    // Add re-run action for AI response type
+    if (
+      (paragraphValue.input.inputType === AI_RESPONSE_TYPE || isFirstDeepResearchParagraph) &&
+      !actionDisabled
+    ) {
+      actions.push({
+        name: 'Re-Run',
+        action: runParagraphHandler,
+      });
+    }
+
+    paragraphState.updateUIState({ actions });
   }, [
     paragraphState,
     outputResult?.taskId,
-    executorMemoryId,
+    outputResult?.messageId,
     showSteps,
     paragraphValue.input.inputType,
     runParagraphHandler,
-    taskFinished,
     actionDisabled,
     isFirstDeepResearchParagraph,
+    message?.response,
+    executorMemoryId,
   ]);
 
+  // Setup message and task services based on output result
   useEffect(() => {
-    const taskId = outputResult?.taskId;
     const dataSourceId = paragraphValue.dataSourceMDSId;
+
+    // If we have a message ID, set up the message service
+    if (outputResult?.messageId) {
+      PERAgentServices.message.setup({
+        messageId: outputResult.messageId,
+        dataSourceId,
+      });
+      return () => {
+        PERAgentServices.message.stop('Unmount');
+      };
+    }
+
+    // Otherwise reset message service and set up task service if we have a task ID
+    PERAgentServices.message.reset();
+    const taskId = outputResult?.taskId;
+
     if (!taskId) {
       PERAgentServices.task.reset();
       return;
     }
+
+    // Set up task service and subscribe to task updates
     PERAgentServices.task.setup({
       taskId,
       dataSourceId,
     });
+
+    const subscription = PERAgentServices.task.getTask$().subscribe((task) => {
+      const parentInteractionId = task && extractParentInteractionId(task);
+      if (parentInteractionId) {
+        PERAgentServices.message.setup({
+          messageId: parentInteractionId,
+          dataSourceId,
+        });
+      }
+    });
+
     return () => {
       PERAgentServices.task.stop('Unmount');
+      subscription.unsubscribe();
     };
-  }, [outputResult?.taskId, paragraphValue.dataSourceMDSId, PERAgentServices.task]);
+  }, [
+    outputResult?.taskId,
+    outputResult?.messageId,
+    paragraphValue.dataSourceMDSId,
+    PERAgentServices.task,
+    PERAgentServices.message,
+  ]);
 
+  // Setup executor memory service
   useEffect(() => {
     PERAgentServices.executorMemory.setup({
       dataSourceId: paragraphValue.dataSourceMDSId,
     });
-  }, [paragraphValue.dataSourceMDSId, http, PERAgentServices.executorMemory]);
+    return () => {
+      PERAgentServices.executorMemory.stop('Unmount');
+    };
+  }, [paragraphValue.dataSourceMDSId, PERAgentServices.executorMemory]);
 
+  // Clean output result and show steps when paragraph is running
   useEffect(() => {
     if (paragraphValue.uiState?.isRunning) {
-      PERAgentServices.task.reset();
+      paragraphState.updateOutput({ result: {} });
       setShowSteps(true);
     }
-  }, [paragraphValue.uiState?.isRunning, PERAgentServices.task]);
+  }, [paragraphValue.uiState?.isRunning, paragraphState]);
 
+  // Update steps visibility based on message status
   useEffect(() => {
-    if (taskLoaded) {
-      setShowSteps(!taskFinished);
+    if (messageLoaded) {
+      setShowSteps(!messageFinished);
     }
-  }, [taskLoaded, taskFinished]);
+  }, [messageLoaded, messageFinished]);
+
+  // Render agent input tabs for the context modal
+  const renderAgentInputTabs = () => {
+    const tabs = [];
+
+    if ((input as DeepResearchInputParameters)?.PERAgentInput) {
+      const perAgentInput = (input as DeepResearchInputParameters).PERAgentInput;
+      let parsedBody: any = {};
+
+      try {
+        if (perAgentInput?.body && typeof perAgentInput.body === 'string') {
+          parsedBody = JSON.parse(perAgentInput.body);
+        }
+      } catch (e) {
+        console.error('Failed to parse PERAgentInput body', e);
+      }
+
+      tabs.push({
+        id: 'agentInput',
+        name: 'Agent input',
+        content: (
+          <EuiMarkdownFormat>
+            {`\`\`\`json
+${JSON.stringify(
+  {
+    ...perAgentInput,
+    body: parsedBody,
+  },
+  null,
+  2
+)}
+            \`\`\`
+            `}
+          </EuiMarkdownFormat>
+        ),
+      });
+    }
+
+    if (input?.PERAgentContext) {
+      tabs.push({
+        id: 'agentContext',
+        name: 'Agent context',
+        content: <EuiMarkdownFormat>{input?.PERAgentContext || 'No context'}</EuiMarkdownFormat>,
+      });
+    }
+
+    return tabs;
+  };
 
   return (
     <>
+      {/* User input display */}
       <EuiFlexGroup gutterSize="s" alignItems="flexStart">
         <EuiFlexItem grow={false}>
           <EuiAvatar name={state.value.owner ?? 'User'} size="l" />
@@ -243,8 +381,10 @@ export const DeepResearchParagraph = ({
         <EuiFlexItem grow={false} />
       </EuiFlexGroup>
       <EuiSpacer size="m" />
+
+      {/* Deep research output component */}
       <DeepResearchOutput
-        taskService={PERAgentServices.task}
+        messageService={PERAgentServices.message}
         executorMemoryService={PERAgentServices.executorMemory}
         showSteps={showSteps}
         onExplainThisStep={setTraceMessageId}
@@ -255,57 +395,16 @@ export const DeepResearchParagraph = ({
         <EuiModal onClose={() => setShowContextModal(false)}>
           <EuiModalHeader>Context</EuiModalHeader>
           <EuiModalBody>
-            <EuiTabbedContent
-              tabs={[
-                ...((input as DeepResearchInputParameters)?.PERAgentInput
-                  ? [
-                      {
-                        id: 'agentInput',
-                        name: 'Agent input',
-                        content: (
-                          <>
-                            <EuiMarkdownFormat>
-                              {`\`\`\`json
-${JSON.stringify(
-  {
-    ...input?.PERAgentInput,
-    body: JSON.parse(input?.PERAgentInput.body),
-  },
-  null,
-  2
-)}
-                      \`\`\`
-                      `}
-                            </EuiMarkdownFormat>
-                          </>
-                        ),
-                      },
-                    ]
-                  : []),
-                ...(input?.PERAgentContext
-                  ? [
-                      {
-                        id: 'agentContext',
-                        name: 'Agent context',
-                        content: (
-                          <>
-                            <EuiMarkdownFormat>
-                              {input?.PERAgentContext || 'No context'}
-                            </EuiMarkdownFormat>
-                          </>
-                        ),
-                      },
-                    ]
-                  : []),
-              ]}
-            />
+            <EuiTabbedContent tabs={renderAgentInputTabs()} />
           </EuiModalBody>
         </EuiModal>
       )}
+
+      {/* Message trace flyout */}
       {traceMessageId && (
         <MessageTraceFlyout
           messageId={traceMessageId}
-          taskService={PERAgentServices.task}
+          messageService={PERAgentServices.message}
           executorMemoryService={PERAgentServices.executorMemory}
           onClose={() => {
             setTraceMessageId(undefined);

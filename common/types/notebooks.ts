@@ -146,6 +146,8 @@ export interface IndexInsight {
 export interface DeepResearchOutputResult {
   taskId: string;
   memoryId?: string;
+  messageId?: string;
+  executorAgentMemoryId?: string;
   // FIXME: Should be removed in the final release
   agent_id?: string;
 }
