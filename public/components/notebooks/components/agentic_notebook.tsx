@@ -125,6 +125,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         }
         notebookContext.state.updateValue({
           dateCreated: res.dateCreated,
+          dateModified: res.dateModified,
           title: res.name,
           path: res.path,
           vizPrefix: res.vizPrefix,

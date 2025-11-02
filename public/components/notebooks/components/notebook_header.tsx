@@ -597,6 +597,7 @@ export const NotebookHeader = ({
                       ]
                     : []),
                   {
+                    className: 'notebookLastUpdatedLabel',
                     text: i18n.translate('notebook.header.lastUpdated', {
                       defaultMessage: 'Last updated: {time}',
                       values: {
