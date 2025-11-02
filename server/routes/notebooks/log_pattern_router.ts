@@ -40,6 +40,7 @@ export function registerLogPatternRoute(router: IRouter) {
         const transport = await getOpenSearchClientTransport({
           context,
           dataSourceId: request.body.dataSourceMDSId,
+          request,
         });
 
         const body = await getMLService().analyzeLogPattern({

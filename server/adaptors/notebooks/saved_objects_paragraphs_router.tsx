@@ -12,7 +12,7 @@ import {
 import { SavedObjectsClientContract, SavedObject } from '../../../../../src/core/server/types';
 import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved_object_attributes';
 import { formatNotRecognized, inputIsQuery } from '../../common/helpers/notebooks/query_helpers';
-import { RequestHandlerContext } from '../../../../../src/core/server';
+import { OpenSearchDashboardsRequest, RequestHandlerContext } from '../../../../../src/core/server';
 import { getInputType } from '../../../common/utils/paragraph';
 import { updateParagraphText } from '../../common/helpers/notebooks/paragraph';
 import {
@@ -151,7 +151,8 @@ export async function updateRunFetchParagraph<TOutput>(
     dataSourceMDSId?: string;
   },
   opensearchNotebooksClient: SavedObjectsClientContract,
-  context: RequestHandlerContext
+  context: RequestHandlerContext,
+  request: OpenSearchDashboardsRequest
 ) {
   try {
     const notebookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
@@ -165,7 +166,8 @@ export async function updateRunFetchParagraph<TOutput>(
       updatedInputParagraphs,
       params.paragraphId,
       context,
-      notebookInfo
+      notebookInfo,
+      request
     );
 
     const updateNotebook: {
@@ -220,7 +222,8 @@ export async function runParagraph<TOutput>(
   paragraphs: Array<ParagraphBackendType<unknown>>,
   paragraphId: string,
   context: RequestHandlerContext,
-  notebookinfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>
+  notebookinfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>,
+  request: OpenSearchDashboardsRequest
 ): Promise<Array<ParagraphBackendType<TOutput>>> {
   try {
     const updatedParagraphs: Array<ParagraphBackendType<TOutput>> = [];
@@ -282,6 +285,7 @@ export async function runParagraph<TOutput>(
           const transport = await getOpenSearchClientTransport({
             context,
             dataSourceId: updatedParagraph.dataSourceMDSId,
+            request,
           });
           const isDeepResearchParagraph = inputType === DEEP_RESEARCH_PARAGRAPH_TYPE;
           let baseMemoryId = isDeepResearchParagraph
