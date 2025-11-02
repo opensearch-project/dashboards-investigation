@@ -315,7 +315,7 @@ export const useInvestigation = () => {
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { updateHypotheses, deleteHypotheses } = useNotebook();
+  const { updateHypotheses, updateNotebookContext } = useNotebook();
   const { createParagraph, runParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const contextStateValue = useObservable(context.state.getValue$());
   const paragraphStates = useObservable(context.state.getParagraphStates$());
@@ -339,7 +339,7 @@ export const useInvestigation = () => {
       const findingId2ParagraphId: { [key: string]: string } = {};
       const originalHypothesis =
         typeof hypothesisIndex !== 'undefined'
-          ? contextStateValue?.hypotheses?.[hypothesisIndex]
+          ? context.state.value.hypotheses?.[hypothesisIndex]
           : undefined;
       let startParagraphIndex = paragraphLengthRef.current;
       // TODO: Handle legacy paragraphs if operation is REPLACE
@@ -386,6 +386,7 @@ ${finding.evidence}
         description: payload.hypothesis.description,
         likelihood: payload.hypothesis.likelihood,
         supportingFindingParagraphIds: [
+          // TODO check whether the original hypothesis logic is still required
           ...(originalHypothesis
             ? [
                 ...originalHypothesis.supportingFindingParagraphIds,
@@ -393,19 +394,15 @@ ${finding.evidence}
               ]
             : []),
           ...payload.hypothesis.supporting_findings
-            .map((findingId) => findingId2ParagraphId[findingId])
+            .map((id) => findingId2ParagraphId[id] || (id.startsWith('paragraph_') ? id : null))
             .filter((id) => !!id),
         ],
         dateCreated: new Date().toISOString(),
         dateModified: new Date().toISOString(),
       };
       try {
-        if (isReinvestigate) {
-          // TODO: only delete hypothesis that will the replaced
-          await deleteHypotheses();
-        }
-
-        const newHypotheses = isReinvestigate ? [] : contextStateValue?.hypotheses ?? [];
+        const currentHypotheses = context.state.value.hypotheses ?? [];
+        const newHypotheses = isReinvestigate ? [] : currentHypotheses;
         if (
           typeof hypothesisIndex === 'undefined' ||
           !newHypotheses[hypothesisIndex] ||
@@ -428,13 +425,7 @@ ${finding.evidence}
         console.error('Failed to update investigation result', e);
       }
     },
-    [
-      updateHypotheses,
-      createParagraph,
-      runParagraph,
-      deleteHypotheses,
-      contextStateValue?.hypotheses,
-    ]
+    [updateHypotheses, createParagraph, runParagraph, context.state.value.hypotheses]
   );
 
   const executeInvestigation = useCallback(
@@ -453,6 +444,10 @@ ${finding.evidence}
     }) => {
       const dataSourceId = context.state.value.context.value.dataSourceId;
       setIsInvestigating(true);
+
+      if (context.state.value.context.value.initialGoal !== question) {
+        await updateNotebookContext({ initialGoal: question });
+      }
 
       try {
         const agentId = (
@@ -536,7 +531,7 @@ ${finding.evidence}
         setIsInvestigating(false);
       }
     },
-    [context.state, http, storeInvestigationResponse]
+    [context.state, http, storeInvestigationResponse, updateNotebookContext]
   );
 
   const doInvestigate = useCallback(
@@ -631,9 +626,15 @@ ${newFindingsPrompt}
     [createParagraph, updateHypotheses, runParagraph]
   );
 
-  const rerunInvestigation = async ({ abortController }: { abortController?: AbortController }) => {
+  const rerunInvestigation = async ({
+    investigationQuestion,
+    abortController,
+  }: {
+    investigationQuestion?: string;
+    abortController?: AbortController;
+  }) => {
     const allParagraphs = context.state.getParagraphsValue();
-    const question = context.state.value.context.value.initialGoal || '';
+    const question = investigationQuestion || context.state.value.context.value.initialGoal || '';
 
     const originalHypotheses = contextStateValue?.hypotheses || [];
     const rerunPrompt = originalHypotheses.reduce(
@@ -666,8 +667,16 @@ ${newFindingsPrompt}
       },
       `You are a thoughtful and analytical planner agent specializing in RE-INVESTIGATION. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
 
-ORIGINAL QUESTION: "${question}"
-This is the original question that the user asked which generated the hypotheses below. Your re-investigation should address this same question while updating the hypotheses based on current evidence.
+${
+  investigationQuestion
+    ? `ORIGINAL QUESTION: "${context.state.value.context.value.initialGoal || ''}"
+The hypotheses below were generated from this original question.
+
+NEW INVESTIGATION QUESTION: "${investigationQuestion}"
+You are now investigating this new question. Update the hypotheses based on this new question and current evidence.`
+    : `ORIGINAL QUESTION: "${question}"
+This is a re-run of the original investigation. Update the hypotheses based on the same question and current evidence.`
+}
 
 RE-INVESTIGATION PRINCIPLES:
 1. REUSE existing findings that are still valid and relevant
@@ -676,7 +685,10 @@ RE-INVESTIGATION PRINCIPLES:
 4. Maintain continuity with previous investigation work
 
 CRITICAL FINDINGS HANDLING:
-- New hypotheses may reference both existing paragraph IDs and new findings in supportingFindingParagraphIds
+- New hypotheses may reference both existing paragraph IDs and new findings in supporting_findings
+- For existing findings: Use paragraph IDs in format "paragraph_uuid" (e.g., "paragraph_bb46405b-81ca-42e6-9868-8b61a6d1005c")
+- For new findings: Use generated finding IDs (e.g., "F1", "F2", "F3") - frontend will replace these with actual paragraph IDs
+- The supporting_findings array can contain a mix of existing paragraph IDs and new finding IDs
 - Generate new findings ONLY for completely novel evidence not covered by existing findings
 - Existing findings remain available - original hypotheses will be replaced but findings persist
 - Prefer reusing existing findings over creating new ones
@@ -713,6 +725,10 @@ And the hypothesis object has this structure:
     "likelihood": number,
     "supporting_findings": array[string]
 }
+
+Note: The supporting_findings array should contain:
+- Existing paragraph IDs in format "paragraph_uuid" (e.g., "paragraph_bb46405b-81ca-42e6-9868-8b61a6d1005c")
+- New finding IDs (e.g., "F1", "F2", "F3") which will be replaced by frontend with actual paragraph IDs
 
 The operation field must be either "CREATE" (if creating a new hypothesis) or "REPLACE" (if replacing an existing hypothesis).
 
