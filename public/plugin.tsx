@@ -5,8 +5,16 @@
 
 import { i18n } from '@osd/i18n';
 import React from 'react';
+import { BehaviorSubject } from 'rxjs';
 import { first } from 'rxjs/operators';
-import { AppMountParameters, CoreSetup, CoreStart, Plugin } from '../../../src/core/public';
+import {
+  AppMountParameters,
+  AppNavLinkStatus,
+  AppUpdater,
+  CoreSetup,
+  CoreStart,
+  Plugin,
+} from '../../../src/core/public';
 import {
   investigationNotebookID,
   investigationNotebookPluginOrder,
@@ -56,6 +64,8 @@ export class InvestigationPlugin
   private paragraphService: ParagraphService;
   private contextService: ContextService;
   private startDeps: AppPluginStartDependencies | undefined;
+
+  private appUpdater$ = new BehaviorSubject<AppUpdater>(() => ({}));
 
   constructor() {
     this.paragraphService = new ParagraphService();
@@ -155,6 +165,7 @@ export class InvestigationPlugin
       title: investigationNotebookTitle,
       order: investigationNotebookPluginOrder,
       mount: appMountWithStartPage(),
+      updater$: this.appUpdater$,
     });
 
     registerAllPluginNavGroups(core);
@@ -243,6 +254,12 @@ export class InvestigationPlugin
           );
         },
       });
+    }
+
+    if (!core.application.capabilities.investigation?.enabled) {
+      this.appUpdater$.next(() => ({
+        navLinkStatus: AppNavLinkStatus.hidden,
+      }));
     }
 
     return {};
