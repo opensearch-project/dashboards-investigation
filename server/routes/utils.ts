@@ -3,11 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { OpenSearchClient, RequestHandlerContext } from '../../../../src/core/server';
+import {
+  OpenSearchClient,
+  OpenSearchDashboardsRequest,
+  RequestHandlerContext,
+} from '../../../../src/core/server';
 
 export const getOpenSearchClientTransport = async ({
   context,
   dataSourceId,
+  request, // eslint-disable-line
 }: {
   context: RequestHandlerContext & {
     dataSource?: {
@@ -17,6 +22,7 @@ export const getOpenSearchClientTransport = async ({
     };
   };
   dataSourceId?: string;
+  request: OpenSearchDashboardsRequest; // the request is required in case we need to get auth info.
 }): Promise<OpenSearchClient['transport']> => {
   if (dataSourceId && context.dataSource) {
     return (await context.dataSource.opensearch.getClient(dataSourceId)).transport;

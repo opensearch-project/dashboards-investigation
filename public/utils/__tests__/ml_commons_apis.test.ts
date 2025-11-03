@@ -43,7 +43,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsTask(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.singleTask.replace('{taskId}', 'test-task-123'),
           method: 'GET',
@@ -66,7 +66,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsTask(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.singleTask.replace('{taskId}', 'test-task-456'),
           method: 'GET',
@@ -93,7 +93,7 @@ describe('ML Commons APIs', () => {
       const result = await searchMLCommonsAgents(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.agentsSearch,
           method: 'POST',
@@ -124,7 +124,7 @@ describe('ML Commons APIs', () => {
       const result = await searchMLCommonsAgents(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.agentsSearch,
           method: 'POST',
@@ -156,7 +156,7 @@ describe('ML Commons APIs', () => {
       const result = await searchMLCommonsAgents(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.agentsSearch,
           method: 'POST',
@@ -191,7 +191,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsSingleMemory(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.singleMemory.replace('{memoryId}', 'memory-123'),
           method: 'GET',
@@ -214,7 +214,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsSingleMemory(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.singleMemory.replace('{memoryId}', 'memory-456'),
           method: 'GET',
@@ -242,7 +242,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsMemoryMessages(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: `${OPENSEARCH_ML_COMMONS_API.memoryMessages.replace(
             '{memoryId}',
@@ -269,7 +269,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsMemoryMessages(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.memoryMessages.replace('{memoryId}', 'memory-789'),
           method: 'GET',
@@ -292,7 +292,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsMemoryMessages(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.memoryMessages.replace('{memoryId}', 'memory-minimal'),
           method: 'GET',
@@ -321,7 +321,7 @@ describe('ML Commons APIs', () => {
 
       expect(mockHttp.post).toHaveBeenCalledWith({
         body: undefined,
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: `${OPENSEARCH_ML_COMMONS_API.messageTraces.replace(
             '{messageId}',
@@ -347,7 +347,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsMessageTraces(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.messageTraces.replace('{messageId}', 'message-789'),
           method: 'GET',
@@ -377,7 +377,7 @@ describe('ML Commons APIs', () => {
       const result = await executeMLCommonsAgent(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: `${OPENSEARCH_ML_COMMONS_API.agentExecute.replace(
             '{agentId}',
@@ -407,7 +407,7 @@ describe('ML Commons APIs', () => {
       const result = await executeMLCommonsAgent(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.agentExecute.replace('{agentId}', 'agent-456'),
           method: 'POST',
@@ -437,7 +437,7 @@ describe('ML Commons APIs', () => {
       const result = await executeMLCommonsAgent(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.agentExecute.replace('{agentId}', 'agent-789'),
           method: 'POST',
@@ -465,7 +465,7 @@ describe('ML Commons APIs', () => {
       const result = await executeMLCommonsAgent(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.agentExecute.replace('{agentId}', 'agent-empty'),
           method: 'POST',
@@ -501,7 +501,7 @@ describe('ML Commons APIs', () => {
       const result = await executeMLCommonsAgent(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: `${OPENSEARCH_ML_COMMONS_API.agentExecute.replace(
             '{agentId}',
@@ -533,7 +533,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsConfig(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.singleConfig.replace('{configName}', 'test-config'),
           method: 'GET',
@@ -555,7 +555,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsConfig(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.singleConfig.replace('{configName}', 'another-config'),
           method: 'GET',
@@ -579,7 +579,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsConfig(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.singleConfig.replace('{configName}', specialConfigName),
           method: 'GET',
@@ -601,7 +601,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsConfig(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.singleConfig.replace('{configName}', ''),
           method: 'GET',
@@ -681,7 +681,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsSingleMemory(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.singleMemory.replace('{memoryId}', ''),
           method: 'GET',
@@ -705,7 +705,7 @@ describe('ML Commons APIs', () => {
       const result = await getMLCommonsSingleMemory(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/console/proxy',
+        path: '/api/investigation/ml/proxy',
         query: {
           path: OPENSEARCH_ML_COMMONS_API.singleMemory.replace('{memoryId}', specialId),
           method: 'GET',

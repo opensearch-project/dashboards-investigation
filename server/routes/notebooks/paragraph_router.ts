@@ -121,7 +121,8 @@ export function registerParaRoute(router: IRouter) {
         const runResponse = await updateRunFetchParagraph(
           request.body,
           context.core.savedObjects.client,
-          context
+          context,
+          request
         );
         return response.ok({
           body: runResponse,

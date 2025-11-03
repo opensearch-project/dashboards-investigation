@@ -4,15 +4,18 @@
  */
 
 import { getOpenSearchClientTransport } from '../utils';
-import { coreMock } from '../../../../../src/core/server/mocks';
+import { coreMock, httpServerMock } from '../../../../../src/core/server/mocks';
 
 describe('getOpenSearchClientTransport', () => {
   it('should return current user opensearch transport', async () => {
     const core = coreMock.createRequestHandlerContext();
 
-    expect(await getOpenSearchClientTransport({ context: { core } })).toBe(
-      core.opensearch.client.asCurrentUser.transport
-    );
+    expect(
+      await getOpenSearchClientTransport({
+        context: { core },
+        request: httpServerMock.createOpenSearchDashboardsRequest(),
+      })
+    ).toBe(core.opensearch.client.asCurrentUser.transport);
   });
   it('should data source id related opensearch transport', async () => {
     const transportMock = {};
@@ -28,8 +31,12 @@ describe('getOpenSearchClientTransport', () => {
       },
     };
 
-    expect(await getOpenSearchClientTransport({ context, dataSourceId: 'foo' })).toBe(
-      transportMock
-    );
+    expect(
+      await getOpenSearchClientTransport({
+        context,
+        dataSourceId: 'foo',
+        request: httpServerMock.createOpenSearchDashboardsRequest(),
+      })
+    ).toBe(transportMock);
   });
 });
