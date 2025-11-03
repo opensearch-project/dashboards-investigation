@@ -11,7 +11,6 @@ export const EVENT_ANALYTICS = '/event_analytics';
 export const SAVED_OBJECTS = '/saved_objects';
 export const SAVED_QUERY = '/query';
 export const SAVED_VISUALIZATION = '/vis';
-export const CONSOLE_PROXY = '/api/console/proxy';
 export const SECURITY_PLUGIN_ACCOUNT_API = '/api/v1/configuration/account';
 
 // Server route

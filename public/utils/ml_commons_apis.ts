@@ -5,6 +5,7 @@
 
 import { OPENSEARCH_ML_COMMONS_API } from '../../common/constants/ml_commons';
 import { CoreStart } from '../../../../src/core/public';
+import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
 
 const callApiWithProxy = ({
   path,
@@ -29,15 +30,15 @@ const callApiWithProxy = ({
   if (validQueryEntries.length > 0) {
     path = `${path}?${validQueryEntries.map((item) => item.join('=')).join('&')}`;
   }
-  return http.post({
-    path: '/api/console/proxy',
-    query: {
+  return callOpenSearchCluster({
+    http,
+    request: {
       path,
       method,
-      dataSourceId,
+      body,
     },
+    dataSourceId,
     signal,
-    body,
   });
 };
 

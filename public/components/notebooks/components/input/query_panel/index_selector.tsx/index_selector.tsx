@@ -21,6 +21,7 @@ import { QueryState } from '../../types';
 
 import './index_selector.scss';
 import { Field } from '../../../../../../../../../src/plugins/dashboard/public/types';
+import { callOpenSearchCluster } from '../../../../../../plugin_helpers/plugin_proxy_call';
 
 const DEFAULT_QUERY_STATE = { value: '', query: '', isPromptEditorMode: false };
 
@@ -100,12 +101,13 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
     const fetchIndices = async () => {
       setUiState((prev) => ({ ...prev, isLoading: true }));
       try {
-        const res = await http.post('/api/console/proxy', {
-          query: {
+        const res = await callOpenSearchCluster({
+          http,
+          request: {
             path: '/_cat/indices?format=json',
             method: 'GET',
-            dataSourceId,
           },
+          dataSourceId,
         });
         setIndicesData((prev) => ({ ...prev, indices: res }));
       } catch (err) {

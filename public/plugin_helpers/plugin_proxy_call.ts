@@ -10,6 +10,7 @@ export const callOpenSearchCluster = (props: {
   http: HttpStart;
   dataSourceId?: string;
   request: Pick<HttpFetchOptionsWithPath, 'path' | 'method' | 'body'>;
+  signal?: AbortSignal;
 }) => {
   const path = props.request.path;
   const query: HttpFetchOptionsWithPath['query'] = {
@@ -25,6 +26,7 @@ export const callOpenSearchCluster = (props: {
       path: `${NOTEBOOKS_API_PREFIX}/ml/proxy`,
       query,
       body: props.request.body,
+      signal: props.signal,
     });
   }
 
@@ -32,5 +34,6 @@ export const callOpenSearchCluster = (props: {
     path: '/api/console/proxy',
     query,
     body: props.request.body,
+    signal: props.signal,
   });
 };
