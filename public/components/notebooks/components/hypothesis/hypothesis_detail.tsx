@@ -240,20 +240,13 @@ export const HypothesisDetail: React.FC = () => {
                       ...currentHypothesis.supportingFindingParagraphIds,
                       ...(currentHypothesis.newAddedFindingIds || []),
                     ]
-                      .map((id) => paragraphsStates.find((p) => p.value.id === id))
-                      .filter(Boolean)
-                      .map((paragraphState, index: number) => {
-                        if (!paragraphState) return null;
-                        return (
-                          <Paragraphs
-                            key={paragraphState.value.id}
-                            paragraphState={paragraphState}
-                            index={index}
-                            deletePara={() => {}}
-                            scrollToPara={() => {}}
-                          />
-                        );
-                      })}
+                      .map((id) => paragraphsStates.findIndex((p) => p.value.id === id))
+                      .filter((index) => index !== -1)
+                      .map((index) => (
+                        <EuiPanel key={paragraphsStates[index].value.id}>
+                          <Paragraphs index={index} deletePara={() => {}} scrollToPara={() => {}} />
+                        </EuiPanel>
+                      ))}
                   </>
                 )}
 

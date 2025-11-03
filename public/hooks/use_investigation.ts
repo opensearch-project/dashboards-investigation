@@ -315,7 +315,7 @@ export const useInvestigation = () => {
   const {
     services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const { updateHypotheses, deleteHypotheses } = useNotebook();
+  const { updateHypotheses, updateNotebookContext } = useNotebook();
   const { createParagraph, runParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const contextStateValue = useObservable(context.state.getValue$());
   const paragraphStates = useObservable(context.state.getParagraphStates$());
@@ -339,7 +339,7 @@ export const useInvestigation = () => {
       const findingId2ParagraphId: { [key: string]: string } = {};
       const originalHypothesis =
         typeof hypothesisIndex !== 'undefined'
-          ? contextStateValue?.hypotheses?.[hypothesisIndex]
+          ? context.state.value.hypotheses?.[hypothesisIndex]
           : undefined;
       let startParagraphIndex = paragraphLengthRef.current;
       // TODO: Handle legacy paragraphs if operation is REPLACE
@@ -386,6 +386,7 @@ ${finding.evidence}
         description: payload.hypothesis.description,
         likelihood: payload.hypothesis.likelihood,
         supportingFindingParagraphIds: [
+          // TODO check whether the original hypothesis logic is still required
           ...(originalHypothesis
             ? [
                 ...originalHypothesis.supportingFindingParagraphIds,
@@ -393,19 +394,15 @@ ${finding.evidence}
               ]
             : []),
           ...payload.hypothesis.supporting_findings
-            .map((findingId) => findingId2ParagraphId[findingId])
+            .map((id) => findingId2ParagraphId[id] || (id.startsWith('paragraph_') ? id : null))
             .filter((id) => !!id),
         ],
         dateCreated: new Date().toISOString(),
         dateModified: new Date().toISOString(),
       };
       try {
-        if (isReinvestigate) {
-          // TODO: only delete hypothesis that will the replaced
-          await deleteHypotheses();
-        }
-
-        const newHypotheses = isReinvestigate ? [] : contextStateValue?.hypotheses ?? [];
+        const currentHypotheses = context.state.value.hypotheses ?? [];
+        const newHypotheses = isReinvestigate ? [] : currentHypotheses;
         if (
           typeof hypothesisIndex === 'undefined' ||
           !newHypotheses[hypothesisIndex] ||
@@ -428,13 +425,7 @@ ${finding.evidence}
         console.error('Failed to update investigation result', e);
       }
     },
-    [
-      updateHypotheses,
-      createParagraph,
-      runParagraph,
-      deleteHypotheses,
-      contextStateValue?.hypotheses,
-    ]
+    [updateHypotheses, createParagraph, runParagraph, context.state.value.hypotheses]
   );
 
   const executeInvestigation = useCallback(
@@ -453,6 +444,10 @@ ${finding.evidence}
     }) => {
       const dataSourceId = context.state.value.context.value.dataSourceId;
       setIsInvestigating(true);
+
+      if (context.state.value.context.value.initialGoal !== question) {
+        await updateNotebookContext({ initialGoal: question });
+      }
 
       try {
         const agentId = (
@@ -536,7 +531,7 @@ ${finding.evidence}
         setIsInvestigating(false);
       }
     },
-    [context.state, http, storeInvestigationResponse]
+    [context.state, http, storeInvestigationResponse, updateNotebookContext]
   );
 
   const doInvestigate = useCallback(
@@ -631,72 +626,69 @@ ${newFindingsPrompt}
     [createParagraph, updateHypotheses, runParagraph]
   );
 
-  const rerunInvestigation = async ({ abortController }: { abortController?: AbortController }) => {
+  const rerunInvestigation = async ({
+    investigationQuestion,
+    abortController,
+  }: {
+    investigationQuestion?: string;
+    abortController?: AbortController;
+  }) => {
     const allParagraphs = context.state.getParagraphsValue();
-    const question = context.state.value.context.value.initialGoal || '';
+    const question = investigationQuestion || context.state.value.context.value.initialGoal || '';
 
     const originalHypotheses = contextStateValue?.hypotheses || [];
-    const rerunPrompt = originalHypotheses.reduce(
-      (acc, hypothesis, index) => {
-        const existingFindingsPrompt = convertParagraphsToFindings(
-          allParagraphs.filter((paragraph) =>
-            hypothesis?.supportingFindingParagraphIds.includes(paragraph.id)
-          )
-        );
-        const newFindingsPrompt = convertParagraphsToFindings(
-          allParagraphs.filter((paragraph) =>
-            hypothesis?.newAddedFindingIds?.includes(paragraph.id)
-          )
-        );
-        return (acc = `${acc}
-## Hypothesis ${index + 1}
+    const rerunPrompt = `
+You are a thoughtful and analytical planner agent specializing in RE-INVESTIGATION. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
 
-Title: ${hypothesis.title}
+${
+  investigationQuestion
+    ? `ORIGINAL QUESTION: "${context.state.value.context.value.initialGoal || ''}"
+The hypotheses below were generated from this original question.
 
-Description: ${hypothesis.description}
+NEW INVESTIGATION QUESTION: "${investigationQuestion}"
+You are now investigating this new question. Update the hypotheses based on this new question and current evidence.`
+    : `ORIGINAL QUESTION: "${question}"
+This is a re-run of the original investigation. Update the hypotheses based on the same question and current evidence.`
+}
 
-Likelihood: ${hypothesis.likelihood}
+Instructions:
+- Analyze existing hypotheses and findings to determine if they remain valid
+- REUSE existing findings that are still relevant rather than creating duplicates
+- Only create NEW findings when absolutely necessary for novel evidence
+- Update hypothesis likelihood based on all available evidence
+- Use only the provided tools; do not invent or assume tools
+- Base your analysis only on the data and information explicitly provided
+- Avoid vague instructions; be specific about data sources, indexes, or parameters
+- Never make assumptions or rely on implicit knowledge
+- Respond only in JSON format
 
-### Supporting Findings
-${existingFindingsPrompt}
-
-### Additional Findings (Manually Added - Pay Special Attention)
-${newFindingsPrompt}
-    `);
-      },
-      `You are a thoughtful and analytical planner agent specializing in RE-INVESTIGATION. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
-
-ORIGINAL QUESTION: "${question}"
-This is the original question that the user asked which generated the hypotheses below. Your re-investigation should address this same question while updating the hypotheses based on current evidence.
-
-RE-INVESTIGATION PRINCIPLES:
-1. REUSE existing findings that are still valid and relevant
-2. Only create NEW findings when absolutely necessary
-3. Update hypothesis likelihood based on all available evidence
-4. Maintain continuity with previous investigation work
-
-CRITICAL FINDINGS HANDLING:
-- New hypotheses may reference both existing paragraph IDs and new findings in supportingFindingParagraphIds
+Findings Handling:
+- For existing findings: Use paragraph IDs in format "paragraph_uuid" (e.g., "paragraph_bb46405b-81ca-42e6-9868-8b61a6d1005c")
+- For new findings: Use generated finding IDs (e.g., "F1", "F2", "F3") - frontend will replace these with actual paragraph IDs
+- The supporting_findings array can contain a mix of existing paragraph IDs and new finding IDs
 - Generate new findings ONLY for completely novel evidence not covered by existing findings
-- Existing findings remain available - original hypotheses will be replaced but findings persist
-- Prefer reusing existing findings over creating new ones
 
-OPERATION GUIDANCE: Always use CREATE operation for all hypotheses. Old hypotheses will be deleted, so create new hypotheses with fresh IDs for all conclusions, regardless of similarity to existing hypotheses.
+Operation Guidance:
+Always use CREATE operation for all hypotheses. Old hypotheses will be deleted, so create new hypotheses with fresh IDs for all conclusions, regardless of similarity to existing hypotheses.
 
 Response Instructions:
 Only respond in JSON format. Always follow the given response instructions. Do not return any content that does not follow the response instructions. Do not add anything before or after the expected JSON.
+
 Always respond with a valid JSON object that strictly follows the below schema:
 {
   "steps": array[string],
   "result": string
 }
+
 Use "steps" to return an array of strings where each string is a step to complete the objective, leave it empty if you know the final result. Please wrap each step in quotes and escape any special characters within the string.
+
 Use "result" to return the final response when you have enough information, leave it empty if you want to execute more steps. When providing the final result, it MUST be a stringified JSON object with the following structure:
 {
     "findings": array[object],
     "hypothesis": object,
     "operation": string
 }
+
 Where each finding object has this structure:
 {
     "id": string,
@@ -714,7 +706,7 @@ And the hypothesis object has this structure:
     "supporting_findings": array[string]
 }
 
-The operation field must be either "CREATE" (if creating a new hypothesis) or "REPLACE" (if replacing an existing hypothesis).
+The operation field must be "CREATE" for re-investigations.
 
 Important rules for the response:
 1. Do not use commas within individual steps
@@ -724,16 +716,46 @@ Important rules for the response:
 5. Only respond with a pure JSON object
 6. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
 7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
-8. **CRITICAL: Follow the CREATE vs REPLACE decision rules outlined above**
+
+Your final result JSON must include:
+- "findings": An array of finding objects (only NEW findings - reuse existing paragraph IDs when possible)
+- "hypothesis": A single hypothesis object
+- "operation": Must be "CREATE" for re-investigations
 
 The final response should create a clear chain of evidence where findings support your hypothesis while maximizing reuse of existing evidence.
 
-CRITICAL: You MUST thoroughly analyze the Current Investigation State below. Each existing hypothesis and finding contains valuable evidence that should be carefully evaluated for reuse. Do not ignore or overlook any existing findings - they represent completed investigative work that should be preserved whenever possible.
+# Current Investigation State:
+${originalHypotheses.reduce((acc, hypothesis, index) => {
+  const existingFindingsPrompt = convertParagraphsToFindings(
+    allParagraphs.filter((paragraph) =>
+      hypothesis?.supportingFindingParagraphIds.includes(paragraph.id)
+    )
+  );
+  const newFindingsPrompt = convertParagraphsToFindings(
+    allParagraphs.filter((paragraph) => hypothesis?.newAddedFindingIds?.includes(paragraph.id))
+  );
+  return `${acc}
+## Hypothesis ${index + 1}
 
-HYPOTHESIS SUPPORT REQUIREMENT: Every hypothesis you generate MUST be supported by findings. If existing findings cannot adequately support your updated hypothesis, you MUST create new findings to provide proper evidence. A hypothesis without supporting findings is invalid.
+Title: ${hypothesis.title}
 
-# Current Investigation State:`
-    );
+Description: ${hypothesis.description}
+
+Likelihood: ${hypothesis.likelihood}
+
+### Supporting Findings
+${existingFindingsPrompt}
+
+${
+  newFindingsPrompt
+    ? `
+### Additional Findings (Manually Added - Pay Special Attention)
+${newFindingsPrompt}`
+    : ''
+}
+    `;
+}, '')}
+`.trim();
 
     return executeInvestigation({
       question,
