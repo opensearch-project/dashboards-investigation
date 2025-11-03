@@ -130,7 +130,7 @@ export const NotebookHeader = ({
         (newName: string) => {
           renameNotebook(newName, openedNoteId).then((res) => {
             setIsModalVisible(false);
-            window.location.assign(`#/${res.id}`);
+            window.location.assign(`#/agentic/${res.id}`);
             setTimeout(() => {
               loadNotebook();
             }, 300);
@@ -597,6 +597,7 @@ export const NotebookHeader = ({
                       ]
                     : []),
                   {
+                    className: 'notebookLastUpdatedLabel',
                     text: i18n.translate('notebook.header.lastUpdated', {
                       defaultMessage: 'Last updated: {time}',
                       values: {
