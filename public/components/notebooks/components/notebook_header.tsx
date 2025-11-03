@@ -130,7 +130,7 @@ export const NotebookHeader = ({
         (newName: string) => {
           renameNotebook(newName, openedNoteId).then((res) => {
             setIsModalVisible(false);
-            window.location.assign(`#/${res.id}`);
+            window.location.assign(`#/agentic/${res.id}`);
             setTimeout(() => {
               loadNotebook();
             }, 300);
