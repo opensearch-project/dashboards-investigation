@@ -48,6 +48,7 @@ import { ContextService } from './services/context_service';
 import { ChatContext, ISuggestionProvider } from '../../dashboards-assistant/public';
 import { NoteBookAssistantContext } from '../common/types/assistant_context';
 import { createInvestigateLogActionComponent } from './components/notebooks/components/discover_explorer';
+import { StartInvestigateButton } from './components/notebooks/components/discover_explorer/start_investigate_button';
 
 export class InvestigationPlugin
   implements
@@ -221,6 +222,27 @@ export class InvestigationPlugin
     setNotifications(core.notifications);
     setVisualizations(startDeps.visualizations);
     this.startDeps = startDeps;
+
+    if (core.application?.capabilities.investigation.agenticFeaturesEnabled) {
+      startDeps.explore?.slotRegistry?.register?.({
+        id: 'start-investigate-all',
+        order: 10,
+        slotType: 'resultsActionBar',
+        render: () => {
+          return (
+            <OpenSearchDashboardsContextProvider
+              services={{
+                data: startDeps.data,
+                http: core.http,
+                application: core.application,
+              }}
+            >
+              <StartInvestigateButton />
+            </OpenSearchDashboardsContextProvider>
+          );
+        },
+      });
+    }
 
     return {};
   }
