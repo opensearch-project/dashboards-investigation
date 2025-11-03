@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { EuiPanel } from '@elastic/eui';
 
 import { OpenSearchDashboardsContextProvider } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import {
@@ -19,7 +20,9 @@ export const createInvestigateLogActionComponent = ({
   return ({ context }: { context: { document: Record<string, any> } }) => {
     return (
       <OpenSearchDashboardsContextProvider services={services}>
-        <InvestigateInputPanel log={context.document} />
+        <EuiPanel style={{ minWidth: 400 }}>
+          <InvestigateInputPanel log={context.document} />
+        </EuiPanel>
       </OpenSearchDashboardsContextProvider>
     );
   };

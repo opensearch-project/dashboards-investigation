@@ -4,7 +4,7 @@
  */
 
 import { i18n } from '@osd/i18n';
-import { EuiButtonIcon, EuiFieldText, EuiFlexGroup, EuiFlexItem, EuiPanel } from '@elastic/eui';
+import { EuiButtonIcon, EuiFieldText, EuiFlexGroup, EuiFlexItem } from '@elastic/eui';
 import React, { useState, useMemo } from 'react';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import type { NoteBookServices } from '../../../../types';
@@ -72,28 +72,23 @@ export const InvestigateInputPanel = ({ log }: { log?: Record<string, any> }) =>
     });
   };
   return (
-    <EuiPanel style={{ minWidth: 300 }}>
-      <EuiFlexGroup alignItems="center" gutterSize="xl">
-        <EuiFlexItem grow={true}>
-          <EuiFieldText
-            placeholder={i18n.translate(
-              'investigate.discoverExplorer.investigationPanel.placeholder',
-              { defaultMessage: 'Ask about potential privilege escalation attack' }
-            )}
-            value={value}
-            onChange={(e) => onChange(e)}
-            aria-label={i18n.translate(
-              'investigate.discoverExplorer.investigationPanel.ariaLabel',
-              {
-                defaultMessage: 'Ask about potential privilege escalation attack',
-              }
-            )}
-          />
-        </EuiFlexItem>
-        <EuiFlexItem grow={false}>
-          <EuiButtonIcon iconType="search" onClick={handleInvestigation} aria-label="Investigate" />
-        </EuiFlexItem>
-      </EuiFlexGroup>
-    </EuiPanel>
+    <EuiFlexGroup alignItems="center" gutterSize="xl">
+      <EuiFlexItem grow={true}>
+        <EuiFieldText
+          placeholder={i18n.translate(
+            'investigate.discoverExplorer.investigationPanel.placeholder',
+            { defaultMessage: 'Ask about potential privilege escalation attack' }
+          )}
+          value={value}
+          onChange={(e) => onChange(e)}
+          aria-label={i18n.translate('investigate.discoverExplorer.investigationPanel.ariaLabel', {
+            defaultMessage: 'Ask about potential privilege escalation attack',
+          })}
+        />
+      </EuiFlexItem>
+      <EuiFlexItem grow={false}>
+        <EuiButtonIcon iconType="search" onClick={handleInvestigation} aria-label="Investigate" />
+      </EuiFlexItem>
+    </EuiFlexGroup>
   );
 };
