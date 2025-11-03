@@ -6,15 +6,11 @@
 import React from 'react';
 import { EuiBadge } from '@elastic/eui';
 
-export const HypothesisBadge = ({
-  label,
-  color,
-  icon,
-}: {
+export const HypothesisBadge: React.FC<{
   label: string;
   color: string;
   icon?: string;
-}) => {
+}> = ({ label, color, icon }) => {
   return (
     <EuiBadge
       color={color}

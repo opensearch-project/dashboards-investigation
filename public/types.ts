@@ -27,6 +27,10 @@ import { FindingService } from './services/finding_service';
 import { AssistantSetup, AssistantPublicPluginStart } from '../../dashboards-assistant/public';
 import { NoteBookAssistantContext } from '../common/types/assistant_context';
 import type { ExplorePluginSetup } from '../../../src/plugins/explore/public';
+import {
+  UsageCollectionSetup,
+  UsageCollectionStart,
+} from '../../../src/plugins/usage_collection/public';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -39,6 +43,7 @@ export interface AppPluginStartDependencies {
   visualizations: VisualizationsStart;
   contextProvider?: ContextProviderStart;
   assistantDashboards?: AssistantPublicPluginStart;
+  usageCollection?: UsageCollectionStart;
 }
 
 export interface SetupDependencies {
@@ -49,6 +54,7 @@ export interface SetupDependencies {
   dataSourceManagement?: DataSourceManagementPluginSetup;
   assistantDashboards?: AssistantSetup; // Optional assistant plugin setup
   explore?: ExplorePluginSetup;
+  usageCollection?: UsageCollectionSetup;
 }
 
 export type NoteBookServices = CoreStart &
