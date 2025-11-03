@@ -20,7 +20,8 @@
     "dataSourceManagement",
     "contextProvider",
     "assistantDashboards",
-    "explore"
+    "explore",
+    "uiActions"
   ],
   "configPath": [
     "investigation"
