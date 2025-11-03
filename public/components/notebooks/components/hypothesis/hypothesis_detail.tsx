@@ -124,20 +124,24 @@ export const HypothesisDetail: React.FC = () => {
     },
   ];
 
+  const BackButton = () => (
+    <EuiSmallButton
+      iconType="sortLeft"
+      style={{ borderRadius: '9999px' }}
+      onClick={() => {
+        history.push(`/agentic/${notebookId}`);
+      }}
+    >
+      Back
+    </EuiSmallButton>
+  );
+
   if (!currentHypothesis) {
     return (
       <>
         <EuiHorizontalRule margin="none" />
         <EuiFlexGroup gutterSize="none" alignItems="center" style={{ padding: 16, gap: 10 }}>
-          <EuiSmallButton
-            iconType="sortLeft"
-            style={{ borderRadius: '9999px' }}
-            onClick={() => {
-              history.goBack();
-            }}
-          >
-            Back
-          </EuiSmallButton>
+          <BackButton />
           <EuiTitle size="m">
             <strong style={{ fontWeight: 600 }}>Loading Hypothesis...</strong>
           </EuiTitle>
@@ -154,15 +158,7 @@ export const HypothesisDetail: React.FC = () => {
         <div style={{ overflow: 'auto', padding: 16 }}>
           <EuiPageHeader alignItems="center" bottomBorder={false}>
             <EuiPageHeaderSection style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <EuiSmallButton
-                iconType="sortLeft"
-                style={{ borderRadius: '9999px' }}
-                onClick={() => {
-                  history.goBack();
-                }}
-              >
-                Back
-              </EuiSmallButton>
+              <BackButton />
               <EuiTitle size="m">
                 <span>
                   <strong>Hypothesis: {currentHypothesis.title}</strong>
