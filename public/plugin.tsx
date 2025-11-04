@@ -187,7 +187,7 @@ export class InvestigationPlugin
 
     (async () => {
       const services = await getServices();
-      setupDeps.explore?.logActionRegistry.registerAction({
+      setupDeps.explore?.logActionRegistry?.registerAction?.({
         id: 'investigate-single',
         displayName: i18n.translate('investigate.logAction.investigate-single', {
           defaultMessage: 'Investigate',
