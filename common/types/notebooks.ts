@@ -177,8 +177,7 @@ export interface PERAgentHypothesisItem {
 
 export interface PERAgentInvestigationResponse {
   findings: PERAgentHypothesisFinding[];
-  hypothesis: PERAgentHypothesisItem;
-  operation: 'CREATE' | 'REPLACE';
+  hypotheses: PERAgentHypothesisItem[];
 }
 
 export interface NotebookComponentProps {

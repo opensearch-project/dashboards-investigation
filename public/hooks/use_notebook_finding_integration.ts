@@ -21,7 +21,7 @@ export interface UseNotebookFindingIntegrationProps {
  */
 export const useNotebookFindingIntegration = (props: UseNotebookFindingIntegrationProps) => {
   const { findingService, notebookId } = props;
-  const { addNewFinding } = useInvestigation({ question: '' });
+  const { addNewFinding } = useInvestigation();
   const unsubscribeRef = useRef<CallbackUnsubscribe | null>(null);
   const isIntegratedRef = useRef<boolean>(false);
 

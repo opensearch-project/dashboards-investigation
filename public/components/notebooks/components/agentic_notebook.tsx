@@ -63,7 +63,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const { createParagraph, deleteParagraph, deleteParagraphsByIds } = useContext(
     NotebookReactContext
   ).paragraphHooks;
-  const { loadNotebook: loadNotebookHook, deleteHypotheses } = useNotebook();
+  const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start, setInitialGoal } = usePrecheck();
 
   // provide context to chatbot
@@ -171,8 +171,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       if (isReinvestigate) {
         rerunInvestigation({ investigationQuestion: value });
       } else {
-        await deleteHypotheses();
-
         const findingPraragraphIds = paragraphsStates
           .filter((paragraphState) => (paragraphState.value.input.parameters as any)?.findingId)
           .map((paragraphState) => paragraphState.value.id);
@@ -189,7 +187,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     },
     [
       rerunInvestigation,
-      deleteHypotheses,
       deleteParagraphsByIds,
       paragraphsStates,
       doInvestigate,

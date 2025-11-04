@@ -27,7 +27,7 @@ import { NoteBookServices } from 'public/types';
 import { HypothesisItem as HypothesisItemProps } from 'common/types/notebooks';
 import moment from 'moment';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
-import { HypothesisBadge } from './hypothesis_badge';
+import { HypothesisBadge, LikelihoodBadge } from './hypothesis_badge';
 import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
 
 import { NotebookReactContext } from '../../context_provider/context_provider';
@@ -212,10 +212,7 @@ export const HypothesisDetail: React.FC = () => {
                   </EuiText>
                 )}
                 <HypothesisBadge label="Under investigation" color="hollow" icon="pulse" />
-                <HypothesisBadge
-                  label={`Strong evidence ${currentHypothesis.likelihood}%`}
-                  color="#DCFCE7"
-                />
+                <LikelihoodBadge likelihood={currentHypothesis.likelihood} />
               </EuiFlexGroup>
               <EuiSpacer size="s" />
               <EuiText>{currentHypothesis.description}</EuiText>
