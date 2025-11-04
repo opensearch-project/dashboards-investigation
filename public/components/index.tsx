@@ -14,6 +14,11 @@ export const Observability = (
   services: NoteBookServices,
   AppMountParametersProp: AppMountParameters
 ) => {
+  // dispatch synthetic hash change event to update hash history objects
+  // this is necessary because hash updates triggered by using popState won't trigger this event naturally.
+  const unlistenParentHistory = AppMountParametersProp.history.listen(() => {
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+  });
   ReactDOM.render(
     <OpenSearchDashboardsContextProvider services={services}>
       <App />
@@ -21,5 +26,8 @@ export const Observability = (
     AppMountParametersProp.element
   );
 
-  return () => ReactDOM.unmountComponentAtNode(AppMountParametersProp.element);
+  return () => {
+    unlistenParentHistory();
+    ReactDOM.unmountComponentAtNode(AppMountParametersProp.element);
+  };
 };
