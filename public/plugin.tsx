@@ -187,6 +187,9 @@ export class InvestigationPlugin
 
     (async () => {
       const services = await getServices();
+      if (!services.application?.capabilities.investigation.agenticFeaturesEnabled) {
+        return;
+      }
       setupDeps.explore?.logActionRegistry?.registerAction?.({
         id: 'investigate-single',
         displayName: i18n.translate('investigate.logAction.investigate-single', {
