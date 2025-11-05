@@ -22,7 +22,7 @@ import {
   EuiText,
   EuiTextArea,
 } from '@elastic/eui';
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useObservable } from 'react-use';
 import { useHistory } from 'react-router-dom';
 
@@ -31,6 +31,11 @@ import { NotebookReactContext } from '../../context_provider/context_provider';
 import { HypothesisItem } from './hypothesis_item';
 import { HypothesesFeedback } from './hypotheses_feedback';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { BehaviorSubject } from 'rxjs';
+import { PERAgentMessageService } from '../paragraph_components/deep_research/services/per_agent_message_service';
+import { PERAgentMemoryService } from '../paragraph_components/deep_research/services/per_agent_memory_service';
+import { HypothesesStep } from './hypotheses_step';
+import { MessageTraceFlyout } from '../paragraph_components/deep_research/message_trace_flyout';
 
 interface HypothesesPanelProps {
   notebookId: string;
@@ -48,15 +53,72 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   openReinvestigateModal,
 }) => {
   const {
-    services: { appName, usageCollection },
+    services: { appName, usageCollection, http },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const notebookContext = useContext(NotebookReactContext);
-  const { hypotheses } = useObservable(
-    notebookContext.state.getValue$(),
-    notebookContext.state.value
-  );
+  const {
+    hypotheses,
+    currentParentInteractionId,
+    context,
+    memoryContainerId,
+    currentExecutorMemoryId,
+    currentTaskId,
+  } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const history = useHistory();
+  const [showSteps, setShowSteps] = useState(false);
+  const [traceMessageId, setTraceMessageId] = useState<string>();
+
+  const PERAgentServices = useMemo(() => {
+    if (!currentExecutorMemoryId || !memoryContainerId) {
+      return null;
+    }
+
+    const executorMemoryId$ = new BehaviorSubject(currentExecutorMemoryId);
+    const messageService = new PERAgentMessageService(http, memoryContainerId);
+
+    const executorMemoryService = new PERAgentMemoryService(
+      http,
+      executorMemoryId$,
+      () => {
+        // return !messageService.getMessageValue()?.hits.hits[0]._source.structured_data.response;
+        return !messageService.getMessageValue()?.response?.inference_results?.[0]?.output?.find(item => item?.name === "response")?.dataAsMap?.response;
+      },
+      memoryContainerId
+    );
+
+    return {
+      message: messageService,
+      executorMemory: executorMemoryService,
+    };
+  }, [http, memoryContainerId, currentExecutorMemoryId]);
+
+  useEffect(() => {
+    if (isInvestigating) {
+      setShowSteps(true);
+    } else {
+      setShowSteps(false);
+    }
+  }, [isInvestigating]);
+
+  useEffect(() => {
+    if (PERAgentServices && currentTaskId) {
+      console.log('currentTaskId', currentTaskId)
+      PERAgentServices.message.setup({
+        messageId: currentTaskId,
+        dataSourceId: context.value.dataSourceId,
+      });
+
+      PERAgentServices.executorMemory.setup({
+        dataSourceId: context.value.dataSourceId,
+      });
+
+      return () => {
+        PERAgentServices.message.stop('Component cleanup');
+        PERAgentServices.executorMemory.stop('Component unmount');
+      };
+    }
+  }, [PERAgentServices, context.value.dataSourceId, currentTaskId]);
 
   const handleClickHypothesis = (hypothesisId: string) => {
     history.push(`/agentic/${notebookId}/hypothesis/${hypothesisId}`);
@@ -90,33 +152,52 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     return null;
   }
 
+  const investigationSteps = PERAgentServices && (
+    <EuiAccordion
+      id="investigation-steps"
+      buttonContent="Investigation Steps"
+      forceState={showSteps ? 'open' : 'closed'}
+      onToggle={(isOpen) => {
+        setShowSteps(isOpen);
+      }}
+    >
+      <HypothesesStep
+        messageService={PERAgentServices.message}
+        executorMemoryService={PERAgentServices.executorMemory}
+        onExplainThisStep={setTraceMessageId}
+      />
+    </EuiAccordion>
+  );
+
   return (
     <>
       <EuiPanel>
         <EuiAccordion id="hypotheses" buttonContent="Hypotheses" arrowDisplay="right" initialIsOpen>
-          {hypotheses?.map((hypothesis, index) => {
-            return (
-              <EuiFlexGroup alignItems="center" gutterSize="none">
-                <HypothesisItem
-                  index={index}
-                  hypothesis={hypothesis}
-                  onClickHypothesis={handleClickHypothesis}
-                />
-                <EuiFlexGroup justifyContent="flexEnd" direction="row">
-                  <EuiFlexItem grow={false}>
-                    <EuiSmallButton disabled={isInvestigating} onClick={() => showModal(index)}>
-                      Add Finding
-                    </EuiSmallButton>
-                  </EuiFlexItem>
-                </EuiFlexGroup>
-              </EuiFlexGroup>
-            );
-          })}
-          {isInvestigating && (
+          {isInvestigating ? (
             <>
               <EuiLoadingContent />
             </>
+          ) : (
+            hypotheses?.map((hypothesis, index) => {
+              return (
+                <EuiFlexGroup alignItems="center" gutterSize="none">
+                  <HypothesisItem
+                    index={index}
+                    hypothesis={hypothesis}
+                    onClickHypothesis={handleClickHypothesis}
+                  />
+                  <EuiFlexGroup justifyContent="flexEnd" direction="row">
+                    <EuiFlexItem grow={false}>
+                      <EuiSmallButton disabled={isInvestigating} onClick={() => showModal(index)}>
+                        Add Finding
+                      </EuiSmallButton>
+                    </EuiFlexItem>
+                  </EuiFlexGroup>
+                </EuiFlexGroup>
+              );
+            })
           )}
+          {investigationSteps}
         </EuiAccordion>
         <EuiHorizontalRule margin="xs" />
         <EuiFlexGroup gutterSize="none" alignItems="center" justifyContent="spaceBetween">
@@ -160,6 +241,19 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
             </EuiButton>
           </EuiModalFooter>
         </EuiModal>
+      )}
+      {traceMessageId && PERAgentServices && currentExecutorMemoryId && memoryContainerId && (
+        <MessageTraceFlyout
+          messageId={traceMessageId}
+          messageService={PERAgentServices.message}
+          executorMemoryService={PERAgentServices.executorMemory}
+          onClose={() => {
+            setTraceMessageId(undefined);
+          }}
+          dataSourceId={context.value.dataSourceId}
+          currentExecutorMemoryId={currentExecutorMemoryId}
+          memoryContainerId={memoryContainerId}
+        />
       )}
     </>
   );

@@ -173,6 +173,10 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
               dateModified: schema.string(),
             })
           ),
+          currentExecutorMemoryId: schema.maybe(schema.string()),
+          currentParentInteractionId: schema.maybe(schema.string()),
+          memoryContainerId: schema.maybe(schema.string()),
+          currentTaskId: schema.maybe(schema.string()),
         }),
       },
     },
@@ -187,6 +191,18 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
         const noteObject = {
           hypotheses: request.body.hypotheses,
           dateModified: new Date().toISOString(),
+          ...(request.body.currentExecutorMemoryId && {
+            currentExecutorMemoryId: request.body.currentExecutorMemoryId,
+          }),
+          ...(request.body.currentParentInteractionId && {
+            currentParentInteractionId: request.body.currentParentInteractionId,
+          }),
+          ...(request.body.memoryContainerId && {
+            memoryContainerId: request.body.memoryContainerId,
+          }),
+          ...(request.body.currentTaskId && {
+            currentTaskId: request.body.currentTaskId,
+          }),
         };
         const updateResponse = await opensearchNotebooksClient.update(
           NOTEBOOK_SAVED_OBJECT,

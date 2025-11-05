@@ -80,7 +80,13 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   );
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
-  const { isInvestigating, doInvestigate, addNewFinding, rerunInvestigation } = useInvestigation();
+  const {
+    isInvestigating,
+    doInvestigate,
+    addNewFinding,
+    rerunInvestigation,
+    continueInvestigation,
+  } = useInvestigation();
 
   // Initialize finding integration for automatic UI updates when findings are added
   useNotebookFindingIntegration({
@@ -132,14 +138,34 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
           owner: res.owner,
           hypotheses: res.hypotheses,
+          currentExecutorMemoryId: res.currentExecutorMemoryId,
+          currentParentInteractionId: res.currentParentInteractionId,
+          memoryContainerId: res.memoryContainerId,
+          currentTaskId: res.currentTaskId,
         });
         await setInitialGoal({
           context: notebookContext.state.value.context.value,
         });
+
+        // Check if there's an ongoing investigation to continue BEFORE calling start
+        // This prevents start() from triggering a new investigation when we should continue the existing one
+        const hasOngoingInvestigation = res.currentParentInteractionId && res.memoryContainerId;
+
+        if (hasOngoingInvestigation) {
+          console.log('Detected ongoing investigation, attempting to continue...');
+          try {
+            await continueInvestigation();
+          } catch (error) {
+            console.error('Failed to continue investigation:', error);
+          }
+        }
+
+        // Pass a dummy hypothesis array to prevent start() from auto-triggering investigation
+        // when we're continuing an existing one
         await start({
           context: notebookContext.state.value.context.value,
           paragraphs: res.paragraphs,
-          hypotheses: res.hypotheses,
+          hypotheses: hasOngoingInvestigation ? [{ id: 'placeholder' } as any] : res.hypotheses,
           doInvestigate,
         });
       })
@@ -156,6 +182,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     start,
     setInitialGoal,
     doInvestigate,
+    continueInvestigation,
   ]);
 
   useEffectOnce(() => {

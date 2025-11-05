@@ -25,7 +25,7 @@ import type { NoteBookServices } from 'public/types';
 import { getTimeGapFromDates } from '../../../../../utils/time';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
-import { getAllTracesByMessageId, isMarkdownText } from './utils';
+import { getAllTracesMessages, isMarkdownText } from './utils';
 import { PERAgentMemoryService } from './services/per_agent_memory_service';
 import { PERAgentMessageService } from './services/per_agent_message_service';
 
@@ -62,12 +62,16 @@ export const MessageTraceFlyout = ({
   onClose,
   messageService,
   executorMemoryService,
+  currentExecutorMemoryId,
+  memoryContainerId,
 }: {
   messageId: string;
   dataSourceId?: string;
   onClose: () => void;
   messageService: PERAgentMessageService;
   executorMemoryService: PERAgentMemoryService;
+  currentExecutorMemoryId: string;
+  memoryContainerId: string;
 }) => {
   const {
     services: { http },
@@ -93,10 +97,18 @@ export const MessageTraceFlyout = ({
     if (traces.length === 0) {
       return true;
     }
-    if (!!message?.response) {
+
+    if (!isLastMessage) {
       return false;
     }
-    return isLastMessage && !traceMessage?.response;
+
+    if (!traceMessage?.response) {
+      return true;
+    }
+    if (message?.state === 'COMPLETED') {
+      return false;
+    }
+    return true
   }, [isLastMessage, traceMessage?.response, message?.response, traces]);
 
   useEffect(() => {
@@ -108,9 +120,11 @@ export const MessageTraceFlyout = ({
     const subscription = timer(0, 5000)
       .pipe(
         concatMap(() =>
-          getAllTracesByMessageId({
+          getAllTracesMessages({
             http,
             messageId,
+            memoryContainerId,
+            executorMemoryId: currentExecutorMemoryId,
             signal: abortController.signal,
             dataSourceId,
             nextToken: tracesLengthRef.current,
@@ -124,7 +138,7 @@ export const MessageTraceFlyout = ({
       abortController.abort('Flyout unmount.');
       subscription.unsubscribe();
     };
-  }, [messageId, shouldLoad, http, dataSourceId]);
+  }, [messageId, shouldLoad, http, dataSourceId, currentExecutorMemoryId, memoryContainerId]);
 
   const renderTraces = () => {
     if (!shouldLoad && traces.length === 0) {
@@ -168,9 +182,8 @@ export const MessageTraceFlyout = ({
           <React.Fragment key={traceMessageId}>
             <EuiAccordion
               id={`trace-${index}`}
-              buttonContent={`Step ${index + 1} - ${isFromLLM ? reason : `Execute ${origin}`} ${
-                durationStr ? `Duration (${durationStr})` : ''
-              }`}
+              buttonContent={`Step ${index + 1} - ${isFromLLM ? reason : `Execute ${origin}`} ${durationStr ? `Duration (${durationStr})` : ''
+                }`}
               paddingSize="l"
             >
               <EuiText className="markdown-output-text" size="s">

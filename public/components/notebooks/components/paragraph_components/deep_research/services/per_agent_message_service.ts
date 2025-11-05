@@ -6,7 +6,7 @@
 import { BehaviorSubject, Observable, Subscription, timer } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 import { CoreStart } from '../../../../../../../../../src/core/public';
-import { getMLCommonsMessage } from '../../../../../../utils/ml_commons_apis';
+import { executeMLCommonsAgenticMessage, executeMLCommonsMessageByTask } from '../../../../../../utils/ml_commons_apis';
 
 export class PERAgentMessageService {
   private _dataSourceId?: string;
@@ -15,7 +15,7 @@ export class PERAgentMessageService {
   _abortController?: AbortController;
   private _subscription?: Subscription;
 
-  constructor(private _http: CoreStart['http']) {}
+  constructor(private _http: CoreStart['http'], private _memoryContainerId: string) { }
 
   setup({ dataSourceId, messageId }: { dataSourceId?: string; messageId: string }) {
     this._dataSourceId = dataSourceId;
@@ -28,18 +28,26 @@ export class PERAgentMessageService {
     this._subscription = timer(0, 5000)
       .pipe(
         concatMap(() => {
-          return getMLCommonsMessage({
-            messageId,
+          // return executeMLCommonsAgenticMessage({
+          //   memoryContainerId: this._memoryContainerId,
+          //   messageId,
+          //   http: this._http,
+          //   signal: this._abortController?.signal,
+          //   dataSourceId: this._dataSourceId,
+          // });
+          return executeMLCommonsMessageByTask({
             http: this._http,
-            signal: this._abortController?.signal,
             dataSourceId: this._dataSourceId,
-          });
+            taskId: messageId
+          })
         }),
-        takeWhile((message) => !message.response, true)
+        // takeWhile((message) => !message.hits.hits[0]._source.structured_data.response, true)
+        takeWhile((message) => message.state !== 'COMPLETED', true)
       )
       .subscribe((message) => {
         this._message$.next(message);
-        if (!!message.response) {
+        // if (!!message.hits.hits[0]._source.structured_data.response) {
+        if (message.state === 'COMPLETED') {
           this._pollingState$.next(false);
         }
       });

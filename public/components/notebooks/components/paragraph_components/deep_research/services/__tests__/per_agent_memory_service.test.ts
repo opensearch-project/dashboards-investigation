@@ -4,14 +4,14 @@
  */
 
 import { PERAgentMemoryService } from '../per_agent_memory_service';
-import { getAllMessagesByMemoryId } from '../../utils';
+import { getAllMessagesBySessionIdAndMemoryId } from '../../utils';
 import { BehaviorSubject } from 'rxjs';
 import { httpServiceMock } from '../../../../../../../../../../src/core/public/http/http_service.mock';
 import { CoreStart } from '../../../../../../../../../../src/core/public';
 
 // Mock dependencies
 jest.mock('../../utils', () => ({
-  getAllMessagesByMemoryId: jest.fn(),
+  getAllMessagesBySessionIdAndMemoryId: jest.fn(),
 }));
 
 // Mock AbortController
@@ -41,6 +41,7 @@ describe('PERAgentMemoryService', () => {
   let mockHttp: CoreStart['http'];
   let mockDataSourceId: string;
   let mockMemoryId: string;
+  let mockMemoryContainerId: string;
 
   beforeEach(() => {
     // Reset mocks
@@ -50,16 +51,22 @@ describe('PERAgentMemoryService', () => {
     mockHttp = httpServiceMock.createStartContract();
     mockDataSourceId = 'test-datasource-id';
     mockMemoryId = 'memory-id-123';
+    mockMemoryContainerId = 'memory-container-id-456';
 
     // Create a real BehaviorSubject for memory ID
     mockMemoryId$ = new BehaviorSubject<string>(mockMemoryId);
     mockShouldPolling = jest.fn().mockReturnValue(true);
 
-    // Mock getAllMessagesByMemoryId to return messages
-    (getAllMessagesByMemoryId as jest.Mock).mockResolvedValue(mockMessages);
+    // Mock getAllMessagesBySessionIdAndMemoryId to return messages
+    (getAllMessagesBySessionIdAndMemoryId as jest.Mock).mockResolvedValue(mockMessages);
 
     // Create service instance
-    service = new PERAgentMemoryService(mockHttp, mockMemoryId$, mockShouldPolling);
+    service = new PERAgentMemoryService(
+      mockHttp,
+      mockMemoryId$,
+      mockShouldPolling,
+      mockMemoryContainerId
+    );
     service.setup({
       dataSourceId: mockDataSourceId,
     });
@@ -101,15 +108,15 @@ describe('PERAgentMemoryService', () => {
     // Wait for messages to be updated
     await messagesUpdated;
 
-    // Verify that getAllMessagesByMemoryId was called with the correct dataSourceId
-    expect(getAllMessagesByMemoryId).toHaveBeenCalledWith(
+    // Verify that getAllMessagesBySessionIdAndMemoryId was called with the correct dataSourceId
+    expect(getAllMessagesBySessionIdAndMemoryId).toHaveBeenCalledWith(
       expect.objectContaining({
         dataSourceId: mockDataSourceId,
       })
     );
 
     // Verify that the http client is being used
-    expect(getAllMessagesByMemoryId).toHaveBeenCalledWith(
+    expect(getAllMessagesBySessionIdAndMemoryId).toHaveBeenCalledWith(
       expect.objectContaining({
         http: mockHttp,
       })
@@ -119,8 +126,8 @@ describe('PERAgentMemoryService', () => {
   test('should start polling and subscribe to memory ID observable', async () => {
     // Service is already set up in beforeEach
 
-    // Mock getAllMessagesByMemoryId to resolve with mock messages
-    (getAllMessagesByMemoryId as jest.Mock).mockResolvedValue(mockMessages);
+    // Mock getAllMessagesBySessionIdAndMemoryId to resolve with mock messages
+    (getAllMessagesBySessionIdAndMemoryId as jest.Mock).mockResolvedValue(mockMessages);
 
     // Create a promise to wait for polling state to be updated
     const pollingStateUpdated = new Promise<void>((resolve) => {
@@ -151,8 +158,8 @@ describe('PERAgentMemoryService', () => {
   test('should update messages when polling returns new messages', async () => {
     // Service is already set up in beforeEach
 
-    // Mock getAllMessagesByMemoryId to resolve with mock messages
-    (getAllMessagesByMemoryId as jest.Mock).mockResolvedValue(mockMessages);
+    // Mock getAllMessagesBySessionIdAndMemoryId to resolve with mock messages
+    (getAllMessagesBySessionIdAndMemoryId as jest.Mock).mockResolvedValue(mockMessages);
 
     // Create a promise to wait for messages to be updated
     const messagesUpdated = new Promise<void>((resolve) => {
@@ -183,15 +190,20 @@ describe('PERAgentMemoryService', () => {
   test('should have polling state false when shouldContinuePolling returns false', async () => {
     // Create a new service instance with mockShouldPolling that returns false
     mockShouldPolling = jest.fn().mockReturnValue(false);
-    service = new PERAgentMemoryService(mockHttp, mockMemoryId$, mockShouldPolling);
+    service = new PERAgentMemoryService(
+      mockHttp,
+      mockMemoryId$,
+      mockShouldPolling,
+      mockMemoryContainerId
+    );
 
     // Setup the service
     service.setup({
       dataSourceId: mockDataSourceId,
     });
 
-    // Mock getAllMessagesByMemoryId to resolve with mock messages
-    (getAllMessagesByMemoryId as jest.Mock).mockResolvedValue(mockMessages);
+    // Mock getAllMessagesBySessionIdAndMemoryId to resolve with mock messages
+    (getAllMessagesBySessionIdAndMemoryId as jest.Mock).mockResolvedValue(mockMessages);
 
     // Create a promise to wait for messages to be updated
     const messagesUpdated = new Promise<void>((resolve) => {
@@ -271,7 +283,7 @@ describe('PERAgentMemoryService', () => {
     // Service is already set up in beforeEach
 
     // First, add some messages to the service
-    (getAllMessagesByMemoryId as jest.Mock).mockResolvedValue(mockMessages);
+    (getAllMessagesBySessionIdAndMemoryId as jest.Mock).mockResolvedValue(mockMessages);
 
     // Create a promise to wait for messages to be updated
     const messagesUpdated = new Promise<void>((resolve) => {

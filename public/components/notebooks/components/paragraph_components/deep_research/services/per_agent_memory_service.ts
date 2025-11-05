@@ -6,7 +6,7 @@
 import { BehaviorSubject, Observable, Subscription, timer } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 import { CoreStart } from '../../../../../../../../../src/core/public';
-import { getAllMessagesByMemoryId } from '../utils';
+import { getAllMessagesBySessionIdAndMemoryId } from '../utils';
 
 export class PERAgentMemoryService {
   private _dataSourceId?: string;
@@ -21,7 +21,8 @@ export class PERAgentMemoryService {
   constructor(
     private _http: CoreStart['http'],
     private _memoryId$: Observable<string>,
-    private _shouldContinuePolling: () => boolean
+    private _shouldContinuePolling: () => boolean,
+    private _memoryContainerId: string
   ) {}
 
   setup({ dataSourceId }: { dataSourceId?: string }) {
@@ -64,8 +65,9 @@ export class PERAgentMemoryService {
               ? originalMessages
               : originalMessages.slice(0, -1);
 
-            return getAllMessagesByMemoryId({
-              memoryId,
+            return getAllMessagesBySessionIdAndMemoryId({
+              memoryContainerId: this._memoryContainerId,
+              sessionId: memoryId,
               http,
               signal: this._abortController?.signal,
               dataSourceId: this._dataSourceId,

@@ -4,6 +4,8 @@
  */
 
 import {
+  getMLCommonsAgenticMemoryMessages,
+  getMLCommonsAgenticTracesMessages,
   getMLCommonsMemoryMessages,
   getMLCommonsMessageTraces,
 } from '../../../../../utils/ml_commons_apis';
@@ -11,6 +13,7 @@ import {
 export interface Trace {
   input: string;
   response?: string;
+  message_id?: string;
 }
 
 export const getAllTracesByMessageId = async (
@@ -87,4 +90,66 @@ export const isMarkdownText = (text: string) => {
   }
 
   return matchedTimes >= Math.min(markdownPatterns.length, 3);
+};
+
+export const getAllMessagesBySessionIdAndMemoryId = async (
+  options: Parameters<typeof getMLCommonsAgenticMemoryMessages>[0]
+) => {
+  const messages: Trace[] = [];
+  let nextToken = options.nextToken;
+  do {
+    try {
+      const result = await getMLCommonsAgenticMemoryMessages({
+        ...options,
+        nextToken,
+      });
+      result.hits.hits.forEach((hit: any) => {
+        const structuredData = hit._source.structured_data;
+        messages.push({
+          input: structuredData.input,
+          response: structuredData.response,
+          message_id: hit._id,
+        });
+      });
+      nextToken = result.next_token;
+    } catch (e) {
+      console.error(e);
+      break;
+    }
+  } while (!!nextToken);
+  return messages;
+};
+
+export const getAllTracesMessages = async (
+  options: Parameters<typeof getMLCommonsAgenticTracesMessages>[0]
+) => {
+  const traces: Trace[] = [];
+  let nextToken = options.nextToken;
+  console.log('nextToken', nextToken);
+  do {
+    try {
+      const result = await getMLCommonsAgenticTracesMessages({
+        ...options,
+        nextToken,
+      });
+
+      const hits = result.hits?.hits || [];
+      hits.forEach((hit: any) => {
+        const structuredData = hit._source.structured_data;
+        traces.push(structuredData);
+      });
+
+      if (hits.length > 0) {
+        const lastHit = hits[hits.length - 1];
+        nextToken = lastHit.sort?.[0];
+      } else {
+        nextToken = undefined;
+      }
+    } catch (e) {
+      console.error(e);
+      break;
+    }
+  } while (!!nextToken);
+
+  return traces;
 };

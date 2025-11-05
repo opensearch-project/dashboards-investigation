@@ -39,11 +39,15 @@ interface ContextData {
   currentTime: number | undefined;
   initialGoal?: string;
 }
-
-export const SummaryCard: React.FC<{
+interface SummaryCardProps {
   isInvestigating: boolean;
   openReinvestigateModal: () => void;
-}> = ({ isInvestigating, openReinvestigateModal }) => {
+}
+
+export const SummaryCard: React.FC<SummaryCardProps> = ({
+  isInvestigating,
+  openReinvestigateModal,
+}) => {
   const notebookContext = useContext(NotebookReactContext);
   const {
     services: { uiSettings, notifications },
