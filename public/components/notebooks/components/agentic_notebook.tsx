@@ -242,6 +242,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
             question={initialGoal}
             isInvestigating={isInvestigating}
             addNewFinding={addNewFinding}
+            openReinvestigateModal={() => setIsReinvestigateModalVisible(true)}
           />
           <EuiSpacer />
           {isLoading ? (
