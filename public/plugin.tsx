@@ -96,6 +96,7 @@ export class InvestigationPlugin
         contextService: contextServiceSetup,
         updateContext: this.updateContext,
         findingService,
+        usageCollection: depsStart.usageCollection,
       };
       return services;
     };

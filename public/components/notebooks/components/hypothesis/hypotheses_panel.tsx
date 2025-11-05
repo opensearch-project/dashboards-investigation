@@ -24,16 +24,20 @@ import {
 } from '@elastic/eui';
 import React, { useContext, useState } from 'react';
 import { useObservable } from 'react-use';
-
 import { useHistory } from 'react-router-dom';
+
+import { NoteBookServices } from 'public/types';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { HypothesisItem } from './hypothesis_item';
+import { HypothesesFeedback } from './hypotheses_feedback';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 interface HypothesesPanelProps {
   notebookId: string;
   question?: string;
   isInvestigating: boolean;
   addNewFinding: (newFinding: { hypothesisIndex: number; text: string }) => Promise<void>;
+  openReinvestigateModal: () => void;
 }
 
 export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
@@ -41,7 +45,12 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   question,
   isInvestigating,
   addNewFinding,
+  openReinvestigateModal,
 }) => {
+  const {
+    services: { appName, usageCollection },
+  } = useOpenSearchDashboards<NoteBookServices>();
+
   const notebookContext = useContext(NotebookReactContext);
   const { hypotheses } = useObservable(
     notebookContext.state.getValue$(),
@@ -93,7 +102,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
                   hypothesis={hypothesis}
                   onClickHypothesis={handleClickHypothesis}
                 />
-                <EuiFlexGroup justifyContent="flexEnd" direction="column">
+                <EuiFlexGroup justifyContent="flexEnd" direction="row">
                   <EuiFlexItem grow={false}>
                     <EuiSmallButton disabled={isInvestigating} onClick={() => showModal(index)}>
                       Add Finding
@@ -110,11 +119,20 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
           )}
         </EuiAccordion>
         <EuiHorizontalRule margin="xs" />
-        <EuiFlexGroup dir="row" alignItems="center" gutterSize="none" style={{ gap: 8 }}>
-          <EuiIcon type="" />
-          <EuiText size="s" color="subdued">
-            AI Agent continuously evaluates and ranks hypotheses based on evidence
-          </EuiText>
+        <EuiFlexGroup gutterSize="none" alignItems="center" justifyContent="spaceBetween">
+          <EuiFlexGroup dir="row" alignItems="center" gutterSize="none" style={{ gap: 8 }}>
+            <EuiIcon type="" />
+            <EuiText size="s" color="subdued">
+              AI Agent continuously evaluates and ranks hypotheses based on evidence
+            </EuiText>
+          </EuiFlexGroup>
+          {hypotheses?.length ? (
+            <HypothesesFeedback
+              appName={appName}
+              usageCollection={usageCollection}
+              openReinvestigateModal={openReinvestigateModal}
+            />
+          ) : null}
         </EuiFlexGroup>
       </EuiPanel>
       {/* Add Finding Modal */}

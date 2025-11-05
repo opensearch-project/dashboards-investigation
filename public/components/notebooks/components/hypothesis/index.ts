@@ -4,7 +4,8 @@
  */
 
 export { HypothesesPanel } from './hypotheses_panel';
-export { HypothesisBadge } from './hypothesis_badge';
+export { HypothesisBadge, LikelihoodBadge } from './hypothesis_badge';
 export { HypothesisDetail } from './hypothesis_detail';
 export { HypothesisItem } from './hypothesis_item';
 export { ReinvestigateModal } from './reinvestigate_modal';
+export { HypothesesFeedback } from './hypotheses_feedback';
