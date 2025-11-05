@@ -108,8 +108,8 @@ export const MessageTraceFlyout = ({
     if (message?.state === 'COMPLETED') {
       return false;
     }
-    return true
-  }, [isLastMessage, traceMessage?.response, message?.response, traces]);
+    return true;
+  }, [isLastMessage, traceMessage?.response, message?.state, traces]);
 
   useEffect(() => {
     if (!shouldLoad) {
@@ -182,8 +182,9 @@ export const MessageTraceFlyout = ({
           <React.Fragment key={traceMessageId}>
             <EuiAccordion
               id={`trace-${index}`}
-              buttonContent={`Step ${index + 1} - ${isFromLLM ? reason : `Execute ${origin}`} ${durationStr ? `Duration (${durationStr})` : ''
-                }`}
+              buttonContent={`Step ${index + 1} - ${isFromLLM ? reason : `Execute ${origin}`} ${
+                durationStr ? `Duration (${durationStr})` : ''
+              }`}
               paddingSize="l"
             >
               <EuiText className="markdown-output-text" size="s">

@@ -6,7 +6,7 @@
 import { BehaviorSubject, Observable, Subscription, timer } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 import { CoreStart } from '../../../../../../../../../src/core/public';
-import { executeMLCommonsAgenticMessage, executeMLCommonsMessageByTask } from '../../../../../../utils/ml_commons_apis';
+import { executeMLCommonsMessageByTask } from '../../../../../../utils/ml_commons_apis';
 
 export class PERAgentMessageService {
   private _dataSourceId?: string;
@@ -15,7 +15,7 @@ export class PERAgentMessageService {
   _abortController?: AbortController;
   private _subscription?: Subscription;
 
-  constructor(private _http: CoreStart['http'], private _memoryContainerId: string) { }
+  constructor(private _http: CoreStart['http'], private _memoryContainerId: string) {}
 
   setup({ dataSourceId, messageId }: { dataSourceId?: string; messageId: string }) {
     this._dataSourceId = dataSourceId;
@@ -38,8 +38,8 @@ export class PERAgentMessageService {
           return executeMLCommonsMessageByTask({
             http: this._http,
             dataSourceId: this._dataSourceId,
-            taskId: messageId
-          })
+            taskId: messageId,
+          });
         }),
         // takeWhile((message) => !message.hits.hits[0]._source.structured_data.response, true)
         takeWhile((message) => message.state !== 'COMPLETED', true)

@@ -445,5 +445,5 @@ export const executeMLCommonsMessageByTask = ({
     method: 'get',
     path: `/_plugins/_ml/tasks/${taskId}`,
     signal,
-    dataSourceId
+    dataSourceId,
   });
