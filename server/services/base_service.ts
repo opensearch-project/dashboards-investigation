@@ -16,7 +16,7 @@ export class BaseService {
 
   constructor(private readonly core: CoreSetup, private readonly logger: Logger) {}
 
-  public capabilitiesSwithcer = async (
+  public capabilitiesSwitcher = async (
     request: OpenSearchDashboardsRequest,
     capabilities: Capabilities
   ) => {

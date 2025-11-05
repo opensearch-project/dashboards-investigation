@@ -43,7 +43,7 @@ export class InvestigationPlugin
       };
     });
 
-    core.capabilities.registerSwitcher(baseService.capabilitiesSwithcer);
+    core.capabilities.registerSwitcher(baseService.capabilitiesSwitcher);
 
     setQueryService(new QueryService(this.logger));
     setMLService(new MLService());
