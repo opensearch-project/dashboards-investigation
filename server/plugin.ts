@@ -19,6 +19,7 @@ import { setMLService, setQueryService } from './services/get_set';
 import { QueryService } from './services/query_service';
 import { MLService } from './services/ml_service';
 import { InvestigationPluginSetup, InvestigationPluginStart } from './types';
+import { BaseService } from './services/base_service';
 
 export class InvestigationPlugin
   implements Plugin<InvestigationPluginSetup, InvestigationPluginStart> {
@@ -35,11 +36,14 @@ export class InvestigationPlugin
     const router = core.http.createRouter();
     const auth = core.http.auth;
     const config = await firstValueFrom(this.config$);
+    const baseService = new BaseService(core, this.logger);
     core.capabilities.registerProvider(() => {
       return {
         investigation: config,
       };
     });
+
+    core.capabilities.registerSwitcher(baseService.capabilitiesSwitcher);
 
     setQueryService(new QueryService(this.logger));
     setMLService(new MLService());
