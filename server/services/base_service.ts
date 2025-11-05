@@ -3,9 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ENABLE_AI_FEATURES } from '../../common/constants/shared';
 import {
   Capabilities,
   CoreSetup,
+  CoreStart,
   Logger,
   OpenSearchDashboardsRequest,
 } from '../../../../src/core/server';
@@ -13,6 +15,7 @@ import { InternalDynamicConfigServiceStart } from '../../../../src/core/server/c
 
 export class BaseService {
   private dynamicConfig: InternalDynamicConfigServiceStart | undefined = undefined;
+  private coreStart: CoreStart | undefined = undefined;
 
   constructor(private readonly core: CoreSetup, private readonly logger: Logger) {}
 
@@ -26,6 +29,15 @@ export class BaseService {
     }
     const store = this.dynamicConfig.getAsyncLocalStore();
     const client = this.dynamicConfig.getClient();
+
+    if (!this.coreStart) {
+      const [coreStart] = await this.core.getStartServices();
+      this.coreStart = coreStart;
+    }
+    const savedObjectsClient = this.coreStart.savedObjects.getScopedClient(request);
+    const uiSettingsClient = this.coreStart.uiSettings.asScopedToClient(savedObjectsClient);
+    const isAgenticFeatureEnabledBySetting = await uiSettingsClient.get(ENABLE_AI_FEATURES);
+
     try {
       const dynamicConfig = await client.getConfig(
         { pluginConfigPath: 'investigation' },
@@ -36,7 +48,8 @@ export class BaseService {
         investigation: {
           ...capabilities.investigation,
           enabled: dynamicConfig.enabled,
-          agenticFeaturesEnabled: dynamicConfig.agenticFeaturesEnabled,
+          agenticFeaturesEnabled:
+            dynamicConfig.agenticFeaturesEnabled && isAgenticFeatureEnabledBySetting,
         },
       };
     } catch (e) {

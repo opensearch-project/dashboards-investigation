@@ -36,3 +36,5 @@ export const OPENSEARCH_DATACONNECTIONS_API = {
 export const SAVED_OBJECT = '/object';
 
 export const observabilityLogsID = 'observability-logs';
+
+export const ENABLE_AI_FEATURES = 'enableAIFeatures';

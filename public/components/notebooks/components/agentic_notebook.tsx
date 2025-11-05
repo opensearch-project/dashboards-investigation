@@ -382,7 +382,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
 export const AgenticNotebook = ({ openedNoteId, ...rest }: AgenticNotebookProps) => {
   const {
-    services: { dataSource },
+    services: { dataSource, application },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { page } = useSubRouter();
   const stateRef = useRef(
@@ -391,6 +391,21 @@ export const AgenticNotebook = ({ openedNoteId, ...rest }: AgenticNotebookProps)
       dataSourceEnabled: !!dataSource,
     })
   );
+
+  if (!application.capabilities.investigation.agenticFeaturesEnabled) {
+    return (
+      <EuiPage direction="column">
+        <EuiPageBody>
+          <EuiEmptyPrompt
+            iconType="alert"
+            iconColor="danger"
+            title={<h2>Error loading Notebook</h2>}
+            body={<p>Agentic feature is disabled</p>}
+          />
+        </EuiPageBody>
+      </EuiPage>
+    );
+  }
 
   return (
     <NotebookContextProvider state={stateRef.current}>
