@@ -15,7 +15,7 @@ import {
 } from '../../../src/core/server';
 import { setupRoutes } from './routes/index';
 import { notebookSavedObject } from './saved_objects/observability_saved_object';
-import { setMLService, setQueryService } from './services/get_set';
+import { setCapabilities, setMLService, setQueryService } from './services/get_set';
 import { QueryService } from './services/query_service';
 import { MLService } from './services/ml_service';
 import { InvestigationPluginSetup, InvestigationPluginStart } from './types';
@@ -52,7 +52,6 @@ export class InvestigationPlugin
     setupRoutes({
       router,
       auth,
-      config,
     });
 
     core.savedObjects.registerType(notebookSavedObject);
@@ -62,6 +61,9 @@ export class InvestigationPlugin
 
   public start(_core: CoreStart) {
     this.logger.debug('Observability: Started');
+
+    setCapabilities(_core.capabilities);
+
     return {};
   }
 

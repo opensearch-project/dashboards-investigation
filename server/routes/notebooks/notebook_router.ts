@@ -4,7 +4,6 @@
  */
 
 import { schema } from '@osd/config-schema';
-import { InvestigationConfig } from 'server';
 import {
   IOpenSearchDashboardsResponse,
   IRouter,
@@ -22,8 +21,9 @@ import {
   fetchNotebooks,
   renameNotebook,
 } from '../../adaptors/notebooks/saved_objects_notebooks_router';
+import { getCapabilities } from '../../../server/services/get_set';
 
-export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: InvestigationConfig) {
+export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
   const getUserName = (request: OpenSearchDashboardsRequest) => {
     const authInfo = auth.get<{
       authInfo?: {
@@ -51,7 +51,14 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth, config: Inves
           perPage: 1000,
         });
         const userName = getUserName(request);
-        const fetchedNotebooks = fetchNotebooks(notebooksData.saved_objects, userName, config);
+        const capabilities = await getCapabilities().resolveCapabilities(request);
+        const agenticFeaturesEnabled = capabilities.investigation.agenticFeaturesEnabled;
+
+        const fetchedNotebooks = fetchNotebooks(
+          notebooksData.saved_objects as any,
+          userName,
+          agenticFeaturesEnabled
+        );
         return response.ok({
           body: {
             data: fetchedNotebooks,
