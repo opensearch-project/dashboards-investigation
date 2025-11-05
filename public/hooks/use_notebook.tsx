@@ -191,12 +191,22 @@ export const useNotebook = () => {
 
   const updateHypotheses = useCallback(
     async (hypotheses: HypothesisItem[]) => {
-      const { id: openedNoteId } = context.state.value;
+      const {
+        id: openedNoteId,
+        currentExecutorMemoryId,
+        currentParentInteractionId,
+        memoryContainerId,
+        currentTaskId,
+      } = context.state.value;
       try {
         const response = await http.put(`${NOTEBOOKS_API_PREFIX}/note/updateHypotheses`, {
           body: JSON.stringify({
             notebookId: openedNoteId,
             hypotheses,
+            currentExecutorMemoryId,
+            currentParentInteractionId,
+            memoryContainerId,
+            currentTaskId,
           }),
         });
 
@@ -215,6 +225,13 @@ export const useNotebook = () => {
 
   const deleteHypotheses = useCallback(
     async (hypothesisId?: string) => {
+      // Clear old memory IDs before starting new investigation
+      context.state.updateValue({
+        currentExecutorMemoryId: undefined,
+        currentParentInteractionId: undefined,
+        memoryContainerId: undefined,
+        currentTaskId: undefined,
+      });
       const { id: openedNoteId } = context.state.value;
       try {
         const endpoint = hypothesisId

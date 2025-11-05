@@ -16,4 +16,7 @@ export const OPENSEARCH_ML_COMMONS_API = {
   singleMessage: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/memory/message/{messageId}`,
   messageTraces: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/memory/message/{messageId}/traces`,
   singleConfig: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/config/{configName}`,
+  agenticMemorySearch: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/memory_containers/{memory_container_id}/memories/working/_search`,
+  agentDetail: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/agents/{agentId}`,
+  agenticMemory: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/memory_containers/{memory_container_id}/memories/sessions`,
 };

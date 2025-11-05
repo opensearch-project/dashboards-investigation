@@ -106,6 +106,10 @@ export interface NotebookBackendType {
   vizPrefix?: string;
   owner?: string;
   hypotheses?: HypothesisItem[];
+  currentExecutorMemoryId?: string;
+  currentParentInteractionId?: string;
+  memoryContainerId?: string;
+  currentTaskId?: string;
 }
 
 export interface SummaryDataItem {

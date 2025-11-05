@@ -22,6 +22,10 @@ export interface NotebookStateValue {
   vizPrefix: string;
   owner?: string;
   hypotheses?: HypothesisItem[];
+  currentExecutorMemoryId?: string;
+  currentParentInteractionId?: string;
+  memoryContainerId?: string;
+  currentTaskId?: string;
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {
