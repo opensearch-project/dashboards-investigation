@@ -7,7 +7,7 @@ import React from 'react';
 import { EuiFlexGroup, EuiPanel, EuiFlexItem, EuiText, EuiIcon } from '@elastic/eui';
 import { HypothesisItem as HypothesisItemProps } from 'common/types/notebooks';
 import moment from 'moment';
-import { HypothesisBadge } from './hypothesis_badge';
+import { LikelihoodBadge } from './hypothesis_badge';
 
 export const HypothesisItem: React.FC<{
   index: number;
@@ -47,7 +47,7 @@ export const HypothesisItem: React.FC<{
             <EuiText>
               <strong>{title}</strong>
             </EuiText>
-            <HypothesisBadge label={`Strong evidence ${likelihood}%`} color="#DCFCE7" />
+            <LikelihoodBadge likelihood={likelihood} />
             {dateModified && (
               <EuiText size="xs" color="subdued">
                 Updated {moment(dateModified).fromNow()}

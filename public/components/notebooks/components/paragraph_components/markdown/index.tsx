@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import moment from 'moment';
 import React from 'react';
 import {
   EuiBadge,
@@ -75,9 +76,19 @@ export const MarkdownParagraph = ({
 
     return (
       <>
-        <EuiTitle size="xs">
-          <span>Finding: {description}</span>
-        </EuiTitle>
+        <EuiFlexGroup justifyContent="spaceBetween" style={{ marginInlineEnd: 24 }}>
+          <EuiFlexItem grow={false}>
+            <EuiTitle size="xs">
+              <span>Finding: {description}</span>
+            </EuiTitle>
+          </EuiFlexItem>
+          <EuiFlexItem grow={false}>
+            <EuiText size="xs" color="subdued">
+              Updated {moment(paragraphValue.dateModified).fromNow()}
+            </EuiText>
+          </EuiFlexItem>
+        </EuiFlexGroup>
+
         <EuiSpacer />
         <div>{evidence}</div>
       </>

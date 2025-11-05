@@ -25,185 +25,117 @@ import { useNotebook } from './use_notebook';
 import { CoreStart } from '../../../../src/core/public';
 import { getNotebookTopLevelContextPrompt } from '../services/helpers/per_agent';
 
-const plannerSystemPrompt = `
-You are a thoughtful and analytical planner agent in a plan-execute-reflect framework. Your job is to design a clear, step-by-step plan for a given objective.
+const commonInstructions = `
+# Instructions
 
-Instructions:
-- Break the objective into an ordered list of atomic, self-contained Steps that, if executed, will lead to the final result or complete the objective.
-- Each Step must state what to do, where, and which tool/parameters would be used. You do not execute tools, only reference them for planning.
-- Use only the provided tools; do not invent or assume tools. If no suitable tool applies, use reasoning or observations instead.
-- Base your plan only on the data and information explicitly provided; do not rely on unstated knowledge or external facts.
-- If there is insufficient information to create a complete plan, summarize what is known so far and clearly state what additional information is required to proceed.
-- Stop and summarize if the task is complete or further progress is unlikely.
-- Avoid vague instructions; be specific about data sources, indexes, or parameters.
-- Never make assumptions or rely on implicit knowledge.
-- Respond only in JSON format.
+## Core Planning Rules
+- Break the objective into an ordered list of atomic, self-contained Steps that, if executed, will lead to the final result or complete the objective
+- Each Step must state what to do, where, and which tool/parameters would be used. You do not execute tools, only reference them for planning
+- Use only the provided tools; do not invent or assume tools. If no suitable tool applies, use reasoning or observations instead
+- Base your plan only on the data and information explicitly provided; do not rely on unstated knowledge or external facts
+- If there is insufficient information to create a complete plan, summarize what is known so far and clearly state what additional information is required to proceed
+- Stop and summarize if the task is complete or further progress is unlikely
+- Avoid vague instructions; be specific about data sources, indexes, or parameters
+- Never make assumptions or rely on implicit knowledge
+- Respond only in JSON format
 
-Step examples:
-Good example: "Use Tool to sample documents from index: 'my-index'"
-Bad example: "Use Tool to sample documents from each index"
-Bad example: "Use Tool to sample documents from all indices"
+## Step Examples
+**Good example:** "Use Tool to sample documents from index: 'my-index'"
 
-Response Instructions:
-Only respond in JSON format. Always follow the given response instructions. Do not return any content that does not follow the response instructions. Do not add anything before or after the expected JSON.
+**Bad example:** "Use Tool to sample documents from each index"
+
+**Bad example:** "Use Tool to sample documents from all indices"`;
+
+const commonResponseFormat = `
+# Response Format
+
+## JSON Response Requirements
+Only respond in JSON format. Always follow the given response instructions. Do not return any content that does not follow the response instructions. Do not add anything before or after the expected JSON
 
 Always respond with a valid JSON object that strictly follows the below schema:
+\`\`\`json
 {
   "steps": array[string],
   "result": string
 }
+\`\`\`
 
-Use "steps" to return an array of strings where each string is a step to complete the objective, leave it empty if you know the final result. Please wrap each step in quotes and escape any special characters within the string.
+- Use "steps" to return an array of strings where each string is a step to complete the objective, leave it empty if you know the final result. Please wrap each step in quotes and escape any special characters within the string
+- Use "result" to return the final response when you have enough information, leave it empty if you want to execute more steps. When providing the final result, it MUST be a stringified JSON object with the following structure:
 
-Use "result" to return the final response when you have enough information, leave it empty if you want to execute more steps. When providing the final result, it MUST be a stringified JSON object with the following structure:
+## Final Result Structure
+Final result must be a stringified JSON object:
+\`\`\`json
 {
     "findings": array[object],
-    "hypothesis": object,
-    "operation": string
+    "hypotheses": array[object]
 }
+\`\`\`
 
-Where each finding object has this structure:
+Your final result JSON must include:
+- **"findings"**: An array of finding objects, each containing:
+  * **"id"**: A unique identifier for the finding (e.g., "F1", "F2")
+  * **"description"**: Clear statement of the finding
+  * **"importance"**: Rating from 0-100 indicating overall significance
+  * **"evidence"**: Specific data, quotes, or observations supporting this finding
+- **"hypotheses"**: An array of hypothesis objects, each containing:
+  * **"id"**: A unique identifier for the hypothesis (e.g., "H1")
+  * **"title"**: A concise title for the hypothesis
+  * **"description"**: Clear statement of the hypothesis
+  * **"likelihood"**: Rating from 0-100 indicating probability of being correct
+  * **"supporting_findings"**: Array of finding IDs that support or relate to this hypothesis
+
+### Finding Structure
+\`\`\`json
 {
     "id": string,
     "description": string,
-    "importance": number,
+    "importance": number (0-100),
     "evidence": string
 }
+\`\`\`
 
-Note: When replacing an existing hypothesis, only include NEW findings with IDs that don't conflict with existing finding IDs.
-
-And the hypothesis object has this structure:
+### Hypothesis Structure
+\`\`\`json
 {
     "id": string,
     "title": string,
     "description": string,
-    "likelihood": number,
+    "likelihood": number (0-100),
     "supporting_findings": array[string]
 }
+\`\`\`
 
-The operation field must be either "CREATE" (if creating a new hypothesis) or "REPLACE" (if replacing an existing hypothesis).
+### Likelihood Guidelines
+- **Strong likelihood (70-100)**: High confidence, substantial supporting evidence
+- **Moderate likelihood (40-70)**: Medium confidence, some supporting evidence  
+- **Weak likelihood (0-40)**: Low confidence, limited supporting evidence
 
-Here are examples of valid responses following the required JSON schema:
-Example 1 - When you need to execute steps:
+## Examples
+**Planning response:**
+\`\`\`json
 {
   "steps": ["This is an example step", "this is another example step"],
   "result": ""
 }
+\`\`\`
 
-Example 2 - When you have the final result:
+**Final response:**
+\`\`\`json
 {
   "steps": [],
-  "result": "{\"findings\":[{\"id\":\"F1\",\"description\":\"Key finding from data analysis\",\"importance\":90,\"evidence\":\"Specific data points or observations supporting this finding\"},{\"id\":\"F2\",\"description\":\"Another significant finding\",\"importance\":70,\"evidence\":\"Evidence supporting this finding\"},{\"id\":\"F3\",\"description\":\"Additional finding from analysis\",\"importance\":60,\"evidence\":\"Specific evidence for this finding\"}],\"hypothesis\":{\"id\":\"H1\",\"title\":\"Main Hypothesis Title\",\"description\":\"Main hypothesis about the data\",\"likelihood\":85,\"supporting_findings\":[\"F1\",\"F2\",\"F3\"]},\"operation\":\"CREATE\"}"
+  "result": "{\"findings\":[{\"id\":\"F1\",\"description\":\"High error rate detected\",\"importance\":90,\"evidence\":\"500+ errors in last hour\"}],\"hypotheses\":[{\"id\":\"H1\",\"title\":\"Database Connection Issue\",\"description\":\"Application errors caused by database connectivity problems\",\"likelihood\":85,\"supporting_findings\":[\"F1\"]}]}"
 }
+\`\`\`
 
-Important rules for the response:
+## Critical Rules
 1. Do not use commas within individual steps
 2. **CRITICAL: For tool parameters use commas without spaces (e.g., "param1,param2,param3") - This rule must be followed exactly**
 3. For individual steps that call a specific tool, include all required parameters
 4. Do not add any content before or after the JSON
 5. Only respond with a pure JSON object
 6. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
-7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
-
-Your final result JSON must include:
-- "findings": An array of finding objects, each containing:
-  * "id": A unique identifier for the finding (e.g., "F1", "F2")
-  * "description": Clear statement of the finding
-  * "importance": Rating from 0-100 indicating overall significance
-  * "evidence": Specific data, quotes, or observations supporting this finding
-- "hypothesis": A single hypothesis object containing:
-  * "id": A unique identifier for the hypothesis (e.g., "H1")
-  * "title": A concise title for the hypothesis
-  * "description": Clear statement of the hypothesis
-  * "likelihood": Rating from 0-100 indicating probability of being correct
-  * "supporting_findings": Array of finding IDs that support or relate to this hypothesis
-- "operation": Either "CREATE" or "REPLACE" to indicate if you're creating a new hypothesis or replacing an existing one
-
-## CRITICAL RULES FOR CREATE VS REPLACE DECISION
-
-**MANDATORY DECISION PROCESS - FOLLOW THESE STEPS IN ORDER:**
-
-### STEP 1: SEMANTIC SIMILARITY CHECK
-Before making any CREATE/REPLACE decision, you MUST evaluate the semantic similarity between the original and new hypothesis:
-
-**Use REPLACE if ALL of these are true:**
-- The core conclusion is essentially the same (>80% semantic overlap)
-- The root cause identified is the same
-- The affected system/component is the same
-- The problem type/category is the same
-- The title differs by <50% of the words
-
-**Use CREATE if ANY of these are true:**
-- Different root cause identified
-- Different system/component affected
-- Different problem type (e.g., configuration vs performance vs security)
-- Title differs by >50% of the words
-- Fundamentally different interpretation of the data
-
-### STEP 2: FINDINGS NOVELTY CHECK
-**For REPLACE operations ONLY:**
-You MUST include ONLY findings that are genuinely NEW. A finding is NOT new if:
-- It restates the same conclusion with different wording
-- It provides minor technical details about the same core issue
-- It describes the same evidence using different terminology
-- It's a methodological note about how you found existing information
-- It summarizes or contextualizes already-known information
-
-**A finding IS new only if:**
-- It reveals a previously unknown cause or effect
-- It identifies a different system component involved
-- It discovers a new time pattern or scope
-- It uncovers additional impact or consequences not previously known
-- It provides genuinely new evidence (not just rewording existing evidence)
-
-### STEP 3: MANDATORY SELF-CHECK
-Before finalizing your response, ask yourself:
-1. "Is my new hypothesis conclusion fundamentally different from the original?" (If No → likely REPLACE)
-2. "Do my new findings reveal genuinely new information, or am I rewording existing conclusions?" (If rewording → use empty findings array)
-3. "Would a human expert see these as the same hypothesis with minor refinements?" (If Yes → REPLACE)
-
-### SIMPLIFIED DECISION TREE:
-\`\`\`
-Is the core conclusion/root cause the same?
-├─ YES → Use REPLACE
-│   ├─ Do I have genuinely NEW findings?
-│   │   ├─ YES → Include only the NEW findings
-│   │   └─ NO → Use empty findings array []
-│   └─ Keep original hypothesis ID
-└─ NO → Use CREATE with new hypothesis ID
-\`\`\`
-
-## EXAMPLES OF CORRECT DECISIONS:
-
-**REPLACE Example:**
-- Original: "Database timeout errors due to connection pool exhaustion"
-- New: "Database timeout errors due to connection pool exhaustion affecting payment transactions"
-- Decision: REPLACE (same root cause, added scope detail)
-
-**CREATE Example:**
-- Original: "Database timeout errors due to connection pool exhaustion"
-- New: "Application memory leaks causing container restarts"
-- Decision: CREATE (completely different root cause and problem type)
-
-**REPLACE with Empty Findings:**
-- Original: "API rate limiting causing 429 errors"
-- New: "API rate limiting causing 429 errors" (same conclusion, no new info)
-- Decision: REPLACE with findings: [] and supporting_findings: []
-
-When using "REPLACE" operation:
-- CRITICAL: Only include findings that reveal genuinely NEW information
-- If you're only confirming or rephrasing existing findings, use an empty findings array []
-- The "supporting_findings" array should include ONLY the IDs of NEW findings being added
-- Never create duplicate findings that convey the same information with different wording
-
-When using "CREATE" operation:
-- Include all relevant findings (new and previously established)
-- Use a new hypothesis ID to clearly distinguish it from any previous hypothesis
-
-The final response should create a clear chain of evidence where findings support your hypothesis.
-
-
-`.trim();
+7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**`;
 
 const executePERAgent = async ({
   context,
@@ -228,68 +160,68 @@ const executePERAgent = async ({
       system_prompt: prompt,
       question,
       planner_prompt_template: `
-      ## AVAILABLE TOOLS
-      \${parameters.tools_prompt}
+## AVAILABLE TOOLS
+\${parameters.tools_prompt}
 
-      ## PLANNING GUIDANCE
-      \${parameters.planner_prompt}
+## PLANNING GUIDANCE
+\${parameters.planner_prompt}
 
-      ## OBJECTIVE
-      Your job is to fulfill user's requirements and answer their questions effectively. User Input:
-      \`\`\`\${parameters.user_prompt}\`\`\`
+## OBJECTIVE
+Your job is to fulfill user's requirements and answer their questions effectively. User Input:
+\`\`\`\${parameters.user_prompt}\`\`\`
 
-      ## PREVIOUS CONTEXT
-      The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research
-      [\${parameters.context}]
+## PREVIOUS CONTEXT
+The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research
+[\${parameters.context}]
 
-      Remember: Respond only in JSON format following the required schema.`,
+Remember: Respond only in JSON format following the required schema.`,
       planner_with_history_template: `
-      ## AVAILABLE TOOLS
-      \${parameters.tools_prompt}
+## AVAILABLE TOOLS
+\${parameters.tools_prompt}
 
-      ## PLANNING GUIDANCE
-      \${parameters.planner_prompt}
+## PLANNING GUIDANCE
+\${parameters.planner_prompt}
 
-      ## OBJECTIVE
-      The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively. User Input:
-      \`\`\`\${parameters.user_prompt}\`\`\`
+## OBJECTIVE
+The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively. User Input:
+\`\`\`\${parameters.user_prompt}\`\`\`
 
-      ## PREVIOUS CONTEXT
-      The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research
-      [\${parameters.context}]
+## PREVIOUS CONTEXT
+The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research
+[\${parameters.context}]
 
-      ## CURRENT PROGRESS
-      You have already completed the following steps in the current plan. Consider these when determining next actions:
-      [\${parameters.completed_steps}]
+## CURRENT PROGRESS
+You have already completed the following steps in the current plan. Consider these when determining next actions:
+[\${parameters.completed_steps}]
 
-      Remember: Respond only in JSON format following the required schema.`,
+Remember: Respond only in JSON format following the required schema.`,
       reflect_prompt_template: `
-      ## AVAILABLE TOOLS
-      \${parameters.tools_prompt}
+## AVAILABLE TOOLS
+\${parameters.tools_prompt}
 
-      ## PLANNING GUIDANCE
-      \`\`\`\${parameters.planner_prompt}\`\`\`
+## PLANNING GUIDANCE
+\`\`\`\${parameters.planner_prompt}\`\`\`
 
-      ## OBJECTIVE
-      The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively. User Input:
-      \${parameters.user_prompt}
+## OBJECTIVE
+The following is the user's input. Your job is to fulfill the user's requirements and answer their questions effectively. User Input:
+\${parameters.user_prompt}
 
-      ## ORIGINAL PLAN
-      This was the initially created plan to address the objective:
-      [\${parameters.steps}]
+## ORIGINAL PLAN
+This was the initially created plan to address the objective:
+[\${parameters.steps}]
 
-      ## PREVIOUS CONTEXT
-      The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research without doing the same thing again:
-      [\${parameters.context}]
+## PREVIOUS CONTEXT
+The following are steps executed previously to help you investigate, you can take these as background knowledge and utilize these information for further research without doing the same thing again:
+[\${parameters.context}]
 
-      ## CURRENT PROGRESS
-      You have already completed the following steps from the original plan. Consider these when determining next actions:
-      [\${parameters.completed_steps}]
+## CURRENT PROGRESS
+You have already completed the following steps from the original plan. Consider these when determining next actions:
+[\${parameters.completed_steps}]
 
-      ## REFLECTION GUIDELINE
-      \${parameters.reflect_prompt}
+## REFLECTION GUIDELINE
+\${parameters.reflect_prompt}
 
-      Remember: Respond only in JSON format following the required schema.`,
+Remember: Respond only in JSON format following the required schema.`,
       context,
     },
     dataSourceId,
@@ -297,8 +229,8 @@ const executePERAgent = async ({
 
 const getFindingFromParagraph = (paragraph: ParagraphStateValue<unknown>) => {
   return `
-      ### Finding (ID: ${paragraph.id})
-      ${paragraph.input.inputText}
+### Finding (ID: ${paragraph.id})
+${paragraph.input.inputText}
     `;
 };
 
@@ -327,20 +259,8 @@ export const useInvestigation = () => {
   const [isInvestigating, setIsInvestigating] = useState(false);
 
   const storeInvestigationResponse = useCallback(
-    async ({
-      payload,
-      hypothesisIndex,
-      isReinvestigate,
-    }: {
-      payload: PERAgentInvestigationResponse;
-      hypothesisIndex?: number;
-      isReinvestigate?: boolean;
-    }) => {
+    async ({ payload }: { payload: PERAgentInvestigationResponse }) => {
       const findingId2ParagraphId: { [key: string]: string } = {};
-      const originalHypothesis =
-        typeof hypothesisIndex !== 'undefined'
-          ? context.state.value.hypotheses?.[hypothesisIndex]
-          : undefined;
       let startParagraphIndex = paragraphLengthRef.current;
       // TODO: Handle legacy paragraphs if operation is REPLACE
       for (let i = 0; i < payload.findings.length; i++) {
@@ -380,66 +300,38 @@ ${finding.evidence}
           }
         }
       }
-      const newHypothesis = {
-        id: payload.hypothesis.id,
-        title: payload.hypothesis.title,
-        description: payload.hypothesis.description,
-        likelihood: payload.hypothesis.likelihood,
+      const newHypotheses = payload.hypotheses.map((hypothesis) => ({
+        id: hypothesis.id,
+        title: hypothesis.title,
+        description: hypothesis.description,
+        likelihood: hypothesis.likelihood,
         supportingFindingParagraphIds: [
-          // TODO check whether the original hypothesis logic is still required
-          ...(originalHypothesis
-            ? [
-                ...originalHypothesis.supportingFindingParagraphIds,
-                ...(originalHypothesis.newAddedFindingIds ?? []),
-              ]
-            : []),
-          ...payload.hypothesis.supporting_findings
+          ...hypothesis.supporting_findings
             .map((id) => findingId2ParagraphId[id] || (id.startsWith('paragraph_') ? id : null))
             .filter((id) => !!id),
         ],
         dateCreated: new Date().toISOString(),
         dateModified: new Date().toISOString(),
-      };
+      }));
       try {
-        const currentHypotheses = context.state.value.hypotheses ?? [];
-        const newHypotheses = isReinvestigate ? [] : currentHypotheses;
-        if (
-          typeof hypothesisIndex === 'undefined' ||
-          !newHypotheses[hypothesisIndex] ||
-          payload.operation === 'CREATE'
-        ) {
-          newHypotheses.push(newHypothesis as any);
-          // Clear old hypothesis new finding array
-          if (typeof hypothesisIndex !== 'undefined' && newHypotheses[hypothesisIndex]) {
-            newHypotheses[hypothesisIndex] = {
-              ...newHypotheses[hypothesisIndex],
-              newAddedFindingIds: [],
-            };
-          }
-        } else {
-          newHypotheses[hypothesisIndex] = newHypothesis as any;
-        }
-
-        await updateHypotheses(newHypotheses);
+        await updateHypotheses([...(newHypotheses as any)]);
       } catch (e) {
         console.error('Failed to update investigation result', e);
       }
     },
-    [updateHypotheses, createParagraph, runParagraph, context.state.value.hypotheses]
+    [updateHypotheses, createParagraph, runParagraph]
   );
 
   const executeInvestigation = useCallback(
     async ({
       question,
       contextPrompt,
-      hypothesisIndex,
-      isReinvestigate = false,
+      prompt,
       abortController,
     }: {
       question: string;
       contextPrompt: string;
-      hypothesisIndex?: number;
-      isReinvestigate?: boolean;
+      prompt: string;
       abortController?: AbortController;
     }) => {
       const dataSourceId = context.state.value.context.value.dataSourceId;
@@ -465,7 +357,7 @@ ${finding.evidence}
           dataSourceId,
           question,
           context: contextPrompt,
-          prompt: plannerSystemPrompt,
+          prompt,
         });
 
         const parentInteractionId = extractParentInteractionId(result);
@@ -505,8 +397,6 @@ ${finding.evidence}
               try {
                 await storeInvestigationResponse({
                   payload: responseJson,
-                  hypothesisIndex,
-                  isReinvestigate,
                 });
                 resolve(undefined);
               } catch (e) {
@@ -537,56 +427,33 @@ ${finding.evidence}
   const doInvestigate = useCallback(
     async ({
       investigationQuestion,
-      hypothesisIndex,
       abortController,
     }: {
       investigationQuestion: string;
-      hypothesisIndex?: number;
       abortController?: AbortController;
     }) => {
-      const originalHypothesis =
-        typeof hypothesisIndex !== 'undefined'
-          ? contextStateValue?.hypotheses?.[hypothesisIndex]
-          : undefined;
-      const allParagraphs = context.state.getParagraphsValue();
-      const notebookContextPrompt = await getNotebookTopLevelContextPrompt(
+      const notebookContextPrompt = getNotebookTopLevelContextPrompt(
         context.state.value.context.value
       );
-      const existingFindingsPrompt = convertParagraphsToFindings(
-        allParagraphs.filter((paragraph) =>
-          originalHypothesis?.supportingFindingParagraphIds.includes(paragraph.id)
-        )
-      );
-      const newFindingsPrompt = convertParagraphsToFindings(
-        allParagraphs.filter((paragraph) =>
-          originalHypothesis?.newAddedFindingIds?.includes(paragraph.id)
-        )
-      );
-      const contextPrompt = originalHypothesis
-        ? `
-${notebookContextPrompt}
 
-## Original hypothesis
-Title: ${originalHypothesis.title}
-Description: ${originalHypothesis.description}
-Likelihood: ${originalHypothesis.likelihood}
+      const plannerSystemPrompt = `
+# Investigation Planner Agent
 
-## Original hypothesis findings
-${existingFindingsPrompt}
+You are a thoughtful and analytical planner agent in a plan-execute-reflect framework. Your job is to design a clear, step-by-step plan for a given objective.
 
-## New added findings
-${newFindingsPrompt}
-      `.trim()
-        : `${notebookContextPrompt}${convertParagraphsToFindings(allParagraphs)}`;
+${commonInstructions}
+
+${commonResponseFormat}
+`.trim();
 
       return executeInvestigation({
         question: investigationQuestion,
-        contextPrompt,
-        hypothesisIndex,
+        contextPrompt: notebookContextPrompt,
+        prompt: plannerSystemPrompt,
         abortController,
       });
     },
-    [contextStateValue?.hypotheses, context.state, executeInvestigation]
+    [context.state, executeInvestigation]
   );
 
   const doInvestigateRef = useRef(doInvestigate);
@@ -636,95 +503,71 @@ ${newFindingsPrompt}
     const allParagraphs = context.state.getParagraphsValue();
     const question = investigationQuestion || context.state.value.context.value.initialGoal || '';
 
+    const notebookContextPrompt = getNotebookTopLevelContextPrompt(
+      context.state.value.context.value
+    );
+
     const originalHypotheses = contextStateValue?.hypotheses || [];
     const rerunPrompt = `
-You are a thoughtful and analytical planner agent specializing in RE-INVESTIGATION. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
+# Re-Investigation Agent
 
+You are a thoughtful and analytical planner agent specializing in **RE-INVESTIGATION**. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
+
+## Investigation Context
 ${
   investigationQuestion
-    ? `ORIGINAL QUESTION: "${context.state.value.context.value.initialGoal || ''}"
-The hypotheses below were generated from this original question.
+    ? `**ORIGINAL QUESTION:** "${context.state.value.context.value.initialGoal || ''}"
 
-NEW INVESTIGATION QUESTION: "${investigationQuestion}"
+The hypotheses were generated from this original question.
+
+**NEW INVESTIGATION QUESTION:** "${investigationQuestion}"
+
 You are now investigating this new question. Update the hypotheses based on this new question and current evidence.`
-    : `ORIGINAL QUESTION: "${question}"
+    : `**ORIGINAL QUESTION:** "${question}"
 This is a re-run of the original investigation. Update the hypotheses based on the same question and current evidence.`
 }
 
-Instructions:
+## Re-Investigation Rules
 - Analyze existing hypotheses and findings to determine if they remain valid
-- REUSE existing findings that are still relevant rather than creating duplicates
-- Only create NEW findings when absolutely necessary for novel evidence
+- **REUSE** existing findings that are still relevant rather than creating duplicates
+- Only create **NEW** findings when absolutely necessary for novel evidence
 - Update hypothesis likelihood based on all available evidence
-- Use only the provided tools; do not invent or assume tools
-- Base your analysis only on the data and information explicitly provided
-- Avoid vague instructions; be specific about data sources, indexes, or parameters
-- Never make assumptions or rely on implicit knowledge
-- Respond only in JSON format
 
-Findings Handling:
-- For existing findings: Use paragraph IDs in format "paragraph_uuid" (e.g., "paragraph_bb46405b-81ca-42e6-9868-8b61a6d1005c")
-- For new findings: Use generated finding IDs (e.g., "F1", "F2", "F3") - frontend will replace these with actual paragraph IDs
+${commonInstructions}
+
+## Findings Handling
+- **CRITICAL:** In the "findings" array of your response, return **ONLY NEW findings** that provide genuinely novel evidence
+- **For existing findings:** Use paragraph IDs in format "paragraph_uuid" (e.g., "paragraph_bb46405b-81ca-42e6-9868-8b61a6d1005c") in supporting_findings array
+- **For new findings:** Use generated finding IDs (e.g., "F1", "F2", "F3") - frontend will replace these with actual paragraph IDs
 - The supporting_findings array can contain a mix of existing paragraph IDs and new finding IDs
-- Generate new findings ONLY for completely novel evidence not covered by existing findings
+- **Do NOT return existing findings in the findings array** - they will not be deleted and don't need to be recreated
 
-Operation Guidance:
-Always use CREATE operation for all hypotheses. Old hypotheses will be deleted, so create new hypotheses with fresh IDs for all conclusions, regardless of similarity to existing hypotheses.
+## Findings Novelty Check
+You **MUST** include ONLY findings that are genuinely NEW. A finding is **NOT** new if:
+- It restates the same conclusion with different wording
+- It provides minor technical details about the same core issue
+- It describes the same evidence using different terminology
+- It's a methodological note about how you found existing information
+- It summarizes or contextualizes already-known information
 
-Response Instructions:
-Only respond in JSON format. Always follow the given response instructions. Do not return any content that does not follow the response instructions. Do not add anything before or after the expected JSON.
+**A finding IS new only if:**
+- It reveals a previously unknown cause or effect
+- It identifies a different system component involved
+- It discovers a new time pattern or scope
+- It uncovers additional impact or consequences not previously known
+- It provides genuinely new evidence (not just rewording existing evidence)
 
-Always respond with a valid JSON object that strictly follows the below schema:
-{
-  "steps": array[string],
-  "result": string
-}
+## Operation Guidance
+Create new hypotheses with fresh IDs. Previous hypotheses will be replaced.
 
-Use "steps" to return an array of strings where each string is a step to complete the objective, leave it empty if you know the final result. Please wrap each step in quotes and escape any special characters within the string.
+${commonResponseFormat}
 
-Use "result" to return the final response when you have enough information, leave it empty if you want to execute more steps. When providing the final result, it MUST be a stringified JSON object with the following structure:
-{
-    "findings": array[object],
-    "hypothesis": object,
-    "operation": string
-}
+**The final response should create a clear chain of evidence where findings support your hypothesis while maximizing reuse of existing evidence.**
+`.trim();
 
-Where each finding object has this structure:
-{
-    "id": string,
-    "description": string,
-    "importance": number,
-    "evidence": string
-}
+    const currentStatePrompt = `${notebookContextPrompt}
 
-And the hypothesis object has this structure:
-{
-    "id": string,
-    "title": string,
-    "description": string,
-    "likelihood": number,
-    "supporting_findings": array[string]
-}
-
-The operation field must be "CREATE" for re-investigations.
-
-Important rules for the response:
-1. Do not use commas within individual steps
-2. **CRITICAL: For tool parameters use commas without spaces (e.g., "param1,param2,param3") - This rule must be followed exactly**
-3. For individual steps that call a specific tool, include all required parameters
-4. Do not add any content before or after the JSON
-5. Only respond with a pure JSON object
-6. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
-7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
-
-Your final result JSON must include:
-- "findings": An array of finding objects (only NEW findings - reuse existing paragraph IDs when possible)
-- "hypothesis": A single hypothesis object
-- "operation": Must be "CREATE" for re-investigations
-
-The final response should create a clear chain of evidence where findings support your hypothesis while maximizing reuse of existing evidence.
-
-# Current Investigation State:
+# Current Hypotheses State
 ${originalHypotheses.reduce((acc, hypothesis, index) => {
   const existingFindingsPrompt = convertParagraphsToFindings(
     allParagraphs.filter((paragraph) =>
@@ -754,13 +597,12 @@ ${newFindingsPrompt}`
     : ''
 }
     `;
-}, '')}
-`.trim();
+}, '')}`;
 
     return executeInvestigation({
       question,
-      contextPrompt: rerunPrompt,
-      isReinvestigate: true,
+      contextPrompt: currentStatePrompt,
+      prompt: rerunPrompt,
       abortController,
     });
   };

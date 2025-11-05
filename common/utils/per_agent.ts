@@ -38,6 +38,7 @@ export const isValidPERAgentInvestigationResponse = (
   return (
     Array.isArray(data.findings) &&
     data.findings.every(isValidPERAgentHypothesisFinding) &&
-    isValidPERAgentHypothesisItem(data.hypothesis)
+    Array.isArray(data.hypotheses) &&
+    data.hypotheses.every(isValidPERAgentHypothesisItem)
   );
 };
