@@ -27,11 +27,11 @@ import { useObservable } from 'react-use';
 import { useHistory } from 'react-router-dom';
 
 import { NoteBookServices } from 'public/types';
+import { BehaviorSubject } from 'rxjs';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { HypothesisItem } from './hypothesis_item';
 import { HypothesesFeedback } from './hypotheses_feedback';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
-import { BehaviorSubject } from 'rxjs';
 import { PERAgentMessageService } from '../paragraph_components/deep_research/services/per_agent_message_service';
 import { PERAgentMemoryService } from '../paragraph_components/deep_research/services/per_agent_memory_service';
 import { HypothesesStep } from './hypotheses_step';
@@ -59,7 +59,6 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   const notebookContext = useContext(NotebookReactContext);
   const {
     hypotheses,
-    currentParentInteractionId,
     context,
     memoryContainerId,
     currentExecutorMemoryId,
@@ -82,7 +81,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
       executorMemoryId$,
       () => {
         // return !messageService.getMessageValue()?.hits.hits[0]._source.structured_data.response;
-        return !messageService.getMessageValue()?.response?.inference_results?.[0]?.output?.find(item => item?.name === "response")?.dataAsMap?.response;
+        return messageService.getMessageValue()?.state !== 'COMPLETED';
       },
       memoryContainerId
     );
@@ -103,7 +102,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
 
   useEffect(() => {
     if (PERAgentServices && currentTaskId) {
-      console.log('currentTaskId', currentTaskId)
+      console.log('currentTaskId', currentTaskId);
       PERAgentServices.message.setup({
         messageId: currentTaskId,
         dataSourceId: context.value.dataSourceId,
