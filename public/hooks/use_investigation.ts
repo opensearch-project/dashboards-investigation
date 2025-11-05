@@ -16,9 +16,9 @@ import { NotebookReactContext } from '../components/notebooks/context_provider/c
 import {
   createAgenticExecutionMemory,
   executeMLCommonsAgent,
-  executeMLCommonsAgenticMessage,
   executeMLCommonsMessageByTask,
   getMLCommonsAgentDetail,
+  getMLCommonsConfig,
 } from '../utils/ml_commons_apis';
 import { extractParentInteractionId } from '../../common/utils/task';
 import { PERAgentInvestigationResponse } from '../../common/types/notebooks';
@@ -328,9 +328,9 @@ ${finding.evidence}
   );
 
   /**
-  * Poll for investigation completion and process the response
-  * @returns Promise that resolves when investigation is complete or rejects on error
-  */
+   * Poll for investigation completion and process the response
+   * @returns Promise that resolves when investigation is complete or rejects on error
+   */
   const pollInvestigationCompletion = useCallback(
     ({
       taskId,
@@ -434,17 +434,14 @@ ${finding.evidence}
       }
 
       try {
-        // const agentId = (
-        //   await getMLCommonsConfig({
-        //     http,
-        //     signal: abortController?.signal,
-        //     configName: 'os_deep_research',
-        //     dataSourceId,
-        //   })
-        // ).configuration.agent_id;
-
-        // Temporary hardcode the agent id
-        const agentId = 'wp2rPpoBJWakY_Lt5GYU';
+        const agentId = (
+          await getMLCommonsConfig({
+            http,
+            signal: abortController?.signal,
+            configName: 'os_deep_research',
+            dataSourceId,
+          })
+        ).configuration.agent_id;
 
         const memoryContainerId = (
           await getMLCommonsAgentDetail({
@@ -454,7 +451,7 @@ ${finding.evidence}
           })
         )?.memory?.memory_container_id;
 
-        if(!memoryContainerId) {
+        if (!memoryContainerId) {
           setIsInvestigating(false);
           return;
         }
@@ -494,7 +491,7 @@ ${finding.evidence}
           memoryContainerId,
           currentParentInteractionId: parentInteractionId,
           currentExecutorMemoryId: executorMemoryId,
-          currentTaskId: taskId
+          currentTaskId: taskId,
         });
 
         // Immediately save these IDs to backend so they persist across page refreshes
@@ -635,7 +632,7 @@ The hypotheses were generated from this original question.
 You are now investigating this new question. Update the hypotheses based on this new question and current evidence.`
     : `**ORIGINAL QUESTION:** "${question}"
 This is a re-run of the original investigation. Update the hypotheses based on the same question and current evidence.`
-      }
+}
 
 ## Re-Investigation Rules
 - Analyze existing hypotheses and findings to determine if they remain valid
@@ -717,63 +714,54 @@ ${newFindingsPrompt}`
     });
   };
 
-  const continueInvestigation = useCallback(
-    async ({
-      hypothesisIndex,
-      isReinvestigate = false,
-    }: {
-      hypothesisIndex?: number;
-      isReinvestigate?: boolean;
-    } = {}) => {
-      const { currentParentInteractionId, memoryContainerId, currentTaskId } = context.state.value;
+  const continueInvestigation = useCallback(async () => {
+    const { currentParentInteractionId, memoryContainerId, currentTaskId } = context.state.value;
 
-      if (!currentParentInteractionId || !memoryContainerId || !currentTaskId) {
-        console.log('No ongoing investigation to continue');
+    if (!currentParentInteractionId || !memoryContainerId || !currentTaskId) {
+      console.log('No ongoing investigation to continue');
+      return;
+    }
+
+    const dataSourceId = context.state.value.context.value.dataSourceId;
+    setIsInvestigating(true);
+
+    try {
+      // Check if investigation is already complete
+      // const initialMessage = await executeMLCommonsAgenticMessage({
+      //   memoryContainerId,
+      //   messageId: currentParentInteractionId,
+      //   http,
+      //   dataSourceId,
+      // });
+
+      // const initialResponse = initialMessage.hits.hits[0]._source.structured_data.response;
+
+      const initialMessage = await executeMLCommonsMessageByTask({
+        http,
+        dataSourceId,
+        taskId: currentTaskId,
+      });
+
+      const initialResponse = initialMessage.state === 'COMPLETED';
+
+      // If already has response, process it immediately
+      if (initialResponse) {
+        setIsInvestigating(false);
         return;
       }
 
-      const dataSourceId = context.state.value.context.value.dataSourceId;
-      setIsInvestigating(true);
-
-      try {
-        // Check if investigation is already complete
-        // const initialMessage = await executeMLCommonsAgenticMessage({
-        //   memoryContainerId,
-        //   messageId: currentParentInteractionId,
-        //   http,
-        //   dataSourceId,
-        // });
-
-        // const initialResponse = initialMessage.hits.hits[0]._source.structured_data.response;
-
-        const initialMessage = await executeMLCommonsMessageByTask({
-          http,
-          dataSourceId,
-          taskId: currentTaskId
-        })
-
-        const initialResponse = initialMessage.state === 'COMPLETED';
-
-        // If already has response, process it immediately
-        if (initialResponse) {
-          setIsInvestigating(false);
-          return;
-        }
-
-        // Otherwise, continue polling
-        return pollInvestigationCompletion({
-          taskId: currentTaskId,
-        }).finally(() => {
-          setIsInvestigating(false);
-        });
-      } catch (e) {
-        console.error('Failed to continue investigation', e);
-        notifications.toasts.addError(e, { title: 'Failed to continue investigation' })
+      // Otherwise, continue polling
+      return pollInvestigationCompletion({
+        taskId: currentTaskId,
+      }).finally(() => {
         setIsInvestigating(false);
-      }
-    },
-    [context.state, http, notifications, pollInvestigationCompletion]
-  );
+      });
+    } catch (e) {
+      console.error('Failed to continue investigation', e);
+      notifications.toasts.addError(e, { title: 'Failed to continue investigation' });
+      setIsInvestigating(false);
+    }
+  }, [context.state, http, notifications, pollInvestigationCompletion]);
 
   return {
     isInvestigating,
