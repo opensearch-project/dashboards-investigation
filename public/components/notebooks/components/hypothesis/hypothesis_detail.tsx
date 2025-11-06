@@ -211,7 +211,6 @@ export const HypothesisDetail: React.FC = () => {
                     Updated {moment(currentHypothesis.dateModified).fromNow()}
                   </EuiText>
                 )}
-                <HypothesisBadge label="Under investigation" color="hollow" icon="pulse" />
                 <LikelihoodBadge likelihood={currentHypothesis.likelihood} />
               </EuiFlexGroup>
               <EuiSpacer size="s" />

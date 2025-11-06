@@ -6,7 +6,7 @@
 import { BehaviorSubject, Observable, Subscription, timer } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 import { CoreStart } from '../../../../../../../../../src/core/public';
-import { executeMLCommonsMessageByTask } from '../../../../../../utils/ml_commons_apis';
+import { executeMLCommonsAgenticMessage } from '../../../../../../utils/ml_commons_apis';
 
 export class PERAgentMessageService {
   private _dataSourceId?: string;
@@ -28,26 +28,19 @@ export class PERAgentMessageService {
     this._subscription = timer(0, 5000)
       .pipe(
         concatMap(() => {
-          // return executeMLCommonsAgenticMessage({
-          //   memoryContainerId: this._memoryContainerId,
-          //   messageId,
-          //   http: this._http,
-          //   signal: this._abortController?.signal,
-          //   dataSourceId: this._dataSourceId,
-          // });
-          return executeMLCommonsMessageByTask({
+          return executeMLCommonsAgenticMessage({
+            memoryContainerId: this._memoryContainerId,
+            messageId,
             http: this._http,
+            signal: this._abortController?.signal,
             dataSourceId: this._dataSourceId,
-            taskId: messageId,
           });
         }),
-        // takeWhile((message) => !message.hits.hits[0]._source.structured_data.response, true)
-        takeWhile((message) => message.state !== 'COMPLETED', true)
+        takeWhile((message) => !message?.hits?.hits?.[0]?._source?.structured_data?.response, true)
       )
       .subscribe((message) => {
         this._message$.next(message);
-        // if (!!message.hits.hits[0]._source.structured_data.response) {
-        if (message.state === 'COMPLETED') {
+        if (!!message?.hits?.hits?.[0]?._source?.structured_data?.response) {
           this._pollingState$.next(false);
         }
       });

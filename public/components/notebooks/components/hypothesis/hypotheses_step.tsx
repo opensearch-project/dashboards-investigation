@@ -49,7 +49,7 @@ export const HypothesesStep = ({
     return (
       <>
         <EuiSpacer size="s" />
-        {message?.state === 'COMPLETED' &&
+        {!!message?.hits?.hits?.[0]?._source?.structured_data?.response &&
           !loadingExecutorMessage &&
           (!executorMessages || executorMessages.length === 0) && (
             <EuiText>No steps performed</EuiText>
@@ -59,7 +59,7 @@ export const HypothesesStep = ({
             const isLastMessageLoading =
               index === executorMessages.length - 1 &&
               !executorMessage.response &&
-              message?.state !== 'COMPLETED';
+              !message?.hits?.hits?.[0]?._source?.structured_data?.response;
             return (
               <>
                 <EuiPanel

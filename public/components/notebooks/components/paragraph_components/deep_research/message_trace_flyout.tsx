@@ -105,11 +105,11 @@ export const MessageTraceFlyout = ({
     if (!traceMessage?.response) {
       return true;
     }
-    if (message?.state === 'COMPLETED') {
+    if (!!message?.hits?.hits?.[0]?._source?.structured_data?.response) {
       return false;
     }
     return true;
-  }, [isLastMessage, traceMessage?.response, message?.state, traces]);
+  }, [isLastMessage, traceMessage?.response, message, traces]);
 
   useEffect(() => {
     if (!shouldLoad) {

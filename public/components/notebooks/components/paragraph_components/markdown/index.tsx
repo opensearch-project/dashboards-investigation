@@ -76,7 +76,7 @@ export const MarkdownParagraph = ({
 
     return (
       <>
-        <EuiFlexGroup justifyContent="spaceBetween" style={{ marginInlineEnd: 24 }}>
+        <EuiFlexGroup justifyContent="spaceBetween" style={{ marginInlineEnd: 0 }}>
           <EuiFlexItem grow={false}>
             <EuiTitle size="xs">
               <span>Finding: {description}</span>
