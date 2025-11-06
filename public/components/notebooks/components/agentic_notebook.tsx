@@ -141,7 +141,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           currentExecutorMemoryId: res.currentExecutorMemoryId,
           currentParentInteractionId: res.currentParentInteractionId,
           memoryContainerId: res.memoryContainerId,
-          currentTaskId: res.currentTaskId,
         });
         await setInitialGoal({
           context: notebookContext.state.value.context.value,

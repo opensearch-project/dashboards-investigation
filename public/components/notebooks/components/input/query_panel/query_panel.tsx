@@ -283,7 +283,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         gutterSize="none"
         dir="row"
         alignItems="center"
-        style={{ marginInlineEnd: isInputMountedInParagraph ? 32 : 0 }}
+        style={{ marginInlineEnd: 0 }}
       >
         {prependWidget}
         <LanguageToggle promptModeIsAvailable={promptModeIsAvailable} />
