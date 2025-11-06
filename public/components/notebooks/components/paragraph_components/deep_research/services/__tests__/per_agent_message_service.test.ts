@@ -4,13 +4,13 @@
  */
 
 import { PERAgentMessageService } from '../per_agent_message_service';
-import { executeMLCommonsMessageByTask } from '../../../../../../../utils/ml_commons_apis';
+import { executeMLCommonsAgenticMessage } from '../../../../../../../utils/ml_commons_apis';
 import { httpServiceMock } from '../../../../../../../../../../src/core/public/http/http_service.mock';
 import { CoreStart } from '../../../../../../../../../../src/core/public';
 
 // Mock dependencies
 jest.mock('../../../../../../../utils/ml_commons_apis', () => ({
-  executeMLCommonsMessageByTask: jest.fn(),
+  executeMLCommonsAgenticMessage: jest.fn(),
 }));
 
 // Mock timer functions
@@ -48,12 +48,21 @@ describe('PERAgentMessageService', () => {
     mockMessageId = 'test-message-id';
     mockMemoryContainerId = 'test-memory-container-id';
     mockMessage = {
-      state: 'RUNNING',
-      response: null,
+      hits: {
+        hits: [
+          {
+            _source: {
+              structured_data: {
+                response: null,
+              },
+            },
+          },
+        ],
+      },
     };
 
-    // Mock executeMLCommonsMessageByTask to return a message without response initially
-    (executeMLCommonsMessageByTask as jest.Mock).mockResolvedValue(mockMessage);
+    // Mock executeMLCommonsAgenticMessage to return a message without response initially
+    (executeMLCommonsAgenticMessage as jest.Mock).mockResolvedValue(mockMessage);
 
     // Create service instance
     service = new PERAgentMessageService(mockHttp, mockMemoryContainerId);
@@ -87,11 +96,13 @@ describe('PERAgentMessageService', () => {
     // Advance timers to trigger the first polling
     jest.advanceTimersByTime(0);
 
-    // Verify executeMLCommonsMessageByTask was called with correct parameters
-    expect(executeMLCommonsMessageByTask).toHaveBeenCalledWith({
+    // Verify executeMLCommonsAgenticMessage was called with correct parameters
+    expect(executeMLCommonsAgenticMessage).toHaveBeenCalledWith({
+      memoryContainerId: mockMemoryContainerId,
+      messageId: mockMessageId,
       http: mockHttp,
+      signal: undefined,
       dataSourceId: mockDataSourceId,
-      taskId: mockMessageId,
     });
   });
 
@@ -120,25 +131,21 @@ describe('PERAgentMessageService', () => {
 
     // Create a message with response
     const messageWithResponse = {
-      state: 'COMPLETED',
-      response: {
-        inference_results: [
+      hits: {
+        hits: [
           {
-            output: [
-              {
-                name: 'response',
-                dataAsMap: {
-                  response: 'This is a response',
-                },
+            _source: {
+              structured_data: {
+                response: 'This is a response',
               },
-            ],
+            },
           },
         ],
       },
     };
 
-    // Mock executeMLCommonsMessageByTask to return a message with response
-    (executeMLCommonsMessageByTask as jest.Mock).mockResolvedValue(messageWithResponse);
+    // Mock executeMLCommonsAgenticMessage to return a message with response
+    (executeMLCommonsAgenticMessage as jest.Mock).mockResolvedValue(messageWithResponse);
 
     // Directly update the message value using the service's internal method
     (service as any)._message$.next(messageWithResponse);
@@ -150,7 +157,7 @@ describe('PERAgentMessageService', () => {
     });
 
     // Manually trigger the subscription logic that would happen in the service
-    if (messageWithResponse.state === 'COMPLETED') {
+    if (messageWithResponse.hits?.hits?.[0]?._source?.structured_data?.response) {
       (service as any)._pollingState$.next(false);
     }
 
