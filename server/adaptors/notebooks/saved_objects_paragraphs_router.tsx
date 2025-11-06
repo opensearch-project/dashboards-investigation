@@ -97,7 +97,7 @@ export async function createParagraphs<TOutput>(
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
   const notebookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
-  const paragraphs = notebookInfo.attributes.savedNotebook.paragraphs;
+  const paragraphs = notebookInfo.attributes.savedNotebook.paragraphs ?? [];
   const newParagraph = createParagraph({
     input: params.input,
     dataSourceMDSId: params.dataSourceMDSId,
@@ -119,23 +119,25 @@ export async function deleteParagraphs(
   params: { noteId: string; paragraphId: string | undefined },
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
-  const notebookinfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
+  const noteBookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
+  console.log('noteBookInfo deleteParagraphs ', noteBookInfo);
   const updatedparagraphs: Array<ParagraphBackendType<unknown>> = [];
   if (params.paragraphId !== undefined) {
-    notebookinfo.attributes.savedNotebook.paragraphs.map((paragraph) => {
-      if (paragraph.id !== params.paragraphId) {
-        updatedparagraphs.push(paragraph);
+    noteBookInfo.attributes.savedNotebook.paragraphs.map(
+      (paragraph: ParagraphBackendType<unknown>) => {
+        if (paragraph.id !== params.paragraphId) {
+          updatedparagraphs.push(paragraph);
+        }
       }
-    });
+    );
   }
 
-  const updateNotebook = {
-    paragraphs: updatedparagraphs,
-    dateModified: new Date().toISOString(),
-  };
+  noteBookInfo.attributes.savedNotebook.paragraphs = updatedparagraphs;
   try {
-    await opensearchNotebooksClient.update(NOTEBOOK_SAVED_OBJECT, params.noteId, {
-      savedNotebook: updateNotebook,
+    await opensearchNotebooksClient.create(NOTEBOOK_SAVED_OBJECT, noteBookInfo.attributes, {
+      id: params.noteId,
+      overwrite: true,
+      version: noteBookInfo.version,
     });
     return { paragraphs: updatedparagraphs };
   } catch (error) {
@@ -147,20 +149,20 @@ export async function deleteParagraphsByIds(
   params: { noteId: string; paragraphIds: string[] },
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
-  const notebookinfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
-  const updatedparagraphs = notebookinfo.attributes.savedNotebook.paragraphs.filter(
-    (paragraph) => !params.paragraphIds.includes(paragraph.id)
+  const noteBookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
+  console.log('noteBookInfo deleteParagraphsByIds is ', noteBookInfo);
+  const updatedparagraphs = noteBookInfo.attributes.savedNotebook.paragraphs.filter(
+    (paragraph: ParagraphBackendType<unknown>) => !params.paragraphIds.includes(paragraph.id)
   );
 
-  const updateNotebook = {
-    paragraphs: updatedparagraphs,
-    dateModified: new Date().toISOString(),
-  };
+  noteBookInfo.attributes.savedNotebook.paragraphs = updatedparagraphs;
   try {
-    await opensearchNotebooksClient.update(NOTEBOOK_SAVED_OBJECT, params.noteId, {
-      savedNotebook: updateNotebook,
-    });
-    return { paragraphs: updatedparagraphs };
+    const result = await opensearchNotebooksClient.create(
+      NOTEBOOK_SAVED_OBJECT,
+      noteBookInfo.attributes,
+      { id: params.noteId, overwrite: true, version: noteBookInfo.version }
+    );
+    return { result };
   } catch (error) {
     throw new Error('delete Paragraphs Error:' + error);
   }

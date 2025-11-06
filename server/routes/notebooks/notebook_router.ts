@@ -22,6 +22,7 @@ import {
   renameNotebook,
 } from '../../adaptors/notebooks/saved_objects_notebooks_router';
 import { getCapabilities } from '../../../server/services/get_set';
+import { fetchNotebook } from '../../adaptors/notebooks/saved_objects_paragraphs_router';
 
 export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
   const getUserName = (request: OpenSearchDashboardsRequest) => {
@@ -211,17 +212,24 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
             currentTaskId: request.body.currentTaskId,
           }),
         };
-        const updateResponse = await opensearchNotebooksClient.update(
-          NOTEBOOK_SAVED_OBJECT,
+        const noteBookInfo = await fetchNotebook(
           request.body.notebookId,
-          {
-            savedNotebook: noteObject,
-          }
+          opensearchNotebooksClient
+        );
+        console.log('noteBookInfo updateHypotheses is ', noteBookInfo);
+        noteBookInfo.attributes.savedNotebook = noteObject;
+        const updateResponse = await opensearchNotebooksClient.create(
+          NOTEBOOK_SAVED_OBJECT,
+          noteBookInfo.attributes,
+
+          { id: request.body.notebookId, overwrite: true, version: noteBookInfo.version }
         );
         return response.ok({
           body: updateResponse,
         });
       } catch (error) {
+        console.log('error is ', error);
+        console.log('opensearchNotebooksClient is ', opensearchNotebooksClient);
         return response.custom({
           statusCode: error.statusCode || 500,
           body: {
