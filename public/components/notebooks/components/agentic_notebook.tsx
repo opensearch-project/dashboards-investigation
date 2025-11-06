@@ -198,7 +198,11 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         rerunInvestigation({ investigationQuestion: value });
       } else {
         const findingPraragraphIds = paragraphsStates
-          .filter((paragraphState) => (paragraphState.value.input.parameters as any)?.findingId)
+          .filter(
+            ({ value: paragraphValue }) =>
+              paragraphValue.input.inputType === 'MARKDOWN' &&
+              paragraphValue.aiGenerated !== undefined
+          )
           .map((paragraphState) => paragraphState.value.id);
 
         if (findingPraragraphIds.length > 0) {

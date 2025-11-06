@@ -286,8 +286,8 @@ ${finding.evidence}
 
               `.trim(),
               inputType: 'MARKDOWN',
-              parameters: { findingId: finding.id },
             },
+            aiGenerated: true,
           });
           startParagraphIndex++;
         } catch (e) {
@@ -565,6 +565,7 @@ ${commonResponseFormat}
           inputText: text,
           inputType: 'MARKDOWN',
         },
+        aiGenerated: false,
       });
       const hypotheses = hypothesesRef.current;
 
@@ -666,18 +667,32 @@ ${commonResponseFormat}
 **The final response should create a clear chain of evidence where findings support your hypothesis while maximizing reuse of existing evidence.**
 `.trim();
 
+    const { supportingFindingParagraphs, newAddedFindingParagraphs } = allParagraphs.reduce(
+      (acc, paragraph) => {
+        if (paragraph.input.inputType === 'MARKDOWN') {
+          if (paragraph.aiGenerated === true) {
+            acc.supportingFindingParagraphs.push(paragraph);
+          } else if (paragraph.aiGenerated === false) {
+            acc.newAddedFindingParagraphs.push(paragraph);
+          }
+        }
+
+        return acc;
+      },
+      {
+        supportingFindingParagraphs: [] as typeof allParagraphs,
+        newAddedFindingParagraphs: [] as typeof allParagraphs,
+      }
+    );
+
     const currentStatePrompt = `${notebookContextPrompt}
 
 # Current Hypotheses State
 ${originalHypotheses.reduce((acc, hypothesis, index) => {
-  const existingFindingsPrompt = convertParagraphsToFindings(
-    allParagraphs.filter((paragraph) =>
-      hypothesis?.supportingFindingParagraphIds.includes(paragraph.id)
-    )
-  );
-  const newFindingsPrompt = convertParagraphsToFindings(
-    allParagraphs.filter((paragraph) => hypothesis?.newAddedFindingIds?.includes(paragraph.id))
-  );
+  const currentHypothesisFindingParagraphIds = [
+    ...hypothesis.supportingFindingParagraphIds,
+    ...(hypothesis.newAddedFindingIds ?? []),
+  ].join(', ');
   return `${acc}
 ## Hypothesis ${index + 1}
 
@@ -687,18 +702,24 @@ Description: ${hypothesis.description}
 
 Likelihood: ${hypothesis.likelihood}
 
-### Supporting Findings
-${existingFindingsPrompt}
+### Supporting Finding Paragraph Ids
+${currentHypothesisFindingParagraphIds}
+
+    `;
+}, '')}
+
+# Current Finding Paragraphs
+
+## Supporting Findings
+${convertParagraphsToFindings(supportingFindingParagraphs)}
 
 ${
-  newFindingsPrompt
-    ? `
-### Additional Findings (Manually Added - Pay Special Attention)
-${newFindingsPrompt}`
+  newAddedFindingParagraphs.length
+    ? `## Additional Supporting Findings (Manually Added - Pay Special Attention)
+${convertParagraphsToFindings(newAddedFindingParagraphs)}`
     : ''
 }
-    `;
-}, '')}`;
+`;
 
     return executeInvestigation({
       question,
