@@ -263,7 +263,7 @@ export const executeMLCommonsAgenticMessage = ({
 }) =>
   callApiWithProxy({
     http,
-    method: 'POST',
+    method: 'GET',
     path: OPENSEARCH_ML_COMMONS_API.agenticMemorySearch.replace(
       '{memory_container_id}',
       memoryContainerId
@@ -304,7 +304,7 @@ export const getMLCommonsAgenticMemoryMessages = ({
 }) =>
   callApiWithProxy({
     http,
-    method: 'POST',
+    method: 'GET',
     path: OPENSEARCH_ML_COMMONS_API.agenticMemorySearch.replace(
       '{memory_container_id}',
       memoryContainerId
@@ -388,7 +388,7 @@ export const getMLCommonsAgenticTracesMessages = ({
 }) =>
   callApiWithProxy({
     http,
-    method: 'POST',
+    method: 'GET',
     path: OPENSEARCH_ML_COMMONS_API.agenticMemorySearch.replace(
       '{memory_container_id}',
       memoryContainerId
