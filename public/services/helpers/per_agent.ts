@@ -22,7 +22,7 @@ export const generateParagraphPrompt = async ({
 }: ParagraphPromptInput) => {
   return await Promise.all(
     paragraphs
-      .filter((paragraph) => !ignoreInputTypes.includes(paragraph.input.inputText))
+      .filter((paragraph) => !ignoreInputTypes.includes(paragraph.input.inputType))
       .map(async (paragraph) => {
         if (!paragraph) {
           return '';

@@ -25,7 +25,7 @@ import { PERAgentInvestigationResponse } from '../../common/types/notebooks';
 import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_agent';
 import { useNotebook } from './use_notebook';
 import { CoreStart } from '../../../../src/core/public';
-import { getNotebookTopLevelContextPrompt } from '../services/helpers/per_agent';
+import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
 
 const commonInstructions = `
 # Instructions
@@ -250,10 +250,12 @@ const convertParagraphsToFindings = (paragraphs: Array<ParagraphStateValue<unkno
 export const useInvestigation = () => {
   const context = useContext(NotebookReactContext);
   const {
-    services: { http, notifications },
+    services: { http, notifications, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { updateHypotheses, updateNotebookContext } = useNotebook();
-  const { createParagraph, runParagraph } = useContext(NotebookReactContext).paragraphHooks;
+  const { createParagraph, runParagraph, deleteParagraphsByIds } = useContext(
+    NotebookReactContext
+  ).paragraphHooks;
   const contextStateValue = useObservable(context.state.getValue$());
   const paragraphStates = useObservable(context.state.getParagraphStates$());
   const paragraphLengthRef = useRef(0);
@@ -267,7 +269,6 @@ export const useInvestigation = () => {
     async ({ payload }: { payload: PERAgentInvestigationResponse }) => {
       const findingId2ParagraphId: { [key: string]: string } = {};
       let startParagraphIndex = paragraphLengthRef.current;
-      // TODO: Handle legacy paragraphs if operation is REPLACE
       for (let i = 0; i < payload.findings.length; i++) {
         const finding = payload.findings[i];
         let paragraph;
@@ -384,6 +385,20 @@ ${finding.evidence}
             }
 
             try {
+              // Sucessful investigation, deleted all old finding paragraphs
+              const findingPraragraphIds = context.state
+                .getParagraphsValue()
+                .filter(
+                  (paragraph) =>
+                    paragraph.input.inputType === 'MARKDOWN' && paragraph.aiGenerated === true
+                )
+                .map((paragraph) => paragraph.id);
+
+              if (findingPraragraphIds.length > 0) {
+                // Delete all existing finding paragraphs
+                await deleteParagraphsByIds(findingPraragraphIds);
+              }
+
               await storeInvestigationResponse({
                 payload: responseJson,
               });
@@ -407,7 +422,7 @@ ${finding.evidence}
         abortController?.signal.addEventListener('abort', abortHandler);
       });
     },
-    [http, notifications, context.state, storeInvestigationResponse]
+    [http, notifications, context.state, storeInvestigationResponse, deleteParagraphsByIds]
   );
 
   const executeInvestigation = useCallback(
@@ -518,6 +533,17 @@ ${finding.evidence}
       notifications.toasts,
     ]
   );
+  const retrieveInvestigationContextPrompt = useCallback(async () => {
+    const allParagraphs = context.state.getParagraphsValue();
+    const topContext = context.state.value.context.value;
+
+    return await generateContextPromptFromParagraphs({
+      paragraphService,
+      paragraphs: allParagraphs,
+      notebookInfo: topContext,
+      ignoreInputTypes: ['MARKDOWN'],
+    });
+  }, [context, paragraphService]);
 
   const doInvestigate = useCallback(
     async ({
@@ -527,9 +553,7 @@ ${finding.evidence}
       investigationQuestion: string;
       abortController?: AbortController;
     }) => {
-      const notebookContextPrompt = getNotebookTopLevelContextPrompt(
-        context.state.value.context.value
-      );
+      const notebookContextPrompt = await retrieveInvestigationContextPrompt();
 
       const plannerSystemPrompt = `
 # Investigation Planner Agent
@@ -548,7 +572,7 @@ ${commonResponseFormat}
         abortController,
       });
     },
-    [context.state, executeInvestigation]
+    [executeInvestigation, retrieveInvestigationContextPrompt]
   );
 
   const doInvestigateRef = useRef(doInvestigate);
@@ -589,28 +613,27 @@ ${commonResponseFormat}
     [createParagraph, updateHypotheses, runParagraph]
   );
 
-  const rerunInvestigation = async ({
-    investigationQuestion,
-    abortController,
-  }: {
-    investigationQuestion?: string;
-    abortController?: AbortController;
-  }) => {
-    // Clear old memory IDs before starting new investigation
-    context.state.updateValue({
-      currentExecutorMemoryId: undefined,
-      currentParentInteractionId: undefined,
-      memoryContainerId: undefined,
-    });
-    const allParagraphs = context.state.getParagraphsValue();
-    const question = investigationQuestion || context.state.value.context.value.initialGoal || '';
+  const rerunInvestigation = useCallback(
+    async ({
+      investigationQuestion,
+      abortController,
+    }: {
+      investigationQuestion?: string;
+      abortController?: AbortController;
+    }) => {
+      // Clear old memory IDs before starting new investigation
+      context.state.updateValue({
+        currentExecutorMemoryId: undefined,
+        currentParentInteractionId: undefined,
+        memoryContainerId: undefined,
+      });
+      const allParagraphs = context.state.getParagraphsValue();
+      const question = investigationQuestion || context.state.value.context.value.initialGoal || '';
 
-    const notebookContextPrompt = getNotebookTopLevelContextPrompt(
-      context.state.value.context.value
-    );
+      const notebookContextPrompt = await retrieveInvestigationContextPrompt();
 
-    const originalHypotheses = contextStateValue?.hypotheses || [];
-    const rerunPrompt = `
+      const originalHypotheses = contextStateValue?.hypotheses || [];
+      const rerunPrompt = `
 # Re-Investigation Agent
 
 You are a thoughtful and analytical planner agent specializing in **RE-INVESTIGATION**. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
@@ -638,11 +661,13 @@ This is a re-run of the original investigation. Update the hypotheses based on t
 ${commonInstructions}
 
 ## Findings Handling
-- **CRITICAL:** In the "findings" array of your response, return **ONLY NEW findings** that provide genuinely novel evidence
-- **For existing findings:** Use paragraph IDs in format "paragraph_uuid" (e.g., "paragraph_bb46405b-81ca-42e6-9868-8b61a6d1005c") in supporting_findings array
+- **CRITICAL:** During rerun, ALL old findings will be DELETED. You MUST return a COMPLETE list of findings in the "findings" array
+- Return ALL findings (both existing and new) that should exist after the rerun
+- **For reused findings:** Include the full finding content in the "findings" array even if it existed before
 - **For new findings:** Use generated finding IDs (e.g., "F1", "F2", "F3") - frontend will replace these with actual paragraph IDs
-- The supporting_findings array can contain a mix of existing paragraph IDs and new finding IDs
-- **Do NOT return existing findings in the findings array** - they will not be deleted and don't need to be recreated
+- The supporting_findings array should reference the finding IDs from your "findings" array
+- **You MUST include ALL findings** - anything not in the "findings" array will be permanently lost
+- **To delete irrelevant findings:** Simply don't include them in your "findings" array if they are no longer relevant to the investigation
 
 ## Findings Novelty Check
 You **MUST** include ONLY findings that are genuinely NEW. A finding is **NOT** new if:
@@ -667,25 +692,25 @@ ${commonResponseFormat}
 **The final response should create a clear chain of evidence where findings support your hypothesis while maximizing reuse of existing evidence.**
 `.trim();
 
-    const { supportingFindingParagraphs, newAddedFindingParagraphs } = allParagraphs.reduce(
-      (acc, paragraph) => {
-        if (paragraph.input.inputType === 'MARKDOWN') {
-          if (paragraph.aiGenerated === true) {
-            acc.supportingFindingParagraphs.push(paragraph);
-          } else if (paragraph.aiGenerated === false) {
-            acc.newAddedFindingParagraphs.push(paragraph);
+      const { supportingFindingParagraphs, newAddedFindingParagraphs } = allParagraphs.reduce(
+        (acc, paragraph) => {
+          if (paragraph.input.inputType === 'MARKDOWN') {
+            if (paragraph.aiGenerated === true) {
+              acc.supportingFindingParagraphs.push(paragraph);
+            } else if (paragraph.aiGenerated === false) {
+              acc.newAddedFindingParagraphs.push(paragraph);
+            }
           }
+
+          return acc;
+        },
+        {
+          supportingFindingParagraphs: [] as typeof allParagraphs,
+          newAddedFindingParagraphs: [] as typeof allParagraphs,
         }
+      );
 
-        return acc;
-      },
-      {
-        supportingFindingParagraphs: [] as typeof allParagraphs,
-        newAddedFindingParagraphs: [] as typeof allParagraphs,
-      }
-    );
-
-    const currentStatePrompt = `${notebookContextPrompt}
+      const currentStatePrompt = `${notebookContextPrompt}
 
 # Current Hypotheses State
 ${originalHypotheses.reduce((acc, hypothesis, index) => {
@@ -721,13 +746,20 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
 }
 `;
 
-    return executeInvestigation({
-      question,
-      contextPrompt: currentStatePrompt,
-      prompt: rerunPrompt,
-      abortController,
-    });
-  };
+      return executeInvestigation({
+        question,
+        contextPrompt: currentStatePrompt,
+        prompt: rerunPrompt,
+        abortController,
+      });
+    },
+    [
+      context.state,
+      retrieveInvestigationContextPrompt,
+      contextStateValue?.hypotheses,
+      executeInvestigation,
+    ]
+  );
 
   const continueInvestigation = useCallback(async () => {
     const { currentParentInteractionId, memoryContainerId } = context.state.value;

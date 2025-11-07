@@ -21,14 +21,15 @@ export const DataDistributionParagraphItem: ParagraphRegistryItem<AnomalyVisuali
     const selectedFieldComparison = paragraph?.output?.[0].result.fieldComparison.filter(
       (item) => !item.excludeFromContext
     );
-    return `
-      ## Step description
-      This step calculate fields' distribution and find the outlines between baselineTimeRange and selectionTimeRange. 
-      These statistical deviations highlight potential areas of concern that may explain the underlying issue.
+    return ` ## Data Distribution Analysis Results
 
-      ## Step result:
-      Anomaly detection has been performed on the data and the analysis identified anomalies in the following fields:
-      ${JSON.stringify(selectedFieldComparison)}.
+### Step description
+This step calculate fields' distribution and find the outlines between baselineTimeRange and selectionTimeRange. 
+These statistical deviations highlight potential areas of concern that may explain the underlying issue.
+
+### Step result:
+Anomaly detection has been performed on the data and the analysis identified anomalies in the following fields:
+${JSON.stringify(selectedFieldComparison)}.
     `;
   },
   runParagraph: async ({ paragraphState, saveParagraph, notebookStateValue }) => {

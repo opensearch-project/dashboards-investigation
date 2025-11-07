@@ -15,11 +15,11 @@ export const MarkdownParagraphItem: ParagraphRegistryItem = {
     }
 
     return `
-      ## Step description
-      User types somes note by using this step.
+## Step description
+User types somes note by using this step.
 
-      ## Step result:
-      ${output[0].result}
+## Step result:
+${output[0].result}
     `;
   },
   runParagraph: async () => {
