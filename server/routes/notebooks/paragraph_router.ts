@@ -60,7 +60,6 @@ export function registerParaRoute(router: IRouter) {
           body: saveResponse,
         });
       } catch (error) {
-        console.log('error isss', error);
         return response.custom({
           statusCode: error.statusCode || 500,
           body: error.message,
