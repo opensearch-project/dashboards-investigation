@@ -13,6 +13,7 @@ import { getInputType } from '../../../../../common/utils/paragraph';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NoteBookServices } from '../../../../types';
 import { isAgenticRunBefore } from './utils';
+import { NotebookType } from '../../../../../common/types/notebooks';
 
 export interface ParagraphProps {
   index: number;
@@ -38,7 +39,9 @@ export const Paragraphs = (props: ParagraphProps) => {
 
   return (
     <div className="notebookParagraphWrapper">
-      <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
+      {context.state.getContext().notebookType === NotebookType.CLASSIC && (
+        <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
+      )}
       {ParagraphComponent && (
         <div key={paragraph.value.id} className={paraClass}>
           <ParagraphComponent

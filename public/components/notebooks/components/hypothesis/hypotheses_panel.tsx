@@ -36,6 +36,7 @@ import { PERAgentMessageService } from '../paragraph_components/deep_research/se
 import { PERAgentMemoryService } from '../paragraph_components/deep_research/services/per_agent_memory_service';
 import { HypothesesStep } from './hypotheses_step';
 import { MessageTraceFlyout } from '../paragraph_components/deep_research/message_trace_flyout';
+import { HypothesisBadge } from './hypothesis_badge';
 
 interface HypothesesPanelProps {
   notebookId: string;
@@ -62,7 +63,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     context,
     memoryContainerId,
     currentExecutorMemoryId,
-    currentTaskId,
+    currentParentInteractionId,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const history = useHistory();
   const [showSteps, setShowSteps] = useState(false);
@@ -80,8 +81,8 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
       http,
       executorMemoryId$,
       () => {
-        // return !messageService.getMessageValue()?.hits.hits[0]._source.structured_data.response;
-        return messageService.getMessageValue()?.state !== 'COMPLETED';
+        return !messageService.getMessageValue()?.hits?.hits?.[0]?._source?.structured_data
+          ?.response;
       },
       memoryContainerId
     );
@@ -101,10 +102,9 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   }, [isInvestigating]);
 
   useEffect(() => {
-    if (PERAgentServices && currentTaskId) {
-      console.log('currentTaskId', currentTaskId);
+    if (PERAgentServices && currentParentInteractionId) {
       PERAgentServices.message.setup({
-        messageId: currentTaskId,
+        messageId: currentParentInteractionId,
         dataSourceId: context.value.dataSourceId,
       });
 
@@ -117,7 +117,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
         PERAgentServices.executorMemory.stop('Component unmount');
       };
     }
-  }, [PERAgentServices, context.value.dataSourceId, currentTaskId]);
+  }, [PERAgentServices, context.value.dataSourceId, currentParentInteractionId]);
 
   const handleClickHypothesis = (hypothesisId: string) => {
     history.push(`/agentic/${notebookId}/hypothesis/${hypothesisId}`);
@@ -171,7 +171,23 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   return (
     <>
       <EuiPanel>
-        <EuiAccordion id="hypotheses" buttonContent="Hypotheses" arrowDisplay="right" initialIsOpen>
+        <EuiAccordion
+          id="hypotheses"
+          buttonContent={
+            <EuiFlexGroup gutterSize="m" alignItems="center" responsive={false}>
+              <EuiFlexItem grow={false}>Hypotheses</EuiFlexItem>
+              <EuiFlexItem grow={false}>
+                {isInvestigating ? (
+                  <HypothesisBadge label="Under investigation" color="hollow" icon="pulse" />
+                ) : (
+                  <HypothesisBadge label="Investigation completed" color="hollow" icon="check" />
+                )}
+              </EuiFlexItem>
+            </EuiFlexGroup>
+          }
+          arrowDisplay="right"
+          initialIsOpen
+        >
           {isInvestigating ? (
             <>
               <EuiLoadingContent />

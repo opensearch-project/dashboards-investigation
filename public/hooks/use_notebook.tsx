@@ -196,7 +196,6 @@ export const useNotebook = () => {
         currentExecutorMemoryId,
         currentParentInteractionId,
         memoryContainerId,
-        currentTaskId,
       } = context.state.value;
       try {
         const response = await http.put(`${NOTEBOOKS_API_PREFIX}/note/updateHypotheses`, {
@@ -206,7 +205,6 @@ export const useNotebook = () => {
             currentExecutorMemoryId,
             currentParentInteractionId,
             memoryContainerId,
-            currentTaskId,
           }),
         });
 
@@ -230,7 +228,6 @@ export const useNotebook = () => {
         currentExecutorMemoryId: undefined,
         currentParentInteractionId: undefined,
         memoryContainerId: undefined,
-        currentTaskId: undefined,
       });
       const { id: openedNoteId } = context.state.value;
       try {

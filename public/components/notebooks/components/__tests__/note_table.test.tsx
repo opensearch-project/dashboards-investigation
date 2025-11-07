@@ -182,7 +182,7 @@ describe('<NoteTable /> spec', () => {
     });
     fireEvent.click(getAllByText('Create')[0]);
     expect(props.http.post).toHaveBeenCalledWith(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook`, {
-      body: JSON.stringify({ name: 'test-notebook', context: { notebookType: 'Agentic' } }),
+      body: JSON.stringify({ name: 'test-notebook', context: { notebookType: 'Classic' } }),
     });
   });
 

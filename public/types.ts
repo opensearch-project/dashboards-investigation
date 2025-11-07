@@ -31,6 +31,7 @@ import {
   UsageCollectionSetup,
   UsageCollectionStart,
 } from '../../../src/plugins/usage_collection/public';
+import { ChatPluginSetup } from '../../../src/plugins/chat/public';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -56,6 +57,7 @@ export interface SetupDependencies {
   assistantDashboards?: AssistantSetup; // Optional assistant plugin setup
   explore?: ExplorePluginSetup;
   usageCollection?: UsageCollectionSetup;
+  chat?: ChatPluginSetup;
 }
 
 export type NoteBookServices = CoreStart &

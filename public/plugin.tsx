@@ -53,7 +53,6 @@ import { NOTEBOOK_APP_NAME } from '../common/constants/notebooks';
 import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opensearch_dashboards_react/public';
 import { paragraphRegistry } from './paragraphs';
 import { ContextService } from './services/context_service';
-import { ChatContext, ISuggestionProvider } from '../../dashboards-assistant/public';
 import { NoteBookAssistantContext } from '../common/types/assistant_context';
 import { createInvestigateLogActionComponent } from './components/notebooks/components/discover_explorer';
 import { StartInvestigateButton } from './components/notebooks/components/discover_explorer/start_investigate_button';
@@ -117,49 +116,6 @@ export class InvestigationPlugin
       return Observability({ ...services, appMountService: params }, params!);
     };
 
-    setupDeps.assistantDashboards?.registerSuggestionProvider?.({
-      id: 'finding',
-      priority: 1,
-      isEnabled: () => true,
-      getSuggestions: async (context: ChatContext) => {
-        const [coreStart] = await core.getStartServices();
-        const currentAppId = await coreStart.application.currentAppId$.pipe(first()).toPromise();
-        if (
-          currentAppId !== investigationNotebookID ||
-          !findingService.currentNotebookId ||
-          !context.currentMessage ||
-          !context.currentMessage.content
-        ) {
-          return [];
-        }
-
-        return [
-          {
-            actionType: 'customize',
-            message: 'Add current result to investigation as a finding',
-            action: async () => {
-              const input = context.messageHistory.findLast((message) => message.type === 'input')
-                ?.content;
-              const output = context.currentMessage?.content;
-
-              const notebookId = context.pageContext?.['notebookId'];
-
-              if (input && output) {
-                try {
-                  await findingService.addFinding(input, output, notebookId);
-                  return true;
-                } catch (error) {
-                  // Return false to indicate failure to the suggestion system
-                  return false;
-                }
-              }
-              return false;
-            },
-          },
-        ];
-      },
-    } as ISuggestionProvider);
-
     core.application.register({
       id: investigationNotebookID,
       title: investigationNotebookTitle,
@@ -214,6 +170,50 @@ export class InvestigationPlugin
         component: createInvestigateLogActionComponent({
           services,
         }),
+      });
+
+      setupDeps.chat?.suggestedActionsService?.registerProvider?.({
+        id: 'finding',
+        priority: 1,
+        isEnabled: () => true,
+        getSuggestions: async (context) => {
+          const [coreStart] = await core.getStartServices();
+          const currentAppId = await coreStart.application.currentAppId$.pipe(first()).toPromise();
+
+          if (
+            currentAppId !== investigationNotebookID ||
+            !findingService.currentNotebookId ||
+            !context.currentMessage ||
+            !context.currentMessage.content
+          ) {
+            return [];
+          }
+
+          return [
+            {
+              actionType: 'customize',
+              message: 'Add current result to investigation as a finding',
+              action: async () => {
+                const input = context.messageHistory.findLast((message) => message.role === 'user')
+                  ?.content;
+                const output = context.currentMessage?.content;
+
+                const notebookId = context.pageContext?.['notebookId'];
+
+                if (input && output) {
+                  try {
+                    await findingService.addFinding(input, output, notebookId);
+                    return true;
+                  } catch (error) {
+                    // Return false to indicate failure to the suggestion system
+                    return false;
+                  }
+                }
+                return false;
+              },
+            },
+          ];
+        },
       });
     })();
 

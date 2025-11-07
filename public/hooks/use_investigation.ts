@@ -16,7 +16,7 @@ import { NotebookReactContext } from '../components/notebooks/context_provider/c
 import {
   createAgenticExecutionMemory,
   executeMLCommonsAgent,
-  executeMLCommonsMessageByTask,
+  executeMLCommonsAgenticMessage,
   getMLCommonsAgentDetail,
   getMLCommonsConfig,
 } from '../utils/ml_commons_apis';
@@ -333,10 +333,12 @@ ${finding.evidence}
    */
   const pollInvestigationCompletion = useCallback(
     ({
-      taskId,
+      memoryContainerId,
+      parentInteractionId,
       abortController,
     }: {
-      taskId: string;
+      memoryContainerId: string | undefined;
+      parentInteractionId: string;
       abortController?: AbortController;
     }): Promise<void> => {
       const dataSourceId = context.state.value.context.value.dataSourceId;
@@ -345,27 +347,21 @@ ${finding.evidence}
         const subscription = timer(0, 5000)
           .pipe(
             concatMap(() =>
-              // return executeMLCommonsAgenticMessage({
-              //   memoryContainerId,
-              //   messageId: parentInteractionId,
-              //   http,
-              //   signal: abortController?.signal,
-              //   dataSourceId,
-              // });
-              executeMLCommonsMessageByTask({
+              executeMLCommonsAgenticMessage({
+                memoryContainerId,
+                messageId: parentInteractionId,
                 http,
+                signal: abortController?.signal,
                 dataSourceId,
-                taskId,
               })
             ),
-            // takeWhile((message) => !message.hits.hits[0]._source.structured_data.response, true)
-            takeWhile((message) => message.state !== 'COMPLETED', true)
+            takeWhile(
+              (message) => !message?.hits?.hits?.[0]?._source?.structured_data?.response,
+              true
+            )
           )
           .subscribe(async (message) => {
-            // const response = message.hits.hits[0]._source.structured_data.response;
-            const response = message.response?.inference_results?.[0]?.output?.find(
-              (item) => item?.name === 'response'
-            )?.dataAsMap?.response;
+            const response = message?.hits?.hits?.[0]?._source?.structured_data?.response;
 
             if (!response) {
               return;
@@ -443,6 +439,11 @@ ${finding.evidence}
           })
         ).configuration.agent_id;
 
+        if (!agentId) {
+          setIsInvestigating(false);
+          return;
+        }
+
         const memoryContainerId = (
           await getMLCommonsAgentDetail({
             http,
@@ -450,11 +451,6 @@ ${finding.evidence}
             dataSourceId,
           })
         )?.memory?.memory_container_id;
-
-        if (!memoryContainerId) {
-          setIsInvestigating(false);
-          return;
-        }
 
         const executorMemoryId = (
           await createAgenticExecutionMemory({
@@ -479,10 +475,9 @@ ${finding.evidence}
           executorAgentMemoryId: executorMemoryId,
         });
 
-        const taskId = result.task_id;
         const parentInteractionId = extractParentInteractionId(result);
 
-        if (!parentInteractionId || !taskId) {
+        if (!parentInteractionId) {
           setIsInvestigating(false);
           return;
         }
@@ -491,7 +486,6 @@ ${finding.evidence}
           memoryContainerId,
           currentParentInteractionId: parentInteractionId,
           currentExecutorMemoryId: executorMemoryId,
-          currentTaskId: taskId,
         });
 
         // Immediately save these IDs to backend so they persist across page refreshes
@@ -502,7 +496,8 @@ ${finding.evidence}
         }
 
         return pollInvestigationCompletion({
-          taskId,
+          memoryContainerId,
+          parentInteractionId,
           abortController,
         }).finally(() => {
           setIsInvestigating(false);
@@ -605,7 +600,6 @@ ${commonResponseFormat}
       currentExecutorMemoryId: undefined,
       currentParentInteractionId: undefined,
       memoryContainerId: undefined,
-      currentTaskId: undefined,
     });
     const allParagraphs = context.state.getParagraphsValue();
     const question = investigationQuestion || context.state.value.context.value.initialGoal || '';
@@ -715,9 +709,9 @@ ${newFindingsPrompt}`
   };
 
   const continueInvestigation = useCallback(async () => {
-    const { currentParentInteractionId, memoryContainerId, currentTaskId } = context.state.value;
+    const { currentParentInteractionId, memoryContainerId } = context.state.value;
 
-    if (!currentParentInteractionId || !memoryContainerId || !currentTaskId) {
+    if (!currentParentInteractionId) {
       console.log('No ongoing investigation to continue');
       return;
     }
@@ -727,22 +721,14 @@ ${newFindingsPrompt}`
 
     try {
       // Check if investigation is already complete
-      // const initialMessage = await executeMLCommonsAgenticMessage({
-      //   memoryContainerId,
-      //   messageId: currentParentInteractionId,
-      //   http,
-      //   dataSourceId,
-      // });
-
-      // const initialResponse = initialMessage.hits.hits[0]._source.structured_data.response;
-
-      const initialMessage = await executeMLCommonsMessageByTask({
+      const initialMessage = await executeMLCommonsAgenticMessage({
+        memoryContainerId,
+        messageId: currentParentInteractionId,
         http,
         dataSourceId,
-        taskId: currentTaskId,
       });
 
-      const initialResponse = initialMessage.state === 'COMPLETED';
+      const initialResponse = initialMessage.hits.hits[0]._source.structured_data.response;
 
       // If already has response, process it immediately
       if (initialResponse) {
@@ -752,7 +738,8 @@ ${newFindingsPrompt}`
 
       // Otherwise, continue polling
       return pollInvestigationCompletion({
-        taskId: currentTaskId,
+        memoryContainerId,
+        parentInteractionId: currentParentInteractionId,
       }).finally(() => {
         setIsInvestigating(false);
       });

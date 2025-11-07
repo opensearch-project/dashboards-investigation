@@ -21,7 +21,8 @@
     "contextProvider",
     "assistantDashboards",
     "explore",
-    "usageCollection"
+    "usageCollection",
+    "chat"
   ],
   "configPath": [
     "investigation"
