@@ -97,7 +97,7 @@ export async function createParagraphs<TOutput>(
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
   const notebookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
-  const paragraphs = notebookInfo.attributes.savedNotebook.paragraphs ?? [];
+  const paragraphs = notebookInfo.attributes.savedNotebook.paragraphs;
   const newParagraph = createParagraph({
     input: params.input,
     dataSourceMDSId: params.dataSourceMDSId,
@@ -120,7 +120,6 @@ export async function deleteParagraphs(
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
   const noteBookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
-  console.log('noteBookInfo deleteParagraphs ', noteBookInfo);
   const updatedparagraphs: Array<ParagraphBackendType<unknown>> = [];
   if (params.paragraphId !== undefined) {
     noteBookInfo.attributes.savedNotebook.paragraphs.map(
@@ -150,7 +149,6 @@ export async function deleteParagraphsByIds(
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
   const noteBookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
-  console.log('noteBookInfo deleteParagraphsByIds is ', noteBookInfo);
   const updatedparagraphs = noteBookInfo.attributes.savedNotebook.paragraphs.filter(
     (paragraph: ParagraphBackendType<unknown>) => !params.paragraphIds.includes(paragraph.id)
   );

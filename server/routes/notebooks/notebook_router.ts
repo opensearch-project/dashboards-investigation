@@ -216,8 +216,10 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
           request.body.notebookId,
           opensearchNotebooksClient
         );
-        console.log('noteBookInfo updateHypotheses is ', noteBookInfo);
-        noteBookInfo.attributes.savedNotebook = noteObject;
+        noteBookInfo.attributes.savedNotebook = {
+          ...noteBookInfo.attributes.savedNotebook,
+          ...noteObject,
+        };
         const updateResponse = await opensearchNotebooksClient.create(
           NOTEBOOK_SAVED_OBJECT,
           noteBookInfo.attributes,
@@ -228,8 +230,6 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
           body: updateResponse,
         });
       } catch (error) {
-        console.log('error is ', error);
-        console.log('opensearchNotebooksClient is ', opensearchNotebooksClient);
         return response.custom({
           statusCode: error.statusCode || 500,
           body: {
