@@ -230,7 +230,7 @@ export const NotebookHeader = ({
           await deleteSingleNotebook(openedNoteId, toastMessage);
           setIsModalVisible(false);
           setTimeout(() => {
-            history.push('.');
+            history.push(notebookType === NotebookType.AGENTIC ? '..' : '.');
           }, 1000);
         }}
         onCancel={() => setIsModalVisible(false)}
@@ -239,7 +239,7 @@ export const NotebookHeader = ({
       />
     );
     setIsModalVisible(true);
-  }, [path, deleteSingleNotebook, openedNoteId, history]);
+  }, [path, deleteSingleNotebook, openedNoteId, notebookType, history]);
 
   const reportingActionPanels: EuiContextMenuPanelDescriptor[] = useMemo(
     () => [
