@@ -181,10 +181,20 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
               dateModified: schema.string(),
             })
           ),
-          currentExecutorMemoryId: schema.maybe(schema.string()),
-          currentParentInteractionId: schema.maybe(schema.string()),
-          memoryContainerId: schema.maybe(schema.string()),
-          currentTaskId: schema.maybe(schema.string()),
+          runningMemory: schema.nullable(
+            schema.object({
+              executorMemoryId: schema.maybe(schema.string()),
+              parentInteractionId: schema.maybe(schema.string()),
+              memoryContainerId: schema.maybe(schema.string()),
+            })
+          ),
+          historyMemory: schema.nullable(
+            schema.object({
+              executorMemoryId: schema.maybe(schema.string()),
+              parentInteractionId: schema.maybe(schema.string()),
+              memoryContainerId: schema.maybe(schema.string()),
+            })
+          ),
         }),
       },
     },
@@ -199,18 +209,12 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
         const noteObject = {
           hypotheses: request.body.hypotheses,
           dateModified: new Date().toISOString(),
-          ...(request.body.currentExecutorMemoryId && {
-            currentExecutorMemoryId: request.body.currentExecutorMemoryId,
-          }),
-          ...(request.body.currentParentInteractionId && {
-            currentParentInteractionId: request.body.currentParentInteractionId,
-          }),
-          ...(request.body.memoryContainerId && {
-            memoryContainerId: request.body.memoryContainerId,
-          }),
-          ...(request.body.currentTaskId && {
-            currentTaskId: request.body.currentTaskId,
-          }),
+          ...(request.body.runningMemory
+            ? { runningMemory: request.body.runningMemory }
+            : { runningMemory: null }),
+          ...(request.body.historyMemory
+            ? { historyMemory: request.body.historyMemory }
+            : { historyMemory: null }),
         };
         const noteBookInfo = await fetchNotebook(
           request.body.notebookId,

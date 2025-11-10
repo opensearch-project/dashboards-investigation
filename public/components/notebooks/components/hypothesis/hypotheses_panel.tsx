@@ -19,8 +19,10 @@ import {
   EuiModalHeaderTitle,
   EuiPanel,
   EuiSmallButton,
+  EuiSpacer,
   EuiText,
   EuiTextArea,
+  EuiTitle,
 } from '@elastic/eui';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useObservable } from 'react-use';
@@ -28,6 +30,7 @@ import { useHistory } from 'react-router-dom';
 
 import { NoteBookServices } from 'public/types';
 import { BehaviorSubject } from 'rxjs';
+import { euiThemeVars } from '@osd/ui-shared-deps/theme';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { HypothesisItem } from './hypothesis_item';
 import { HypothesesFeedback } from './hypotheses_feedback';
@@ -58,40 +61,41 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const notebookContext = useContext(NotebookReactContext);
-  const {
-    hypotheses,
-    context,
-    memoryContainerId,
-    currentExecutorMemoryId,
-    currentParentInteractionId,
-  } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
+  const { hypotheses, context, runningMemory, historyMemory, investigationError } = useObservable(
+    notebookContext.state.getValue$(),
+    notebookContext.state.value
+  );
   const history = useHistory();
   const [showSteps, setShowSteps] = useState(false);
   const [traceMessageId, setTraceMessageId] = useState<string>();
+  const activeMemory = isInvestigating ? runningMemory : historyMemory;
 
   const PERAgentServices = useMemo(() => {
-    if (!currentExecutorMemoryId || !memoryContainerId) {
+    if (!activeMemory?.executorMemoryId || !activeMemory?.memoryContainerId) {
       return null;
     }
 
-    const executorMemoryId$ = new BehaviorSubject(currentExecutorMemoryId);
-    const messageService = new PERAgentMessageService(http, memoryContainerId);
+    const executorMemoryId$ = new BehaviorSubject(activeMemory.executorMemoryId);
+    const messageService = new PERAgentMessageService(http, activeMemory.memoryContainerId);
 
     const executorMemoryService = new PERAgentMemoryService(
       http,
       executorMemoryId$,
       () => {
+        if (!isInvestigating && activeMemory) {
+          return false;
+        }
         return !messageService.getMessageValue()?.hits?.hits?.[0]?._source?.structured_data
           ?.response;
       },
-      memoryContainerId
+      activeMemory.memoryContainerId
     );
 
     return {
       message: messageService,
       executorMemory: executorMemoryService,
     };
-  }, [http, memoryContainerId, currentExecutorMemoryId]);
+  }, [http, activeMemory, isInvestigating]);
 
   useEffect(() => {
     if (isInvestigating) {
@@ -102,22 +106,34 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   }, [isInvestigating]);
 
   useEffect(() => {
-    if (PERAgentServices && currentParentInteractionId) {
-      PERAgentServices.message.setup({
-        messageId: currentParentInteractionId,
-        dataSourceId: context.value.dataSourceId,
-      });
+    if (PERAgentServices) {
+      if (!activeMemory?.executorMemoryId || !activeMemory?.parentInteractionId) {
+        return;
+      }
 
-      PERAgentServices.executorMemory.setup({
-        dataSourceId: context.value.dataSourceId,
-      });
+      if (activeMemory?.parentInteractionId) {
+        PERAgentServices.message.setup({
+          messageId: activeMemory.parentInteractionId,
+          dataSourceId: context.value.dataSourceId,
+        });
 
-      return () => {
-        PERAgentServices.message.stop('Component cleanup');
-        PERAgentServices.executorMemory.stop('Component unmount');
-      };
+        PERAgentServices.executorMemory.setup({
+          dataSourceId: context.value.dataSourceId,
+        });
+
+        return () => {
+          PERAgentServices.message.stop('Component cleanup');
+          PERAgentServices.executorMemory.stop('Component unmount');
+        };
+      }
     }
-  }, [PERAgentServices, context.value.dataSourceId, currentParentInteractionId]);
+  }, [
+    PERAgentServices,
+    context.value.dataSourceId,
+    activeMemory?.executorMemoryId,
+    activeMemory?.parentInteractionId,
+    isInvestigating,
+  ]);
 
   const handleClickHypothesis = (hypothesisId: string) => {
     history.push(`/agentic/${notebookId}/hypothesis/${hypothesisId}`);
@@ -175,12 +191,30 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
           id="hypotheses"
           buttonContent={
             <EuiFlexGroup gutterSize="m" alignItems="center" responsive={false}>
-              <EuiFlexItem grow={false}>Hypotheses</EuiFlexItem>
+              <EuiFlexItem grow={false}>
+                <EuiTitle size="s">
+                  <h3>Hypotheses</h3>
+                </EuiTitle>
+              </EuiFlexItem>
               <EuiFlexItem grow={false}>
                 {isInvestigating ? (
-                  <HypothesisBadge label="Under investigation" color="hollow" icon="pulse" />
+                  <HypothesisBadge
+                    label="Under investigation"
+                    color={euiThemeVars.euiColorPrimary}
+                    icon="pulse"
+                  />
+                ) : !investigationError ? (
+                  <HypothesisBadge
+                    label="Investigation completed"
+                    color={euiThemeVars.euiColorSuccess}
+                    icon="check"
+                  />
                 ) : (
-                  <HypothesisBadge label="Investigation completed" color="hollow" icon="check" />
+                  <HypothesisBadge
+                    label="Investigation failed"
+                    color={euiThemeVars.euiColorDanger}
+                    icon="cross"
+                  />
                 )}
               </EuiFlexItem>
             </EuiFlexGroup>
@@ -188,6 +222,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
           arrowDisplay="right"
           initialIsOpen
         >
+          <EuiSpacer size="s" />
           {isInvestigating ? (
             <>
               <EuiLoadingContent />
@@ -257,7 +292,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
           </EuiModalFooter>
         </EuiModal>
       )}
-      {traceMessageId && PERAgentServices && currentExecutorMemoryId && memoryContainerId && (
+      {traceMessageId && PERAgentServices && activeMemory?.executorMemoryId && (
         <MessageTraceFlyout
           messageId={traceMessageId}
           messageService={PERAgentServices.message}
@@ -266,8 +301,8 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
             setTraceMessageId(undefined);
           }}
           dataSourceId={context.value.dataSourceId}
-          currentExecutorMemoryId={currentExecutorMemoryId}
-          memoryContainerId={memoryContainerId}
+          currentExecutorMemoryId={activeMemory?.executorMemoryId}
+          memoryContainerId={activeMemory?.memoryContainerId}
         />
       )}
     </>

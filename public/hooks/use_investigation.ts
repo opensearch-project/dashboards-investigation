@@ -21,7 +21,7 @@ import {
   getMLCommonsConfig,
 } from '../utils/ml_commons_apis';
 import { extractParentInteractionId } from '../../common/utils/task';
-import { PERAgentInvestigationResponse } from '../../common/types/notebooks';
+import { AgenticMemeory, PERAgentInvestigationResponse } from '../../common/types/notebooks';
 import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_agent';
 import { useNotebook } from './use_notebook';
 import { CoreStart } from '../../../../src/core/public';
@@ -320,7 +320,7 @@ ${finding.evidence}
         dateModified: new Date().toISOString(),
       }));
       try {
-        await updateHypotheses([...(newHypotheses as any)]);
+        await updateHypotheses([...(newHypotheses as any)], true);
       } catch (e) {
         console.error('Failed to update investigation result', e);
       }
@@ -334,12 +334,10 @@ ${finding.evidence}
    */
   const pollInvestigationCompletion = useCallback(
     ({
-      memoryContainerId,
-      parentInteractionId,
+      runningMemory,
       abortController,
     }: {
-      memoryContainerId: string | undefined;
-      parentInteractionId: string;
+      runningMemory: AgenticMemeory;
       abortController?: AbortController;
     }): Promise<void> => {
       const dataSourceId = context.state.value.context.value.dataSourceId;
@@ -349,8 +347,8 @@ ${finding.evidence}
           .pipe(
             concatMap(() =>
               executeMLCommonsAgenticMessage({
-                memoryContainerId,
-                messageId: parentInteractionId,
+                memoryContainerId: runningMemory?.memoryContainerId,
+                messageId: runningMemory?.parentInteractionId,
                 http,
                 signal: abortController?.signal,
                 dataSourceId,
@@ -363,24 +361,7 @@ ${finding.evidence}
           )
           .subscribe(async (message) => {
             const response = message?.hits?.hits?.[0]?._source?.structured_data?.response;
-
             if (!response) {
-              return;
-            }
-
-            let responseJson;
-            try {
-              responseJson = JSON.parse(response);
-            } catch (error) {
-              console.error('Failed to parse response message', response);
-              notifications.toasts.addError(error as Error, {
-                title: 'Failed to parse response message',
-              });
-              return;
-            }
-
-            if (!isValidPERAgentInvestigationResponse(responseJson)) {
-              console.error('Investigation response not valid', responseJson);
               return;
             }
 
@@ -399,16 +380,29 @@ ${finding.evidence}
                 await deleteParagraphsByIds(findingPraragraphIds);
               }
 
+              const responseJson = JSON.parse(response);
+              if (!isValidPERAgentInvestigationResponse(responseJson)) {
+                throw new Error('Investigation response format is not valid');
+              }
               await storeInvestigationResponse({
                 payload: responseJson,
               });
-              resolve(undefined);
-            } catch (e) {
-              console.error('Failed to store investigation response', e);
-              notifications.toasts.addError(e as Error, {
-                title: 'Failed to store investigation response',
+              context.state.updateValue({
+                historyMemory: runningMemory,
+                investigationError: undefined,
               });
-              reject(e);
+              resolve(undefined);
+            } catch (error) {
+              context.state.updateValue({
+                runningMemory: undefined,
+                investigationError: error.message,
+              });
+              await updateHypotheses(hypothesesRef.current || []);
+              notifications.toasts.addError(error, {
+                title: 'Failed to store investigation response',
+                toastMessage: error.message,
+              });
+              reject(error);
             } finally {
               subscription.unsubscribe();
             }
@@ -422,7 +416,14 @@ ${finding.evidence}
         abortController?.signal.addEventListener('abort', abortHandler);
       });
     },
-    [http, notifications, context.state, storeInvestigationResponse, deleteParagraphsByIds]
+    [
+      http,
+      notifications,
+      context.state,
+      storeInvestigationResponse,
+      updateHypotheses,
+      deleteParagraphsByIds,
+    ]
   );
 
   const executeInvestigation = useCallback(
@@ -455,8 +456,7 @@ ${finding.evidence}
         ).configuration.agent_id;
 
         if (!agentId) {
-          setIsInvestigating(false);
-          return;
+          throw new Error('agentId is null');
         }
 
         const memoryContainerId = (
@@ -476,8 +476,7 @@ ${finding.evidence}
         )?.session_id;
 
         if (!executorMemoryId) {
-          setIsInvestigating(false);
-          return;
+          throw new Error('executorMemoryId id is null');
         }
 
         const result = await executePERAgent({
@@ -493,32 +492,29 @@ ${finding.evidence}
         const parentInteractionId = extractParentInteractionId(result);
 
         if (!parentInteractionId) {
-          setIsInvestigating(false);
-          return;
+          throw new Error('parentInteractionId id is null');
         }
 
-        context.state.updateValue({
-          memoryContainerId,
-          currentParentInteractionId: parentInteractionId,
-          currentExecutorMemoryId: executorMemoryId,
-        });
-
-        // Immediately save these IDs to backend so they persist across page refreshes
-        try {
-          await updateHypotheses(contextStateValue?.hypotheses || []);
-        } catch (e) {
-          notifications.toasts.addError(e, { title: 'Failed to save investigation IDs' });
-        }
-
-        return pollInvestigationCompletion({
+        const runningMemory: AgenticMemeory = {
           memoryContainerId,
           parentInteractionId,
+          executorMemoryId,
+        };
+
+        context.state.updateValue({ runningMemory });
+
+        // Immediately save these IDs to backend so they persist across page refreshes
+        await updateHypotheses(contextStateValue?.hypotheses || []);
+
+        return pollInvestigationCompletion({
+          runningMemory,
           abortController,
         }).finally(() => {
           setIsInvestigating(false);
         });
       } catch (e) {
-        console.error('Failed to execute per agent', e);
+        context.state.updateValue({ runningMemory: undefined, investigationError: e.message });
+        await updateHypotheses(hypothesesRef.current || []);
         notifications.toasts.addError(e, { title: 'Failed to execute per agent' });
         setIsInvestigating(false);
       }
@@ -622,11 +618,7 @@ ${commonResponseFormat}
       abortController?: AbortController;
     }) => {
       // Clear old memory IDs before starting new investigation
-      context.state.updateValue({
-        currentExecutorMemoryId: undefined,
-        currentParentInteractionId: undefined,
-        memoryContainerId: undefined,
-      });
+      context.state.updateValue({ runningMemory: undefined });
       const allParagraphs = context.state.getParagraphsValue();
       const question = investigationQuestion || context.state.value.context.value.initialGoal || '';
 
@@ -762,9 +754,9 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
   );
 
   const continueInvestigation = useCallback(async () => {
-    const { currentParentInteractionId, memoryContainerId } = context.state.value;
+    const { runningMemory } = context.state.value;
 
-    if (!currentParentInteractionId) {
+    if (!runningMemory?.parentInteractionId) {
       console.log('No ongoing investigation to continue');
       return;
     }
@@ -775,8 +767,8 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
     try {
       // Check if investigation is already complete
       const initialMessage = await executeMLCommonsAgenticMessage({
-        memoryContainerId,
-        messageId: currentParentInteractionId,
+        memoryContainerId: runningMemory?.memoryContainerId,
+        messageId: runningMemory.parentInteractionId,
         http,
         dataSourceId,
       });
@@ -791,12 +783,12 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
 
       // Otherwise, continue polling
       return pollInvestigationCompletion({
-        memoryContainerId,
-        parentInteractionId: currentParentInteractionId,
+        runningMemory,
       }).finally(() => {
         setIsInvestigating(false);
       });
     } catch (e) {
+      context.state.updateValue({ runningMemory: undefined, investigationError: e.message });
       console.error('Failed to continue investigation', e);
       notifications.toasts.addError(e, { title: 'Failed to continue investigation' });
       setIsInvestigating(false);

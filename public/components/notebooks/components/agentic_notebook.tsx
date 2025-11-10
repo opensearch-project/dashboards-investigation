@@ -136,9 +136,8 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
           owner: res.owner,
           hypotheses: res.hypotheses,
-          currentExecutorMemoryId: res.currentExecutorMemoryId,
-          currentParentInteractionId: res.currentParentInteractionId,
-          memoryContainerId: res.memoryContainerId,
+          runningMemory: res.runningMemory,
+          historyMemory: res.historyMemory,
         });
         await setInitialGoal({
           context: notebookContext.state.value.context.value,
@@ -146,10 +145,9 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
         // Check if there's an ongoing investigation to continue BEFORE calling start
         // This prevents start() from triggering a new investigation when we should continue the existing one
-        const hasOngoingInvestigation = res.currentParentInteractionId && res.memoryContainerId;
+        const hasOngoingInvestigation = res.runningMemory;
 
-        if (hasOngoingInvestigation) {
-          console.log('Detected ongoing investigation, attempting to continue...');
+        if (res.runningMemory) {
           try {
             await continueInvestigation();
           } catch (error) {

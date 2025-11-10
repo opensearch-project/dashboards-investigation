@@ -4,7 +4,7 @@
  */
 
 import { distinctUntilChanged, map } from 'rxjs/operators';
-import { HypothesisItem, NotebookContext } from 'common/types/notebooks';
+import { AgenticMemeory, HypothesisItem, NotebookContext } from '../types/notebooks';
 import { ObservableState } from './observable_state';
 import { ParagraphState } from './paragraph_state';
 import { TopContextState } from './top_context_state';
@@ -22,10 +22,9 @@ export interface NotebookStateValue {
   vizPrefix: string;
   owner?: string;
   hypotheses?: HypothesisItem[];
-  currentExecutorMemoryId?: string;
-  currentParentInteractionId?: string;
-  memoryContainerId?: string;
-  currentTaskId?: string;
+  runningMemory?: AgenticMemeory;
+  historyMemory?: AgenticMemeory;
+  investigationError?: string;
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {
