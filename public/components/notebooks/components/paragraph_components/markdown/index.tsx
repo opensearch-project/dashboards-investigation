@@ -73,17 +73,20 @@ export const MarkdownParagraph = ({
   if (isFindingParagraph && output) {
     const description = /Description\:\s*(.*)\n/.exec(output.result)?.[1];
     const evidence = /Evidence\:\s*(.*)/.exec(output.result)?.[1];
+    const importance = /Importance\:\s*(.*)/.exec(output.result)?.[1];
 
     return (
       <>
         <EuiFlexGroup justifyContent="spaceBetween" style={{ marginInlineEnd: 0 }}>
           <EuiFlexItem grow={false}>
             <EuiTitle size="xs">
-              <span>Finding: {description}</span>
+              <span>
+                Finding: {description} | Importance: {importance}
+              </span>
             </EuiTitle>
           </EuiFlexItem>
           <EuiFlexItem grow={false}>
-            <EuiText size="xs" color="subdued">
+            <EuiText size="xs" color="subdued" style={{ whiteSpace: 'nowrap' }}>
               Updated {moment(paragraphValue.dateModified).fromNow()}
             </EuiText>
           </EuiFlexItem>

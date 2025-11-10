@@ -154,7 +154,7 @@ describe('per_agent helpers', () => {
         paragraphService: mockParagraphService,
         paragraphs: mockParagraphs,
         notebookInfo: mockNotebookInfo,
-        ignoreInputTypes: ['source=logs | stats count by level'],
+        ignoreInputTypes: ['PPL'],
       });
 
       expect(result).toContain('**Investigation Summary**: Test notebook');

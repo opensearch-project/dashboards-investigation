@@ -60,9 +60,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isReinvestigateModalVisible, setIsReinvestigateModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
-  const { createParagraph, deleteParagraph, deleteParagraphsByIds } = useContext(
-    NotebookReactContext
-  ).paragraphHooks;
+  const { createParagraph, deleteParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const { loadNotebook: loadNotebookHook } = useNotebook();
   const { start, setInitialGoal } = usePrecheck();
 
@@ -197,27 +195,12 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       if (isReinvestigate) {
         rerunInvestigation({ investigationQuestion: value });
       } else {
-        const findingPraragraphIds = paragraphsStates
-          .filter((paragraphState) => (paragraphState.value.input.parameters as any)?.findingId)
-          .map((paragraphState) => paragraphState.value.id);
-
-        if (findingPraragraphIds.length > 0) {
-          // Delete all existing finding paragraphs
-          await deleteParagraphsByIds(findingPraragraphIds);
-        }
-
         doInvestigate({ investigationQuestion: value });
       }
 
       setIsReinvestigateModalVisible(false);
     },
-    [
-      rerunInvestigation,
-      deleteParagraphsByIds,
-      paragraphsStates,
-      doInvestigate,
-      setIsReinvestigateModalVisible,
-    ]
+    [rerunInvestigation, doInvestigate, setIsReinvestigateModalVisible]
   );
 
   if (!isLoading && notebookType === NotebookType.CLASSIC) {

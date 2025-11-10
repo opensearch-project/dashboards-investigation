@@ -67,15 +67,15 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
     }
 
     return `
-          ## Step description
-          This step executes ${queryTypeName} query and get response data for further research. Analyze these results as part of your investigation and consider how they relate to the overall issue. 
-    
-          ## Step result:
-          User has executed the following ${queryTypeName} query: '${query}' which returned the following results:
-          
-          \`\`\`tsv
-          ${jsonArrayToTsv(data)}
-          \`\`\`
+## Step description
+This step executes ${queryTypeName} query and get response data for further research. Analyze these results as part of your investigation and consider how they relate to the overall issue. 
+
+## Step result:
+User has executed the following ${queryTypeName} query: '${query}' which returned the following results:
+
+\`\`\`tsv
+${jsonArrayToTsv(data)}
+\`\`\`
         `;
   },
   runParagraph: async ({ paragraphState, notebookStateValue }) => {

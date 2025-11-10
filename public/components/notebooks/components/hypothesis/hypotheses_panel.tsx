@@ -222,7 +222,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
               AI Agent continuously evaluates and ranks hypotheses based on evidence
             </EuiText>
           </EuiFlexGroup>
-          {hypotheses?.length ? (
+          {hypotheses?.length && !isInvestigating ? (
             <HypothesesFeedback
               appName={appName}
               usageCollection={usageCollection}
