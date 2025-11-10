@@ -94,6 +94,12 @@ export interface HypothesisItem {
   dateModified: string;
 }
 
+export interface AgenticMemeory {
+  executorMemoryId?: string;
+  parentInteractionId?: string;
+  memoryContainerId?: string;
+}
+
 export type ParagraphInputType<TParameters = unknown> = ParagraphBackendType<TParameters>['input'];
 
 export interface NotebookBackendType {
@@ -106,10 +112,8 @@ export interface NotebookBackendType {
   vizPrefix?: string;
   owner?: string;
   hypotheses?: HypothesisItem[];
-  currentExecutorMemoryId?: string;
-  currentParentInteractionId?: string;
-  memoryContainerId?: string;
-  currentTaskId?: string;
+  runningMemory: AgenticMemeory;
+  historyMemory: AgenticMemeory;
 }
 
 export interface SummaryDataItem {
