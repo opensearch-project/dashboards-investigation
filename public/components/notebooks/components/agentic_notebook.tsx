@@ -17,6 +17,14 @@ import {
   EuiSmallButton,
   EuiSpacer,
   EuiText,
+  EuiModal,
+  EuiModalBody,
+  EuiModalFooter,
+  EuiModalHeader,
+  EuiModalHeaderTitle,
+  EuiButtonEmpty,
+  EuiButton,
+  EuiTextArea,
 } from '@elastic/eui';
 import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
 import { useEffectOnce, useObservable } from 'react-use';
@@ -85,6 +93,19 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     rerunInvestigation,
     continueInvestigation,
   } = useInvestigation();
+
+  const [findingText, setFindingText] = useState('%md Please add your finding here');
+  const [isModalVisibleAddFinding, setIsModalVisibleAddFinding] = useState(false);
+
+  const closeModal = () => {
+    setIsModalVisibleAddFinding(false);
+    setFindingText('%md Please add your finding here');
+  };
+
+  const handleAddFinding = async () => {
+    await addNewFinding({ hypothesisIndex: 0, text: findingText });
+    closeModal();
+  };
 
   // Initialize finding integration for automatic UI updates when findings are added
   useNotebookFindingIntegration({
@@ -248,7 +269,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
             notebookId={openedNoteId}
             question={initialGoal}
             isInvestigating={isInvestigating}
-            addNewFinding={addNewFinding}
             openReinvestigateModal={() => setIsReinvestigateModalVisible(true)}
           />
           <EuiSpacer />
@@ -345,6 +365,48 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                 <EuiSpacer size="xxl" />
               </EuiPanel>
             </div>
+          )}
+
+          {!isLoading && !isInvestigating && (
+            <EuiFlexGroup alignItems="center" gutterSize="none">
+              <EuiFlexGroup justifyContent="flexStart" direction="row">
+                <EuiFlexItem grow={false}>
+                  <EuiSmallButton
+                    disabled={isInvestigating}
+                    onClick={() => {
+                      setIsModalVisibleAddFinding(true);
+                    }}
+                  >
+                    Add Finding
+                  </EuiSmallButton>
+                </EuiFlexItem>
+              </EuiFlexGroup>
+            </EuiFlexGroup>
+          )}
+          {isModalVisibleAddFinding && (
+            <EuiModal onClose={closeModal}>
+              <EuiModalHeader>
+                <EuiModalHeaderTitle>Add Finding</EuiModalHeaderTitle>
+              </EuiModalHeader>
+
+              <EuiModalBody>
+                <EuiTextArea
+                  fullWidth
+                  placeholder="Enter your finding here"
+                  value={findingText}
+                  onChange={(e) => setFindingText(e.target.value)}
+                  rows={5}
+                  aria-label="Add finding text area"
+                />
+              </EuiModalBody>
+
+              <EuiModalFooter>
+                <EuiButtonEmpty onClick={closeModal}>Cancel</EuiButtonEmpty>
+                <EuiButton fill onClick={handleAddFinding}>
+                  Add
+                </EuiButton>
+              </EuiModalFooter>
+            </EuiModal>
           )}
         </EuiPageBody>
       </EuiPage>

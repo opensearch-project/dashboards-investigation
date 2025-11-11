@@ -5,23 +5,14 @@
 
 import {
   EuiAccordion,
-  EuiButton,
-  EuiButtonEmpty,
   EuiFlexGroup,
   EuiFlexItem,
   EuiHorizontalRule,
   EuiIcon,
   EuiLoadingContent,
-  EuiModal,
-  EuiModalBody,
-  EuiModalFooter,
-  EuiModalHeader,
-  EuiModalHeaderTitle,
   EuiPanel,
-  EuiSmallButton,
   EuiSpacer,
   EuiText,
-  EuiTextArea,
   EuiTitle,
 } from '@elastic/eui';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
@@ -45,7 +36,6 @@ interface HypothesesPanelProps {
   notebookId: string;
   question?: string;
   isInvestigating: boolean;
-  addNewFinding: (newFinding: { hypothesisIndex: number; text: string }) => Promise<void>;
   openReinvestigateModal: () => void;
 }
 
@@ -53,7 +43,6 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   notebookId,
   question,
   isInvestigating,
-  addNewFinding,
   openReinvestigateModal,
 }) => {
   const {
@@ -139,30 +128,6 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     history.push(`/agentic/${notebookId}/hypothesis/${hypothesisId}`);
   };
 
-  // State for the Add Finding modal
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [findingText, setFindingText] = useState('%md Please add your finding here');
-  const [currentHypothesisIndex, setCurrentHypothesisIndex] = useState<number | null>(null);
-
-  const closeModal = () => {
-    setIsModalVisible(false);
-    setFindingText('%md Please add your finding here');
-    setCurrentHypothesisIndex(null);
-  };
-
-  const showModal = (index: number) => {
-    setCurrentHypothesisIndex(index);
-    setIsModalVisible(true);
-  };
-
-  const handleAddFinding = async () => {
-    if (currentHypothesisIndex === null || !hypotheses) return;
-
-    await addNewFinding({ hypothesisIndex: currentHypothesisIndex, text: findingText });
-
-    closeModal();
-  };
-
   if (!question) {
     return null;
   }
@@ -236,13 +201,6 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
                     hypothesis={hypothesis}
                     onClickHypothesis={handleClickHypothesis}
                   />
-                  <EuiFlexGroup justifyContent="flexEnd" direction="row">
-                    <EuiFlexItem grow={false}>
-                      <EuiSmallButton disabled={isInvestigating} onClick={() => showModal(index)}>
-                        Add Finding
-                      </EuiSmallButton>
-                    </EuiFlexItem>
-                  </EuiFlexGroup>
                 </EuiFlexGroup>
               );
             })
@@ -266,32 +224,6 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
           ) : null}
         </EuiFlexGroup>
       </EuiPanel>
-      {/* Add Finding Modal */}
-      {isModalVisible && (
-        <EuiModal onClose={closeModal}>
-          <EuiModalHeader>
-            <EuiModalHeaderTitle>Add Finding</EuiModalHeaderTitle>
-          </EuiModalHeader>
-
-          <EuiModalBody>
-            <EuiTextArea
-              fullWidth
-              placeholder="Enter your finding here"
-              value={findingText}
-              onChange={(e) => setFindingText(e.target.value)}
-              rows={5}
-              aria-label="Add finding text area"
-            />
-          </EuiModalBody>
-
-          <EuiModalFooter>
-            <EuiButtonEmpty onClick={closeModal}>Cancel</EuiButtonEmpty>
-            <EuiButton fill onClick={handleAddFinding}>
-              Add
-            </EuiButton>
-          </EuiModalFooter>
-        </EuiModal>
-      )}
       {traceMessageId && PERAgentServices && activeMemory?.executorMemoryId && (
         <MessageTraceFlyout
           messageId={traceMessageId}
