@@ -110,7 +110,7 @@ Your final result JSON must include:
 
 ### Likelihood Guidelines
 - **Strong likelihood (70-100)**: High confidence, substantial supporting evidence
-- **Moderate likelihood (40-70)**: Medium confidence, some supporting evidence  
+- **Moderate likelihood (40-70)**: Medium confidence, some supporting evidence
 - **Weak likelihood (0-40)**: Low confidence, limited supporting evidence
 
 ## Examples
@@ -575,10 +575,7 @@ ${commonResponseFormat}
   doInvestigateRef.current = doInvestigate;
 
   const addNewFinding = useCallback(
-    async ({ hypothesisIndex, text }: { hypothesisIndex: number; text: string }) => {
-      if (!hypothesesRef.current) {
-        return;
-      }
+    async ({ text }: { text: string }) => {
       const paragraph = await createParagraph({
         index: paragraphLengthRef.current,
         input: {
@@ -587,26 +584,12 @@ ${commonResponseFormat}
         },
         aiGenerated: false,
       });
-      const hypotheses = hypothesesRef.current;
 
       if (paragraph) {
         await runParagraph({ id: paragraph.value.id });
-        const newHypotheses = [...hypotheses];
-        const currentHypothesis = hypotheses[hypothesisIndex];
-
-        if (currentHypothesis) {
-          newHypotheses[hypothesisIndex] = {
-            ...currentHypothesis,
-            newAddedFindingIds: [
-              ...(currentHypothesis.newAddedFindingIds ?? []),
-              paragraph.value.id,
-            ],
-          };
-          await updateHypotheses(newHypotheses);
-        }
       }
     },
-    [createParagraph, updateHypotheses, runParagraph]
+    [createParagraph, runParagraph]
   );
 
   const rerunInvestigation = useCallback(
