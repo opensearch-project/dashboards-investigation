@@ -441,11 +441,11 @@ ${finding.evidence}
       const dataSourceId = context.state.value.context.value.dataSourceId;
       setIsInvestigating(true);
 
-      if (context.state.value.context.value.initialGoal !== question) {
-        await updateNotebookContext({ initialGoal: question });
-      }
-
       try {
+        if (context.state.value.context.value.initialGoal !== question) {
+          await updateNotebookContext({ initialGoal: question });
+        }
+
         const agentId = (
           await getMLCommonsConfig({
             http,
@@ -513,9 +513,10 @@ ${finding.evidence}
           setIsInvestigating(false);
         });
       } catch (e) {
-        context.state.updateValue({ runningMemory: undefined, investigationError: e.message });
+        const errorMessage = 'Failed to execute per agent';
+        context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
         await updateHypotheses(hypothesesRef.current || []);
-        notifications.toasts.addError(e, { title: 'Failed to execute per agent' });
+        notifications.toasts.addError(e, { title: errorMessage });
         setIsInvestigating(false);
       }
     },
@@ -737,46 +738,26 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
   );
 
   const continueInvestigation = useCallback(async () => {
+    setIsInvestigating(true);
     const { runningMemory } = context.state.value;
 
-    if (!runningMemory?.parentInteractionId) {
-      console.log('No ongoing investigation to continue');
-      return;
-    }
-
-    const dataSourceId = context.state.value.context.value.dataSourceId;
-    setIsInvestigating(true);
-
     try {
-      // Check if investigation is already complete
-      const initialMessage = await executeMLCommonsAgenticMessage({
-        memoryContainerId: runningMemory?.memoryContainerId,
-        messageId: runningMemory.parentInteractionId,
-        http,
-        dataSourceId,
-      });
-
-      const initialResponse = initialMessage.hits.hits[0]._source.structured_data.response;
-
-      // If already has response, process it immediately
-      if (initialResponse) {
-        setIsInvestigating(false);
-        return;
+      if (!runningMemory?.parentInteractionId) {
+        throw new Error('No ongoing investigation to continue');
       }
 
-      // Otherwise, continue polling
       return pollInvestigationCompletion({
         runningMemory,
       }).finally(() => {
         setIsInvestigating(false);
       });
-    } catch (e) {
-      context.state.updateValue({ runningMemory: undefined, investigationError: e.message });
-      console.error('Failed to continue investigation', e);
-      notifications.toasts.addError(e, { title: 'Failed to continue investigation' });
+    } catch (error) {
+      const errorMessage = 'Failed to continue investigation';
+      context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
+      notifications.toasts.addError(error, { title: errorMessage });
       setIsInvestigating(false);
     }
-  }, [context.state, http, notifications, pollInvestigationCompletion]);
+  }, [context.state, notifications, pollInvestigationCompletion]);
 
   return {
     isInvestigating,
