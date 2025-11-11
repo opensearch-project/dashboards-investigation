@@ -49,7 +49,7 @@ export const InvestigateInput = ({ log }: { log?: Record<string, any> }) => {
           index: query.dataset?.title ?? '',
           currentTime,
           variables: {
-            pplQuery: query.query,
+            pplQuery: query.query.trim() || data.query.queryString.getInitialQuery().query,
             pplFilters: data.query.filterManager.getFilters(),
           },
           notebookType: 'Agentic',
