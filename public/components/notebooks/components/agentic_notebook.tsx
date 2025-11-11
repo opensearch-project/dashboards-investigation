@@ -103,7 +103,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   };
 
   const handleAddFinding = async () => {
-    await addNewFinding({ hypothesisIndex: 0, text: findingText });
+    await addNewFinding({ text: findingText });
     closeModal();
   };
 
