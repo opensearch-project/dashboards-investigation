@@ -112,8 +112,8 @@ export interface NotebookBackendType {
   vizPrefix?: string;
   owner?: string;
   hypotheses?: HypothesisItem[];
-  runningMemory: AgenticMemeory;
-  historyMemory: AgenticMemeory;
+  runningMemory?: AgenticMemeory;
+  historyMemory?: AgenticMemeory;
 }
 
 export interface SummaryDataItem {

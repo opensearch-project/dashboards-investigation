@@ -194,7 +194,7 @@ export const DataDistributionContainer = ({
 
   const specsVis = !fetchDataLoading && !distributionLoading && (
     <EuiPanel hasShadow={false} borderRadius="l">
-      <EuiFlexGroup>
+      <EuiFlexGroup wrap responsive={false}>
         {paginatedSpecs.map((spec, specIndex) => {
           const uniqueKey = `${activePage * ITEMS_PER_PAGE + specIndex}`;
           const uniqueId = `dis-id-${activePage * ITEMS_PER_PAGE + specIndex}`;
@@ -203,9 +203,14 @@ export const DataDistributionContainer = ({
 
           return (
             <EuiFlexItem
-              grow={false}
+              grow={true}
               key={uniqueKey}
-              style={{ opacity: isSelected ? 0.5 : 1, height: 300, width: 300 }}
+              style={{
+                opacity: isSelected ? 0.5 : 1,
+                minHeight: 300,
+                minWidth: 300,
+                maxWidth: `${100 / ITEMS_PER_PAGE}%`,
+              }}
             >
               {factory && spec && (
                 <EmbeddableRenderer

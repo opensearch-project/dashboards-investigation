@@ -57,7 +57,9 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   const history = useHistory();
   const [showSteps, setShowSteps] = useState(false);
   const [traceMessageId, setTraceMessageId] = useState<string>();
-  const activeMemory = isInvestigating ? runningMemory : historyMemory;
+  const activeMemory = useMemo(() => {
+    return isInvestigating ? runningMemory : historyMemory;
+  }, [isInvestigating, runningMemory, historyMemory]);
 
   const PERAgentServices = useMemo(() => {
     if (!activeMemory?.executorMemoryId || !activeMemory?.memoryContainerId) {
@@ -100,21 +102,19 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
         return;
       }
 
-      if (activeMemory?.parentInteractionId) {
-        PERAgentServices.message.setup({
-          messageId: activeMemory.parentInteractionId,
-          dataSourceId: context.value.dataSourceId,
-        });
+      PERAgentServices.message.setup({
+        messageId: activeMemory.parentInteractionId,
+        dataSourceId: context.value.dataSourceId,
+      });
 
-        PERAgentServices.executorMemory.setup({
-          dataSourceId: context.value.dataSourceId,
-        });
+      PERAgentServices.executorMemory.setup({
+        dataSourceId: context.value.dataSourceId,
+      });
 
-        return () => {
-          PERAgentServices.message.stop('Component cleanup');
-          PERAgentServices.executorMemory.stop('Component unmount');
-        };
-      }
+      return () => {
+        PERAgentServices.message.stop('Component cleanup');
+        PERAgentServices.executorMemory.stop('Component unmount');
+      };
     }
   }, [
     PERAgentServices,
@@ -123,6 +123,36 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     activeMemory?.parentInteractionId,
     isInvestigating,
   ]);
+
+  const statusBadge = useMemo(() => {
+    if (investigationError) {
+      return (
+        <HypothesisBadge
+          label="Investigation failed and showing previous hypotheses"
+          color={euiThemeVars.euiColorDanger}
+          icon="cross"
+        />
+      );
+    }
+
+    if (isInvestigating || !historyMemory) {
+      return (
+        <HypothesisBadge
+          label="Under investigation"
+          color={euiThemeVars.euiColorPrimary}
+          icon="pulse"
+        />
+      );
+    }
+
+    return (
+      <HypothesisBadge
+        label={hypotheses && hypotheses.length > 0 ? 'Investigation completed' : 'No hypotheses'}
+        color={euiThemeVars.euiColorSuccess}
+        icon="check"
+      />
+    );
+  }, [investigationError, isInvestigating, historyMemory, hypotheses]);
 
   const handleClickHypothesis = (hypothesisId: string) => {
     history.push(`/agentic/${notebookId}/hypothesis/${hypothesisId}`);
@@ -149,6 +179,24 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     </EuiAccordion>
   );
 
+  const renderHypothesesContent = () => {
+    if (isInvestigating || !historyMemory) {
+      return <EuiLoadingContent lines={3} />;
+    } else if (!hypotheses?.length) {
+      return <EuiText>No hypotheses generated</EuiText>;
+    }
+
+    return hypotheses.map((hypothesis, index) => (
+      <EuiFlexGroup key={`hypothesis-${index}`} alignItems="center" gutterSize="none">
+        <HypothesisItem
+          index={index}
+          hypothesis={hypothesis}
+          onClickHypothesis={handleClickHypothesis}
+        />
+      </EuiFlexGroup>
+    ));
+  };
+
   return (
     <>
       <EuiPanel>
@@ -161,50 +209,15 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
                   <h3>Hypotheses</h3>
                 </EuiTitle>
               </EuiFlexItem>
-              <EuiFlexItem grow={false}>
-                {isInvestigating ? (
-                  <HypothesisBadge
-                    label="Under investigation"
-                    color={euiThemeVars.euiColorPrimary}
-                    icon="pulse"
-                  />
-                ) : !investigationError ? (
-                  <HypothesisBadge
-                    label="Investigation completed"
-                    color={euiThemeVars.euiColorSuccess}
-                    icon="check"
-                  />
-                ) : (
-                  <HypothesisBadge
-                    label="Investigation failed"
-                    color={euiThemeVars.euiColorDanger}
-                    icon="cross"
-                  />
-                )}
-              </EuiFlexItem>
+              <EuiFlexItem grow={false}>{statusBadge}</EuiFlexItem>
             </EuiFlexGroup>
           }
           arrowDisplay="right"
           initialIsOpen
         >
           <EuiSpacer size="s" />
-          {isInvestigating ? (
-            <>
-              <EuiLoadingContent />
-            </>
-          ) : (
-            hypotheses?.map((hypothesis, index) => {
-              return (
-                <EuiFlexGroup alignItems="center" gutterSize="none">
-                  <HypothesisItem
-                    index={index}
-                    hypothesis={hypothesis}
-                    onClickHypothesis={handleClickHypothesis}
-                  />
-                </EuiFlexGroup>
-              );
-            })
-          )}
+          {renderHypothesesContent()}
+          <EuiSpacer size="s" />
           {investigationSteps}
         </EuiAccordion>
         <EuiHorizontalRule margin="xs" />
