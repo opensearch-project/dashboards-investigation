@@ -18,13 +18,13 @@ import { getNotifications } from '../services';
 export const DataDistributionParagraphItem: ParagraphRegistryItem<AnomalyVisualizationAnalysisOutputResult> = {
   ParagraphComponent: DataDistributionContainer,
   getContext: async (paragraph) => {
-    const selectedFieldComparison = paragraph?.output?.[0].result.fieldComparison.filter(
+    const selectedFieldComparison = paragraph?.output?.[0]?.result?.fieldComparison?.filter(
       (item) => !item.excludeFromContext
     );
     return ` ## Data Distribution Analysis Results
 
 ### Step description
-This step calculate fields' distribution and find the outlines between baselineTimeRange and selectionTimeRange. 
+This step calculate fields' distribution and find the outlines between baselineTimeRange and selectionTimeRange.
 These statistical deviations highlight potential areas of concern that may explain the underlying issue.
 
 ### Step result:
