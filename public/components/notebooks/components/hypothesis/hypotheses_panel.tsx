@@ -180,7 +180,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   );
 
   const renderHypothesesContent = () => {
-    if (isInvestigating || !historyMemory) {
+    if (isInvestigating) {
       return <EuiLoadingContent lines={3} />;
     } else if (!hypotheses?.length) {
       return <EuiText>No hypotheses generated</EuiText>;
