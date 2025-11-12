@@ -365,9 +365,11 @@ ${finding.evidence}
               return;
             }
 
+            let errorTitle = 'Failed to complete investigation';
+
             try {
-              // Sucessful investigation, deleted all old finding paragraphs
-              const findingPraragraphIds = context.state
+              // Successful investigation, deleted all old finding paragraphs
+              const findingParagraphIds = context.state
                 .getParagraphsValue()
                 .filter(
                   (paragraph) =>
@@ -375,32 +377,53 @@ ${finding.evidence}
                 )
                 .map((paragraph) => paragraph.id);
 
-              if (findingPraragraphIds.length > 0) {
-                // Delete all existing finding paragraphs
-                await deleteParagraphsByIds(findingPraragraphIds);
+              let responseJson;
+              try {
+                responseJson = JSON.parse(response);
+              } catch (error) {
+                errorTitle = 'Failed to execute per agent';
+                throw new Error(`Invalid per agent response: ${response}`);
               }
 
-              const responseJson = JSON.parse(response);
               if (!isValidPERAgentInvestigationResponse(responseJson)) {
-                throw new Error('Investigation response format is not valid');
+                errorTitle = 'Failed to execute per agent';
+                throw new Error(`Invalid per agent response: ${responseJson}`);
               }
-              await storeInvestigationResponse({
-                payload: responseJson,
-              });
+
+              if (findingParagraphIds.length > 0) {
+                try {
+                  // Delete all existing finding paragraphs
+                  await deleteParagraphsByIds(findingParagraphIds);
+                } catch (error) {
+                  errorTitle = 'Failed to clean up old findings';
+                  throw error;
+                }
+              }
+
+              try {
+                await storeInvestigationResponse({
+                  payload: responseJson,
+                });
+              } catch (error) {
+                errorTitle = 'Failed to save investigation results';
+                throw error;
+              }
+
               context.state.updateValue({
                 historyMemory: runningMemory,
                 investigationError: undefined,
               });
               resolve(undefined);
             } catch (error) {
+              const errorMessage = error.message;
               context.state.updateValue({
                 runningMemory: undefined,
-                investigationError: error.message,
+                investigationError: errorMessage,
               });
               await updateHypotheses(hypothesesRef.current || []);
               notifications.toasts.addError(error, {
-                title: 'Failed to store investigation response',
-                toastMessage: error.message,
+                title: errorTitle,
+                toastMessage: errorMessage,
               });
               reject(error);
             } finally {
@@ -440,6 +463,7 @@ ${finding.evidence}
     }) => {
       const dataSourceId = context.state.value.context.value.dataSourceId;
       setIsInvestigating(true);
+      context.state.updateValue({ investigationError: undefined });
 
       try {
         if (context.state.value.context.value.initialGoal !== question) {
@@ -476,7 +500,7 @@ ${finding.evidence}
         )?.session_id;
 
         if (!executorMemoryId) {
-          throw new Error('executorMemoryId id is null');
+          throw new Error('executorMemoryId is null');
         }
 
         const result = await executePERAgent({
