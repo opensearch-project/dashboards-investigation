@@ -377,16 +377,6 @@ ${finding.evidence}
                 )
                 .map((paragraph) => paragraph.id);
 
-              if (findingParagraphIds.length > 0) {
-                try {
-                  // Delete all existing finding paragraphs
-                  await deleteParagraphsByIds(findingParagraphIds);
-                } catch (error) {
-                  errorTitle = 'Failed to clean up old findings';
-                  throw error;
-                }
-              }
-
               let responseJson;
               try {
                 responseJson = JSON.parse(response);
@@ -398,6 +388,16 @@ ${finding.evidence}
               if (!isValidPERAgentInvestigationResponse(responseJson)) {
                 errorTitle = 'Failed to execute per agent';
                 throw new Error(`Invalid per agent response: ${responseJson}`);
+              }
+
+              if (findingParagraphIds.length > 0) {
+                try {
+                  // Delete all existing finding paragraphs
+                  await deleteParagraphsByIds(findingParagraphIds);
+                } catch (error) {
+                  errorTitle = 'Failed to clean up old findings';
+                  throw error;
+                }
               }
 
               try {
