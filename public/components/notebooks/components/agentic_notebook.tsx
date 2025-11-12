@@ -281,6 +281,8 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                 <div
                   ref={(ref) => (paraDivRefs.current[index] = ref)}
                   key={`para_div_${paragraphState.value.id}`}
+                  // Hidden the agent generated findings during reinvestigation
+                  hidden={paragraphState.value.aiGenerated && isInvestigating}
                 >
                   {index > 0 && <EuiSpacer size="s" />}
                   <EuiPanel>
