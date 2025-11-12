@@ -370,20 +370,23 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           )}
 
           {!isLoading && !isInvestigating && (
-            <EuiFlexGroup alignItems="center" gutterSize="none">
-              <EuiFlexGroup justifyContent="flexStart" direction="row">
-                <EuiFlexItem grow={false}>
-                  <EuiSmallButton
-                    disabled={isInvestigating}
-                    onClick={() => {
-                      setIsModalVisibleAddFinding(true);
-                    }}
-                  >
-                    Add Finding
-                  </EuiSmallButton>
-                </EuiFlexItem>
+            <>
+              <EuiSpacer size="s" />
+              <EuiFlexGroup alignItems="center" gutterSize="none">
+                <EuiFlexGroup justifyContent="flexStart" direction="row">
+                  <EuiFlexItem grow={false}>
+                    <EuiSmallButton
+                      disabled={isInvestigating}
+                      onClick={() => {
+                        setIsModalVisibleAddFinding(true);
+                      }}
+                    >
+                      Add Finding
+                    </EuiSmallButton>
+                  </EuiFlexItem>
+                </EuiFlexGroup>
               </EuiFlexGroup>
-            </EuiFlexGroup>
+            </>
           )}
           {isModalVisibleAddFinding && (
             <EuiModal onClose={closeModal}>

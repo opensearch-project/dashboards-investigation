@@ -269,8 +269,9 @@ export const useInvestigation = () => {
     async ({ payload }: { payload: PERAgentInvestigationResponse }) => {
       const findingId2ParagraphId: { [key: string]: string } = {};
       let startParagraphIndex = paragraphLengthRef.current;
-      for (let i = 0; i < payload.findings.length; i++) {
-        const finding = payload.findings[i];
+      const sortedFindings = payload.findings.slice().sort((a, b) => b.importance - a.importance);
+      for (let i = 0; i < sortedFindings.length; i++) {
+        const finding = sortedFindings[i];
         let paragraph;
         try {
           paragraph = await createParagraph({
@@ -306,19 +307,21 @@ ${finding.evidence}
           }
         }
       }
-      const newHypotheses = payload.hypotheses.map((hypothesis) => ({
-        id: hypothesis.id,
-        title: hypothesis.title,
-        description: hypothesis.description,
-        likelihood: hypothesis.likelihood,
-        supportingFindingParagraphIds: [
-          ...hypothesis.supporting_findings
-            .map((id) => findingId2ParagraphId[id] || (id.startsWith('paragraph_') ? id : null))
-            .filter((id) => !!id),
-        ],
-        dateCreated: new Date().toISOString(),
-        dateModified: new Date().toISOString(),
-      }));
+      const newHypotheses = payload.hypotheses
+        .map((hypothesis) => ({
+          id: hypothesis.id,
+          title: hypothesis.title,
+          description: hypothesis.description,
+          likelihood: hypothesis.likelihood,
+          supportingFindingParagraphIds: [
+            ...hypothesis.supporting_findings
+              .map((id) => findingId2ParagraphId[id] || (id.startsWith('paragraph_') ? id : null))
+              .filter((id) => !!id),
+          ],
+          dateCreated: new Date().toISOString(),
+          dateModified: new Date().toISOString(),
+        }))
+        .sort((a, b) => b.likelihood - a.likelihood);
       try {
         await updateHypotheses([...(newHypotheses as any)], true);
       } catch (e) {
@@ -347,8 +350,8 @@ ${finding.evidence}
           .pipe(
             concatMap(() =>
               executeMLCommonsAgenticMessage({
-                memoryContainerId: runningMemory?.memoryContainerId,
-                messageId: runningMemory?.parentInteractionId,
+                memoryContainerId: runningMemory?.memoryContainerId!,
+                messageId: runningMemory?.parentInteractionId!,
                 http,
                 signal: abortController?.signal,
                 dataSourceId,
