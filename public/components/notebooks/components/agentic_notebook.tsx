@@ -76,7 +76,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   useChatContextProvider();
 
   const notebookContext = useContext(NotebookReactContext);
-  const { initialGoal, source, notebookType } = useObservable(
+  const { initialGoal, source, notebookType, timeRange } = useObservable(
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
   );
@@ -212,14 +212,17 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const handleReinvestigate = useCallback(
     async (value: string, isReinvestigate: boolean) => {
       if (isReinvestigate) {
-        rerunInvestigation({ investigationQuestion: value });
+        rerunInvestigation({ investigationQuestion: value, timeRange });
       } else {
-        doInvestigate({ investigationQuestion: value });
+        doInvestigate({
+          investigationQuestion: value,
+          timeRange,
+        });
       }
 
       setIsReinvestigateModalVisible(false);
     },
-    [rerunInvestigation, doInvestigate, setIsReinvestigateModalVisible]
+    [timeRange, rerunInvestigation, doInvestigate, setIsReinvestigateModalVisible]
   );
 
   if (!isLoading && notebookType === NotebookType.CLASSIC) {
