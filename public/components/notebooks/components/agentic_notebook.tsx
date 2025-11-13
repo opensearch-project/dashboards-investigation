@@ -62,7 +62,7 @@ interface AgenticNotebookProps extends NotebookComponentProps {
 
 function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const {
-    services: { notifications, findingService, chrome },
+    services: { notifications, findingService, chrome, chat },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -206,7 +206,12 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
     // TODO: remove the optional chain after each method
     (chrome as any).setIsNavDrawerLocked?.(false);
-    // (assistantDashboards as any)?.updateChatbotVisible?.(true);
+    const rafId = window.requestAnimationFrame(() => {
+      chat?.chatService?.openWindow();
+    });
+    return () => {
+      window.cancelAnimationFrame(rafId);
+    };
   });
 
   const handleReinvestigate = useCallback(

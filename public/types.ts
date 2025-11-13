@@ -24,14 +24,13 @@ import { ParagraphServiceSetup } from './services/paragraph_service';
 import { ContextServiceSetup } from './services/context_service';
 import { ContextProviderStart } from '../../../src/plugins/context_provider/public';
 import { FindingService } from './services/finding_service';
-import { AssistantSetup, AssistantPublicPluginStart } from '../../dashboards-assistant/public';
 import { NoteBookAssistantContext } from '../common/types/assistant_context';
 import type { ExplorePluginSetup, ExplorePluginStart } from '../../../src/plugins/explore/public';
 import {
   UsageCollectionSetup,
   UsageCollectionStart,
 } from '../../../src/plugins/usage_collection/public';
-import { ChatPluginSetup } from '../../../src/plugins/chat/public';
+import { ChatPluginSetup, ChatPluginStart } from '../../../src/plugins/chat/public';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -43,9 +42,9 @@ export interface AppPluginStartDependencies {
   expressions: ExpressionsStart;
   visualizations: VisualizationsStart;
   contextProvider?: ContextProviderStart;
-  assistantDashboards?: AssistantPublicPluginStart;
   explore?: ExplorePluginStart;
   usageCollection?: UsageCollectionStart;
+  chat?: ChatPluginStart;
 }
 
 export interface SetupDependencies {
@@ -54,7 +53,6 @@ export interface SetupDependencies {
   data: DataPublicPluginSetup;
   dataSource: DataSourcePluginSetup;
   dataSourceManagement?: DataSourceManagementPluginSetup;
-  assistantDashboards?: AssistantSetup; // Optional assistant plugin setup
   explore?: ExplorePluginSetup;
   usageCollection?: UsageCollectionSetup;
   chat?: ChatPluginSetup;
