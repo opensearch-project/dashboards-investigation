@@ -284,6 +284,8 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                 <div
                   ref={(ref) => (paraDivRefs.current[index] = ref)}
                   key={`para_div_${paragraphState.value.id}`}
+                  // Hidden the agent generated findings during reinvestigation
+                  hidden={paragraphState.value.aiGenerated && isInvestigating}
                 >
                   {index > 0 && <EuiSpacer size="s" />}
                   <EuiPanel>
@@ -371,20 +373,23 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           )}
 
           {!isLoading && !isInvestigating && (
-            <EuiFlexGroup alignItems="center" gutterSize="none">
-              <EuiFlexGroup justifyContent="flexStart" direction="row">
-                <EuiFlexItem grow={false}>
-                  <EuiSmallButton
-                    disabled={isInvestigating}
-                    onClick={() => {
-                      setIsModalVisibleAddFinding(true);
-                    }}
-                  >
-                    Add Finding
-                  </EuiSmallButton>
-                </EuiFlexItem>
+            <>
+              <EuiSpacer size="s" />
+              <EuiFlexGroup alignItems="center" gutterSize="none">
+                <EuiFlexGroup justifyContent="flexStart" direction="row">
+                  <EuiFlexItem grow={false}>
+                    <EuiSmallButton
+                      disabled={isInvestigating}
+                      onClick={() => {
+                        setIsModalVisibleAddFinding(true);
+                      }}
+                    >
+                      Add Finding
+                    </EuiSmallButton>
+                  </EuiFlexItem>
+                </EuiFlexGroup>
               </EuiFlexGroup>
-            </EuiFlexGroup>
+            </>
           )}
           {isModalVisibleAddFinding && (
             <EuiModal onClose={closeModal}>
