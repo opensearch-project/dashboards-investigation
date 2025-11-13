@@ -7,6 +7,7 @@ import { useContext, useState, useCallback, useRef } from 'react';
 import { timer } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 import { useObservable } from 'react-use';
+import moment from 'moment';
 
 import type { NoteBookServices } from 'public/types';
 import type { ParagraphStateValue } from 'common/state/paragraph_state';
@@ -250,7 +251,7 @@ const convertParagraphsToFindings = (paragraphs: Array<ParagraphStateValue<unkno
 export const useInvestigation = () => {
   const context = useContext(NotebookReactContext);
   const {
-    services: { http, notifications, paragraphService },
+    services: { http, notifications, paragraphService, uiSettings },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { updateHypotheses, updateNotebookContext } = useNotebook();
   const { createParagraph, runParagraph, deleteParagraphsByIds } = useContext(
@@ -262,6 +263,8 @@ export const useInvestigation = () => {
   paragraphLengthRef.current = paragraphStates?.length ?? 0;
   const hypothesesRef = useRef(contextStateValue?.hypotheses);
   hypothesesRef.current = contextStateValue?.hypotheses;
+
+  const dateFormat = uiSettings.get('dateFormat');
 
   const [isInvestigating, setIsInvestigating] = useState(false);
 
@@ -569,9 +572,11 @@ ${finding.evidence}
   const doInvestigate = useCallback(
     async ({
       investigationQuestion,
+      timeRange,
       abortController,
     }: {
       investigationQuestion: string;
+      timeRange: { selectionFrom: number; selectionTo: number } | undefined;
       abortController?: AbortController;
     }) => {
       const notebookContextPrompt = await retrieveInvestigationContextPrompt();
@@ -580,6 +585,18 @@ ${finding.evidence}
 # Investigation Planner Agent
 
 You are a thoughtful and analytical planner agent in a plan-execute-reflect framework. Your job is to design a clear, step-by-step plan for a given objective.
+${
+  timeRange
+    ? `
+## Time Scope
+
+Conduct the investigation within the specified timerange: ${moment(timeRange.selectionFrom).format(
+        dateFormat
+      )} to ${moment(timeRange.selectionTo).format(
+        dateFormat
+      )}. Focus your analysis and data queries on this user-selected time period.`
+    : ''
+}
 
 ${commonInstructions}
 
@@ -593,7 +610,7 @@ ${commonResponseFormat}
         abortController,
       });
     },
-    [executeInvestigation, retrieveInvestigationContextPrompt]
+    [dateFormat, executeInvestigation, retrieveInvestigationContextPrompt]
   );
 
   const doInvestigateRef = useRef(doInvestigate);
@@ -620,9 +637,11 @@ ${commonResponseFormat}
   const rerunInvestigation = useCallback(
     async ({
       investigationQuestion,
+      timeRange,
       abortController,
     }: {
       investigationQuestion?: string;
+      timeRange: { selectionFrom: number; selectionTo: number } | undefined;
       abortController?: AbortController;
     }) => {
       // Clear old memory IDs before starting new investigation
@@ -637,6 +656,20 @@ ${commonResponseFormat}
 # Re-Investigation Agent
 
 You are a thoughtful and analytical planner agent specializing in **RE-INVESTIGATION**. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
+
+${
+  timeRange
+    ? `
+## Time Scope
+
+Conduct the investigation within the specified timerange: ${moment(timeRange.selectionFrom).format(
+        dateFormat
+      )} to ${moment(timeRange.selectionTo).format(
+        dateFormat
+      )}. Focus your analysis and data queries on this user-selected time period.`
+    : ''
+}
+
 
 ## Investigation Context
 ${
@@ -754,6 +787,7 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
       });
     },
     [
+      dateFormat,
       context.state,
       retrieveInvestigationContextPrompt,
       contextStateValue?.hypotheses,

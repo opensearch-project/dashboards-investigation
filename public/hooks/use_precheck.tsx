@@ -48,7 +48,10 @@ export const usePrecheck = () => {
       async (res: {
         context?: NotebookContext;
         paragraphs: Array<ParagraphBackendType<unknown>>;
-        doInvestigate: (props: { investigationQuestion: string }) => Promise<unknown>;
+        doInvestigate: (props: {
+          investigationQuestion: string;
+          timeRange: { selectionFrom: number; selectionTo: number };
+        }) => Promise<unknown>;
         hypotheses?: HypothesisItem[];
       }) => {
         let logPatternParaExists = false;
@@ -211,12 +214,14 @@ export const usePrecheck = () => {
 
                 res.doInvestigate({
                   investigationQuestion: res.context?.initialGoal || '',
+                  timeRange: res.context?.timeRange,
                 });
               }
             });
         } else if (res.context?.initialGoal && !res.hypotheses?.length) {
           res.doInvestigate({
             investigationQuestion: res.context.initialGoal,
+            timeRange: res.context.timeRange,
           });
         }
       },
