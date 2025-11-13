@@ -19,7 +19,6 @@
     "dataSource",
     "dataSourceManagement",
     "contextProvider",
-    "assistantDashboards",
     "explore",
     "usageCollection",
     "chat"
