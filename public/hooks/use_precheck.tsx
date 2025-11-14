@@ -25,6 +25,7 @@ import {
 import { useNotebook } from './use_notebook';
 import { getInputType } from '../../common/utils/paragraph';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
+import { formatTimeRangeString } from '../../public/utils/time';
 
 export const usePrecheck = () => {
   const { paragraphHooks } = useContext(NotebookReactContext);
@@ -50,7 +51,7 @@ export const usePrecheck = () => {
         paragraphs: Array<ParagraphBackendType<unknown>>;
         doInvestigate: (props: {
           investigationQuestion: string;
-          timeRange: { selectionFrom: number; selectionTo: number };
+          timeRange: { from: string; to: string };
         }) => Promise<unknown>;
         hypotheses?: HypothesisItem[];
       }) => {
@@ -214,14 +215,14 @@ export const usePrecheck = () => {
 
                 res.doInvestigate({
                   investigationQuestion: res.context?.initialGoal || '',
-                  timeRange: res.context?.timeRange,
+                  timeRange: formatTimeRangeString(res.context?.timeRange),
                 });
               }
             });
         } else if (res.context?.initialGoal && !res.hypotheses?.length) {
           res.doInvestigate({
             investigationQuestion: res.context.initialGoal,
-            timeRange: res.context.timeRange,
+            timeRange: formatTimeRangeString(res.context.timeRange),
           });
         }
       },

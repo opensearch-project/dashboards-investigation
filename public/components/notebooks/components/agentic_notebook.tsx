@@ -55,6 +55,11 @@ import { SummaryCard } from './summary_card';
 import { useChatContextProvider } from '../../../hooks/use_chat_context';
 import { HypothesisDetail, HypothesesPanel, ReinvestigateModal } from './hypothesis';
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
+import {
+  DATA_DISTRIBUTION_PARAGRAPH_TYPE,
+  LOG_PATTERN_PARAGRAPH_TYPE,
+} from '../../../../common/constants/notebooks';
+import { formatTimeRangeString } from '../../../../public/utils/time';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
   openedNoteId: string;
@@ -62,14 +67,16 @@ interface AgenticNotebookProps extends NotebookComponentProps {
 
 function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const {
-    services: { notifications, findingService, chrome, chat },
+    services: { notifications, findingService, chrome, chat, uiSettings },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isReinvestigateModalVisible, setIsReinvestigateModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
-  const { createParagraph, deleteParagraph } = useContext(NotebookReactContext).paragraphHooks;
-  const { loadNotebook: loadNotebookHook } = useNotebook();
+  const { createParagraph, runParagraph, deleteParagraph } = useContext(
+    NotebookReactContext
+  ).paragraphHooks;
+  const { loadNotebook: loadNotebookHook, updateNotebookContext } = useNotebook();
   const { start, setInitialGoal } = usePrecheck();
 
   // provide context to chatbot
@@ -88,6 +95,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
   const {
     isInvestigating,
+    setIsInvestigating,
     doInvestigate,
     addNewFinding,
     rerunInvestigation,
@@ -215,19 +223,83 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   });
 
   const handleReinvestigate = useCallback(
-    async (value: string, isReinvestigate: boolean) => {
+    async (
+      value: string,
+      updatedTimeRange: {
+        selectionFrom: number;
+        selectionTo: number;
+      },
+      isReinvestigate: boolean
+    ) => {
+      const formattedTimeRange = formatTimeRangeString(updatedTimeRange);
+
+      setIsReinvestigateModalVisible(false);
+
+      if (initialGoal !== value) {
+        await updateNotebookContext({ initialGoal: value });
+      }
+
+      if (
+        timeRange?.selectionFrom !== updatedTimeRange.selectionFrom ||
+        timeRange?.selectionTo !== updatedTimeRange.selectionTo
+      ) {
+        setIsInvestigating(true);
+
+        await updateNotebookContext({ timeRange: { ...timeRange!, ...updatedTimeRange } });
+
+        const pplParagraph = paragraphsStates.find((paragraphState) =>
+          paragraphState.value.input.inputText.startsWith('%ppl')
+        );
+        if (pplParagraph) {
+          pplParagraph?.updateInput({
+            ...pplParagraph.value.input,
+            parameters: {
+              ...(pplParagraph.value.input.parameters as any),
+              timeRange: formattedTimeRange,
+            },
+          });
+          await runParagraph({ id: pplParagraph?.value.id });
+        }
+
+        const logPatternParagraph = paragraphsStates.find(
+          (paragraphState) => paragraphState.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
+        );
+        if (logPatternParagraph) {
+          await runParagraph({ id: logPatternParagraph.value.id });
+        }
+
+        const dataDistributionParagraph = paragraphsStates.find(
+          (paragraphState) =>
+            paragraphState.value.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
+        );
+        if (dataDistributionParagraph) {
+          await runParagraph({ id: dataDistributionParagraph.value.id });
+        }
+      }
+
       if (isReinvestigate) {
-        rerunInvestigation({ investigationQuestion: value, timeRange });
+        rerunInvestigation({
+          investigationQuestion: value,
+          timeRange: formattedTimeRange,
+        });
       } else {
         doInvestigate({
           investigationQuestion: value,
-          timeRange,
+          timeRange: formattedTimeRange,
         });
       }
-
-      setIsReinvestigateModalVisible(false);
     },
-    [timeRange, rerunInvestigation, doInvestigate, setIsReinvestigateModalVisible]
+    [
+      initialGoal,
+      paragraphsStates,
+      runParagraph,
+      setIsInvestigating,
+      updateNotebookContext,
+      timeRange,
+      rerunInvestigation,
+      doInvestigate,
+      setIsReinvestigateModalVisible,
+    ]
   );
 
   if (!isLoading && notebookType === NotebookType.CLASSIC) {
@@ -427,6 +499,8 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       {isReinvestigateModalVisible && (
         <ReinvestigateModal
           initialGoal={initialGoal || ''}
+          timeRange={timeRange}
+          dateFormat={uiSettings.get('dateFormat')}
           confirm={handleReinvestigate}
           closeModal={() => setIsReinvestigateModalVisible(false)}
         />

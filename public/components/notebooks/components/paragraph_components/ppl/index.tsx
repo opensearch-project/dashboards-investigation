@@ -8,7 +8,6 @@ import {
   EuiCodeBlock,
   EuiCompressedFormRow,
   EuiFlexGroup,
-  EuiIconTip,
   EuiLink,
   EuiLoadingContent,
   EuiSpacer,
@@ -28,6 +27,7 @@ import { MultiVariantInput } from '../../input/multi_variant_input';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
 import { addTimeRangeFilter } from '../../../../../utils/time';
 import { NotebookType } from '../../../../../../common/types/notebooks';
+import { QUERY_RESULT_SAMPLE_SIZE } from '../../../../../../public/utils/query';
 
 export interface QueryObject {
   schema?: any[];
@@ -206,9 +206,11 @@ export const PPLParagraph = ({
               >
                 <b>{inputQueryWithTimeFilter}</b>
               </EuiText>
-              {isAgenticNotebook && (
-                <EuiFlexGroup justifyContent="flexEnd" gutterSize="none">
-                  <EuiIconTip content="A maximum of 100 random results are displayed" />
+              {isAgenticNotebook && data.length === QUERY_RESULT_SAMPLE_SIZE && (
+                <EuiFlexGroup gutterSize="none">
+                  <EuiText size="xs" color="subdued">
+                    Results limited to 100 random records from larger dataset
+                  </EuiText>
                 </EuiFlexGroup>
               )}
               <EuiSpacer size="xs" />
