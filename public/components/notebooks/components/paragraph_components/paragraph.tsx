@@ -21,7 +21,7 @@ export interface ParagraphProps {
   scrollToPara: (idx: number) => void;
 }
 
-export const Paragraphs = (props: ParagraphProps) => {
+export const Paragraph = (props: ParagraphProps) => {
   const { index, scrollToPara, deletePara } = props;
 
   const context = useContext(NotebookReactContext);
@@ -37,9 +37,13 @@ export const Paragraphs = (props: ParagraphProps) => {
   const { ParagraphComponent } =
     paragraphService.getParagraphRegistry(getInputType(paragraphValue)) || {};
 
+  const isClassicNotebook = context.state.getContext().notebookType === NotebookType.CLASSIC;
+  const isFindingParagraph =
+    paragraph.value.input.inputType === 'MARKDOWN' && paragraph.value.aiGenerated !== undefined;
+
   return (
     <div className="notebookParagraphWrapper">
-      {context.state.getContext().notebookType === NotebookType.CLASSIC && (
+      {(isClassicNotebook || isFindingParagraph) && (
         <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
       )}
       {ParagraphComponent && (

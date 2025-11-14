@@ -35,8 +35,9 @@ export const MarkdownParagraph = ({
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
   const { runParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const output = ParagraphState.getOutput(paragraphValue);
-  const isFindingParagraph =
+  const isAIGeneratedFinding =
     output?.result.startsWith('Importance:') && output.result.includes('Description:');
+  const isUserAddedFinding = paragraphValue.aiGenerated === false;
 
   const runParagraphHandler = async () => {
     paragraphState.updateUIState({
@@ -47,7 +48,7 @@ export const MarkdownParagraph = ({
         id: paragraphValue.id,
       });
     } catch (e) {
-      // do nothing
+      console.log(`Fail to run paragraph`, e);
     } finally {
       paragraphState.updateUIState({
         isRunning: false,
@@ -56,44 +57,53 @@ export const MarkdownParagraph = ({
   };
 
   useEffectOnce(() => {
-    paragraphState.updateUIState({
-      actions: [
-        {
-          name: 'Edit',
-          action: () => {
-            paragraphState.updateUIState({ viewMode: 'view_both' });
+    if (!isAIGeneratedFinding && !isUserAddedFinding) {
+      paragraphState.updateUIState({
+        actions: [
+          {
+            name: 'Edit',
+            action: () => {
+              paragraphState.updateUIState({ viewMode: 'view_both' });
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
+    }
   });
 
   const isRunning = paragraphValue.uiState?.isRunning;
 
-  if (isFindingParagraph && output) {
+  if ((isAIGeneratedFinding || isUserAddedFinding) && output) {
     const description = /Description\:\s*(.*)\n/.exec(output.result)?.[1];
     const evidence = /Evidence\:\s*(.*)/.exec(output.result)?.[1];
     const importance = /Importance\:\s*(.*)/.exec(output.result)?.[1];
 
     return (
       <>
-        <EuiFlexGroup justifyContent="spaceBetween" style={{ marginInlineEnd: 0 }}>
+        <EuiFlexGroup justifyContent="spaceBetween" style={{ marginInlineEnd: 20 }}>
           <EuiFlexItem grow={false}>
             <EuiTitle size="xs">
-              <span>
-                Finding: {description} | Importance: {importance}
-              </span>
+              {isUserAddedFinding ? (
+                <span>User Finding</span>
+              ) : (
+                <span>
+                  Finding: {description} | Importance: {importance}
+                  <EuiBadge style={{ marginInlineStart: 8, transform: 'translateY(-1.5px)' }}>
+                    AI Generated
+                  </EuiBadge>
+                </span>
+              )}
             </EuiTitle>
           </EuiFlexItem>
           <EuiFlexItem grow={false}>
             <EuiText size="xs" color="subdued" style={{ whiteSpace: 'nowrap' }}>
-              Updated {moment(paragraphValue.dateModified).fromNow()}
+              {isUserAddedFinding ? 'Created' : 'Updated'}{' '}
+              {moment(paragraphValue.dateModified).fromNow()}
             </EuiText>
           </EuiFlexItem>
         </EuiFlexGroup>
-
         <EuiSpacer />
-        <div>{evidence}</div>
+        <div>{isUserAddedFinding ? output.result : evidence}</div>
       </>
     );
   }
@@ -146,7 +156,6 @@ export const MarkdownParagraph = ({
           </>
         ) : null}
       </div>
-      {paragraphValue.aiGenerated && <EuiBadge>AI Generated</EuiBadge>}
       {isRunning ? (
         <EuiLoadingContent />
       ) : (

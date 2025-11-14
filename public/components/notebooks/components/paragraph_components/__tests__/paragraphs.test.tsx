@@ -9,7 +9,7 @@ import Adapter from 'enzyme-adapter-react-16';
 import React from 'react';
 import { getOSDHttp } from '../../../../../../common/utils';
 import { sampleParsedParagraghs1 } from '../../../../../../test/notebooks_constants';
-import { ParagraphProps, Paragraphs } from '../paragraphs';
+import { ParagraphProps, Paragraph } from '../paragraph';
 import { ParagraphStateValue } from '../../../../../../common/state/paragraph_state';
 import { MockContextProvider } from '../../../context_provider/context_provider.mock';
 import { OpenSearchDashboardsContextProvider } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
@@ -77,7 +77,7 @@ const ContextAwareParagraphs = (
       }}
     >
       <MockContextProvider paragraphValues={props.paragraphValues}>
-        <Paragraphs {...props} />
+        <Paragraph {...props} />
       </MockContextProvider>
     </OpenSearchDashboardsContextProvider>
   );
