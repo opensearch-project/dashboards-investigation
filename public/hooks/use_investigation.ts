@@ -422,10 +422,7 @@ ${finding.evidence}
               resolve(undefined);
             } catch (error) {
               const errorMessage = error.message;
-              context.state.updateValue({
-                runningMemory: undefined,
-                investigationError: errorMessage,
-              });
+              context.state.updateValue({ investigationError: errorMessage });
               await updateHypotheses(hypothesesRef.current || []);
               notifications.toasts.addError(error, {
                 title: errorTitle,
@@ -433,6 +430,8 @@ ${finding.evidence}
               });
               reject(error);
             } finally {
+              context.state.updateValue({ runningMemory: undefined });
+              setIsInvestigating(false);
               subscription.unsubscribe();
             }
           });
@@ -539,8 +538,6 @@ ${finding.evidence}
         return pollInvestigationCompletion({
           runningMemory,
           abortController,
-        }).finally(() => {
-          setIsInvestigating(false);
         });
       } catch (e) {
         const errorMessage = 'Failed to execute per agent';
