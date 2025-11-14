@@ -14,6 +14,8 @@ export interface Trace {
   input: string;
   response?: string;
   message_id?: string;
+  origin?: string;
+  create_time?: string;
 }
 
 export const getAllTracesByMessageId = async (
@@ -42,7 +44,7 @@ export const getAllTracesByMessageId = async (
 export const getAllMessagesByMemoryId = async (
   options: Parameters<typeof getMLCommonsMemoryMessages>[0]
 ) => {
-  const messages = [];
+  const messages: Trace[] = [];
   let nextToken = options.nextToken;
   do {
     try {
@@ -125,7 +127,6 @@ export const getAllTracesMessages = async (
 ) => {
   const traces: Trace[] = [];
   let nextToken = options.nextToken;
-  console.log('nextToken', nextToken);
   do {
     try {
       const result = await getMLCommonsAgenticTracesMessages({

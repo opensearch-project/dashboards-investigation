@@ -332,7 +332,7 @@ export const getMLCommonsAgenticMemoryMessages = ({
       },
       sort: [
         {
-          message_id: {
+          created_time: {
             order: 'asc',
           },
         },
