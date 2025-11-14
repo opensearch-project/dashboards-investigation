@@ -4,7 +4,7 @@
  */
 
 import moment from 'moment';
-import { dateFormat } from '../../common/constants/notebooks';
+import { dateFormat as defaultDateFormat } from '../../common/constants/notebooks';
 import { formatTimePickerDate, TimeRange } from '../../../../src/plugins/data/common';
 
 export const formatTimeGap = (milliseconds: number) => {
@@ -47,8 +47,8 @@ export const getPPLQueryWithTimeRange = (
   to: number | string,
   timeField: string
 ) => {
-  const startTime = typeof from === 'string' ? from : moment.utc(from).format(dateFormat);
-  const endTime = typeof to === 'string' ? to : moment.utc(to).format(dateFormat);
+  const startTime = typeof from === 'string' ? from : moment.utc(from).format(defaultDateFormat);
+  const endTime = typeof to === 'string' ? to : moment.utc(to).format(defaultDateFormat);
 
   const whereCommand = timeField
     ? `WHERE \`${timeField}\` >= '${startTime}' AND \`${timeField}\` <= '${endTime}'`
@@ -77,7 +77,28 @@ export const addTimeRangeFilter = (query: string, params: any) => {
   };
   const { fromDate, toDate } = formatTimePickerDate(
     timeRange ?? { from: 'now-15m', to: 'now' },
-    dateFormat
+    defaultDateFormat
   );
   return getPPLQueryWithTimeRange(query, fromDate, toDate, timeField);
+};
+
+export const formatTimeRangeString = (
+  unixTimeRange:
+    | {
+        selectionFrom: number;
+        selectionTo: number;
+      }
+    | undefined,
+  dateFormat = defaultDateFormat
+) => {
+  if (!unixTimeRange) {
+    return {
+      from: '',
+      to: '',
+    };
+  }
+  return {
+    from: moment.utc(unixTimeRange.selectionFrom).format(dateFormat),
+    to: moment.utc(unixTimeRange.selectionTo).format(dateFormat),
+  };
 };

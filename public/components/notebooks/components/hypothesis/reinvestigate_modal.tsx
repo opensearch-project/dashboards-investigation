@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   EuiOverlayMask,
   EuiModal,
@@ -16,15 +16,61 @@ import {
   EuiSwitch,
   EuiModalFooter,
   EuiButton,
+  EuiSuperDatePicker,
 } from '@elastic/eui';
+import moment from 'moment';
+import dateMath from '@elastic/datemath';
 
-export const ReinvestigateModal: React.FC<{
+interface ReinvestigateModalProps {
   initialGoal: string;
-  confirm: (question: string, isReinvestigate: boolean) => void;
+  timeRange:
+    | {
+        selectionFrom: number;
+        selectionTo: number;
+      }
+    | undefined;
+  dateFormat: string;
+  confirm: (params: {
+    question: string;
+    updatedTimeRange: {
+      selectionFrom: number;
+      selectionTo: number;
+    };
+    isReinvestigate: boolean;
+  }) => void;
   closeModal: () => void;
-}> = ({ initialGoal, confirm, closeModal }) => {
+}
+
+export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
+  initialGoal,
+  timeRange,
+  dateFormat,
+  confirm,
+  closeModal,
+}) => {
   const [value, setValue] = useState(initialGoal);
   const [checked, setChecked] = useState(false);
+  const [selectedTimeRange, setSelectedTimeRnage] = useState(timeRange);
+
+  const { startFormatted, endFormatted } = useMemo(
+    () => ({
+      startFormatted: selectedTimeRange
+        ? moment(selectedTimeRange.selectionFrom).format()
+        : undefined,
+      endFormatted: selectedTimeRange ? moment(selectedTimeRange.selectionTo).format() : undefined,
+    }),
+    [selectedTimeRange]
+  );
+
+  const handleTimeChange = useCallback((e) => {
+    const fromMoment = dateMath.parse(e.start);
+    const toMoment = dateMath.parse(e.end, { roundUp: true });
+
+    setSelectedTimeRnage({
+      selectionFrom: fromMoment?.valueOf() || 0,
+      selectionTo: toMoment?.valueOf() || 0,
+    });
+  }, []);
 
   return (
     <EuiOverlayMask>
@@ -38,6 +84,17 @@ export const ReinvestigateModal: React.FC<{
           <EuiFormRow label="Edit inital goal">
             <EuiFieldText value={value} onChange={(e) => setValue(e.target.value)} required />
           </EuiFormRow>
+          <EuiSpacer size="s" />
+          <EuiFormRow label="Edit time range">
+            <EuiSuperDatePicker
+              compressed
+              start={startFormatted}
+              end={endFormatted}
+              showUpdateButton={false}
+              dateFormat={dateFormat}
+              onTimeChange={handleTimeChange}
+            />
+          </EuiFormRow>
           <EuiSpacer />
           <EuiSwitch
             label="Bring the exsiting hypothesis and findings"
@@ -46,7 +103,17 @@ export const ReinvestigateModal: React.FC<{
           />
         </EuiModalBody>
         <EuiModalFooter>
-          <EuiButton onClick={() => confirm(value, checked)} fill disabled={!value.trim()}>
+          <EuiButton
+            onClick={() =>
+              confirm({
+                question: value,
+                updatedTimeRange: selectedTimeRange || { selectionFrom: 0, selectionTo: 0 },
+                isReinvestigate: checked,
+              })
+            }
+            fill
+            disabled={!value.trim()}
+          >
             Confirm
           </EuiButton>
         </EuiModalFooter>

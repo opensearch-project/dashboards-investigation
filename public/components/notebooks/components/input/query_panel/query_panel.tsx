@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   EuiButtonEmpty,
   EuiFlexGroup,
@@ -92,6 +92,8 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   const [localDataSourceId, setLocalDataSourceId] = useState(dataSourceId);
   const [isEditorInitialized, setIsEditorInitialized] = useState(!isInputMountedInParagraph);
 
+  const isInitialInputHandled = useRef(false);
+
   const queryState = (inputValue && typeof inputValue !== 'string'
     ? inputValue
     : QUERY_PANEL_INITIAL_STATE) as QueryState;
@@ -159,13 +161,25 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
           console.log('error', err);
         } finally {
           setIsFetching(false);
+          isInitialInputHandled.current = true;
         }
       } else if (typeof inputValue === 'string' || isEmpty(inputValue)) {
         handleInputChange(QUERY_PANEL_INITIAL_STATE);
+        isInitialInputHandled.current = true;
       }
     };
     handleInitialInput();
   }, [paragraphInput, handleInputChange, indexPatterns, localDataSourceId, inputValue, isFetching]);
+
+  // Sync timeRange when external parameters change (only after initial setup)
+  useEffect(() => {
+    if (!isInitialInputHandled.current) return;
+
+    const externalTimeRange = (paragraphInput?.parameters as any)?.timeRange;
+    if (externalTimeRange) {
+      handleInputChange({ timeRange: externalTimeRange });
+    }
+  }, [paragraphInput?.parameters, handleInputChange]);
 
   const handleTimeChange = useCallback(
     (props) => {
@@ -283,7 +297,8 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         gutterSize="none"
         dir="row"
         alignItems="center"
-        style={{ marginInlineEnd: 0 }}
+        // Prevent setting button overlap with action menu button
+        style={{ marginInlineEnd: isInputMountedInParagraph && !isAgenticNotebook ? 32 : 0 }}
       >
         {prependWidget}
         <LanguageToggle promptModeIsAvailable={promptModeIsAvailable} />

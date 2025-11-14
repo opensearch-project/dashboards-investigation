@@ -55,6 +55,7 @@ import { SummaryCard } from './summary_card';
 import { useChatContextProvider } from '../../../hooks/use_chat_context';
 import { HypothesisDetail, HypothesesPanel, ReinvestigateModal } from './hypothesis';
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
+import { formatTimeRangeString } from '../../../../public/utils/time';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
   openedNoteId: string;
@@ -62,15 +63,15 @@ interface AgenticNotebookProps extends NotebookComponentProps {
 
 function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const {
-    services: { notifications, findingService, chrome, chat },
+    services: { notifications, findingService, chrome, chat, uiSettings },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isReinvestigateModalVisible, setIsReinvestigateModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
   const { createParagraph, deleteParagraph } = useContext(NotebookReactContext).paragraphHooks;
-  const { loadNotebook: loadNotebookHook } = useNotebook();
-  const { start, setInitialGoal } = usePrecheck();
+  const { loadNotebook: loadNotebookHook, updateNotebookContext } = useNotebook();
+  const { start, rerun: rerunPrecheck, setInitialGoal } = usePrecheck();
 
   // provide context to chatbot
   useChatContextProvider();
@@ -88,6 +89,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
   const {
     isInvestigating,
+    setIsInvestigating,
     doInvestigate,
     addNewFinding,
     rerunInvestigation,
@@ -215,19 +217,66 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   });
 
   const handleReinvestigate = useCallback(
-    async (value: string, isReinvestigate: boolean) => {
-      if (isReinvestigate) {
-        rerunInvestigation({ investigationQuestion: value, timeRange });
-      } else {
-        doInvestigate({
-          investigationQuestion: value,
-          timeRange,
-        });
-      }
+    async ({
+      question,
+      updatedTimeRange,
+      isReinvestigate,
+    }: {
+      question: string;
+      updatedTimeRange: {
+        selectionFrom: number;
+        selectionTo: number;
+      };
+      isReinvestigate: boolean;
+    }) => {
+      const formattedTimeRange = formatTimeRangeString(updatedTimeRange);
 
       setIsReinvestigateModalVisible(false);
+
+      if (initialGoal !== question) {
+        await updateNotebookContext({ initialGoal: question });
+      }
+
+      if (
+        timeRange?.selectionFrom !== updatedTimeRange.selectionFrom ||
+        timeRange?.selectionTo !== updatedTimeRange.selectionTo
+      ) {
+        setIsInvestigating(true);
+
+        await updateNotebookContext({
+          // FIXME: when support baseline time
+          timeRange: {
+            baselineFrom: timeRange?.baselineFrom ?? 0,
+            baselineTo: timeRange?.baselineTo ?? 0,
+            ...updatedTimeRange,
+          },
+        });
+        await rerunPrecheck(paragraphsStates, formattedTimeRange);
+      }
+
+      if (isReinvestigate) {
+        rerunInvestigation({
+          investigationQuestion: question,
+          timeRange: formattedTimeRange,
+        });
+      } else {
+        doInvestigate({
+          investigationQuestion: question,
+          timeRange: formattedTimeRange,
+        });
+      }
     },
-    [timeRange, rerunInvestigation, doInvestigate, setIsReinvestigateModalVisible]
+    [
+      initialGoal,
+      paragraphsStates,
+      setIsInvestigating,
+      updateNotebookContext,
+      timeRange,
+      rerunInvestigation,
+      doInvestigate,
+      setIsReinvestigateModalVisible,
+      rerunPrecheck,
+    ]
   );
 
   if (!isLoading && notebookType === NotebookType.CLASSIC) {
@@ -427,6 +476,8 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       {isReinvestigateModalVisible && (
         <ReinvestigateModal
           initialGoal={initialGoal || ''}
+          timeRange={timeRange}
+          dateFormat={uiSettings.get('dateFormat')}
           confirm={handleReinvestigate}
           closeModal={() => setIsReinvestigateModalVisible(false)}
         />

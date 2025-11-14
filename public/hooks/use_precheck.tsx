@@ -25,6 +25,7 @@ import {
 import { useNotebook } from './use_notebook';
 import { getInputType } from '../../common/utils/paragraph';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
+import { formatTimeRangeString } from '../../public/utils/time';
 
 export const usePrecheck = () => {
   const { paragraphHooks } = useContext(NotebookReactContext);
@@ -50,7 +51,7 @@ export const usePrecheck = () => {
         paragraphs: Array<ParagraphBackendType<unknown>>;
         doInvestigate: (props: {
           investigationQuestion: string;
-          timeRange: { selectionFrom: number; selectionTo: number };
+          timeRange: { from: string; to: string };
         }) => Promise<unknown>;
         hypotheses?: HypothesisItem[];
       }) => {
@@ -214,18 +215,60 @@ export const usePrecheck = () => {
 
                 res.doInvestigate({
                   investigationQuestion: res.context?.initialGoal || '',
-                  timeRange: res.context?.timeRange,
+                  timeRange: formatTimeRangeString(res.context?.timeRange),
                 });
               }
             });
         } else if (res.context?.initialGoal && !res.hypotheses?.length) {
           res.doInvestigate({
             investigationQuestion: res.context.initialGoal,
-            timeRange: res.context.timeRange,
+            timeRange: formatTimeRangeString(res.context.timeRange),
           });
         }
       },
       [createParagraph, runParagraph]
+    ),
+    rerun: useCallback(
+      async (
+        paragraphStates: Array<ParagraphState<unknown>>,
+        timeRange: {
+          from: string;
+          to: string;
+        }
+      ) => {
+        const pplParagraph = paragraphStates.find((paragraphState) =>
+          paragraphState.value.input.inputText.startsWith('%ppl')
+        );
+        if (pplParagraph) {
+          pplParagraph?.updateInput({
+            ...pplParagraph.value.input,
+            parameters: {
+              ...(pplParagraph.value.input.parameters as any),
+              timeRange: {
+                from: moment.utc(timeRange.from).local().format(dateFormat),
+                to: moment.utc(timeRange.to).local().format(dateFormat),
+              },
+            },
+          });
+          await runParagraph({ id: pplParagraph?.value.id });
+        }
+
+        const logPatternParagraph = paragraphStates.find(
+          (paragraphState) => paragraphState.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
+        );
+        if (logPatternParagraph) {
+          await runParagraph({ id: logPatternParagraph.value.id });
+        }
+
+        const dataDistributionParagraph = paragraphStates.find(
+          (paragraphState) =>
+            paragraphState.value.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
+        );
+        if (dataDistributionParagraph) {
+          await runParagraph({ id: dataDistributionParagraph.value.id });
+        }
+      },
+      [runParagraph]
     ),
     setInitialGoal,
   };

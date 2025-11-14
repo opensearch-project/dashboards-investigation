@@ -21,6 +21,7 @@ import MarkdownRender from '@nteract/markdown';
 import { useContext } from 'react';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
+import { NotebookType } from '../../../../../../common/types/notebooks';
 
 const inputPlaceholderString =
   'Type %md on the first line to define the input type. \nCode block starts here.';
@@ -33,11 +34,17 @@ export const MarkdownParagraph = ({
   actionDisabled: boolean;
 }) => {
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
-  const { runParagraph } = useContext(NotebookReactContext).paragraphHooks;
+  const context = useContext(NotebookReactContext);
+  const { notebookType } = useObservable(
+    context.state.value.context.getValue$(),
+    context.state.value.context.value
+  );
+  const { runParagraph } = context.paragraphHooks;
   const output = ParagraphState.getOutput(paragraphValue);
   const isAIGeneratedFinding =
     output?.result.startsWith('Importance:') && output.result.includes('Description:');
-  const isUserAddedFinding = paragraphValue.aiGenerated === false;
+  const isUserAddedFinding =
+    notebookType === NotebookType.AGENTIC && paragraphValue.aiGenerated === false;
 
   const runParagraphHandler = async () => {
     paragraphState.updateUIState({

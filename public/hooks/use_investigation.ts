@@ -7,7 +7,6 @@ import { useContext, useState, useCallback, useRef } from 'react';
 import { timer } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 import { useObservable } from 'react-use';
-import moment from 'moment';
 
 import type { NoteBookServices } from 'public/types';
 import type { ParagraphStateValue } from 'common/state/paragraph_state';
@@ -251,7 +250,7 @@ const convertParagraphsToFindings = (paragraphs: Array<ParagraphStateValue<unkno
 export const useInvestigation = () => {
   const context = useContext(NotebookReactContext);
   const {
-    services: { http, notifications, paragraphService, uiSettings },
+    services: { http, notifications, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { updateHypotheses, updateNotebookContext } = useNotebook();
   const { createParagraph, runParagraph, deleteParagraphsByIds } = useContext(
@@ -263,8 +262,6 @@ export const useInvestigation = () => {
   paragraphLengthRef.current = paragraphStates?.length ?? 0;
   const hypothesesRef = useRef(contextStateValue?.hypotheses);
   hypothesesRef.current = contextStateValue?.hypotheses;
-
-  const dateFormat = uiSettings.get('dateFormat');
 
   const [isInvestigating, setIsInvestigating] = useState(false);
 
@@ -576,7 +573,7 @@ ${finding.evidence}
       abortController,
     }: {
       investigationQuestion: string;
-      timeRange: { selectionFrom: number; selectionTo: number } | undefined;
+      timeRange: { from: string; to: string } | undefined;
       abortController?: AbortController;
     }) => {
       const notebookContextPrompt = await retrieveInvestigationContextPrompt();
@@ -586,15 +583,11 @@ ${finding.evidence}
 
 You are a thoughtful and analytical planner agent in a plan-execute-reflect framework. Your job is to design a clear, step-by-step plan for a given objective.
 ${
-  timeRange
+  timeRange && timeRange.from && timeRange.to
     ? `
 ## Time Scope
 
-Conduct the investigation within the specified timerange: ${moment(timeRange.selectionFrom).format(
-        dateFormat
-      )} to ${moment(timeRange.selectionTo).format(
-        dateFormat
-      )}. Focus your analysis and data queries on this user-selected time period.`
+Conduct the investigation within the specified timerange: ${timeRange.from} UTC to ${timeRange.to} UTC. Focus your analysis and data queries on this user-selected time period.`
     : ''
 }
 
@@ -610,7 +603,7 @@ ${commonResponseFormat}
         abortController,
       });
     },
-    [dateFormat, executeInvestigation, retrieveInvestigationContextPrompt]
+    [executeInvestigation, retrieveInvestigationContextPrompt]
   );
 
   const doInvestigateRef = useRef(doInvestigate);
@@ -641,7 +634,7 @@ ${commonResponseFormat}
       abortController,
     }: {
       investigationQuestion?: string;
-      timeRange: { selectionFrom: number; selectionTo: number } | undefined;
+      timeRange: { from: string; to: string } | undefined;
       abortController?: AbortController;
     }) => {
       // Clear old memory IDs before starting new investigation
@@ -658,15 +651,11 @@ ${commonResponseFormat}
 You are a thoughtful and analytical planner agent specializing in **RE-INVESTIGATION**. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
 
 ${
-  timeRange
+  timeRange && timeRange.from && timeRange.to
     ? `
 ## Time Scope
 
-Conduct the investigation within the specified timerange: ${moment(timeRange.selectionFrom).format(
-        dateFormat
-      )} to ${moment(timeRange.selectionTo).format(
-        dateFormat
-      )}. Focus your analysis and data queries on this user-selected time period.`
+Conduct the investigation within the specified timerange: ${timeRange.from} UTC to ${timeRange.to} UTC. **Note: This time range may have been manually updated by the user from the original investigation.** Focus your analysis and data queries on this user-selected time period.`
     : ''
 }
 
@@ -787,7 +776,6 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
       });
     },
     [
-      dateFormat,
       context.state,
       retrieveInvestigationContextPrompt,
       contextStateValue?.hypotheses,
@@ -819,6 +807,7 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
 
   return {
     isInvestigating,
+    setIsInvestigating,
     doInvestigate,
     addNewFinding,
     rerunInvestigation,

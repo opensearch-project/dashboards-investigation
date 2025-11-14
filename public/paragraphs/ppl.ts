@@ -21,43 +21,22 @@ import { ParagraphState } from '../../common/state/paragraph_state';
 export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObject> = {
   ParagraphComponent: PPLParagraph,
   getContext: async (paragraph) => {
-    const { input, dataSourceMDSId } = paragraph || {};
+    const { input } = paragraph || {};
     if (!input?.inputText) {
       return '';
     }
 
     const query = ParagraphState.getOutput(paragraph)?.result || input.inputText.substring(5);
     const isSqlQuery = input?.inputText.substring(0, 4) === '%sql';
-    const queryType = isSqlQuery ? '_sql' : '_ppl';
     const queryTypeName = isSqlQuery ? 'SQL' : 'PPL';
 
-    let queryObject = paragraph?.fullfilledOutput;
+    const queryObject = paragraph?.fullfilledOutput;
 
     if (!queryObject || queryObject.error) {
-      queryObject = await (isSqlQuery
-        ? callOpenSearchCluster({
-            http: getClient(),
-            dataSourceId: dataSourceMDSId,
-            request: {
-              path: `/_plugins/${queryType}`,
-              method: 'POST',
-              body: JSON.stringify({
-                query,
-              }),
-            },
-          })
-        : executePPLQuery(
-            {
-              http: getClient(),
-              dataSourceId: dataSourceMDSId,
-              query,
-            },
-            true
-          ));
-
-      if (!queryObject || queryObject.error) {
-        return '';
-      }
+      return `
+## Step description
+This step will execute ${queryTypeName} query: '${query}' when run.
+      `;
     }
 
     const data = getQueryOutputData(queryObject);
@@ -72,6 +51,8 @@ This step executes ${queryTypeName} query and get response data for further rese
 
 ## Step result:
 User has executed the following ${queryTypeName} query: '${query}' which returned the following results:
+
+**Important**: Due to input context length limits, only 100 records are shown below. If the actual query result contains more than 100 records, a random sampling of 100 records has been applied. The actual result set may be significantly larger than what is displayed here.
 
 \`\`\`tsv
 ${jsonArrayToTsv(data)}

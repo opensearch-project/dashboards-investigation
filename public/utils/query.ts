@@ -12,7 +12,7 @@ import { callOpenSearchCluster } from '../../public/plugin_helpers/plugin_proxy_
  *
  * TODO: adjust this size if required
  */
-const QUERY_RESULT_SAMPLE_SIZE = 100;
+export const QUERY_RESULT_SAMPLE_SIZE = 100;
 
 const SAMPLING_THRESHOLD = 0.01;
 

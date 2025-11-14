@@ -37,9 +37,11 @@ export const Paragraph = (props: ParagraphProps) => {
   const { ParagraphComponent } =
     paragraphService.getParagraphRegistry(getInputType(paragraphValue)) || {};
 
-  const isClassicNotebook = context.state.getContext().notebookType === NotebookType.CLASSIC;
+  const notebookType = context.state.getContext().notebookType;
+
+  const isClassicNotebook = notebookType === NotebookType.CLASSIC;
   const isFindingParagraph =
-    paragraph.value.input.inputType === 'MARKDOWN' && paragraph.value.aiGenerated !== undefined;
+    notebookType !== NotebookType.CLASSIC && paragraph.value.input.inputType === 'MARKDOWN';
 
   return (
     <div className="notebookParagraphWrapper">
