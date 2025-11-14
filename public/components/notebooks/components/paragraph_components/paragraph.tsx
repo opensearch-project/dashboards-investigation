@@ -37,7 +37,7 @@ export const Paragraph = (props: ParagraphProps) => {
   const { ParagraphComponent } =
     paragraphService.getParagraphRegistry(getInputType(paragraphValue)) || {};
 
-  const isClassicNotebook = context.state.getContext().notebookType === NotebookType.CLASSIC;
+  const isClassicNotebook = context.state.getContext()?.notebookType === NotebookType.CLASSIC;
   const isFindingParagraph =
     paragraph.value.input.inputType === 'MARKDOWN' && paragraph.value.aiGenerated !== undefined;
 
