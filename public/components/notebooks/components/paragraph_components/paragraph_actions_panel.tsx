@@ -38,47 +38,50 @@ export const ParagraphActionPanel = (props: {
       id: 0,
       title: 'Paragraph actions',
       items: [
-        {
-          name: 'Move up',
-          disabled: idx === 0 || notebookType === NotebookType.AGENTIC,
-          onClick: () => {
-            setIsPopoverOpen(false);
-            movePara(idx, idx - 1);
-          },
-        },
-        {
-          name: 'Move to top',
-          disabled: idx === 0 || notebookType === NotebookType.AGENTIC,
-          onClick: () => {
-            setIsPopoverOpen(false);
-            movePara(idx, 0);
-          },
-        },
-        {
-          name: 'Move down',
-          disabled: idx === paragraphStates.length - 1 || notebookType === NotebookType.AGENTIC,
-          onClick: () => {
-            setIsPopoverOpen(false);
-            movePara(idx, idx + 1);
-          },
-        },
-        {
-          name: 'Move to bottom',
-          disabled: idx === paragraphStates.length - 1 || notebookType === NotebookType.AGENTIC,
-          onClick: () => {
-            setIsPopoverOpen(false);
-            movePara(idx, paragraphStates.length - 1);
-          },
-        },
-        {
-          name: 'Duplicate',
-          disabled: notebookType === NotebookType.AGENTIC,
-          onClick: () => {
-            setIsPopoverOpen(false);
-            cloneParagraph(idx, idx + 1);
-          },
-          'data-test-subj': 'duplicateParagraphBtn',
-        },
+        ...(notebookType === NotebookType.AGENTIC
+          ? []
+          : [
+              {
+                name: 'Move up',
+                disabled: idx === 0,
+                onClick: () => {
+                  setIsPopoverOpen(false);
+                  movePara(idx, idx - 1);
+                },
+              },
+              {
+                name: 'Move to top',
+                disabled: idx === 0,
+                onClick: () => {
+                  setIsPopoverOpen(false);
+                  movePara(idx, 0);
+                },
+              },
+              {
+                name: 'Move down',
+                disabled: idx === paragraphStates.length - 1,
+                onClick: () => {
+                  setIsPopoverOpen(false);
+                  movePara(idx, idx + 1);
+                },
+              },
+              {
+                name: 'Move to bottom',
+                disabled: idx === paragraphStates.length - 1,
+                onClick: () => {
+                  setIsPopoverOpen(false);
+                  movePara(idx, paragraphStates.length - 1);
+                },
+              },
+              {
+                name: 'Duplicate',
+                onClick: () => {
+                  setIsPopoverOpen(false);
+                  cloneParagraph(idx, idx + 1);
+                },
+                'data-test-subj': 'duplicateParagraphBtn',
+              },
+            ]),
         {
           name: 'Delete',
           onClick: () => {

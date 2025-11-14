@@ -30,7 +30,7 @@ import { ParagraphState } from '../../../../common/state/paragraph_state';
 import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
 import { NotebookComponentProps, NotebookType } from '../../../../common/types/notebooks';
 import { getCustomModal, getDeleteModal } from './helpers/modal_containers';
-import { Paragraphs } from './paragraph_components/paragraphs';
+import { Paragraph } from './paragraph_components/paragraph';
 import {
   NotebookContextProvider,
   NotebookReactContext,
@@ -236,7 +236,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                   key={`para_div_${paragraphState.value.id}`}
                 >
                   {index > 0 && <EuiSpacer size="s" />}
-                  <Paragraphs
+                  <Paragraph
                     index={index}
                     deletePara={showDeleteParaModal}
                     scrollToPara={scrollToPara}

@@ -37,7 +37,7 @@ import {
   NotebookType,
 } from '../../../../common/types/notebooks';
 import { getDeleteModal } from './helpers/modal_containers';
-import { Paragraphs } from './paragraph_components/paragraphs';
+import { Paragraph } from './paragraph_components/paragraph';
 import {
   NotebookContextProvider,
   NotebookReactContext,
@@ -94,16 +94,16 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     continueInvestigation,
   } = useInvestigation();
 
-  const [findingText, setFindingText] = useState('%md Please add your finding here');
+  const [findingText, setFindingText] = useState('');
   const [isModalVisibleAddFinding, setIsModalVisibleAddFinding] = useState(false);
 
   const closeModal = () => {
     setIsModalVisibleAddFinding(false);
-    setFindingText('%md Please add your finding here');
+    setFindingText('');
   };
 
   const handleAddFinding = async () => {
-    await addNewFinding({ text: findingText });
+    await addNewFinding({ text: `%md\n${findingText}` });
     closeModal();
   };
 
@@ -294,7 +294,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                 >
                   {index > 0 && <EuiSpacer size="s" />}
                   <EuiPanel>
-                    <Paragraphs
+                    <Paragraph
                       index={index}
                       deletePara={showDeleteParaModal}
                       scrollToPara={scrollToPara}
@@ -405,7 +405,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               <EuiModalBody>
                 <EuiTextArea
                   fullWidth
-                  placeholder="Enter your finding here"
+                  placeholder="Please add your finding here"
                   value={findingText}
                   onChange={(e) => setFindingText(e.target.value)}
                   rows={5}

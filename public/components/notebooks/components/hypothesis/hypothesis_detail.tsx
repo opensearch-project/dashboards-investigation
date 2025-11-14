@@ -31,7 +31,7 @@ import { HypothesisBadge, LikelihoodBadge } from './hypothesis_badge';
 import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
 
 import { NotebookReactContext } from '../../context_provider/context_provider';
-import { Paragraphs } from '../paragraph_components/paragraphs';
+import { Paragraph } from '../paragraph_components/paragraph';
 import './hypothesis_detail.scss';
 
 export const HypothesisDetail: React.FC = () => {
@@ -186,7 +186,7 @@ export const HypothesisDetail: React.FC = () => {
                       .filter((index) => index !== -1)
                       .map((index) => (
                         <EuiPanel key={paragraphsStates[index].value.id}>
-                          <Paragraphs index={index} deletePara={() => {}} scrollToPara={() => {}} />
+                          <Paragraph index={index} deletePara={() => {}} scrollToPara={() => {}} />
                         </EuiPanel>
                       ))}
                   </>

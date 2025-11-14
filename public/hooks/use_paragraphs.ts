@@ -108,6 +108,11 @@ export const useParagraphs = (context: { state: NotebookState }) => {
           inputType,
         },
         dataSourceMDSId: para.dataSourceMDSId,
+      }).then((newParagraph) => {
+        if (newParagraph) {
+          payload.runParagraph({ index });
+        }
+        return newParagraph;
       });
     }
   };
