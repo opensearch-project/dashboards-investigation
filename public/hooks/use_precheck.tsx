@@ -244,7 +244,10 @@ export const usePrecheck = () => {
             ...pplParagraph.value.input,
             parameters: {
               ...(pplParagraph.value.input.parameters as any),
-              timeRange,
+              timeRange: {
+                from: moment.utc(timeRange.from).local().format(dateFormat),
+                to: moment.utc(timeRange.to).local().format(dateFormat),
+              },
             },
           });
           await runParagraph({ id: pplParagraph?.value.id });

@@ -23,6 +23,14 @@ jest.mock('../../../context_provider/context_provider', () => {
   const mockReact = require('react');
   return {
     NotebookReactContext: mockReact.createContext({
+      state: {
+        value: {
+          context: {
+            getValue$: () => ({ subscribe: jest.fn(() => ({ unsubscribe: jest.fn() })) }),
+            value: { notebookType: 'CLASSIC' },
+          },
+        },
+      },
       paragraphHooks: { runParagraph: mockRunParagraph },
     }),
   };
@@ -32,7 +40,19 @@ jest.mock('../../../context_provider/context_provider', () => {
 const MockContextProvider = ({ children }: { children: React.ReactNode }) => {
   const { NotebookReactContext } = require('../../../context_provider/context_provider');
   return (
-    <NotebookReactContext.Provider value={{ paragraphHooks: { runParagraph: mockRunParagraph } }}>
+    <NotebookReactContext.Provider
+      value={{
+        state: {
+          value: {
+            context: {
+              getValue$: () => ({ subscribe: jest.fn(() => ({ unsubscribe: jest.fn() })) }),
+              value: { notebookType: 'CLASSIC' },
+            },
+          },
+        },
+        paragraphHooks: { runParagraph: mockRunParagraph },
+      }}
+    >
       {children}
     </NotebookReactContext.Provider>
   );

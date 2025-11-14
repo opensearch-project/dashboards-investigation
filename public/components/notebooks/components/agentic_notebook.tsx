@@ -217,20 +217,24 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   });
 
   const handleReinvestigate = useCallback(
-    async (
-      value: string,
+    async ({
+      question,
+      updatedTimeRange,
+      isReinvestigate,
+    }: {
+      question: string;
       updatedTimeRange: {
         selectionFrom: number;
         selectionTo: number;
-      },
-      isReinvestigate: boolean
-    ) => {
+      };
+      isReinvestigate: boolean;
+    }) => {
       const formattedTimeRange = formatTimeRangeString(updatedTimeRange);
 
       setIsReinvestigateModalVisible(false);
 
-      if (initialGoal !== value) {
-        await updateNotebookContext({ initialGoal: value });
+      if (initialGoal !== question) {
+        await updateNotebookContext({ initialGoal: question });
       }
 
       if (
@@ -239,18 +243,25 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       ) {
         setIsInvestigating(true);
 
-        await updateNotebookContext({ timeRange: { ...timeRange!, ...updatedTimeRange } });
+        await updateNotebookContext({
+          // FIXME: when support baseline time
+          timeRange: {
+            baselineFrom: timeRange?.baselineFrom ?? 0,
+            baselineTo: timeRange?.baselineTo ?? 0,
+            ...updatedTimeRange,
+          },
+        });
         await rerunPrecheck(paragraphsStates, formattedTimeRange);
       }
 
       if (isReinvestigate) {
         rerunInvestigation({
-          investigationQuestion: value,
+          investigationQuestion: question,
           timeRange: formattedTimeRange,
         });
       } else {
         doInvestigate({
-          investigationQuestion: value,
+          investigationQuestion: question,
           timeRange: formattedTimeRange,
         });
       }

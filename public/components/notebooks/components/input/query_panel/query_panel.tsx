@@ -176,10 +176,10 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
     if (!isInitialInputHandled.current) return;
 
     const externalTimeRange = (paragraphInput?.parameters as any)?.timeRange;
-    if (externalTimeRange && JSON.stringify(externalTimeRange) !== JSON.stringify(timeRange)) {
+    if (externalTimeRange) {
       handleInputChange({ timeRange: externalTimeRange });
     }
-  }, [paragraphInput?.parameters, timeRange, handleInputChange]);
+  }, [paragraphInput?.parameters, handleInputChange]);
 
   const handleTimeChange = useCallback(
     (props) => {
@@ -297,7 +297,8 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         gutterSize="none"
         dir="row"
         alignItems="center"
-        style={{ marginInlineEnd: 0 }}
+        // Prevent setting button overlap with action menu button
+        style={{ marginInlineEnd: isInputMountedInParagraph && !isAgenticNotebook ? 32 : 0 }}
       >
         {prependWidget}
         <LanguageToggle promptModeIsAvailable={promptModeIsAvailable} />

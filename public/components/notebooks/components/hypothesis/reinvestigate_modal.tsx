@@ -30,14 +30,14 @@ interface ReinvestigateModalProps {
       }
     | undefined;
   dateFormat: string;
-  confirm: (
-    question: string,
+  confirm: (params: {
+    question: string;
     updatedTimeRange: {
       selectionFrom: number;
       selectionTo: number;
-    },
-    isReinvestigate: boolean
-  ) => void;
+    };
+    isReinvestigate: boolean;
+  }) => void;
   closeModal: () => void;
 }
 
@@ -105,7 +105,11 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
         <EuiModalFooter>
           <EuiButton
             onClick={() =>
-              confirm(value, selectedTimeRange || { selectionFrom: 0, selectionTo: 0 }, checked)
+              confirm({
+                question: value,
+                updatedTimeRange: selectedTimeRange || { selectionFrom: 0, selectionTo: 0 },
+                isReinvestigate: checked,
+              })
             }
             fill
             disabled={!value.trim()}

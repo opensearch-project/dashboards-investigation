@@ -583,11 +583,11 @@ ${finding.evidence}
 
 You are a thoughtful and analytical planner agent in a plan-execute-reflect framework. Your job is to design a clear, step-by-step plan for a given objective.
 ${
-  timeRange
+  timeRange && timeRange.from && timeRange.to
     ? `
 ## Time Scope
 
-Conduct the investigation within the specified timerange: ${timeRange.from} to ${timeRange.to}. Focus your analysis and data queries on this user-selected time period.`
+Conduct the investigation within the specified timerange: ${timeRange.from} UTC to ${timeRange.to} UTC. Focus your analysis and data queries on this user-selected time period.`
     : ''
 }
 
@@ -651,11 +651,11 @@ ${commonResponseFormat}
 You are a thoughtful and analytical planner agent specializing in **RE-INVESTIGATION**. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
 
 ${
-  timeRange
+  timeRange && timeRange.from && timeRange.to
     ? `
 ## Time Scope
 
-Conduct the investigation within the specified timerange: ${timeRange.from} to ${timeRange.to}. **Note: This time range may have been manually updated by the user from the original investigation.** Focus your analysis and data queries on this user-selected time period.`
+Conduct the investigation within the specified timerange: ${timeRange.from} UTC to ${timeRange.to} UTC. **Note: This time range may have been manually updated by the user from the original investigation.** Focus your analysis and data queries on this user-selected time period.`
     : ''
 }
 
