@@ -228,6 +228,45 @@ export const usePrecheck = () => {
       },
       [createParagraph, runParagraph]
     ),
+    rerun: useCallback(
+      async (
+        paragraphStates: Array<ParagraphState<unknown>>,
+        timeRange: {
+          from: string;
+          to: string;
+        }
+      ) => {
+        const pplParagraph = paragraphStates.find((paragraphState) =>
+          paragraphState.value.input.inputText.startsWith('%ppl')
+        );
+        if (pplParagraph) {
+          pplParagraph?.updateInput({
+            ...pplParagraph.value.input,
+            parameters: {
+              ...(pplParagraph.value.input.parameters as any),
+              timeRange,
+            },
+          });
+          await runParagraph({ id: pplParagraph?.value.id });
+        }
+
+        const logPatternParagraph = paragraphStates.find(
+          (paragraphState) => paragraphState.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
+        );
+        if (logPatternParagraph) {
+          await runParagraph({ id: logPatternParagraph.value.id });
+        }
+
+        const dataDistributionParagraph = paragraphStates.find(
+          (paragraphState) =>
+            paragraphState.value.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
+        );
+        if (dataDistributionParagraph) {
+          await runParagraph({ id: dataDistributionParagraph.value.id });
+        }
+      },
+      [runParagraph]
+    ),
     setInitialGoal,
   };
 };

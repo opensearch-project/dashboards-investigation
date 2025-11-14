@@ -98,7 +98,7 @@ export const formatTimeRangeString = (
     };
   }
   return {
-    from: moment(unixTimeRange.selectionFrom).format(dateFormat),
-    to: moment(unixTimeRange.selectionTo).format(dateFormat),
+    from: moment.utc(unixTimeRange.selectionFrom).format(dateFormat) + ' UTC',
+    to: moment.utc(unixTimeRange.selectionTo).format(dateFormat) + ' UTC',
   };
 };

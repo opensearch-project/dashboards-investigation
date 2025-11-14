@@ -55,10 +55,6 @@ import { SummaryCard } from './summary_card';
 import { useChatContextProvider } from '../../../hooks/use_chat_context';
 import { HypothesisDetail, HypothesesPanel, ReinvestigateModal } from './hypothesis';
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
-import {
-  DATA_DISTRIBUTION_PARAGRAPH_TYPE,
-  LOG_PATTERN_PARAGRAPH_TYPE,
-} from '../../../../common/constants/notebooks';
 import { formatTimeRangeString } from '../../../../public/utils/time';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
@@ -73,11 +69,9 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isReinvestigateModalVisible, setIsReinvestigateModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
-  const { createParagraph, runParagraph, deleteParagraph } = useContext(
-    NotebookReactContext
-  ).paragraphHooks;
+  const { createParagraph, deleteParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const { loadNotebook: loadNotebookHook, updateNotebookContext } = useNotebook();
-  const { start, setInitialGoal } = usePrecheck();
+  const { start, rerun: rerunPrecheck, setInitialGoal } = usePrecheck();
 
   // provide context to chatbot
   useChatContextProvider();
@@ -246,35 +240,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         setIsInvestigating(true);
 
         await updateNotebookContext({ timeRange: { ...timeRange!, ...updatedTimeRange } });
-
-        const pplParagraph = paragraphsStates.find((paragraphState) =>
-          paragraphState.value.input.inputText.startsWith('%ppl')
-        );
-        if (pplParagraph) {
-          pplParagraph?.updateInput({
-            ...pplParagraph.value.input,
-            parameters: {
-              ...(pplParagraph.value.input.parameters as any),
-              timeRange: formattedTimeRange,
-            },
-          });
-          await runParagraph({ id: pplParagraph?.value.id });
-        }
-
-        const logPatternParagraph = paragraphsStates.find(
-          (paragraphState) => paragraphState.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
-        );
-        if (logPatternParagraph) {
-          await runParagraph({ id: logPatternParagraph.value.id });
-        }
-
-        const dataDistributionParagraph = paragraphsStates.find(
-          (paragraphState) =>
-            paragraphState.value.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
-        );
-        if (dataDistributionParagraph) {
-          await runParagraph({ id: dataDistributionParagraph.value.id });
-        }
+        await rerunPrecheck(paragraphsStates, formattedTimeRange);
       }
 
       if (isReinvestigate) {
@@ -292,13 +258,13 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     [
       initialGoal,
       paragraphsStates,
-      runParagraph,
       setIsInvestigating,
       updateNotebookContext,
       timeRange,
       rerunInvestigation,
       doInvestigate,
       setIsReinvestigateModalVisible,
+      rerunPrecheck,
     ]
   );
 

@@ -32,7 +32,6 @@ export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObjec
 
     const queryObject = paragraph?.fullfilledOutput;
 
-    // Only execute query if no valid output exists
     if (!queryObject || queryObject.error) {
       return `
 ## Step description
@@ -52,6 +51,8 @@ This step executes ${queryTypeName} query and get response data for further rese
 
 ## Step result:
 User has executed the following ${queryTypeName} query: '${query}' which returned the following results:
+
+**Important**: Due to input context length limits, only 100 records are shown below. If the actual query result contains more than 100 records, a random sampling of 100 records has been applied. The actual result set may be significantly larger than what is displayed here.
 
 \`\`\`tsv
 ${jsonArrayToTsv(data)}
