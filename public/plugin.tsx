@@ -265,13 +265,13 @@ export class InvestigationPlugin
     return {};
   }
 
-  private updateContext = (id: string, chatConetxt: NoteBookAssistantContext | undefined) => {
+  private updateContext = (id: string, chatContext: NoteBookAssistantContext | undefined) => {
     const contextStore = this.startDeps?.contextProvider?.getAssistantContextStore();
     if (!contextStore) return;
     contextStore.removeContextById(id);
-    if (chatConetxt) {
-      chatConetxt.id = id;
-      contextStore.addContext(chatConetxt);
+    if (chatContext) {
+      chatContext.id = id;
+      contextStore.addContext(chatContext);
     }
   };
 

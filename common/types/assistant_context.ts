@@ -9,9 +9,8 @@ import { NotebookContext } from './notebooks';
 export interface NoteBookAssistantContext extends AssistantContextOptions {
   value: {
     notebookId: string;
-    hypothesisId?: string;
-    topLevelContext?: NotebookContext;
-    paragraphContext?: string;
-    hypothesisContext?: string;
+    metadata?: NotebookContext;
+    hypotheses?: string;
+    findings?: string;
   };
 }

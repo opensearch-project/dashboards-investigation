@@ -32,12 +32,11 @@ import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks'
 
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { Paragraphs } from '../paragraph_components/paragraphs';
-import { generateParagraphPrompt } from '../../../../services/helpers/per_agent';
 import './hypothesis_detail.scss';
 
 export const HypothesisDetail: React.FC = () => {
   const {
-    services: { http, updateContext, paragraphService },
+    services: { http },
   } = useOpenSearchDashboards<NoteBookServices>();
   const history = useHistory();
   const location = useLocation();
@@ -67,55 +66,6 @@ export const HypothesisDetail: React.FC = () => {
     };
     fetchHypothesis();
   }, [http, hypothesisId, notebookId]);
-
-  useEffect(() => {
-    const contextId = `Investigation-${notebookId}-${hypothesisId}`;
-    if (!currentHypothesis) {
-      updateContext(contextId, undefined);
-      return;
-    }
-    (async () => {
-      const includedParagraphs = paragraphsStates.filter((item) =>
-        currentHypothesis.supportingFindingParagraphIds.includes(item.value.id)
-      );
-      updateContext(contextId, {
-        label: `Hypothesis: ${currentHypothesis.title}`,
-        description: 'Current hypothesis you are working on',
-        categories: ['chat', 'investigation', 'hypothesis'],
-        value: {
-          notebookId,
-          hypothesisId: currentHypothesis.id,
-          hypothesisContext: `
-            ## Hypothesis
-            ${currentHypothesis.title}
-            ## Hypothesis Description
-            ${currentHypothesis.description}
-            ## Hypothesis Findings
-            ${(
-              await generateParagraphPrompt({
-                paragraphService,
-                paragraphs: includedParagraphs.map((paragraph) => paragraph.value),
-              })
-            )
-              .filter((item) => item)
-              .map((item) => item)
-              .join('\n')}
-          `,
-        },
-      });
-    })();
-
-    return () => {
-      updateContext(contextId, undefined);
-    };
-  }, [
-    currentHypothesis,
-    updateContext,
-    paragraphService,
-    paragraphsStates,
-    notebookId,
-    hypothesisId,
-  ]);
 
   const toggleButtons = [
     {
@@ -182,7 +132,7 @@ export const HypothesisDetail: React.FC = () => {
                 </span>
               </EuiTitle>
             </EuiPageHeaderSection>
-            {/* 
+            {/*
               The following code block is a hypothesis confirmation function, temporarily commented out
               TODO: Wait for the requirements to be clarified.
             */}
