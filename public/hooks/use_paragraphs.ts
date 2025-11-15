@@ -106,6 +106,7 @@ export const useParagraphs = (context: { state: NotebookState }) => {
         input: {
           inputText: para.input.inputText,
           inputType,
+          parameters: para.input.parameters,
         },
         dataSourceMDSId: para.dataSourceMDSId,
       }).then((newParagraph) => {
