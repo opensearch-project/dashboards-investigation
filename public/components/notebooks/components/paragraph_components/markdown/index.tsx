@@ -64,7 +64,7 @@ export const MarkdownParagraph = ({
   };
 
   useEffectOnce(() => {
-    if (!isAIGeneratedFinding && !isUserAddedFinding) {
+    if (notebookType !== NotebookType.AGENTIC) {
       paragraphState.updateUIState({
         actions: [
           {
