@@ -108,7 +108,7 @@ export const MarkdownParagraph = ({
     );
   }
 
-  if ((isAIGeneratedFinding || isUserAddedFinding) && output) {
+  if (isAIGeneratedFinding && output) {
     const description = /Description\:\s*(.*)\n/.exec(output.result)?.[1];
     const evidence = /Evidence\:\s*(.*)/.exec(output.result)?.[1];
     const importance = /Importance\:\s*(.*)/.exec(output.result)?.[1];
@@ -118,27 +118,22 @@ export const MarkdownParagraph = ({
         <EuiFlexGroup justifyContent="spaceBetween" style={{ marginInlineEnd: 20 }}>
           <EuiFlexItem grow={false}>
             <EuiTitle size="xs">
-              {isUserAddedFinding ? (
-                <span>User Finding</span>
-              ) : (
-                <span>
-                  Finding: {description} | Importance: {importance}
-                  <EuiBadge style={{ marginInlineStart: 8, transform: 'translateY(-1.5px)' }}>
-                    AI Generated
-                  </EuiBadge>
-                </span>
-              )}
+              <span>
+                Finding: {description} | Importance: {importance}
+                <EuiBadge style={{ marginInlineStart: 8, transform: 'translateY(-1.5px)' }}>
+                  AI Generated
+                </EuiBadge>
+              </span>
             </EuiTitle>
           </EuiFlexItem>
           <EuiFlexItem grow={false}>
             <EuiText size="xs" color="subdued" style={{ whiteSpace: 'nowrap' }}>
-              {isUserAddedFinding ? 'Created' : 'Updated'}{' '}
-              {moment(paragraphValue.dateModified).fromNow()}
+              Updated&nbsp;{moment(paragraphValue.dateModified).fromNow()}
             </EuiText>
           </EuiFlexItem>
         </EuiFlexGroup>
         <EuiSpacer />
-        <div>{isUserAddedFinding ? output.result : evidence}</div>
+        <div>{evidence}</div>
       </>
     );
   }
