@@ -270,6 +270,10 @@ ${finding.evidence}
       context.state.updateValue({ investigationError: undefined });
 
       try {
+        if (!context.state.value.isNotebookOwner) {
+          throw new Error('Only owner of this notebook can start the investigation');
+        }
+
         if (context.state.value.context.value.initialGoal !== question) {
           await updateNotebookContext({ initialGoal: question });
         }

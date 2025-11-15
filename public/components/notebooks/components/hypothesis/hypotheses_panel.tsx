@@ -50,10 +50,14 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const notebookContext = useContext(NotebookReactContext);
-  const { hypotheses, context, runningMemory, historyMemory, investigationError } = useObservable(
-    notebookContext.state.getValue$(),
-    notebookContext.state.value
-  );
+  const {
+    hypotheses,
+    context,
+    runningMemory,
+    historyMemory,
+    investigationError,
+    isNotebookOwner,
+  } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const history = useHistory();
   const [showSteps, setShowSteps] = useState(false);
   const [traceMessageId, setTraceMessageId] = useState<string>();
@@ -62,7 +66,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   }, [isInvestigating, runningMemory, historyMemory]);
 
   const PERAgentServices = useMemo(() => {
-    if (!activeMemory?.executorMemoryId || !activeMemory?.memoryContainerId) {
+    if (!activeMemory?.executorMemoryId || !activeMemory?.memoryContainerId || !isNotebookOwner) {
       return null;
     }
 
@@ -86,7 +90,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
       message: messageService,
       executorMemory: executorMemoryService,
     };
-  }, [http, activeMemory, isInvestigating]);
+  }, [http, activeMemory, isInvestigating, isNotebookOwner]);
 
   useEffect(() => {
     if (isInvestigating) {
@@ -162,7 +166,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     return null;
   }
 
-  const investigationSteps = PERAgentServices && (
+  const investigationSteps = PERAgentServices && isNotebookOwner && (
     <EuiAccordion
       id="investigation-steps"
       buttonContent="Investigation Steps"

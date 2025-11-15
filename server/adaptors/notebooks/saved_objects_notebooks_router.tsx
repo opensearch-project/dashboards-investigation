@@ -10,7 +10,6 @@ import { getSampleNotebooks } from '../../../server/common/helpers/notebooks/sam
 
 export function fetchNotebooks(
   savedObjectNotebooks: Array<SavedObject<{ savedNotebook: NotebookBackendType }>>,
-  userName?: string,
   agenticFeaturesEnabled?: boolean
 ) {
   const notebooks: Array<{
@@ -21,10 +20,6 @@ export function fetchNotebooks(
   }> = [];
   savedObjectNotebooks.forEach((savedObject) => {
     if (savedObject.type === 'observability-notebook' && savedObject.attributes.savedNotebook) {
-      const notebookOwner = savedObject.attributes.savedNotebook.owner;
-      const shouldFilterByOwner = userName && notebookOwner && notebookOwner !== userName;
-      if (shouldFilterByOwner) return;
-
       if (
         !agenticFeaturesEnabled &&
         savedObject.attributes.savedNotebook.context?.notebookType === NotebookType.AGENTIC
