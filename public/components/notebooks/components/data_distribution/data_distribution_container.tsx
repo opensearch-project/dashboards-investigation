@@ -7,6 +7,7 @@ import React, { useContext, useMemo, useState, useEffect } from 'react';
 import {
   EuiButtonIcon,
   EuiCallOut,
+  EuiEmptyPrompt,
   EuiFlexGrid,
   EuiFlexGroup,
   EuiFlexItem,
@@ -194,50 +195,56 @@ export const DataDistributionContainer = ({
 
   const specsVis = !fetchDataLoading && !distributionLoading && (
     <EuiPanel hasShadow={false} borderRadius="l">
-      <EuiFlexGroup wrap responsive={false}>
-        {paginatedSpecs.map((spec, specIndex) => {
-          const uniqueKey = `${activePage * ITEMS_PER_PAGE + specIndex}`;
-          const uniqueId = `dis-id-${activePage * ITEMS_PER_PAGE + specIndex}`;
-          const chartIndex = activePage * ITEMS_PER_PAGE + specIndex;
-          const isSelected = !!fieldComparison[chartIndex].excludeFromContext;
+      {paginatedSpecs.length ? (
+        <>
+          <EuiFlexGroup wrap responsive={false}>
+            {paginatedSpecs.map((spec, specIndex) => {
+              const uniqueKey = `${activePage * ITEMS_PER_PAGE + specIndex}`;
+              const uniqueId = `dis-id-${activePage * ITEMS_PER_PAGE + specIndex}`;
+              const chartIndex = activePage * ITEMS_PER_PAGE + specIndex;
+              const isSelected = !!fieldComparison[chartIndex].excludeFromContext;
 
-          return (
-            <EuiFlexItem
-              grow={true}
-              key={uniqueKey}
-              style={{
-                opacity: isSelected ? 0.5 : 1,
-                minHeight: 300,
-                minWidth: 300,
-                maxWidth: `${100 / ITEMS_PER_PAGE}%`,
-              }}
-            >
-              {factory && spec && (
-                <EmbeddableRenderer
-                  factory={factory}
-                  input={{
-                    id: uniqueId,
-                    savedObjectId: '',
-                    visInput: { spec },
+              return (
+                <EuiFlexItem
+                  grow={true}
+                  key={uniqueKey}
+                  style={{
+                    opacity: isSelected ? 0.5 : 1,
+                    minHeight: 300,
+                    minWidth: 300,
+                    maxWidth: `${100 / ITEMS_PER_PAGE}%`,
                   }}
+                >
+                  {factory && spec && (
+                    <EmbeddableRenderer
+                      factory={factory}
+                      input={{
+                        id: uniqueId,
+                        savedObjectId: '',
+                        visInput: { spec },
+                      }}
+                    />
+                  )}
+                  {excludeButton(chartIndex, isSelected)}
+                </EuiFlexItem>
+              );
+            })}
+          </EuiFlexGroup>
+          <EuiSpacer size="m" />
+          {totalPages > 1 && (
+            <EuiFlexGroup justifyContent="center">
+              <EuiFlexItem grow={false}>
+                <EuiPagination
+                  pageCount={totalPages}
+                  activePage={activePage}
+                  onPageClick={setActivePage}
                 />
-              )}
-              {excludeButton(chartIndex, isSelected)}
-            </EuiFlexItem>
-          );
-        })}
-      </EuiFlexGroup>
-      <EuiSpacer size="m" />
-      {totalPages > 1 && (
-        <EuiFlexGroup justifyContent="center">
-          <EuiFlexItem grow={false}>
-            <EuiPagination
-              pageCount={totalPages}
-              activePage={activePage}
-              onPageClick={setActivePage}
-            />
-          </EuiFlexItem>
-        </EuiFlexGroup>
+              </EuiFlexItem>
+            </EuiFlexGroup>
+          )}
+        </>
+      ) : (
+        <EuiEmptyPrompt iconType="database" title={<h2>No data distribution available</h2>} />
       )}
     </EuiPanel>
   );
