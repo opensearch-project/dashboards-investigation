@@ -158,6 +158,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           hypotheses: res.hypotheses,
           runningMemory: res.runningMemory,
           historyMemory: res.historyMemory,
+          isNotebookOwner: res.isNotebookOwner,
         });
         await setInitialGoal({
           context: notebookContext.state.value.context.value,
