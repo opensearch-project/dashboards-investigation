@@ -61,6 +61,7 @@ export interface NotebookContext {
   indexInsight?: IndexInsightContent;
   notebookType?: NotebookType;
   initialGoal?: string;
+  log?: Record<string, any>;
 }
 
 export interface ParagraphBackendType<TOutputResult, TInputParameters = unknown> {

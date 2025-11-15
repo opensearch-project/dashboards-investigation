@@ -40,21 +40,24 @@ export const InvestigateInput = ({ log }: { log?: Record<string, any> }) => {
         name,
         context: {
           dataSourceId: query.dataset?.dataSource?.id ?? '',
-          timeRange: {
-            selectionFrom,
-            selectionTo,
-          },
           source: 'Discover',
-          timeField: query.dataset?.timeFieldName ?? '',
           index: query.dataset?.title ?? '',
-          currentTime,
-          variables: {
-            pplQuery: query.query.trim() || data.query.queryString.getInitialQuery().query,
-            pplFilters: data.query.filterManager.getFilters(),
-          },
           notebookType: 'Agentic',
           initialGoal: value,
-          ...(log ? { log } : {}),
+          timeField: query.dataset?.timeFieldName ?? '',
+          ...(log
+            ? { log }
+            : {
+                currentTime,
+                timeRange: {
+                  selectionFrom,
+                  selectionTo,
+                },
+                variables: {
+                  pplQuery: query.query.trim() || data.query.queryString.getInitialQuery().query,
+                  pplFilters: data.query.filterManager.getFilters(),
+                },
+              }),
         },
       }),
     });

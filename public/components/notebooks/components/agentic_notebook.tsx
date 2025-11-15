@@ -4,11 +4,9 @@
  */
 
 import {
-  EuiCard,
   EuiEmptyPrompt,
   EuiFlexGroup,
   EuiFlexItem,
-  EuiIcon,
   EuiLoadingContent,
   EuiOverlayMask,
   EuiPage,
@@ -16,7 +14,6 @@ import {
   EuiPanel,
   EuiSmallButton,
   EuiSpacer,
-  EuiText,
   EuiModal,
   EuiModalBody,
   EuiModalFooter,
@@ -69,7 +66,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isReinvestigateModalVisible, setIsReinvestigateModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
-  const { createParagraph, deleteParagraph } = useContext(NotebookReactContext).paragraphHooks;
+  const { deleteParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const { loadNotebook: loadNotebookHook, updateNotebookContext } = useNotebook();
   const { start, rerun: rerunPrecheck, setInitialGoal } = usePrecheck();
 
@@ -332,99 +329,29 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           {isLoading ? (
             <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
           ) : null}
-          {isLoading ? null : paragraphsStates.length > 0 ? (
-            paragraphsStates.map((paragraphState, index: number) => {
-              return (
-                <div
-                  ref={(ref) => (paraDivRefs.current[index] = ref)}
-                  key={`para_div_${paragraphState.value.id}`}
-                  // Hidden the agent generated findings during reinvestigation
-                  hidden={paragraphState.value.aiGenerated && isInvestigating}
-                >
-                  {index > 0 && <EuiSpacer size="s" />}
-                  <EuiPanel>
-                    <Paragraph
-                      index={index}
-                      deletePara={showDeleteParaModal}
-                      scrollToPara={scrollToPara}
-                    />
-                  </EuiPanel>
-                </div>
-              );
-            })
-          ) : (
-            // show default paragraph if no paragraphs in this notebook
-            <div
-              style={{
-                marginTop: '10px',
-              }}
-            >
-              <EuiPanel>
-                <EuiSpacer size="xxl" />
-                <EuiText textAlign="center">
-                  <h2>No paragraphs</h2>
-                  <EuiText size="s">
-                    Add a paragraph to compose your document or story. Notebooks now support two
-                    types of input:
-                  </EuiText>
-                </EuiText>
-                <EuiSpacer size="xl" />
-                <EuiFlexGroup justifyContent="spaceEvenly">
-                  <EuiFlexItem grow={2} />
-                  <EuiFlexItem grow={3}>
-                    <EuiCard
-                      icon={<EuiIcon size="xxl" type="editorCodeBlock" />}
-                      title="Query"
-                      description="Write contents directly using markdown, SQL or PPL."
-                      footer={
-                        <EuiSmallButton
-                          data-test-subj="emptyNotebookAddCodeBlockBtn"
-                          onClick={() =>
-                            createParagraph({
-                              index: 0,
-                              input: {
-                                inputText: '%ppl ',
-                                inputType: 'CODE',
-                              },
-                            })
-                          }
-                          style={{ marginBottom: 17 }}
-                        >
-                          Add query
-                        </EuiSmallButton>
-                      }
-                    />
-                  </EuiFlexItem>
-                  <EuiFlexItem grow={3}>
-                    <EuiCard
-                      icon={<EuiIcon size="xxl" type="visArea" />}
-                      title="Visualization"
-                      description="Import OpenSearch Dashboards or Observability visualizations to the notes."
-                      footer={
-                        <EuiSmallButton
-                          onClick={() =>
-                            createParagraph({
-                              index: 0,
-                              input: {
-                                inputText: '',
-                                inputType: 'VISUALIZATION',
-                              },
-                            })
-                          }
-                          style={{ marginBottom: 17 }}
-                        >
-                          Add visualization
-                        </EuiSmallButton>
-                      }
-                    />
-                  </EuiFlexItem>
-                  <EuiFlexItem grow={2} />
-                </EuiFlexGroup>
-
-                <EuiSpacer size="xxl" />
-              </EuiPanel>
-            </div>
-          )}
+          {isLoading
+            ? null
+            : paragraphsStates.length > 0
+            ? paragraphsStates.map((paragraphState, index: number) => {
+                return (
+                  <div
+                    ref={(ref) => (paraDivRefs.current[index] = ref)}
+                    key={`para_div_${paragraphState.value.id}`}
+                    // Hidden the agent generated findings during reinvestigation
+                    hidden={paragraphState.value.aiGenerated && isInvestigating}
+                  >
+                    {index > 0 && <EuiSpacer size="s" />}
+                    <EuiPanel>
+                      <Paragraph
+                        index={index}
+                        deletePara={showDeleteParaModal}
+                        scrollToPara={scrollToPara}
+                      />
+                    </EuiPanel>
+                  </div>
+                );
+              })
+            : null}
 
           {!isLoading && !isInvestigating && (
             <>
