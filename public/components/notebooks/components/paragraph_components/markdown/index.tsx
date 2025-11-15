@@ -80,6 +80,34 @@ export const MarkdownParagraph = ({
 
   const isRunning = paragraphValue.uiState?.isRunning;
 
+  if (isUserAddedFinding && output) {
+    return (
+      <>
+        <EuiFlexGroup justifyContent="spaceBetween" style={{ marginInlineEnd: 20 }}>
+          <EuiFlexItem grow={false}>
+            <EuiTitle size="xs">
+              <span>User Finding</span>
+            </EuiTitle>
+          </EuiFlexItem>
+          <EuiFlexItem grow={false}>
+            <EuiText size="xs" color="subdued" style={{ whiteSpace: 'nowrap' }}>
+              Created&nbsp;
+              {moment(paragraphValue.dateModified).fromNow()}
+            </EuiText>
+          </EuiFlexItem>
+        </EuiFlexGroup>
+        <EuiSpacer />
+        <EuiText
+          className="wrapAll markdown-output-text"
+          data-test-subj="markdownOutputText"
+          size="s"
+        >
+          <MarkdownRender source={output.result} />
+        </EuiText>
+      </>
+    );
+  }
+
   if ((isAIGeneratedFinding || isUserAddedFinding) && output) {
     const description = /Description\:\s*(.*)\n/.exec(output.result)?.[1];
     const evidence = /Evidence\:\s*(.*)/.exec(output.result)?.[1];
