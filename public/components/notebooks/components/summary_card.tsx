@@ -27,7 +27,7 @@ import { NoteBookSource } from '../../../../common/types/notebooks';
 import { Filter } from '../../../../../../src/plugins/data/common';
 
 interface ContextData {
-  variables: {
+  variables?: {
     pplQuery?: string;
     pplFilters?: Filter;
   };
@@ -36,7 +36,6 @@ interface ContextData {
   timeRange?: any;
   source: NoteBookSource;
   timeField: string;
-  currentTime: number | undefined;
   initialGoal?: string;
 }
 interface SummaryCardProps {
@@ -195,7 +194,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
       <EuiSplitPanel.Inner grow={false} style={{ paddingLeft: '50px', paddingRight: '50px' }}>
         <EuiFlexGroup alignItems="center" justifyContent="spaceBetween">
           <EuiFlexItem grow={false}>
-            {variables.pplQuery && (
+            {variables?.pplQuery && (
               <EuiText size="xs">
                 <strong>
                   {i18n.translate('notebook.summary.card.query', {

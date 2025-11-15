@@ -65,7 +65,7 @@ const getTimezoneFullfilledDateString = (time: number): string =>
   moment.utc(time).format('YYYY-MM-DD HH:mm:ss');
 
 export const getNotebookTopLevelContextPrompt = (notebookInfo: NotebookContext) => {
-  const { index, timeField, timeRange, filters, variables, summary } = notebookInfo || {};
+  const { index, timeField, timeRange, filters, variables, summary, log } = notebookInfo || {};
   if (!index && !timeField && !timeRange && !filters && !variables && !summary) {
     return '';
   }
@@ -123,5 +123,15 @@ ${
     : ''
 }
 ${variables?.pplQuery ? `**PPL Query user executed**: ${variables.pplQuery}` : ''}
+${
+  log
+    ? `
+Selected log:
+\`\`\`JSON
+${JSON.stringify(log)}
+\`\`\`
+`.trim()
+    : ''
+}
   `;
 };
