@@ -125,8 +125,7 @@ ${
 ${variables?.pplQuery ? `**PPL Query user executed**: ${variables.pplQuery}` : ''}
 ${
   log
-    ? `
-Selected log:
+    ? `**Selected log**:
 \`\`\`JSON
 ${JSON.stringify(log)}
 \`\`\`
