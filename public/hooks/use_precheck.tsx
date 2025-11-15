@@ -3,10 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useRef, useContext } from 'react';
-import { combineLatest, Subject } from 'rxjs';
+import { useCallback, useContext } from 'react';
 import moment from 'moment';
-import { takeUntil } from 'rxjs/operators';
 
 import {
   HypothesisItem,
@@ -15,7 +13,7 @@ import {
   NoteBookSource,
   ParagraphBackendType,
 } from '../../common/types/notebooks';
-import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
+import { ParagraphState } from '../../common/state/paragraph_state';
 import {
   DATA_DISTRIBUTION_PARAGRAPH_TYPE,
   dateFormat,
@@ -31,7 +29,6 @@ export const usePrecheck = () => {
   const { paragraphHooks } = useContext(NotebookReactContext);
   const { updateNotebookContext } = useNotebook();
   const { createParagraph, runParagraph } = paragraphHooks;
-  const deepResearchParaCreated = useRef(false);
 
   const setInitialGoal = useCallback(
     async (res: { context?: NotebookContext }) => {
@@ -57,6 +54,14 @@ export const usePrecheck = () => {
       }) => {
         let logPatternParaExists = false;
         let anomalyAnalysisParaExists = false;
+        const safeRun = async (parameters: Parameters<typeof runParagraph>[0]) => {
+          try {
+            await runParagraph(parameters);
+          } catch (e) {
+            // expose the error to browser
+            console.error(e);
+          }
+        };
 
         for (let index = 0; index < res.paragraphs.length; ++index) {
           // if the paragraph is a query, load the query output
@@ -184,7 +189,7 @@ export const usePrecheck = () => {
             dataSourceMDSId: res.context.dataSourceId || '',
           });
           if (createdPPLParagraph) {
-            await runParagraph({
+            await safeRun({
               id: createdPPLParagraph.value.id,
             });
 
@@ -192,37 +197,10 @@ export const usePrecheck = () => {
           }
         }
 
-        if (paragraphStates.length && res.context?.initialGoal) {
-          const subscribeDestroy$ = new Subject<void>();
-          const combinedObservable = combineLatest(
-            paragraphStates.map((paragraphState) => paragraphState.getValue$())
-          );
-          combinedObservable
-            .pipe(takeUntil(subscribeDestroy$))
-            .subscribe(async (paragraphValues) => {
-              const hasResult = (para?: ParagraphStateValue<unknown>) =>
-                !para?.uiState?.isRunning &&
-                ((para?.output?.[0]?.result && para.output[0].result !== '') ||
-                  para?.fullfilledOutput);
-
-              const shouldCreate =
-                !deepResearchParaCreated.current &&
-                paragraphValues.every((paragraphValue) => hasResult(paragraphValue));
-
-              if (shouldCreate) {
-                deepResearchParaCreated.current = true;
-                subscribeDestroy$.next();
-
-                res.doInvestigate({
-                  investigationQuestion: res.context?.initialGoal || '',
-                  timeRange: formatTimeRangeString(res.context?.timeRange),
-                });
-              }
-            });
-        } else if (res.context?.initialGoal && !res.hypotheses?.length) {
+        if (res.context?.initialGoal && !res.hypotheses?.length) {
           res.doInvestigate({
-            investigationQuestion: res.context.initialGoal,
-            timeRange: formatTimeRangeString(res.context.timeRange),
+            investigationQuestion: res.context?.initialGoal || '',
+            timeRange: formatTimeRangeString(res.context?.timeRange),
           });
         }
       },

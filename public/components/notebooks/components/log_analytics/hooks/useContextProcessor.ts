@@ -22,7 +22,7 @@ export const useContextProcessor = (
         setProcessedContext({});
         return;
       }
-      const parameters = JSON.parse(inputParameters);
+      const { parameters } = JSON.parse(inputParameters);
 
       const timeField = parameters?.timeField || context.timeField;
       const index = parameters?.index || context.index;
