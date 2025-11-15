@@ -156,6 +156,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           hypotheses: res.hypotheses,
           runningMemory: res.runningMemory,
           historyMemory: res.historyMemory,
+          isNotebookOwner: res.isNotebookOwner,
         });
 
         // Check if there's an ongoing investigation to continue BEFORE calling start

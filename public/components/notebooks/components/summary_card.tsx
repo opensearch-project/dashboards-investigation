@@ -46,6 +46,11 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
     });
   };
 
+  const { isNotebookOwner } = useObservable(
+    notebookContext.state.getValue$(),
+    notebookContext.state.value
+  );
+
   const {
     dataSourceId = '',
     index = '',
@@ -88,19 +93,21 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
         <EuiTitle>
           <h2 style={{ paddingLeft: '20px' }}>Issue summary and impact</h2>
         </EuiTitle>
-        <EuiButton
-          style={{ marginRight: '20px' }}
-          onClick={() => openReinvestigateModal()}
-          disabled={isInvestigating}
-        >
-          {isInvestigating ? (
-            <>
-              <EuiLoadingSpinner /> Investigating
-            </>
-          ) : (
-            'Reinvestigate'
-          )}
-        </EuiButton>
+        {isNotebookOwner ? (
+          <EuiButton
+            style={{ marginRight: '20px' }}
+            onClick={() => openReinvestigateModal()}
+            disabled={isInvestigating}
+          >
+            {isInvestigating ? (
+              <>
+                <EuiLoadingSpinner /> Investigating
+              </>
+            ) : (
+              'Reinvestigate'
+            )}
+          </EuiButton>
+        ) : null}
       </EuiFlexGroup>
       <EuiSpacer size="s" />
       <EuiSplitPanel.Inner

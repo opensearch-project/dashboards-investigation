@@ -88,51 +88,53 @@ export const useNotebook = () => {
       isLoading: true,
     });
 
-    const promise = http.get<NotebookBackendType>(route).then(async (res) => {
-      let contextPayload = {
-        ...res.context,
-      };
+    const promise = http
+      .get<NotebookBackendType & { isNotebookOwner: boolean }>(route)
+      .then(async (res) => {
+        let contextPayload = {
+          ...res.context,
+        };
 
-      // try to convert relative time in ppl query to absolute time as
-      if (res.context?.variables?.pplQuery) {
-        const pplWithAbsoluteTime = parsePPLQuery(
-          res.context.variables.pplQuery,
-          res.context.currentTime
-        ).pplWithAbsoluteTime;
-        if (pplWithAbsoluteTime !== res.context.variables.pplQuery) {
+        // try to convert relative time in ppl query to absolute time as
+        if (res.context?.variables?.pplQuery) {
+          const pplWithAbsoluteTime = parsePPLQuery(
+            res.context.variables.pplQuery,
+            res.context.currentTime
+          ).pplWithAbsoluteTime;
+          if (pplWithAbsoluteTime !== res.context.variables.pplQuery) {
+            contextPayload = {
+              ...contextPayload,
+              variables: {
+                ...contextPayload.variables,
+                pplQuery: pplWithAbsoluteTime,
+              },
+            };
+          }
+        }
+
+        if (
+          !res.context?.indexInsight &&
+          res.context?.index &&
+          res.context?.timeField &&
+          res.context?.timeRange
+        ) {
+          let indexInsight;
+          try {
+            indexInsight = await fetchIndexInsights(res.context.index, res.context?.dataSourceId);
+          } catch (error) {
+            console.error('Failed to load index insight:', error);
+          }
           contextPayload = {
             ...contextPayload,
-            variables: {
-              ...contextPayload.variables,
-              pplQuery: pplWithAbsoluteTime,
-            },
+            indexInsight,
           };
         }
-      }
-
-      if (
-        !res.context?.indexInsight &&
-        res.context?.index &&
-        res.context?.timeField &&
-        res.context?.timeRange
-      ) {
-        let indexInsight;
-        try {
-          indexInsight = await fetchIndexInsights(res.context.index, res.context?.dataSourceId);
-        } catch (error) {
-          console.error('Failed to load index insight:', error);
-        }
-        contextPayload = {
-          ...contextPayload,
-          indexInsight,
+        return {
+          ...res,
+          vizPrefix: res.vizPrefix || '',
+          context: contextPayload,
         };
-      }
-      return {
-        ...res,
-        vizPrefix: res.vizPrefix || '',
-        context: contextPayload,
-      };
-    });
+      });
 
     promise.finally(() => {
       context.state.updateValue({

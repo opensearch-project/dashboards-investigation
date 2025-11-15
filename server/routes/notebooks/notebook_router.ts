@@ -4,6 +4,7 @@
  */
 
 import { schema } from '@osd/config-schema';
+import { NotebookBackendType } from 'common/types/notebooks';
 import {
   IOpenSearchDashboardsResponse,
   IRouter,
@@ -51,13 +52,11 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
           type: NOTEBOOK_SAVED_OBJECT,
           perPage: 1000,
         });
-        const userName = getUserName(request);
         const capabilities = await getCapabilities().resolveCapabilities(request);
         const agenticFeaturesEnabled = capabilities.investigation.agenticFeaturesEnabled;
 
         const fetchedNotebooks = fetchNotebooks(
           notebooksData.saved_objects as any,
-          userName,
           agenticFeaturesEnabled
         );
         return response.ok({
@@ -266,8 +265,14 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
           NOTEBOOK_SAVED_OBJECT,
           request.params.noteId
         );
+        const savedNotebook = notebookinfo.attributes.savedNotebook as NotebookBackendType;
         return response.ok({
-          body: notebookinfo.attributes.savedNotebook,
+          body: {
+            ...savedNotebook,
+            isNotebookOwner: savedNotebook.owner
+              ? savedNotebook.owner === getUserName(request)
+              : true,
+          },
         });
       } catch (error) {
         return response.custom({
