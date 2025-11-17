@@ -32,10 +32,12 @@ interface ReinvestigateModalProps {
   dateFormat: string;
   confirm: (params: {
     question: string;
-    updatedTimeRange: {
-      selectionFrom: number;
-      selectionTo: number;
-    };
+    updatedTimeRange:
+      | {
+          selectionFrom: number;
+          selectionTo: number;
+        }
+      | undefined;
     isReinvestigate: boolean;
   }) => void;
   closeModal: () => void;
@@ -111,7 +113,7 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
             onClick={() =>
               confirm({
                 question: value,
-                updatedTimeRange: selectedTimeRange || { selectionFrom: 0, selectionTo: 0 },
+                updatedTimeRange: selectedTimeRange,
                 isReinvestigate: checked,
               })
             }
