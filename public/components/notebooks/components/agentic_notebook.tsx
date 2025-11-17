@@ -220,26 +220,28 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       isReinvestigate,
     }: {
       question: string;
-      updatedTimeRange: {
-        selectionFrom: number;
-        selectionTo: number;
-      };
+      updatedTimeRange:
+        | {
+            selectionFrom: number;
+            selectionTo: number;
+          }
+        | undefined;
       isReinvestigate: boolean;
     }) => {
       const formattedTimeRange = formatTimeRangeString(updatedTimeRange);
 
       setIsReinvestigateModalVisible(false);
+      setIsInvestigating(true);
 
       if (initialGoal !== question) {
         await updateNotebookContext({ initialGoal: question });
       }
 
       if (
-        timeRange?.selectionFrom !== updatedTimeRange.selectionFrom ||
-        timeRange?.selectionTo !== updatedTimeRange.selectionTo
+        updatedTimeRange &&
+        (timeRange?.selectionFrom !== updatedTimeRange.selectionFrom ||
+          timeRange?.selectionTo !== updatedTimeRange.selectionTo)
       ) {
-        setIsInvestigating(true);
-
         await updateNotebookContext({
           // FIXME: when support baseline time
           timeRange: {
