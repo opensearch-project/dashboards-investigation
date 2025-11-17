@@ -17,6 +17,7 @@ export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
   const {
     inputValue,
     isAgenticNotebook,
+    isDisabled,
     handleInputChange,
     handleSetCurrInputType,
   } = useInputContext();
@@ -25,7 +26,9 @@ export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
-  const onButtonClick = () => setIsPopoverOpen(!isPopoverOpen);
+  const onButtonClick = () => {
+    if (!isDisabled) setIsPopoverOpen(!isPopoverOpen);
+  };
   const closePopover = useCallback(() => setIsPopoverOpen(false), []);
 
   const onItemClick = useCallback(

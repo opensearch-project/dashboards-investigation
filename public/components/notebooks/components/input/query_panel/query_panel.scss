@@ -47,6 +47,21 @@
         .euiIcon--medium {
             height: 12px;
         }
+
+        &--disabled {
+            .euiDatePopoverButton {
+                background-color: unset;
+                color: $euiColorMediumShade;
+            }
+
+            .euiTextColor--subdued {
+                color: $euiColorMediumShade;
+            }
+
+            .euiDatePickerRange:hover {
+                box-shadow: unset;
+            }
+        }
     }
 
     &__indexSelectorWrapper {
@@ -86,6 +101,12 @@
         .euiIcon {
             width: $ouiSizeM;
             color: $ouiColorPrimary;
+        }
+
+        &--disabled {
+            .euiIcon {
+                color: $euiColorMediumShade;
+            }
         }
     }
 }
