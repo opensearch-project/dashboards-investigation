@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   EuiButtonEmpty,
@@ -40,7 +41,6 @@ import { DataSourceOption } from '../../../../../../../../src/plugins/data_sourc
 interface QueryPanelProps {
   prependWidget?: React.ReactNode;
   appendWidget?: React.ReactNode;
-  isDisabled?: boolean;
 }
 
 export const QUERY_PANEL_INITIAL_STATE = {
@@ -56,11 +56,7 @@ export const QUERY_PANEL_INITIAL_STATE = {
   noDatePicker: false,
 };
 
-export const QueryPanel: React.FC<QueryPanelProps> = ({
-  prependWidget,
-  appendWidget,
-  isDisabled,
-}) => {
+export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWidget }) => {
   const {
     services,
     services: {
@@ -77,6 +73,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
     paragraphInput,
     isAgenticNotebook,
     isInputMountedInParagraph,
+    isDisabled,
     handleInputChange,
     handleSubmit,
   } = useInputContext();
@@ -229,6 +226,9 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   ]);
 
   const handleRunQuery = useCallback(async () => {
+    if (isDisabled) {
+      return;
+    }
     const defaultQuery = selectedIndex?.title
       ? queryLanguage === 'PPL'
         ? `source = ${selectedIndex?.title}`
@@ -251,6 +251,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
     handleSubmit,
     handleGenerateQuery,
     handleInputChange,
+    isDisabled,
     value,
     isPromptEditorMode,
     noDatePicker,
@@ -265,8 +266,14 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
   const isQueryEmpty = (!Boolean(selectedIndex?.title) || isPromptEditorMode) && !value;
 
   const getQueryPanelDataSourceSelector = useCallback(() => {
-    if (isAgenticNotebook) {
-      return <EuiIcon type="database" style={{ margin: '0 -4px 0 8px' }} />;
+    if (isAgenticNotebook || isDisabled) {
+      return (
+        <EuiIcon
+          color={isDisabled ? 'subuded' : 'primary'}
+          type="database"
+          style={{ margin: '0 -4px 0 8px' }}
+        />
+      );
     }
 
     if (!DataSourceMenu) return null;
@@ -284,7 +291,14 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
         }}
       />
     );
-  }, [savedObjects, notifications, localDataSourceId, DataSourceMenu, isAgenticNotebook]);
+  }, [
+    isDisabled,
+    savedObjects,
+    notifications,
+    localDataSourceId,
+    DataSourceMenu,
+    isAgenticNotebook,
+  ]);
 
   if (!queryState) {
     return null;
@@ -302,7 +316,11 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
       >
         {prependWidget}
         <LanguageToggle promptModeIsAvailable={promptModeIsAvailable} />
-        <div className="notebookQueryPanelWidgets__dataSourceSelector">
+        <div
+          className={classNames('notebookQueryPanelWidgets__dataSourceSelector', {
+            ['notebookQueryPanelWidgets__dataSourceSelector--disabled']: isDisabled,
+          })}
+        >
           {getQueryPanelDataSourceSelector()}
         </div>
         <div className="notebookQueryPanelWidgets__indexSelectorWrapper">
@@ -313,7 +331,11 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
           queryState?.selectedIndex?.timeField !== undefined && ( // Hide picker for legacy paragraph
             <>
               <div className="notebookQueryPanelWidgets__verticalSeparator" />
-              <div className="notebookQueryPanelWidgets__datePicker">
+              <div
+                className={classNames('notebookQueryPanelWidgets__datePicker', {
+                  ['notebookQueryPanelWidgets__datePicker--disabled']: isDisabled,
+                })}
+              >
                 <EuiSuperDatePicker
                   start={timeRange?.from}
                   end={timeRange?.to}
@@ -321,6 +343,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
                   compressed
                   showUpdateButton={false}
                   dateFormat={uiSettings!.get('dateFormat')}
+                  isDisabled={isDisabled}
                 />
               </div>
             </>
@@ -344,6 +367,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({
                 button={
                   <EuiSmallButtonIcon
                     aria-label="Open input menu"
+                    isDisabled={isDisabled}
                     iconType="gear"
                     onClick={() => setIsQueryPanelMenuOpen(true)}
                   />

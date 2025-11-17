@@ -56,6 +56,9 @@ interface InputContextValue<T extends InputType = InputType> {
   // Notebook type, agentic or classic
   isAgenticNotebook: boolean;
 
+  // Current input component is disabled entirely by consumer
+  isDisabled: boolean;
+
   // Actions
   // Update the current state of input variant type
   handleSetCurrInputType: (type: T) => void;
@@ -87,6 +90,7 @@ interface InputProviderProps<TParameters = unknown> {
   input?: ParagraphInputType<TParameters>;
   dataSourceId?: string;
   aiFeatureEnabled?: boolean;
+  isDisabled: boolean;
 }
 
 export const InputProvider: React.FC<InputProviderProps> = ({
@@ -95,6 +99,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({
   input,
   dataSourceId,
   aiFeatureEnabled,
+  isDisabled,
 }) => {
   const [currInputType, setCurrInputType] = useState<InputType>(
     (input?.inputType as InputType) || (aiFeatureEnabled ? AI_RESPONSE_TYPE : 'PPL')
@@ -258,6 +263,7 @@ export const InputProvider: React.FC<InputProviderProps> = ({
     dataSourceId,
     paragraphInput: input,
     isAgenticNotebook,
+    isDisabled,
     handleSetCurrInputType,
     setIsParagraphSelectionOpen,
     handleInputChange,

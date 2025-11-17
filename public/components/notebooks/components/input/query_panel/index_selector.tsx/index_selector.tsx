@@ -37,7 +37,7 @@ interface IndexSelectorOption {
 }
 
 export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ dataSourceId }) => {
-  const { handleInputChange, inputValue } = useInputContext();
+  const { handleInputChange, inputValue, isDisabled } = useInputContext();
   const { noDatePicker, selectedIndex, queryLanguage, timeRange } =
     (inputValue as QueryState) || {};
   const {
@@ -286,6 +286,7 @@ export const IndexSelector: React.FC<{ dataSourceId: string | undefined }> = ({ 
           size="xs"
           textProps={{ className: 'notebookIndexSelector__textWrapper' }}
           onClick={togglePopover}
+          isDisabled={isDisabled}
         >
           <EuiText size="xs" className="notebookIndexSelector__text">
             {getButtonText()}

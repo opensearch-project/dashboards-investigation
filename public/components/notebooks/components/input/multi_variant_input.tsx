@@ -27,7 +27,7 @@ interface MultiVariantInputProps<TParameters = unknown> {
   aiFeatureEnabled?: boolean;
 }
 
-const MultiVariantInputContent: React.FC<{ actionDisabled?: boolean }> = ({ actionDisabled }) => {
+const MultiVariantInputContent: React.FC = () => {
   const {
     currInputType,
     isParagraphSelectionOpen,
@@ -55,15 +55,13 @@ const MultiVariantInputContent: React.FC<{ actionDisabled?: boolean }> = ({ acti
         );
       case 'PPL':
       case 'SQL':
-        return <QueryPanel prependWidget={getInputTypeSelector()} isDisabled={actionDisabled} />;
+        return <QueryPanel prependWidget={getInputTypeSelector()} />;
       case 'MARKDOWN':
         return <MarkDownInput />;
       case DEEP_RESEARCH_PARAGRAPH_TYPE:
         return <NotebookInput placeholder="Ask question to trigger deep research agent" />;
       case 'VISUALIZATION':
-        return (
-          <VisualizationInput prependWidget={getInputTypeSelector()} isDisabled={actionDisabled} />
-        );
+        return <VisualizationInput prependWidget={getInputTypeSelector()} />;
       default:
         return <></>;
     }
@@ -122,8 +120,9 @@ export const MultiVariantInput: React.FC<MultiVariantInputProps> = (props) => {
       input={props.input}
       dataSourceId={props.dataSourceId}
       aiFeatureEnabled={props.aiFeatureEnabled}
+      isDisabled={!!props.actionDisabled}
     >
-      <MultiVariantInputContent actionDisabled={props.actionDisabled} />
+      <MultiVariantInputContent />
     </InputProvider>
   );
 };

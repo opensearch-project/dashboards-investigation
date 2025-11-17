@@ -22,7 +22,7 @@ export const QueryPanelEditor: React.FC<{
   handleRunQuery: () => void;
 }> = ({ queryState, handleRunQuery, promptModeIsAvailable }) => {
   const { services } = useOpenSearchDashboards<NoteBookServices>();
-  const { editorRef, handleInputChange } = useInputContext();
+  const { editorRef, isDisabled, handleInputChange } = useInputContext();
 
   const { value, queryLanguage, isPromptEditorMode, selectedIndex } = queryState;
 
@@ -51,7 +51,7 @@ export const QueryPanelEditor: React.FC<{
       handleInputChange({ isPromptEditorMode: true });
     }, [handleInputChange]),
     handleChange: (val) => {
-      handleInputChange({ value: val });
+      if (!isDisabled) handleInputChange({ value: val });
     },
     isQueryEditorDirty: false,
     services,
