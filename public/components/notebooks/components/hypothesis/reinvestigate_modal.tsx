@@ -84,17 +84,21 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
           <EuiFormRow label="Edit inital goal">
             <EuiFieldText value={value} onChange={(e) => setValue(e.target.value)} required />
           </EuiFormRow>
-          <EuiSpacer size="s" />
-          <EuiFormRow label="Edit time range">
-            <EuiSuperDatePicker
-              compressed
-              start={startFormatted}
-              end={endFormatted}
-              showUpdateButton={false}
-              dateFormat={dateFormat}
-              onTimeChange={handleTimeChange}
-            />
-          </EuiFormRow>
+          {!!timeRange && (
+            <>
+              <EuiSpacer size="s" />
+              <EuiFormRow label="Edit time range">
+                <EuiSuperDatePicker
+                  compressed
+                  start={startFormatted}
+                  end={endFormatted}
+                  showUpdateButton={false}
+                  dateFormat={dateFormat}
+                  onTimeChange={handleTimeChange}
+                />
+              </EuiFormRow>
+            </>
+          )}
           <EuiSpacer />
           <EuiSwitch
             label="Bring the exsiting hypothesis and findings"
