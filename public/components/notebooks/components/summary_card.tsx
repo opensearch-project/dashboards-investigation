@@ -15,6 +15,7 @@ import {
   EuiSpacer,
   EuiButton,
   EuiLoadingSpinner,
+  EuiCodeBlock,
 } from '@elastic/eui';
 import React, { useContext } from 'react';
 import moment from 'moment';
@@ -23,21 +24,7 @@ import { NoteBookServices } from 'public/types';
 import { i18n } from '@osd/i18n';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
-import { NoteBookSource } from '../../../../common/types/notebooks';
-import { Filter } from '../../../../../../src/plugins/data/common';
 
-interface ContextData {
-  variables?: {
-    pplQuery?: string;
-    pplFilters?: Filter;
-  };
-  dataSourceId: string;
-  index: string;
-  timeRange?: any;
-  source: NoteBookSource;
-  timeField: string;
-  initialGoal?: string;
-}
 interface SummaryCardProps {
   isInvestigating: boolean;
   openReinvestigateModal: () => void;
@@ -66,16 +53,17 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
     timeField,
     initialGoal,
     variables,
+    log,
   } = useObservable(
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
-  ) as ContextData;
+  );
 
   const dateFormat = uiSettings.get('dateFormat');
 
   return (
     <EuiSplitPanel.Outer borderRadius="l">
-      <EuiSpacer size="s" />
+      <EuiSpacer size="m" />
       <EuiFlexGroup gutterSize="none" justifyContent="spaceBetween">
         <EuiTitle>
           <h2 style={{ paddingLeft: '20px' }}>Issue summary and impact</h2>
@@ -241,6 +229,18 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
             )}
           </EuiFlexItem>
         </EuiFlexGroup>
+
+        {log && (
+          <>
+            <EuiText size="xs">
+              <strong>Selected log</strong>
+            </EuiText>
+            <EuiSpacer size="xs" />
+            <EuiCodeBlock language="json" isCopyable={true} overflowHeight={160}>
+              {JSON.stringify(log, null, 2)}
+            </EuiCodeBlock>
+          </>
+        )}
       </EuiSplitPanel.Inner>
     </EuiSplitPanel.Outer>
   );
