@@ -78,7 +78,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
               <EuiLoadingSpinner /> Investigating
             </>
           ) : (
-            'ReInvestigate'
+            'Reinvestigate'
           )}
         </EuiButton>
       </EuiFlexGroup>

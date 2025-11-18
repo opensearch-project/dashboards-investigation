@@ -52,7 +52,7 @@ export const useAgentSelectSubmit = ({
 
       return result;
     } catch (error) {
-      console.error('Error occured during executing action selection agent:', error);
+      console.error('Error occurred during executing action selection agent:', error);
       throw error;
     }
   };
@@ -100,7 +100,7 @@ export const useAgentSelectSubmit = ({
       onSubmit({ inputText: paragraphInput, inputType });
       onSuccess();
     } catch (error) {
-      console.error('Error occured during submission', error);
+      console.error('Error occurred during submission', error);
     } finally {
       setIsLoading(false);
     }
