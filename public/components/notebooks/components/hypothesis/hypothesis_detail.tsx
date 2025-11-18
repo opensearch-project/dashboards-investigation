@@ -17,7 +17,6 @@ import {
   EuiTitle,
   EuiSpacer,
   EuiPanel,
-  EuiButtonGroup,
   EuiLoadingContent,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
@@ -27,7 +26,7 @@ import { NoteBookServices } from 'public/types';
 import { HypothesisItem as HypothesisItemProps } from 'common/types/notebooks';
 import moment from 'moment';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
-import { HypothesisBadge, LikelihoodBadge } from './hypothesis_badge';
+import { LikelihoodBadge } from './hypothesis_badge';
 import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
 
 import { NotebookReactContext } from '../../context_provider/context_provider';
@@ -49,7 +48,7 @@ export const HypothesisDetail: React.FC = () => {
   );
 
   const [currentHypothesis, setCurrentHypothesis] = useState<HypothesisItemProps | undefined>();
-  const [toggleIdSelected, setToggleIdSelected] = useState('evidence');
+  const [toggleIdSelected] = useState('evidence');
 
   const pathParts = location.pathname.split('/');
   const hypothesisIndex = pathParts.indexOf('hypothesis');
@@ -67,12 +66,13 @@ export const HypothesisDetail: React.FC = () => {
     fetchHypothesis();
   }, [http, hypothesisId, notebookId]);
 
-  const toggleButtons = [
-    {
-      id: 'evidence',
-      label: 'Evidence and reasoning',
-    },
-  ];
+  // TODO: once we have more tab than just "Evidence and reasoning"
+  // const toggleButtons = [
+  //   {
+  //     id: 'evidence',
+  //     label: 'Evidence and reasoning',
+  //   },
+  // ];
 
   const BackButton = () => (
     <EuiSmallButton
@@ -112,7 +112,8 @@ export const HypothesisDetail: React.FC = () => {
               <EuiTitle size="m">
                 <span>
                   <strong>Hypothesis: {currentHypothesis.title}</strong>
-                  <span style={{ letterSpacing: 'normal', marginInlineStart: 12 }}>
+                  {/* TODO: display the following information once requirements are clarified */}
+                  {/* <span style={{ letterSpacing: 'normal', marginInlineStart: 12 }}>
                     <HypothesisBadge label="Active" color="hollow" />
                   </span>
                   <span style={{ letterSpacing: 'normal', marginInlineStart: 12 }}>
@@ -128,7 +129,7 @@ export const HypothesisDetail: React.FC = () => {
                     }}
                   >
                     Duration: 15 minutes
-                  </EuiText>
+                  </EuiText> */}
                 </span>
               </EuiTitle>
             </EuiPageHeaderSection>
@@ -166,14 +167,15 @@ export const HypothesisDetail: React.FC = () => {
               <EuiSpacer size="s" />
               <EuiText>{currentHypothesis.description}</EuiText>
               <EuiSpacer size="m" />
-              <EuiButtonGroup
+              {/* TODO: once we have more tab than just "Evidence and reasoning" */}
+              {/* <EuiButtonGroup
                 className="hypothesisDetail__findingsButtonGroup"
                 legend="This is a basic group"
                 options={toggleButtons}
                 idSelected={toggleIdSelected}
                 onChange={(id: any) => setToggleIdSelected(id)}
               />
-              <EuiSpacer size="m" />
+              <EuiSpacer size="m" /> */}
 
               <EuiFlexGroup direction="column" gutterSize="none" style={{ gap: 16 }}>
                 {toggleIdSelected === 'evidence' && (
