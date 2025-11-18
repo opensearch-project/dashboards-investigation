@@ -19,8 +19,8 @@ import { NotebookType } from '../../../../../common/types/notebooks';
 
 export const ParagraphActionPanel = (props: {
   idx: number;
-  scrollToPara: (idx: number) => void;
-  deletePara: (idx: number) => void;
+  scrollToPara?: (idx: number) => void;
+  deletePara?: (idx: number) => void;
 }) => {
   const { idx } = props;
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
@@ -31,72 +31,88 @@ export const ParagraphActionPanel = (props: {
     ?.uiState?.actions;
   const { moveParagraph: moveParaHook, cloneParagraph } = paragraphHooks;
   const movePara = (index: number, targetIndex: number) => {
-    return moveParaHook(index, targetIndex).then((_res) => props.scrollToPara(targetIndex));
+    return moveParaHook(index, targetIndex).then((_res) => props.scrollToPara?.(targetIndex));
   };
-  const panels: EuiContextMenuPanelDescriptor[] = [
-    {
-      id: 0,
-      title: 'Paragraph actions',
-      items: [
-        ...(notebookType === NotebookType.AGENTIC
-          ? []
-          : [
-              {
-                name: 'Move up',
-                disabled: idx === 0,
-                onClick: () => {
-                  setIsPopoverOpen(false);
-                  movePara(idx, idx - 1);
-                },
-              },
-              {
-                name: 'Move to top',
-                disabled: idx === 0,
-                onClick: () => {
-                  setIsPopoverOpen(false);
-                  movePara(idx, 0);
-                },
-              },
-              {
-                name: 'Move down',
-                disabled: idx === paragraphStates.length - 1,
-                onClick: () => {
-                  setIsPopoverOpen(false);
-                  movePara(idx, idx + 1);
-                },
-              },
-              {
-                name: 'Move to bottom',
-                disabled: idx === paragraphStates.length - 1,
-                onClick: () => {
-                  setIsPopoverOpen(false);
-                  movePara(idx, paragraphStates.length - 1);
-                },
-              },
-              {
-                name: 'Duplicate',
-                onClick: () => {
-                  setIsPopoverOpen(false);
-                  cloneParagraph(idx, idx + 1);
-                },
-                'data-test-subj': 'duplicateParagraphBtn',
-              },
-            ]),
+
+  const moveActions =
+    props.scrollToPara && notebookType !== NotebookType.AGENTIC
+      ? [
+          {
+            name: 'Move up',
+            disabled: idx === 0,
+            onClick: () => {
+              setIsPopoverOpen(false);
+              movePara(idx, idx - 1);
+            },
+          },
+          {
+            name: 'Move to top',
+            disabled: idx === 0,
+            onClick: () => {
+              setIsPopoverOpen(false);
+              movePara(idx, 0);
+            },
+          },
+          {
+            name: 'Move down',
+            disabled: idx === paragraphStates.length - 1,
+            onClick: () => {
+              setIsPopoverOpen(false);
+              movePara(idx, idx + 1);
+            },
+          },
+          {
+            name: 'Move to bottom',
+            disabled: idx === paragraphStates.length - 1,
+            onClick: () => {
+              setIsPopoverOpen(false);
+              movePara(idx, paragraphStates.length - 1);
+            },
+          },
+          {
+            name: 'Duplicate',
+            onClick: () => {
+              setIsPopoverOpen(false);
+              cloneParagraph(idx, idx + 1);
+            },
+            'data-test-subj': 'duplicateParagraphBtn',
+          },
+        ]
+      : [];
+
+  const deleteAction = props.deletePara
+    ? [
         {
           name: 'Delete',
           onClick: () => {
             setIsPopoverOpen(false);
-            props.deletePara(idx);
+            props.deletePara?.(idx);
           },
         },
-        ...(paragraphActions ?? []).map(({ name, action }) => ({
-          name,
-          onClick: () => {
-            setIsPopoverOpen(false);
-            action();
-          },
-        })),
-      ],
+      ]
+    : [];
+
+  const allItems = [
+    ...moveActions,
+    ...deleteAction,
+    ...(paragraphActions ?? []).map(({ name, action }) => ({
+      name,
+      onClick: () => {
+        setIsPopoverOpen(false);
+        action();
+      },
+    })),
+  ];
+
+  if (allItems.length === 0) {
+    return null;
+  }
+
+  const panels: EuiContextMenuPanelDescriptor[] = [
+    {
+      id: 0,
+      title: 'Paragraph actions',
+      items: allItems,
     },
   ];
 

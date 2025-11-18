@@ -17,8 +17,8 @@ import { NotebookType } from '../../../../../common/types/notebooks';
 
 export interface ParagraphProps {
   index: number;
-  deletePara: (index: number) => void;
-  scrollToPara: (idx: number) => void;
+  deletePara?: (index: number) => void;
+  scrollToPara?: (idx: number) => void;
 }
 
 export const Paragraph = (props: ParagraphProps) => {
