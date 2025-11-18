@@ -79,11 +79,11 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
       <EuiModal onClose={closeModal}>
         <EuiModalHeader>
           <EuiModalHeaderTitle>
-            <h1>Reinvetigate the issue</h1>
+            <h1>Reinvestigate the issue</h1>
           </EuiModalHeaderTitle>
         </EuiModalHeader>
         <EuiModalBody>
-          <EuiFormRow label="Edit inital goal">
+          <EuiFormRow label="Edit initial goal">
             <EuiFieldText value={value} onChange={(e) => setValue(e.target.value)} required />
           </EuiFormRow>
           {!!timeRange && (
@@ -103,7 +103,7 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
           )}
           <EuiSpacer />
           <EuiSwitch
-            label="Bring the exsiting hypothesis and findings"
+            label="Bring the existing hypotheses and findings"
             checked={checked}
             onChange={(e) => setChecked(e.target.checked)}
           />
