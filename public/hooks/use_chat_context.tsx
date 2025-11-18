@@ -4,6 +4,7 @@
  */
 
 import { useContext, useEffect, useMemo } from 'react';
+import { of } from 'rxjs';
 import { useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
@@ -13,10 +14,17 @@ import { generateParagraphPrompt } from '../services/helpers/per_agent';
 export const useChatContextProvider = () => {
   const context = useContext(NotebookReactContext);
   const {
-    services: { updateContext, paragraphService },
+    services: { updateContext, paragraphService, chat },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { context: topLevelContext, title, id, paragraphs, hypotheses } = context.state.value;
   const topLevelContextValue = useObservable(topLevelContext.getValue$(), topLevelContext.value);
+  const chatThreadId$ = useMemo(() => {
+    if (!chat?.chatService?.getThreadId$) {
+      return of('');
+    }
+    return chat.chatService.getThreadId$();
+  }, [chat?.chatService]);
+  const chatThreadId = useObservable(chatThreadId$);
 
   const hypothesesContext = useMemo(() => {
     if (!hypotheses) return '';
@@ -74,5 +82,7 @@ export const useChatContextProvider = () => {
     paragraphService,
     paragraphs,
     hypothesesContext,
+    // Rebuilt chat context after thread changes, make sure context not been cleared
+    chatThreadId,
   ]);
 };
