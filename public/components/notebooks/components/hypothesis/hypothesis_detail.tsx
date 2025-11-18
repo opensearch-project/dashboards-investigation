@@ -56,12 +56,19 @@ export const HypothesisDetail: React.FC = () => {
 
   useEffect(() => {
     const fetchHypothesis = async () => {
-      // TODO: we should have a get by id?
-      const response = await http.get(
-        `${NOTEBOOKS_API_PREFIX}/savedNotebook/${notebookId}/hypotheses`
-      );
-      const hypothesis = response.find((res: any) => res.id === hypothesisId);
-      setCurrentHypothesis(hypothesis);
+      try {
+        // TODO: we should have a get by id?
+        const response = await http.get<HypothesisItemProps[]>(
+          `${NOTEBOOKS_API_PREFIX}/savedNotebook/${notebookId}/hypotheses`
+        );
+        const hypothesis = response.find((res) => res.id === hypothesisId);
+        if (!hypothesis) {
+          console.error(`Hypothesis ${hypothesisId} not found`);
+        }
+        setCurrentHypothesis(hypothesis);
+      } catch (error) {
+        console.error('Failed to fetch hypothesis:', error);
+      }
     };
     fetchHypothesis();
   }, [http, hypothesisId, notebookId]);
@@ -188,7 +195,7 @@ export const HypothesisDetail: React.FC = () => {
                       .filter((index) => index !== -1)
                       .map((index) => (
                         <EuiPanel key={paragraphsStates[index].value.id}>
-                          <Paragraph index={index} deletePara={() => {}} scrollToPara={() => {}} />
+                          <Paragraph index={index} />
                         </EuiPanel>
                       ))}
                   </>
