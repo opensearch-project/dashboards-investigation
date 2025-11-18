@@ -41,10 +41,10 @@ interface InputContextValue<T extends InputType = InputType> {
   // If the input submit is triggered and is loading
   isLoading: boolean;
 
-  // If the input is located in an exising paragraph but not in input panel
+  // If the input is located in an existing paragraph but not in input panel
   isInputMountedInParagraph: boolean;
 
-  // All the availble paragraph options that are used to determine input variant
+  // All the available paragraph options that are used to determine input variant
   paragraphOptions: InputTypeOption[];
 
   // Data source ID from notebook context

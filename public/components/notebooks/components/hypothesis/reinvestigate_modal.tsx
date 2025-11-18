@@ -52,7 +52,7 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
 }) => {
   const [value, setValue] = useState(initialGoal);
   const [checked, setChecked] = useState(false);
-  const [selectedTimeRange, setSelectedTimeRnage] = useState(timeRange);
+  const [selectedTimeRange, setSelectedTimeRange] = useState(timeRange);
 
   const { startFormatted, endFormatted } = useMemo(
     () => ({
@@ -68,7 +68,7 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
     const fromMoment = dateMath.parse(e.start);
     const toMoment = dateMath.parse(e.end, { roundUp: true });
 
-    setSelectedTimeRnage({
+    setSelectedTimeRange({
       selectionFrom: fromMoment?.valueOf() || 0,
       selectionTo: toMoment?.valueOf() || 0,
     });
@@ -79,11 +79,11 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
       <EuiModal onClose={closeModal}>
         <EuiModalHeader>
           <EuiModalHeaderTitle>
-            <h1>Reinvetigate the issue</h1>
+            <h1>Reinvestigate the issue</h1>
           </EuiModalHeaderTitle>
         </EuiModalHeader>
         <EuiModalBody>
-          <EuiFormRow label="Edit inital goal">
+          <EuiFormRow label="Edit initial goal">
             <EuiFieldText value={value} onChange={(e) => setValue(e.target.value)} required />
           </EuiFormRow>
           {!!timeRange && (
@@ -103,7 +103,7 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
           )}
           <EuiSpacer />
           <EuiSwitch
-            label="Bring the exsiting hypothesis and findings"
+            label="Bring the existing hypothesis and findings"
             checked={checked}
             onChange={(e) => setChecked(e.target.checked)}
           />
