@@ -103,7 +103,7 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
           )}
           <EuiSpacer />
           <EuiSwitch
-            label="Bring the existing hypothesis and findings"
+            label="Bring the existing hypotheses and findings"
             checked={checked}
             onChange={(e) => setChecked(e.target.checked)}
           />
