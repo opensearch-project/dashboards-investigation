@@ -186,9 +186,6 @@ export const executeMLCommonsAgent = ({
   signal,
   dataSourceId,
   agentId,
-  initialGoal,
-  prevContent = false,
-  timeRange,
   async,
   parameters,
 }: {
@@ -196,23 +193,17 @@ export const executeMLCommonsAgent = ({
   signal?: AbortSignal;
   dataSourceId?: string;
   agentId: string;
-  parameters: Record<string, string>;
-  initialGoal?: string;
-  prevContent?: boolean;
-  timeRange?: { from: string; to: string };
+  parameters: Record<string, any>;
   async?: boolean;
 }) => {
   return http.post({
     path: `${NOTEBOOKS_API_PREFIX}/agents/${agentId}/_execute`,
     query: {
       async,
-      prevContent,
     },
     body: JSON.stringify({
       parameters,
       dataSourceId,
-      initialGoal,
-      timeRange,
     }),
     signal,
   });

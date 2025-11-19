@@ -307,14 +307,14 @@ ${finding.evidence}
           http,
           agentId,
           async: true,
-          initialGoal,
-          prevContent,
-          timeRange,
           dataSourceId,
           parameters: {
             question,
             context: contextPrompt,
             executor_agent_memory_id: executorMemoryId,
+            initialGoal,
+            prevContent,
+            timeRange,
           },
         });
 

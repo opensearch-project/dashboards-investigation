@@ -130,25 +130,20 @@ export function registerAgentExecutionRoute(router: IRouter) {
           agentId: schema.string(),
         }),
         body: schema.object({
-          parameters: schema.recordOf(schema.string(), schema.string()),
+          parameters: schema.recordOf(schema.string(), schema.any()),
           dataSourceId: schema.maybe(schema.string()),
-          initialGoal: schema.maybe(schema.string()),
-          timeRange: schema.object({
-            from: schema.maybe(schema.string()),
-            to: schema.maybe(schema.string()),
-          }),
         }),
         query: schema.object({
           async: schema.maybe(schema.boolean()),
-          prevContent: schema.maybe(schema.boolean()),
         }),
       },
     },
     async (context, request, response): Promise<IOpenSearchDashboardsResponse> => {
       try {
-        const { parameters, dataSourceId, timeRange, initialGoal } = request.body;
+        const { parameters, dataSourceId } = request.body;
+        const { initialGoal, timeRange, prevContent, question } = parameters;
         const { agentId } = request.params;
-        const { async, prevContent } = request.query;
+        const { async } = request.query;
         let systemPrompt;
 
         if (prevContent && !!initialGoal) {
@@ -171,7 +166,7 @@ Conduct the investigation within the specified timerange: ${timeRange.from} UTC 
 
 The hypotheses were generated from this original question.
 
-**NEW INVESTIGATION QUESTION:** "${parameters.question}"
+**NEW INVESTIGATION QUESTION:** "${question}"
 
 You are now investigating this new question. Update the hypotheses based on this new question and current evidence.
 
@@ -316,19 +311,19 @@ Remember: Respond only in JSON format following the required schema.`;
           ? `/_plugins/_ml/agents/${agentId}/_execute?${queryString}`
           : `/_plugins/_ml/agents/${agentId}/_execute`;
 
-        const newParameters = {
-          ...parameters,
-          system_prompt: systemPrompt,
-          planner_prompt_template: plannerPromptTemplate,
-          planner_with_history_template: plannerWithHistoryTemplate,
-          reflect_prompt_template: reflectPromptTemplate,
-        };
-
         const result = await transport.request({
           path,
           method: 'POST',
           body: {
-            parameters: newParameters,
+            parameters: {
+              context: parameters.context,
+              executor_agent_memory_id: parameters.executor_agent_memory_id,
+              question,
+              system_prompt: systemPrompt,
+              planner_prompt_template: plannerPromptTemplate,
+              planner_with_history_template: plannerWithHistoryTemplate,
+              reflect_prompt_template: reflectPromptTemplate,
+            },
           },
         });
 
