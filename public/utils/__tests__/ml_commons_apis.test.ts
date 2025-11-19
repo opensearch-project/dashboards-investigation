@@ -371,10 +371,7 @@ describe('ML Commons APIs', () => {
         dataSourceId: 'test-datasource',
         agentId: 'agent-123',
         parameters: { question: 'What is OpenSearch?', context: 'search engine' },
-        initialGoal: 'Test goal',
-        timeRange: { from: '2024-01-01', to: '2024-01-31' },
         async: true,
-        prevContent: true,
       };
 
       const result = await executeMLCommonsAgent(params);
@@ -383,13 +380,10 @@ describe('ML Commons APIs', () => {
         path: '/api/investigation/agents/agent-123/_execute',
         query: {
           async: true,
-          prevContent: true,
         },
         body: JSON.stringify({
           parameters: { question: 'What is OpenSearch?', context: 'search engine' },
           dataSourceId: 'test-datasource',
-          initialGoal: 'Test goal',
-          timeRange: { from: '2024-01-01', to: '2024-01-31' },
         }),
         signal: mockSignal,
       });
@@ -412,13 +406,10 @@ describe('ML Commons APIs', () => {
         path: '/api/investigation/agents/agent-456/_execute',
         query: {
           async: undefined,
-          prevContent: false,
         },
         body: JSON.stringify({
           parameters: { question: 'How does ML work?' },
           dataSourceId: undefined,
-          initialGoal: undefined,
-          timeRange: undefined,
         }),
         signal: undefined,
       });
@@ -443,13 +434,10 @@ describe('ML Commons APIs', () => {
         path: '/api/investigation/agents/agent-789/_execute',
         query: {
           async: false,
-          prevContent: false,
         },
         body: JSON.stringify({
           parameters: { input: 'test input' },
           dataSourceId: 'test-datasource',
-          initialGoal: undefined,
-          timeRange: undefined,
         }),
         signal: undefined,
       });
@@ -472,13 +460,10 @@ describe('ML Commons APIs', () => {
         path: '/api/investigation/agents/agent-empty/_execute',
         query: {
           async: undefined,
-          prevContent: false,
         },
         body: JSON.stringify({
           parameters: {},
           dataSourceId: undefined,
-          initialGoal: undefined,
-          timeRange: undefined,
         }),
         signal: undefined,
       });
@@ -501,7 +486,6 @@ describe('ML Commons APIs', () => {
         parameters: complexParams,
         async: true,
         signal: mockSignal,
-        prevContent: true,
       };
 
       const result = await executeMLCommonsAgent(params);
@@ -510,13 +494,10 @@ describe('ML Commons APIs', () => {
         path: '/api/investigation/agents/agent-complex/_execute',
         query: {
           async: true,
-          prevContent: true,
         },
         body: JSON.stringify({
           parameters: complexParams,
           dataSourceId: undefined,
-          initialGoal: undefined,
-          timeRange: undefined,
         }),
         signal: mockSignal,
       });
