@@ -256,6 +256,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       if (isReinvestigate) {
         rerunInvestigation({
           investigationQuestion: question,
+          initialGoal,
           timeRange: formattedTimeRange,
         });
       } else {

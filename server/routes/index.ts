@@ -9,6 +9,7 @@ import { registerParaRoute } from './notebooks/paragraph_router';
 import { registerLogPatternRoute } from './notebooks/log_pattern_router';
 import { registerHypothesisRoute } from './notebooks/hypothesis_router';
 import { registerMLConnectorRoute } from './notebooks/ml_router';
+import { registerAgentExecutionRoute } from './notebooks/agent_router';
 
 export function setupRoutes({ router, auth }: { router: IRouter; auth: HttpAuth }) {
   // notebooks routes
@@ -17,4 +18,5 @@ export function setupRoutes({ router, auth }: { router: IRouter; auth: HttpAuth 
   registerLogPatternRoute(router);
   registerHypothesisRoute(router);
   registerMLConnectorRoute(router);
+  registerAgentExecutionRoute(router);
 }
