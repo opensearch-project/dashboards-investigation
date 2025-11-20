@@ -105,13 +105,13 @@ describe('XSS Protection Verification', () => {
     '<script>alert("xss")</script>',
 
     // Event handlers
-    '<img src="x" onerror="console.log("img-xss")">',
+    '<img src="x" onerror="console.log(\\"img-xss\\")">',
     '<svg onload="alert("svg-xss")">',
     '<body onload="alert(1)">',
     '<div onclick="alert(1)">click</div>',
 
     // JavaScript URLs
-    '<iframe src="javascript:console.log("iframe-xss")"></iframe>',
+    '<iframe src="javascript:console.log(\\"iframe-xss\\")"></iframe>',
     '<a href="javascript:alert(1)">link</a>',
 
     // Data URLs with JavaScript

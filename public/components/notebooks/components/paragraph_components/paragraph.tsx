@@ -37,7 +37,7 @@ export const Paragraph = (props: ParagraphProps) => {
   const { ParagraphComponent } =
     paragraphService.getParagraphRegistry(getInputType(paragraphValue)) || {};
 
-  const notebookType = context.state.getContext().notebookType;
+  const notebookType = context.state.getContext()?.notebookType;
 
   const isClassicNotebook = notebookType === NotebookType.CLASSIC;
   const isFindingParagraph =
