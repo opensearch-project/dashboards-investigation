@@ -429,22 +429,3 @@ export const getMLCommonsAgenticTracesMessages = ({
       ...(typeof nextToken !== 'undefined' && { search_after: [nextToken] }),
     }),
   });
-
-export const executeMLCommonsMessageByTask = ({
-  http,
-  signal,
-  dataSourceId,
-  taskId,
-}: {
-  http: CoreStart['http'];
-  signal?: AbortSignal;
-  dataSourceId?: string;
-  taskId: string;
-}) =>
-  callApiWithProxy({
-    http,
-    method: 'get',
-    path: `/_plugins/_ml/tasks/${taskId}`,
-    signal,
-    dataSourceId,
-  });
