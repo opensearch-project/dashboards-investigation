@@ -361,7 +361,7 @@ describe('ML Commons APIs', () => {
   });
 
   describe('executeMLCommonsAgent', () => {
-    it('should call callApiWithProxy with all parameters including async', async () => {
+    it('should call http.post with all parameters including async', async () => {
       const mockResponse = { inference_id: 'inference-123', status: 'COMPLETED' };
       mockHttp.post.mockResolvedValue(mockResponse);
 
@@ -377,24 +377,20 @@ describe('ML Commons APIs', () => {
       const result = await executeMLCommonsAgent(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/investigation/ml/proxy',
+        path: '/api/investigation/agents/agent-123/_execute',
         query: {
-          path: `${OPENSEARCH_ML_COMMONS_API.agentExecute.replace(
-            '{agentId}',
-            'agent-123'
-          )}?async=true`,
-          method: 'POST',
-          dataSourceId: 'test-datasource',
+          async: true,
         },
-        signal: mockSignal,
         body: JSON.stringify({
           parameters: { question: 'What is OpenSearch?', context: 'search engine' },
+          dataSourceId: 'test-datasource',
         }),
+        signal: mockSignal,
       });
       expect(result).toEqual(mockResponse);
     });
 
-    it('should work without async parameter (defaults to synchronous)', async () => {
+    it('should work without optional parameters', async () => {
       const mockResponse = { inference_id: 'inference-456', status: 'COMPLETED' };
       mockHttp.post.mockResolvedValue(mockResponse);
 
@@ -407,17 +403,15 @@ describe('ML Commons APIs', () => {
       const result = await executeMLCommonsAgent(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/investigation/ml/proxy',
+        path: '/api/investigation/agents/agent-456/_execute',
         query: {
-          path: OPENSEARCH_ML_COMMONS_API.agentExecute.replace('{agentId}', 'agent-456'),
-          method: 'POST',
-          dataSourceId: undefined,
           async: undefined,
         },
-        signal: undefined,
         body: JSON.stringify({
           parameters: { question: 'How does ML work?' },
+          dataSourceId: undefined,
         }),
+        signal: undefined,
       });
       expect(result).toEqual(mockResponse);
     });
@@ -437,17 +431,15 @@ describe('ML Commons APIs', () => {
       const result = await executeMLCommonsAgent(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/investigation/ml/proxy',
+        path: '/api/investigation/agents/agent-789/_execute',
         query: {
-          path: OPENSEARCH_ML_COMMONS_API.agentExecute.replace('{agentId}', 'agent-789'),
-          method: 'POST',
-          dataSourceId: 'test-datasource',
-          async: undefined,
+          async: false,
         },
-        signal: undefined,
         body: JSON.stringify({
           parameters: { input: 'test input' },
+          dataSourceId: 'test-datasource',
         }),
+        signal: undefined,
       });
       expect(result).toEqual(mockResponse);
     });
@@ -465,17 +457,15 @@ describe('ML Commons APIs', () => {
       const result = await executeMLCommonsAgent(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/investigation/ml/proxy',
+        path: '/api/investigation/agents/agent-empty/_execute',
         query: {
-          path: OPENSEARCH_ML_COMMONS_API.agentExecute.replace('{agentId}', 'agent-empty'),
-          method: 'POST',
-          dataSourceId: undefined,
           async: undefined,
         },
-        signal: undefined,
         body: JSON.stringify({
           parameters: {},
+          dataSourceId: undefined,
         }),
+        signal: undefined,
       });
       expect(result).toEqual(mockResponse);
     });
@@ -501,19 +491,15 @@ describe('ML Commons APIs', () => {
       const result = await executeMLCommonsAgent(params);
 
       expect(mockHttp.post).toHaveBeenCalledWith({
-        path: '/api/investigation/ml/proxy',
+        path: '/api/investigation/agents/agent-complex/_execute',
         query: {
-          path: `${OPENSEARCH_ML_COMMONS_API.agentExecute.replace(
-            '{agentId}',
-            'agent-complex'
-          )}?async=true`,
-          method: 'POST',
-          dataSourceId: undefined,
+          async: true,
         },
-        signal: mockSignal,
         body: JSON.stringify({
           parameters: complexParams,
+          dataSourceId: undefined,
         }),
+        signal: mockSignal,
       });
       expect(result).toEqual(mockResponse);
     });

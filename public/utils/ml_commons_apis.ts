@@ -6,6 +6,7 @@
 import { OPENSEARCH_ML_COMMONS_API } from '../../common/constants/ml_commons';
 import { CoreStart } from '../../../../src/core/public';
 import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
+import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 
 const callApiWithProxy = ({
   path,
@@ -192,22 +193,21 @@ export const executeMLCommonsAgent = ({
   signal?: AbortSignal;
   dataSourceId?: string;
   agentId: string;
-  parameters: Record<string, string>;
+  parameters: Record<string, any>;
   async?: boolean;
-}) =>
-  callApiWithProxy({
-    http,
-    method: 'POST',
-    path: OPENSEARCH_ML_COMMONS_API.agentExecute.replace('{agentId}', agentId),
-    signal,
-    dataSourceId,
+}) => {
+  return http.post({
+    path: `${NOTEBOOKS_API_PREFIX}/agents/${agentId}/_execute`,
     query: {
-      async: async ? 'true' : undefined,
+      async,
     },
     body: JSON.stringify({
       parameters,
+      dataSourceId,
     }),
+    signal,
   });
+};
 
 export const getMLCommonsConfig = ({
   http,
@@ -238,14 +238,15 @@ export const getMLCommonsAgentDetail = ({
   signal?: AbortSignal;
   agentId: string;
   dataSourceId?: string;
-}) =>
-  callApiWithProxy({
-    http,
-    method: 'GET',
-    path: OPENSEARCH_ML_COMMONS_API.agentDetail.replace('{agentId}', agentId),
+}) => {
+  return http.get({
+    path: `${NOTEBOOKS_API_PREFIX}/agents/${agentId}`,
+    query: {
+      dataSourceId,
+    },
     signal,
-    dataSourceId,
   });
+};
 
 // Get single message response after agent execution. by Parent Interaction ID
 export const executeMLCommonsAgenticMessage = ({
