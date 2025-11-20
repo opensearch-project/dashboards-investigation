@@ -338,44 +338,4 @@ Remember: Respond only in JSON format following the required schema.`;
       }
     }
   );
-
-  // Get agent details
-  router.get(
-    {
-      path: `${NOTEBOOKS_API_PREFIX}/agents/{agentId}`,
-      validate: {
-        params: schema.object({
-          agentId: schema.string(),
-        }),
-        query: schema.object({
-          dataSourceId: schema.maybe(schema.string()),
-        }),
-      },
-    },
-    async (context, request, response): Promise<IOpenSearchDashboardsResponse> => {
-      try {
-        const { agentId } = request.params;
-        const { dataSourceId } = request.query;
-        const transport = await getOpenSearchClientTransport({
-          context,
-          request,
-          dataSourceId,
-        });
-
-        const result = await transport.request({
-          path: `/_plugins/_ml/agents/${agentId}`,
-          method: 'GET',
-        });
-
-        return response.ok({
-          body: result.body,
-        });
-      } catch (error) {
-        return response.custom({
-          statusCode: error.statusCode || 500,
-          body: error,
-        });
-      }
-    }
-  );
 }

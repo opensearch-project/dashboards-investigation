@@ -64,6 +64,10 @@ function isAllowedMLPath(path: string): boolean {
     /^\/_plugins\/_ml\/memory_containers\/[^/]+\/memories\/sessions$/,
     // ML Config API
     /^\/_plugins\/_ml\/config\/[^/]+$/,
+    // Index Insight API
+    /^\/_plugins\/_ml\/insights\/[^/]+\/LOG_RELATED_INDEX_CHECK$/,
+    // Agent Detail API
+    /^\/_plugins\/_ml\/agents\/[^/]+$/,
   ];
 
   // Check if path matches any allowed pattern

@@ -44,33 +44,14 @@ describe('ML Router - API Path Validation', () => {
       },
     });
 
-    it('should allow memory container API paths', async () => {
+    it('should allow allowed API paths', async () => {
       const allowedPaths = [
         '/_plugins/_ml/memory_containers/container-id/memories/working/_search',
         '/_plugins/_ml/memory_containers/test-container/memories/sessions',
+        '/_plugins/_ml/config/config_name',
+        '/_plugins/_ml/agents/agent_id',
+        '/_plugins/_ml/insights/index_name/LOG_RELATED_INDEX_CHECK',
       ];
-
-      for (const path of allowedPaths) {
-        const request = createMockRequest(path);
-        const response = httpServerMock.createResponseFactory();
-        const context = createMockContext();
-
-        jest.spyOn(utils, 'getOpenSearchClientTransport').mockResolvedValue({
-          request: jest.fn().mockResolvedValue({
-            body: { result: 'success' },
-            statusCode: 200,
-            headers: { 'Content-Type': 'application/json' },
-          }),
-        });
-
-        await routeHandler(context, request, response);
-
-        expect(response.forbidden).not.toHaveBeenCalled();
-      }
-    });
-
-    it('should allow ML config API paths', async () => {
-      const allowedPaths = ['/_plugins/_ml/config/agent_framework_enabled'];
 
       for (const path of allowedPaths) {
         const request = createMockRequest(path);
@@ -101,6 +82,9 @@ describe('ML Router - API Path Validation', () => {
         '/_plugins/_ml/memory_containers//memories/sessions',
         '/_plugins/_ml/memory_containers/memories/working/_search',
         '/_plugins/_ml/memory_containers/memories/sessions',
+        '/_plugins/_ml/config/agent_framework_enabled/test',
+        '/_plugins/_ml/agents/id/test',
+        '/_plugins/_ml/insights/id/LOG_RELATED_INDEX_CHECK/test',
       ];
 
       for (const path of nonMLPaths) {

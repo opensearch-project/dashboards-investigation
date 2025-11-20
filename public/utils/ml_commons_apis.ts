@@ -238,15 +238,14 @@ export const getMLCommonsAgentDetail = ({
   signal?: AbortSignal;
   agentId: string;
   dataSourceId?: string;
-}) => {
-  return http.get({
-    path: `${NOTEBOOKS_API_PREFIX}/agents/${agentId}`,
-    query: {
-      dataSourceId,
-    },
+}) =>
+  callApiWithProxy({
+    http,
+    method: 'GET',
+    path: OPENSEARCH_ML_COMMONS_API.agentDetail.replace('{agentId}', agentId),
     signal,
+    dataSourceId,
   });
-};
 
 // Get single message response after agent execution. by Parent Interaction ID
 export const executeMLCommonsAgenticMessage = ({
