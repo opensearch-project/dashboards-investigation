@@ -17,13 +17,14 @@ import {
   EuiLoadingSpinner,
   EuiCodeBlock,
 } from '@elastic/eui';
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import moment from 'moment';
 import { useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
 import { i18n } from '@osd/i18n';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { getDataSourceById } from '../../../utils/data_source_utils';
 
 interface SummaryCardProps {
   isInvestigating: boolean;
@@ -36,7 +37,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
 }) => {
   const notebookContext = useContext(NotebookReactContext);
   const {
-    services: { uiSettings, notifications },
+    services: { uiSettings, notifications, savedObjects },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const copyToClipboard = (text: string, label: string) => {
@@ -58,6 +59,25 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
   );
+
+  const [dataSourceTitle, setDataSourceTitle] = useState(dataSourceId);
+
+  useEffect(() => {
+    const fetchDataSourceDetailsByID = async () => {
+      if (!dataSourceId) {
+        return;
+      }
+      try {
+        const response = await getDataSourceById(dataSourceId, savedObjects.client);
+        setDataSourceTitle(response?.title || dataSourceId);
+      } catch (e) {
+        // Fallback to ID if fetch fails
+        setDataSourceTitle(dataSourceId);
+      }
+    };
+
+    fetchDataSourceDetailsByID();
+  }, [dataSourceId, savedObjects.client]);
 
   const dateFormat = uiSettings.get('dateFormat');
 
@@ -97,9 +117,9 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
                 })}
               </strong>
               <div>
-                <EuiLink onClick={() => copyToClipboard(dataSourceId, 'Data Source')}>
-                  {dataSourceId || 'Not specified'}
-                  {dataSourceId && (
+                <EuiLink onClick={() => copyToClipboard(dataSourceTitle, 'Data Source')}>
+                  {dataSourceTitle || 'Not specified'}
+                  {dataSourceTitle && (
                     <EuiIcon
                       type="copy"
                       size="s"

@@ -12,6 +12,7 @@ import {
   EuiLoadingContent,
   EuiSpacer,
   EuiText,
+  EuiToolTip,
 } from '@elastic/eui';
 import { useObservable, useEffectOnce } from 'react-use';
 import { NoteBookServices } from 'public/types';
@@ -198,14 +199,16 @@ export const PPLParagraph = ({
         <>
           {columns.length && data.length ? (
             <div>
-              <EuiText
-                style={{ verticalAlign: 'middle' }}
-                size="s"
-                className="wrapAll"
-                data-test-subj="queryOutputText"
-              >
-                <b>{inputQueryWithTimeFilter}</b>
-              </EuiText>
+              <EuiToolTip content="Time filters are displayed in UTC">
+                <EuiText
+                  style={{ verticalAlign: 'middle' }}
+                  size="s"
+                  className="wrapAll"
+                  data-test-subj="queryOutputText"
+                >
+                  <b>{inputQueryWithTimeFilter}</b>
+                </EuiText>
+              </EuiToolTip>
               {isAgenticNotebook && data.length === QUERY_RESULT_SAMPLE_SIZE && (
                 <EuiFlexGroup gutterSize="none">
                   <EuiText size="xs" color="subdued">
