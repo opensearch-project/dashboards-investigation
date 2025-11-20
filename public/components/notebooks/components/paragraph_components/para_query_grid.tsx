@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { EuiDataGrid, EuiLoadingSpinner, EuiSpacer } from '@elastic/eui';
-import $ from 'jquery';
+import { EuiDataGrid } from '@elastic/eui';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface QueryDataGridProps {
@@ -22,8 +21,6 @@ function QueryDataGrid(props: QueryDataGridProps) {
   const { rowCount, queryColumns, dataValues } = props;
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
-
-  const [isVisible, setIsVisible] = useState(false);
 
   const onChangeItemsPerPage = useCallback(
     (pageSize) =>
@@ -55,27 +52,11 @@ function QueryDataGrid(props: QueryDataGridProps) {
   }, [queryColumns]);
 
   useEffect(() => {
-    if ($('.euiDataGrid__overflow').is(':visible')) {
-      setIsVisible(true);
-    }
-    setTimeout(() => {
-      if ($('.euiDataGrid__overflow').is(':visible')) {
-        setIsVisible(true);
-      }
-    }, 1000);
     setVisibleColumns(getUpdatedVisibleColumns());
   }, [getUpdatedVisibleColumns]);
 
-  const displayLoadingSpinner = !isVisible ? (
-    <>
-      <EuiLoadingSpinner size="xl" />
-      <EuiSpacer />
-    </>
-  ) : null;
-
   return (
     <div id="queryDataGrid">
-      {displayLoadingSpinner}
       <EuiDataGrid
         aria-label="Query datagrid"
         columns={queryColumns}
