@@ -37,6 +37,7 @@ import {
 import { getDataSourceManagementSetup } from '../../../../../../public/services';
 import { dataSourceFilterFn } from '../../../../../../common/utils/shared';
 import { DataSourceOption } from '../../../../../../../../src/plugins/data_source_management/public';
+import { generateDefaultQuery } from '../../../../../../public/utils/query';
 
 interface QueryPanelProps {
   prependWidget?: React.ReactNode;
@@ -229,12 +230,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
     if (isDisabled) {
       return;
     }
-    const defaultQuery = selectedIndex?.title
-      ? queryLanguage === 'PPL'
-        ? `source = ${selectedIndex?.title}`
-        : `SELECT * FROM ${selectedIndex?.title}`
-      : '';
-    const queryToExecute = value || defaultQuery;
+    const queryToExecute = value || generateDefaultQuery(selectedIndex?.title, queryLanguage);
     handleInputChange({ value: queryToExecute });
     handleSubmit(
       queryToExecute,

@@ -64,6 +64,7 @@ ${jsonArrayToTsv(data)}
     const inputText = paragraphValue.input.inputText;
     const queryType = inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
     const queryParams = paragraphValue.input.parameters as any;
+    const generatedPPLQuery = queryParams.query; // t2ppl
     const inputQuery =
       ParagraphState.getOutput(paragraphValue)?.result ||
       queryParams?.query ||
@@ -75,7 +76,9 @@ ${jsonArrayToTsv(data)}
     }
 
     let currentSearchQuery = inputQuery;
-    if (queryType === '_ppl' && inputQuery.trim()) {
+    if (generatedPPLQuery) {
+      currentSearchQuery = generatedPPLQuery;
+    } else if (queryType === '_ppl' && inputQuery.trim()) {
       currentSearchQuery = parsePPLQuery(inputQuery).pplWithAbsoluteTime;
       if (currentSearchQuery !== inputQuery) {
         paragraphState.updateInput({
@@ -88,7 +91,7 @@ ${jsonArrayToTsv(data)}
     });
 
     try {
-      const queryResponse = await (queryType === '_sql'
+      const queryResponse = await (!generatedPPLQuery && queryType === '_sql'
         ? callOpenSearchCluster({
             http: getClient(),
             dataSourceId: paragraphValue.dataSourceMDSId,
