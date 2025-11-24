@@ -45,8 +45,6 @@ import { usePrecheck } from '../../../hooks/use_precheck';
 import { useNotebookFindingIntegration } from '../../../hooks/use_notebook_finding_integration';
 import { useInvestigation } from '../../../hooks/use_investigation';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
-import { AlertPanel } from './alert_panel';
-import { GlobalPanel } from './global_panel';
 import { NotebookHeader } from './notebook_header';
 import { SummaryCard } from './summary_card';
 import { useChatContextProvider } from '../../../hooks/use_chat_context';
@@ -68,7 +66,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
   const { deleteParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const { loadNotebook: loadNotebookHook, updateNotebookContext } = useNotebook();
-  const { start, rerun: rerunPrecheck, setInitialGoal } = usePrecheck();
+  const { start, rerun: rerunPrecheck } = usePrecheck();
 
   // provide context to chatbot
   useChatContextProvider();
@@ -159,9 +157,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           runningMemory: res.runningMemory,
           historyMemory: res.historyMemory,
         });
-        await setInitialGoal({
-          context: notebookContext.state.value.context.value,
-        });
 
         // Check if there's an ongoing investigation to continue BEFORE calling start
         // This prevents start() from triggering a new investigation when we should continue the existing one
@@ -195,7 +190,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     notifications.toasts,
     notebookContext.state,
     start,
-    setInitialGoal,
     doInvestigate,
     continueInvestigation,
   ]);
@@ -311,14 +305,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                 isInvestigating={isInvestigating}
                 openReinvestigateModal={() => setIsReinvestigateModalVisible(true)}
               />
-              <EuiSpacer />
-            </>
-          )}
-          {source === NoteBookSource.ALERTING && (
-            <>
-              <AlertPanel />
-              <EuiSpacer />
-              <GlobalPanel />
               <EuiSpacer />
             </>
           )}

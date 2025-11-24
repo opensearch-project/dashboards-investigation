@@ -18,7 +18,6 @@ export interface OptionsType {
 }
 
 export enum NoteBookSource {
-  ALERTING = 'Alert',
   DISCOVER = 'Discover',
 }
 
@@ -45,16 +44,6 @@ export interface NotebookContext {
   variables?: {
     // used for source type: Discover
     pplQuery?: string;
-    // used for source type: Alert
-    alert?: {
-      start_time: string;
-      last_notification_time: string;
-      severity: string;
-      monitor_id: string;
-      alertNumber: number;
-      trigger_name: string;
-      monitor_name: string;
-    };
     [key: string]: unknown;
   };
   memoryId?: string;
@@ -150,23 +139,6 @@ export interface IndexInsightBody {
 }
 export interface IndexInsight {
   index_insight: IndexInsightBody;
-}
-
-export interface DeepResearchOutputResult {
-  taskId: string;
-  memoryId?: string;
-  messageId?: string;
-  executorAgentMemoryId?: string;
-  // FIXME: Should be removed in the final release
-  agent_id?: string;
-}
-
-export interface DeepResearchInputParameters {
-  // FIXME: Should be removed in the final release
-  PERAgentInput?: Record<string, unknown>;
-  PERAgentContext?: string;
-  prompts?: { systemPrompt?: string; executorSystemPrompt?: string };
-  agentId?: string;
 }
 
 export interface PERAgentHypothesisFinding {

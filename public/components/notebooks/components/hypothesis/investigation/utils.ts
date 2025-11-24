@@ -6,8 +6,6 @@
 import {
   getMLCommonsAgenticMemoryMessages,
   getMLCommonsAgenticTracesMessages,
-  getMLCommonsMemoryMessages,
-  getMLCommonsMessageTraces,
 } from '../../../../../utils/ml_commons_apis';
 
 export interface Trace {
@@ -17,52 +15,6 @@ export interface Trace {
   origin?: string;
   create_time?: string;
 }
-
-export const getAllTracesByMessageId = async (
-  options: Parameters<typeof getMLCommonsMessageTraces>[0]
-) => {
-  const traces: Trace[] = [];
-  let nextToken = options.nextToken;
-  do {
-    try {
-      const result = await getMLCommonsMessageTraces({
-        ...options,
-        nextToken,
-      });
-      result.traces.forEach((trace: Trace) => {
-        traces.push(trace);
-      });
-      nextToken = result.next_token;
-    } catch (e) {
-      console.error(e);
-      break;
-    }
-  } while (!!nextToken);
-  return traces;
-};
-
-export const getAllMessagesByMemoryId = async (
-  options: Parameters<typeof getMLCommonsMemoryMessages>[0]
-) => {
-  const messages: Trace[] = [];
-  let nextToken = options.nextToken;
-  do {
-    try {
-      const result = await getMLCommonsMemoryMessages({
-        ...options,
-        nextToken,
-      });
-      result.messages.forEach((trace: Trace) => {
-        messages.push(trace);
-      });
-      nextToken = result.next_token;
-    } catch (e) {
-      console.error(e);
-      break;
-    }
-  } while (!!nextToken);
-  return messages;
-};
 
 export const isMarkdownText = (text: string) => {
   // Common Markdown patterns to check for

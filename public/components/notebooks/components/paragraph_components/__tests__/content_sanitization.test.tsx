@@ -13,8 +13,8 @@ import { MarkdownParagraph } from '../markdown';
 import { OtherParagraph } from '../other';
 import { DeepResearchOutput } from '../deep_research/deep_research_output';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
-import { PERAgentMemoryService } from '../deep_research/services/per_agent_memory_service';
-import { PERAgentMessageService } from '../deep_research/services/per_agent_message_service';
+import { PERAgentMemoryService } from '../../hypothesis/investigation/services/per_agent_memory_service';
+import { PERAgentMessageService } from '../../hypothesis/investigation/services/per_agent_message_service';
 
 // Mock only the problematic dependencies, not the rendering libraries
 const mockRunParagraph = jest.fn();

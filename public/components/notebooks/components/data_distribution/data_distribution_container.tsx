@@ -138,7 +138,7 @@ export const DataDistributionContainer = ({
       {i18n.translate('notebook.data.distribution.paragraph.subtitle', {
         defaultMessage: 'Visualization the values for key fields associated with the {source}',
         values: {
-          source: source === NoteBookSource.DISCOVER ? 'discover' : 'alert',
+          source: NoteBookSource.DISCOVER,
         },
       })}
     </EuiText>

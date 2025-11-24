@@ -38,9 +38,7 @@ import {
   contextMenuViewReports,
   generateInContextReport,
 } from './helpers/reporting_context_menu_helper';
-import { ToggleSystemPromptSettingModal } from './helpers/custom_modals/toggle_system_prompt_setting_modal';
 import { TopNavMenuIconData } from '../../../../../../src/plugins/navigation/public';
-import { SystemPromptSettingModal } from './helpers/custom_modals/system_prompt_setting_modal';
 import { NotebookDataSourceSelector } from './data_source_selector/notebook_data_source_selector';
 import { NotebookType } from '../../../../common/types/notebooks';
 
@@ -82,7 +80,6 @@ export const NotebookHeader = ({
   const [isReportingPluginInstalled, setIsReportingPluginInstalled] = useState(false);
   const [isReportingActionsPopoverOpen, setIsReportingActionsPopoverOpen] = useState(false);
   const [isReportingLoadingModalOpen, setIsReportingLoadingModalOpen] = useState(false);
-  const [isSystemPromptsModalOpen, setIsSystemPromptsModalOpen] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
 
@@ -338,9 +335,6 @@ export const NotebookHeader = ({
       <EuiFlexGroup gutterSize="s">
         {isSavedObjectNotebook ? (
           <>
-            <EuiFlexItem grow={false}>
-              <ToggleSystemPromptSettingModal />
-            </EuiFlexItem>
             <EuiFlexItem grow={false}>
               <EuiToolTip
                 content={
@@ -659,14 +653,6 @@ export const NotebookHeader = ({
       {header}
       {showLoadingModal}
       {isModalVisible && modalLayout}
-      {isSystemPromptsModalOpen && (
-        <SystemPromptSettingModal
-          closeModal={() => {
-            setIsSystemPromptsModalOpen(false);
-          }}
-          dataSourceId={contextValue?.dataSourceId}
-        />
-      )}
     </>
   );
 };

@@ -11,12 +11,7 @@ import { ParagraphInputType } from 'common/types/notebooks';
 import { InputTypeSelector } from './input_type_selector';
 import { QueryPanel } from './query_panel';
 import { InputProvider, useInputContext } from './input_context';
-import { NotebookInput } from './notebook_input';
 import { MarkDownInput } from './markdown_input';
-import {
-  AI_RESPONSE_TYPE,
-  DEEP_RESEARCH_PARAGRAPH_TYPE,
-} from '../../../../../common/constants/notebooks';
 import { VisualizationInput } from './visualization_input';
 
 interface MultiVariantInputProps<TParameters = unknown> {
@@ -49,17 +44,11 @@ const MultiVariantInputContent: React.FC = () => {
 
   const getInputComponent = () => {
     switch (currInputType) {
-      case AI_RESPONSE_TYPE:
-        return (
-          <NotebookInput placeholder="Ask AI with question or type % to show paragraph options" />
-        );
       case 'PPL':
       case 'SQL':
         return <QueryPanel prependWidget={getInputTypeSelector()} />;
       case 'MARKDOWN':
         return <MarkDownInput />;
-      case DEEP_RESEARCH_PARAGRAPH_TYPE:
-        return <NotebookInput placeholder="Ask question to trigger deep research agent" />;
       case 'VISUALIZATION':
         return <VisualizationInput prependWidget={getInputTypeSelector()} />;
       default:
@@ -119,7 +108,6 @@ export const MultiVariantInput: React.FC<MultiVariantInputProps> = (props) => {
       onSubmit={props.onSubmit}
       input={props.input}
       dataSourceId={props.dataSourceId}
-      aiFeatureEnabled={props.aiFeatureEnabled}
       isDisabled={!!props.actionDisabled}
     >
       <MultiVariantInputContent />
