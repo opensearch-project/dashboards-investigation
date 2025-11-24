@@ -26,7 +26,7 @@ import { formatTimeRangeString } from '../../public/utils/time';
 
 export const usePrecheck = () => {
   const { paragraphHooks } = useContext(NotebookReactContext);
-  const { createParagraph, runParagraph } = paragraphHooks;
+  const { batchCreateParagraphs, runParagraph, batchSaveParagraphs } = paragraphHooks;
 
   return {
     start: useCallback(
@@ -41,14 +41,6 @@ export const usePrecheck = () => {
       }) => {
         let logPatternParaExists = false;
         let anomalyAnalysisParaExists = false;
-        const safeRun = async (parameters: Parameters<typeof runParagraph>[0]) => {
-          try {
-            await runParagraph(parameters);
-          } catch (e) {
-            // expose the error to browser
-            console.error(e);
-          }
-        };
 
         for (let index = 0; index < res.paragraphs.length; ++index) {
           // if the paragraph is a query, load the query output
@@ -60,8 +52,12 @@ export const usePrecheck = () => {
         }
 
         const totalParagraphLength = res.paragraphs.length;
-        const paragraphStates: Array<ParagraphState<unknown>> = [];
+        const paragraphsToCreate: Array<{
+          input: ParagraphBackendType<unknown>['input'];
+          dataSourceMDSId?: string;
+        }> = [];
 
+        // Collect log pattern paragraph
         if (!logPatternParaExists) {
           const resContext = res.context as NotebookContext;
           if (resContext?.timeRange && resContext?.index && resContext?.timeField) {
@@ -69,8 +65,7 @@ export const usePrecheck = () => {
               resContext?.indexInsight?.is_log_index &&
               resContext?.indexInsight?.log_message_field
             ) {
-              const logPatternResult = await createParagraph({
-                index: totalParagraphLength + paragraphStates.length,
+              paragraphsToCreate.push({
                 input: {
                   inputText: '',
                   inputType: LOG_PATTERN_PARAGRAPH_TYPE,
@@ -80,9 +75,6 @@ export const usePrecheck = () => {
                 },
                 dataSourceMDSId: resContext?.dataSourceId,
               });
-              if (logPatternResult) {
-                paragraphStates.push(logPatternResult);
-              }
             } else {
               const relatedLogIndex = resContext?.indexInsight?.related_indexes?.find(
                 (relatedIndex: IndexInsightContent) => {
@@ -91,13 +83,11 @@ export const usePrecheck = () => {
               );
 
               if (relatedLogIndex) {
-                const logPatternResult = await createParagraph({
-                  index: totalParagraphLength + paragraphStates.length,
+                paragraphsToCreate.push({
                   input: {
                     inputText: '',
                     inputType: LOG_PATTERN_PARAGRAPH_TYPE,
                     parameters: {
-                      // assuming the related log index share same time field
                       timeField: relatedLogIndex.time_field || resContext.timeField,
                       index: relatedLogIndex.index_name,
                       insight: relatedLogIndex,
@@ -105,14 +95,12 @@ export const usePrecheck = () => {
                   },
                   dataSourceMDSId: resContext?.dataSourceId,
                 });
-                if (logPatternResult) {
-                  paragraphStates.push(logPatternResult);
-                }
               }
             }
           }
         }
 
+        // Collect anomaly analysis paragraph
         if (!anomalyAnalysisParaExists) {
           const resContext = res.context;
           const canAnalyticDis =
@@ -133,20 +121,17 @@ export const usePrecheck = () => {
               timeRange: resContext.timeRange,
               query: resContext.variables?.['pplQuery'],
             });
-            const anomalyAnalysisParagraphResult = await createParagraph({
-              index: totalParagraphLength + paragraphStates.length,
+            paragraphsToCreate.push({
               input: {
                 inputText: newParaContent || '',
                 inputType: DATA_DISTRIBUTION_PARAGRAPH_TYPE,
               },
               dataSourceMDSId: resContext?.dataSourceId,
             });
-            if (anomalyAnalysisParagraphResult) {
-              paragraphStates.push(anomalyAnalysisParagraphResult);
-            }
           }
         }
 
+        // Collect PPL paragraph
         if (
           res.context?.source === NoteBookSource.DISCOVER &&
           !res.paragraphs.find((paragraph) => getInputType(paragraph) === PPL_PARAGRAPH_TYPE) &&
@@ -156,8 +141,7 @@ export const usePrecheck = () => {
         ) {
           const formatToLocalTime = (timestamp: number) => moment(timestamp).format(dateFormat);
           const pplQuery = res.context.variables?.['pplQuery'];
-          const createdPPLParagraph = await createParagraph({
-            index: res.paragraphs.length + paragraphStates.length,
+          paragraphsToCreate.push({
             input: {
               inputText: `%ppl ${pplQuery}`,
               inputType: 'CODE',
@@ -173,12 +157,17 @@ export const usePrecheck = () => {
             },
             dataSourceMDSId: res.context.dataSourceId || '',
           });
-          if (createdPPLParagraph) {
-            await safeRun({
-              id: createdPPLParagraph.value.id,
-            });
+        }
 
-            paragraphStates.push(createdPPLParagraph);
+        if (paragraphsToCreate.length > 0) {
+          try {
+            // Create all paragraphs in batch
+            await batchCreateParagraphs({
+              startIndex: totalParagraphLength,
+              paragraphs: paragraphsToCreate,
+            });
+          } catch (e) {
+            console.error('Error creating paragraphs in batch:', e);
           }
         }
 
@@ -189,7 +178,7 @@ export const usePrecheck = () => {
           });
         }
       },
-      [createParagraph, runParagraph]
+      [batchCreateParagraphs]
     ),
     rerun: useCallback(
       async (
@@ -199,6 +188,8 @@ export const usePrecheck = () => {
           to: string;
         }
       ) => {
+        const paragraphIdsToSave: string[] = [];
+
         const pplParagraph = paragraphStates.find((paragraphState) =>
           paragraphState.value.input.inputText.startsWith('%ppl')
         );
@@ -213,14 +204,14 @@ export const usePrecheck = () => {
               },
             },
           });
-          await runParagraph({ id: pplParagraph?.value.id });
+          await runParagraph({ id: pplParagraph.value.id });
         }
 
         const logPatternParagraph = paragraphStates.find(
           (paragraphState) => paragraphState.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
         );
         if (logPatternParagraph) {
-          await runParagraph({ id: logPatternParagraph.value.id });
+          paragraphIdsToSave.push(logPatternParagraph.value.id);
         }
 
         const dataDistributionParagraph = paragraphStates.find(
@@ -228,10 +219,26 @@ export const usePrecheck = () => {
             paragraphState.value.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
         );
         if (dataDistributionParagraph) {
-          await runParagraph({ id: dataDistributionParagraph.value.id });
+          paragraphIdsToSave.push(dataDistributionParagraph.value.id);
+        }
+
+        if (paragraphIdsToSave.length > 0) {
+          try {
+            // FIXME: this doesn't actually update the time range for log analyze and data distribution
+            await batchSaveParagraphs({
+              paragraphStateValues: paragraphIdsToSave
+                .map((id) => {
+                  const paragraphState = paragraphStates.find((p) => p.value.id === id);
+                  return paragraphState?.getBackendValue();
+                })
+                .filter(Boolean) as any[],
+            });
+          } catch (e) {
+            console.error('Error running paragraphs in batch:', e);
+          }
         }
       },
-      [runParagraph]
+      [runParagraph, batchSaveParagraphs]
     ),
   };
 };

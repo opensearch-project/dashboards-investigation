@@ -104,6 +104,115 @@ export async function createParagraphs<TOutput>(
   return newParagraph;
 }
 
+export async function batchCreateParagraphs<TOutput>(
+  params: {
+    noteId: string;
+    startIndex: number;
+    paragraphs: Array<{
+      input: ParagraphBackendType<TOutput>['input'];
+      dataSourceMDSId?: string;
+      aiGenerated?: boolean;
+    }>;
+  },
+  opensearchNotebooksClient: SavedObjectsClientContract
+) {
+  const notebookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
+  const paragraphs = [...notebookInfo.attributes.savedNotebook.paragraphs];
+
+  const newParagraphs = params.paragraphs.map((p) => createParagraph(p));
+  paragraphs.splice(params.startIndex, 0, ...newParagraphs);
+
+  const updateNotebook = {
+    paragraphs,
+    dateModified: new Date().toISOString(),
+  };
+
+  await opensearchNotebooksClient.update(NOTEBOOK_SAVED_OBJECT, params.noteId, {
+    savedNotebook: updateNotebook,
+  });
+
+  return { paragraphs: newParagraphs };
+}
+
+export async function batchRunParagraphs(
+  params: {
+    noteId: string;
+    paragraphs: Array<{
+      id: string;
+      input: ParagraphBackendType<unknown>['input'];
+      dataSourceMDSId?: string;
+    }>;
+  },
+  opensearchNotebooksClient: SavedObjectsClientContract
+) {
+  const currentNotebook = await fetchNotebook(params.noteId, opensearchNotebooksClient);
+  let currentParagraphs = [...currentNotebook.attributes.savedNotebook.paragraphs];
+
+  for (const paragraphData of params.paragraphs) {
+    try {
+      // Update paragraph input first
+      currentParagraphs = updateParagraphs(
+        currentParagraphs,
+        paragraphData.id,
+        paragraphData.input,
+        paragraphData.dataSourceMDSId
+      );
+      // Then run the paragraph
+      currentParagraphs = await runParagraph(currentParagraphs, paragraphData.id, currentNotebook);
+    } catch (e) {
+      console.error('Failed to run paragraph:', paragraphData.id, e);
+    }
+  }
+
+  await opensearchNotebooksClient.update(NOTEBOOK_SAVED_OBJECT, params.noteId, {
+    savedNotebook: {
+      paragraphs: currentParagraphs,
+      dateModified: new Date().toISOString(),
+    },
+  });
+
+  const paragraphIds = params.paragraphs.map((p) => p.id);
+  const ranParagraphs = currentParagraphs.filter((p) => paragraphIds.includes(p.id));
+  return { paragraphs: ranParagraphs };
+}
+
+export async function batchSaveParagraphs(
+  params: {
+    noteId: string;
+    paragraphs: Array<{
+      paragraphId: string;
+      input: ParagraphBackendType<unknown>['input'];
+      dataSourceMDSId?: string;
+      output?: ParagraphBackendType<unknown>['output'];
+    }>;
+  },
+  opensearchNotebooksClient: SavedObjectsClientContract
+) {
+  const currentNotebook = await fetchNotebook(params.noteId, opensearchNotebooksClient);
+  let currentParagraphs = [...currentNotebook.attributes.savedNotebook.paragraphs];
+
+  for (const paragraphData of params.paragraphs) {
+    currentParagraphs = updateParagraphs(
+      currentParagraphs,
+      paragraphData.paragraphId,
+      paragraphData.input,
+      paragraphData.dataSourceMDSId,
+      paragraphData.output
+    );
+  }
+
+  await opensearchNotebooksClient.update(NOTEBOOK_SAVED_OBJECT, params.noteId, {
+    savedNotebook: {
+      paragraphs: currentParagraphs,
+      dateModified: new Date().toISOString(),
+    },
+  });
+
+  const paragraphIds = params.paragraphs.map((p) => p.paragraphId);
+  const savedParagraphs = currentParagraphs.filter((p) => paragraphIds.includes(p.id));
+  return { paragraphs: savedParagraphs };
+}
+
 export async function deleteParagraphs(
   params: { noteId: string; paragraphId: string | undefined },
   opensearchNotebooksClient: SavedObjectsClientContract
