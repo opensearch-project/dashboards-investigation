@@ -50,6 +50,30 @@ const acceptedHttpVerb = schema.string({
   },
 });
 
+/**
+ * Validates if the ML API path is allowed for proxy requests.
+ * Only Memory search and ML config related APIs are permitted.
+ * @param path The API path to validate
+ * @returns true if the path is allowed, false otherwise
+ */
+function isAllowedMLPath(path: string): boolean {
+  // Define allowed ML API path patterns
+  const allowedPatterns = [
+    // Agentic Memory related APIs
+    /^\/_plugins\/_ml\/memory_containers\/[^/]+\/memories\/working\/_search$/,
+    /^\/_plugins\/_ml\/memory_containers\/[^/]+\/memories\/sessions$/,
+    // ML Config API
+    /^\/_plugins\/_ml\/config\/[^/]+$/,
+    // Index Insight API
+    /^\/_plugins\/_ml\/insights\/[^/]+\/LOG_RELATED_INDEX_CHECK$/,
+    // Agent Detail API
+    /^\/_plugins\/_ml\/agents\/[^/]+$/,
+  ];
+
+  // Check if path matches any allowed pattern
+  return allowedPatterns.some((pattern) => pattern.test(path));
+}
+
 export function registerMLConnectorRoute(router: IRouter) {
   router.post(
     {
@@ -64,9 +88,12 @@ export function registerMLConnectorRoute(router: IRouter) {
       },
     },
     async (context, request, response): Promise<IOpenSearchDashboardsResponse> => {
-      if (!request.query.path.startsWith('/_plugins/_ml')) {
+      const { method, path } = request.query;
+
+      // Validate if the specific ML API is allowed
+      if (!isAllowedMLPath(path)) {
         return response.forbidden({
-          body: `Error connecting to '${request.query.path}':\n\nUnable to send requests to that path.`,
+          body: `Error connecting to '${path}':\n\nUnable to send requests to that path.`,
           headers: {
             'Content-Type': 'text/plain',
           },
@@ -79,7 +106,7 @@ export function registerMLConnectorRoute(router: IRouter) {
           request,
           dataSourceId: request.query.dataSourceId,
         });
-        const { method, path } = request.query;
+
         const result = await transport.request({
           path: toUrlPath(path),
           method,
