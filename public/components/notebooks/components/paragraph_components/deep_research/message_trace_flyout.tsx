@@ -74,9 +74,22 @@ export const MessageTraceFlyout = ({
   memoryContainerId: string;
 }) => {
   const {
-    services: { http },
+    services: { http, overlays },
   } = useOpenSearchDashboards<NoteBookServices>();
   const [traces, setTraces] = useState([]);
+  const [paddingRight, setPaddingRight] = useState('0px');
+
+  useEffect(() => {
+    const subscription = overlays.sidecar.getSidecarConfig$().subscribe((config) => {
+      if (config?.dockedMode === 'right') {
+        setPaddingRight(`${config.paddingSize}px`);
+      } else {
+        setPaddingRight('0px');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [overlays]);
+
   const tracesLengthRef = useRef(traces.length);
   tracesLengthRef.current = traces.length;
   const observables = useMemo(
@@ -223,7 +236,7 @@ export const MessageTraceFlyout = ({
   };
 
   return (
-    <EuiFlyout onClose={onClose}>
+    <EuiFlyout onClose={onClose} style={{ marginRight: paddingRight }}>
       <EuiFlyoutHeader hasBorder>
         <EuiTitle size="m">
           <h2>Step trace</h2>
