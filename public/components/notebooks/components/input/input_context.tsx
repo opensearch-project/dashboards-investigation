@@ -18,10 +18,6 @@ import { EuiSelectableOption } from '@elastic/eui';
 import { NotebookType, ParagraphInputType } from '../../../../../common/types/notebooks';
 // import { useAgentSelectSubmit } from './use_agent_select_submit';
 import { InputType, QueryState, InputValueType, InputTypeOption } from './types';
-import {
-  AI_RESPONSE_TYPE,
-  DEEP_RESEARCH_PARAGRAPH_TYPE,
-} from '../../../../../common/constants/notebooks';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 
 interface InputContextValue<T extends InputType = InputType> {
@@ -98,11 +94,10 @@ export const InputProvider: React.FC<InputProviderProps> = ({
   onSubmit,
   input,
   dataSourceId,
-  aiFeatureEnabled,
   isDisabled,
 }) => {
   const [currInputType, setCurrInputType] = useState<InputType>(
-    (input?.inputType as InputType) || (aiFeatureEnabled ? AI_RESPONSE_TYPE : 'PPL')
+    (input?.inputType as InputType) || 'PPL'
   );
 
   const getInitialInputValue = () => {
@@ -141,56 +136,34 @@ export const InputProvider: React.FC<InputProviderProps> = ({
   }, []);
 
   const context = useContext(NotebookReactContext);
-  const { initialGoal, notebookType } = useObservable(
+  const { notebookType } = useObservable(
     context.state.value.context.getValue$(),
     context.state.value.context.value
   );
 
   const paragraphOptions = useMemo(
-    () =>
-      [
-        {
-          key: AI_RESPONSE_TYPE,
-          icon: 'chatLeft',
-          label: 'Ask AI',
-          'data-test-subj': 'paragraph-type-nl',
-          disabled: !aiFeatureEnabled,
-        },
-        { key: 'PPL', icon: 'compass', label: 'Query', 'data-test-subj': 'paragraph-type-ppl' },
-        {
-          key: DEEP_RESEARCH_PARAGRAPH_TYPE,
-          icon: 'generate',
-          label: 'Continue investigation',
-          'data-test-subj': 'paragraph-type-deep-research',
-          disabled: !initialGoal || !aiFeatureEnabled,
-        },
-        {
-          key: 'MARKDOWN',
-          icon: 'pencil',
-          label: 'Note',
-          'data-test-subj': 'paragraph-type-markdown',
-        },
-        {
-          label: 'Visualization',
-          key: 'VISUALIZATION',
-          icon: 'lineChart',
-          'data-test-subj': 'paragraph-type-visualization',
-        },
-      ].filter((item) => !item.disabled),
-    [initialGoal, aiFeatureEnabled]
+    () => [
+      { key: 'PPL', icon: 'compass', label: 'Query', 'data-test-subj': 'paragraph-type-ppl' },
+      {
+        key: 'MARKDOWN',
+        icon: 'pencil',
+        label: 'Note',
+        'data-test-subj': 'paragraph-type-markdown',
+      },
+      {
+        label: 'Visualization',
+        key: 'VISUALIZATION',
+        icon: 'lineChart',
+        'data-test-subj': 'paragraph-type-visualization',
+      },
+    ],
+    []
   );
 
   const handleCancel = useCallback(() => {
     setInputValue('');
-    setCurrInputType(aiFeatureEnabled ? AI_RESPONSE_TYPE : 'PPL');
-  }, [aiFeatureEnabled]);
-
-  // const { handleAgentSelectSubmit } = useAgentSelectSubmit({
-  //   http,
-  //   dataSourceId,
-  //   onSubmit,
-  //   setIsLoading,
-  // });
+    setCurrInputType('PPL');
+  }, []);
 
   const handleParagraphSelection = useCallback(
     (options: EuiSelectableOption[]) => {

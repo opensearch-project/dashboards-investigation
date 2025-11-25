@@ -26,10 +26,10 @@ import { NotebookReactContext } from '../../context_provider/context_provider';
 import { HypothesisItem } from './hypothesis_item';
 import { HypothesesFeedback } from './hypotheses_feedback';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
-import { PERAgentMessageService } from '../paragraph_components/deep_research/services/per_agent_message_service';
-import { PERAgentMemoryService } from '../paragraph_components/deep_research/services/per_agent_memory_service';
+import { PERAgentMessageService } from './investigation/services/per_agent_message_service';
+import { PERAgentMemoryService } from './investigation/services/per_agent_memory_service';
 import { HypothesesStep } from './hypotheses_step';
-import { MessageTraceFlyout } from '../paragraph_components/deep_research/message_trace_flyout';
+import { MessageTraceFlyout } from './investigation/message_trace_flyout';
 import { HypothesisBadge } from './hypothesis_badge';
 
 interface HypothesesPanelProps {

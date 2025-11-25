@@ -11,10 +11,9 @@ import { configure } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 import { MarkdownParagraph } from '../markdown';
 import { OtherParagraph } from '../other';
-import { DeepResearchOutput } from '../deep_research/deep_research_output';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
-import { PERAgentMemoryService } from '../deep_research/services/per_agent_memory_service';
-import { PERAgentMessageService } from '../deep_research/services/per_agent_message_service';
+import { PERAgentMemoryService } from '../../hypothesis/investigation/services/per_agent_memory_service';
+import { PERAgentMessageService } from '../../hypothesis/investigation/services/per_agent_message_service';
 
 // Mock only the problematic dependencies, not the rendering libraries
 const mockRunParagraph = jest.fn();
@@ -273,14 +272,6 @@ describe('XSS Protection Verification', () => {
             return { unsubscribe: jest.fn() };
           }),
         } as any);
-
-        const { container } = render(
-          <DeepResearchOutput
-            messageService={mockMessageService}
-            executorMemoryService={mockMemoryService}
-            onExplainThisStep={jest.fn()}
-          />
-        );
 
         // Verify XSS code is not executed
         expect(xssExecuted).toBe(false);

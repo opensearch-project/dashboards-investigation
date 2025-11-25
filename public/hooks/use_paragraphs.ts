@@ -7,15 +7,10 @@ import { useCallback } from 'react';
 import { ParagraphBackendType } from 'common/types/notebooks';
 import { NoteBookServices } from 'public/types';
 import { NotebookState } from 'common/state/notebook_state';
-import {
-  AI_RESPONSE_TYPE,
-  DEEP_RESEARCH_PARAGRAPH_TYPE,
-  NOTEBOOKS_API_PREFIX,
-} from '../../common/constants/notebooks';
+import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import { isValidUUID } from '../components/notebooks/components/helpers/notebooks_parser';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
-import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
 import { getInputType } from '../../common/utils/paragraph';
 
 export const useParagraphs = (context: { state: NotebookState }) => {
@@ -257,7 +252,7 @@ export const useParagraphs = (context: { state: NotebookState }) => {
     saveParagraph,
     runParagraph: useCallback(
       async <TOutput>(props: { index?: number; id?: string }) => {
-        const { id: openedNoteId, context: topContextState } = context.state.value;
+        const { id: openedNoteId } = context.state.value;
         let index: number = -1;
         if (props.hasOwnProperty('index') && props.index) {
           index = props.index;
@@ -279,36 +274,13 @@ export const useParagraphs = (context: { state: NotebookState }) => {
           isRunning: true,
         });
 
-        let contextPrompt: string = '';
-        if (
-          isSavedObjectNotebook &&
-          (para.input.inputType === DEEP_RESEARCH_PARAGRAPH_TYPE ||
-            para.input.inputType === AI_RESPONSE_TYPE)
-        ) {
-          try {
-            contextPrompt = await generateContextPromptFromParagraphs({
-              paragraphService,
-              paragraphs: paragraphs.slice(0, index),
-              notebookInfo: topContextState.value,
-              ignoreInputTypes:
-                para.input.inputType === AI_RESPONSE_TYPE ? [] : [DEEP_RESEARCH_PARAGRAPH_TYPE],
-            });
-          } catch (err) {
-            notifications.toasts.addDanger(`Error running paragraph: ${err.message}`);
-            context.state.value.paragraphs[index].updateUIState({
-              isRunning: false,
-            });
-            return Promise.reject('Generate context failed');
-          }
-        }
-
         const paraUpdateObject = {
           noteId: openedNoteId,
           paragraphId: para.id,
           input: {
             inputType: para.input.inputType,
             inputText: para.input.inputText,
-            parameters: { ...(para.input.parameters || {}), PERAgentContext: contextPrompt },
+            parameters: para.input.parameters || {},
           },
           dataSourceMDSId: para.dataSourceMDSId || '',
         };

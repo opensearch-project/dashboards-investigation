@@ -20,26 +20,13 @@ import {
   LOG_PATTERN_PARAGRAPH_TYPE,
   PPL_PARAGRAPH_TYPE,
 } from '../../common/constants/notebooks';
-import { useNotebook } from './use_notebook';
 import { getInputType } from '../../common/utils/paragraph';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { formatTimeRangeString } from '../../public/utils/time';
 
 export const usePrecheck = () => {
   const { paragraphHooks } = useContext(NotebookReactContext);
-  const { updateNotebookContext } = useNotebook();
   const { createParagraph, runParagraph } = paragraphHooks;
-
-  const setInitialGoal = useCallback(
-    async (res: { context?: NotebookContext }) => {
-      if (res.context?.source === NoteBookSource.ALERTING && !res.context.initialGoal) {
-        await updateNotebookContext({
-          initialGoal: 'Why did the alert happen? Find the root cause and give some solutions.',
-        });
-      }
-    },
-    [updateNotebookContext]
-  );
 
   return {
     start: useCallback(
@@ -132,21 +119,19 @@ export const usePrecheck = () => {
             resContext?.source === NoteBookSource.DISCOVER &&
             resContext.variables?.['pplQuery'] &&
             !resContext.variables?.log;
-          const canAnalyticAlert =
-            resContext?.source === NoteBookSource.ALERTING && resContext?.filters;
+
           if (
             resContext?.timeRange &&
             resContext?.index &&
             resContext?.timeField &&
-            (canAnalyticDis || canAnalyticAlert)
+            canAnalyticDis
           ) {
             const newParaContent = JSON.stringify({
               index: resContext.index,
               timeField: resContext.timeField,
               dataSourceId: resContext?.dataSourceId,
               timeRange: resContext.timeRange,
-              ...(canAnalyticAlert ? { filters: resContext.filters } : {}),
-              ...(canAnalyticDis ? { query: resContext.variables?.['pplQuery'] } : {}),
+              query: resContext.variables?.['pplQuery'],
             });
             const anomalyAnalysisParagraphResult = await createParagraph({
               index: totalParagraphLength + paragraphStates.length,
@@ -248,6 +233,5 @@ export const usePrecheck = () => {
       },
       [runParagraph]
     ),
-    setInitialGoal,
   };
 };

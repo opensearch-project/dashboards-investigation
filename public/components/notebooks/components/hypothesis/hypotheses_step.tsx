@@ -18,9 +18,9 @@ import {
   EuiAccordion,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
-import { isMarkdownText } from '../paragraph_components/deep_research/utils';
-import { PERAgentMessageService } from '../paragraph_components/deep_research/services/per_agent_message_service';
-import { PERAgentMemoryService } from '../paragraph_components/deep_research/services/per_agent_memory_service';
+import { isMarkdownText } from './investigation/utils';
+import { PERAgentMessageService } from './investigation/services/per_agent_message_service';
+import { PERAgentMemoryService } from './investigation/services/per_agent_memory_service';
 
 interface Props {
   messageService: PERAgentMessageService;

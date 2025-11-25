@@ -5,25 +5,16 @@
 
 import now from 'performance-now';
 import { v4 as uuid } from 'uuid';
-import {
-  AI_RESPONSE_TYPE,
-  DEEP_RESEARCH_PARAGRAPH_TYPE,
-} from '../../../common/constants/notebooks';
 import { SavedObjectsClientContract, SavedObject } from '../../../../../src/core/server/types';
 import { NOTEBOOK_SAVED_OBJECT } from '../../../common/types/observability_saved_object_attributes';
 import { formatNotRecognized, inputIsQuery } from '../../common/helpers/notebooks/query_helpers';
-import { OpenSearchDashboardsRequest, RequestHandlerContext } from '../../../../../src/core/server';
 import { getInputType } from '../../../common/utils/paragraph';
 import { updateParagraphText } from '../../common/helpers/notebooks/paragraph';
 import {
-  DeepResearchInputParameters,
-  DeepResearchOutputResult,
   NotebookBackendType,
   NotebookContext,
   ParagraphBackendType,
 } from '../../../common/types/notebooks';
-import { getOpenSearchClientTransport } from '../../routes/utils';
-import { executePERAgentInParagraph } from '../../common/helpers/notebooks/per_agent';
 
 export function createParagraph<T>({
   input,
@@ -44,8 +35,6 @@ export function createParagraph<T>({
       } else {
         paragraphType = 'MARKDOWN';
       }
-    } else if (inputType === AI_RESPONSE_TYPE) {
-      paragraphType = DEEP_RESEARCH_PARAGRAPH_TYPE;
     }
 
     const outputObjects: ParagraphBackendType<string>['output'] = [
@@ -173,9 +162,7 @@ export async function updateRunFetchParagraph<TOutput>(
     input: ParagraphBackendType<TOutput>['input'];
     dataSourceMDSId?: string;
   },
-  opensearchNotebooksClient: SavedObjectsClientContract,
-  context: RequestHandlerContext,
-  request: OpenSearchDashboardsRequest
+  opensearchNotebooksClient: SavedObjectsClientContract
 ) {
   try {
     const notebookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
@@ -188,9 +175,7 @@ export async function updateRunFetchParagraph<TOutput>(
     const updatedOutputParagraphs = await runParagraph<TOutput>(
       updatedInputParagraphs,
       params.paragraphId,
-      context,
-      notebookInfo,
-      request
+      notebookInfo
     );
 
     const updateNotebook: {
@@ -201,29 +186,6 @@ export async function updateRunFetchParagraph<TOutput>(
       paragraphs: updatedOutputParagraphs,
       dateModified: new Date().toISOString(),
     };
-    const notebookContext = notebookInfo.attributes.savedNotebook?.context;
-    if (notebookContext && notebookContext.initialGoal) {
-      const firstDeepResearchParagraph = updatedOutputParagraphs.find(
-        ({ input }) => input.inputType === DEEP_RESEARCH_PARAGRAPH_TYPE
-      );
-      const targetParagraph = updatedOutputParagraphs.find(
-        ({ id }) => id === params.paragraphId
-      ) as ParagraphBackendType<DeepResearchOutputResult> | undefined;
-      if (
-        firstDeepResearchParagraph?.id === targetParagraph?.id &&
-        targetParagraph?.input.inputType === DEEP_RESEARCH_PARAGRAPH_TYPE &&
-        targetParagraph?.output?.[0]?.outputType === DEEP_RESEARCH_PARAGRAPH_TYPE
-      ) {
-        const { result } = targetParagraph.output[0];
-
-        if (typeof result !== 'string' && 'memoryId' in result) {
-          updateNotebook.context = {
-            ...notebookContext,
-            memoryId: result.memoryId,
-          };
-        }
-      }
-    }
     await opensearchNotebooksClient.update(NOTEBOOK_SAVED_OBJECT, params.noteId, {
       savedNotebook: updateNotebook,
     });
@@ -244,9 +206,7 @@ export async function updateRunFetchParagraph<TOutput>(
 export async function runParagraph<TOutput>(
   paragraphs: Array<ParagraphBackendType<unknown>>,
   paragraphId: string,
-  context: RequestHandlerContext,
-  notebookinfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>,
-  request: OpenSearchDashboardsRequest
+  notebookinfo: SavedObject<{ savedNotebook: { context?: NotebookContext } }>
 ): Promise<Array<ParagraphBackendType<TOutput>>> {
   try {
     const updatedParagraphs: Array<ParagraphBackendType<TOutput>> = [];
@@ -304,38 +264,6 @@ export async function runParagraph<TOutput>(
               execution_time: `${(now() - startTime).toFixed(3)} ms`,
             },
           ];
-        } else if (inputType === DEEP_RESEARCH_PARAGRAPH_TYPE || inputType === AI_RESPONSE_TYPE) {
-          const transport = await getOpenSearchClientTransport({
-            context,
-            dataSourceId: updatedParagraph.dataSourceMDSId,
-            request,
-          });
-          const isDeepResearchParagraph = inputType === DEEP_RESEARCH_PARAGRAPH_TYPE;
-          let baseMemoryId = isDeepResearchParagraph
-            ? notebookinfo.attributes.savedNotebook.context?.memoryId
-            : undefined;
-          // Always use fresh memory for first deep research paragraph rerun
-          if (
-            isDeepResearchParagraph &&
-            !!baseMemoryId &&
-            !paragraphs
-              .slice(0, index)
-              .some((item) => item.input.inputType === DEEP_RESEARCH_PARAGRAPH_TYPE)
-          ) {
-            baseMemoryId = undefined;
-          }
-
-          const newParagraph = await executePERAgentInParagraph({
-            transport,
-            paragraph: updatedParagraph as ParagraphBackendType<
-              unknown,
-              DeepResearchInputParameters
-            >,
-            baseMemoryId,
-          });
-          updatedParagraph.dateModified = newParagraph.dateModified;
-          updatedParagraph.input = newParagraph.input;
-          updatedParagraph.output = newParagraph.output;
         } else if (formatNotRecognized(paragraphs[index].input.inputText)) {
           updatedParagraph.output = [
             {
