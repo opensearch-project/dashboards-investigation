@@ -18,7 +18,7 @@ import {
   VisualizationsStart,
 } from '../../../src/plugins/visualizations/public';
 import { ExpressionsStart } from '../../../src/plugins/expressions/public';
-import { AppMountParameters, CoreStart } from '../../../src/core/public';
+import { AppMountParameters, CoreStart, OverlayStart } from '../../../src/core/public';
 import PPLService from './services/requests/ppl';
 import { ParagraphServiceSetup } from './services/paragraph_service';
 import { ContextServiceSetup } from './services/context_service';
@@ -45,6 +45,7 @@ export interface AppPluginStartDependencies {
   explore?: ExplorePluginStart;
   usageCollection?: UsageCollectionStart;
   chat?: ChatPluginStart;
+  overlay?: OverlayStart;
 }
 
 export interface SetupDependencies {

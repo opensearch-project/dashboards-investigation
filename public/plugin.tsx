@@ -106,6 +106,7 @@ export class InvestigationPlugin
         updateContext: this.updateContext,
         findingService,
         usageCollection: depsStart.usageCollection,
+        overlay: depsStart.overlay,
       };
       return services;
     };
