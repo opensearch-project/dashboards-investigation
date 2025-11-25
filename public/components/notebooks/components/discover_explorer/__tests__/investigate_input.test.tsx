@@ -80,16 +80,14 @@ describe('InvestigateInput', () => {
   it('renders input field and search button', () => {
     const { getByPlaceholderText, getByLabelText } = renderComponent();
 
-    expect(
-      getByPlaceholderText('Ask about potential privilege escalation attack')
-    ).toBeInTheDocument();
+    expect(getByPlaceholderText('Describe the issue you want to investigate.')).toBeInTheDocument();
     expect(getByLabelText('Investigate')).toBeInTheDocument();
   });
 
   it('updates input value on change', () => {
     const { getByPlaceholderText } = renderComponent();
     const input = getByPlaceholderText(
-      'Ask about potential privilege escalation attack'
+      'Describe the issue you want to investigate.'
     ) as HTMLInputElement;
 
     fireEvent.change(input, { target: { value: 'test investigation query' } });
@@ -98,7 +96,7 @@ describe('InvestigateInput', () => {
 
   it('creates notebook with correct parameters on button click', async () => {
     const { getByPlaceholderText, getByLabelText } = renderComponent();
-    const input = getByPlaceholderText('Ask about potential privilege escalation attack');
+    const input = getByPlaceholderText('Describe the issue you want to investigate.');
 
     fireEvent.change(input, { target: { value: 'test goal' } });
     fireEvent.click(getByLabelText('Investigate'));
@@ -128,7 +126,7 @@ describe('InvestigateInput', () => {
 
   it('handles Enter key press to create notebook', async () => {
     const { getByPlaceholderText } = renderComponent();
-    const input = getByPlaceholderText('Ask about potential privilege escalation attack');
+    const input = getByPlaceholderText('Describe the issue you want to investigate.');
 
     fireEvent.change(input, { target: { value: 'enter key test' } });
     fireEvent.keyUp(input, { key: 'Enter', code: 'Enter' });
@@ -142,7 +140,10 @@ describe('InvestigateInput', () => {
     const testLog = { field1: 'value1', field2: 'value2' };
     mockHttpPost.mockResolvedValue('new-notebook-id');
 
-    const { getByLabelText } = renderComponent({ log: testLog });
+    const { getByLabelText, getByPlaceholderText } = renderComponent({ log: testLog });
+    const input = getByPlaceholderText('Describe the issue you want to investigate.');
+
+    fireEvent.change(input, { target: { value: 'test investigation' } });
     fireEvent.click(getByLabelText('Investigate'));
 
     await waitFor(() => {
@@ -154,5 +155,16 @@ describe('InvestigateInput', () => {
     const callArgs = mockHttpPost.mock.calls[0];
     const bodyContent = JSON.parse(callArgs[1].body);
     expect(bodyContent.context.log).toEqual(testLog);
+  });
+
+  it('disables investigate button and prevents Enter key when input is empty', () => {
+    const { getByLabelText, getByPlaceholderText } = renderComponent();
+    const button = getByLabelText('Investigate');
+    const input = getByPlaceholderText('Describe the issue you want to investigate.');
+
+    expect(button).toBeDisabled();
+
+    fireEvent.keyUp(input, { key: 'Enter', code: 'Enter' });
+    expect(mockHttpPost).not.toHaveBeenCalled();
   });
 });
