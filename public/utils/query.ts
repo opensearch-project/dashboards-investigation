@@ -131,3 +131,14 @@ export const jsonArrayToTsv = (data: Array<Record<string, any>>): string => {
   const rows = flatData.map((row) => headers.map((h) => String(row[h] ?? '')).join('\t'));
   return [headers.join('\t'), ...rows].join('\n');
 };
+
+export const generateDefaultQuery = (
+  indexName: string | undefined,
+  queryLanguage: string
+): string => {
+  return indexName
+    ? queryLanguage === 'PPL'
+      ? `source = ${indexName}`
+      : `SELECT * FROM ${indexName}`
+    : '';
+};

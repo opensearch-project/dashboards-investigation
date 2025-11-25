@@ -195,7 +195,7 @@ export const PPLParagraph = ({
       </EuiCompressedFormRow>
       {isRunning ? (
         <EuiLoadingContent />
-      ) : (
+      ) : inputQuery ? (
         <>
           {columns.length && data.length ? (
             <div>
@@ -227,6 +227,10 @@ export const PPLParagraph = ({
             <EuiCodeBlock>{error || 'No result'}</EuiCodeBlock>
           )}
         </>
+      ) : (
+        <EuiText color="subdued" size="xs">
+          To use the query editor, select an index and run a query to get started.
+        </EuiText>
       )}
     </>
   );

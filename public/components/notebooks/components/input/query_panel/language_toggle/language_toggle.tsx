@@ -8,6 +8,7 @@ import { EuiBetaBadge, EuiContextMenuItem, EuiContextMenuPanel, EuiPopover } fro
 import classNames from 'classnames';
 import { useInputContext } from '../../input_context';
 import { QueryLanguage, QueryState } from '../../types';
+import { generateDefaultQuery } from '../../../../../../../public/utils/query';
 
 import './language_toggle.scss';
 
@@ -22,7 +23,7 @@ export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
     handleSetCurrInputType,
   } = useInputContext();
 
-  const { isPromptEditorMode, queryLanguage } = (inputValue as QueryState) || {};
+  const { isPromptEditorMode, queryLanguage, selectedIndex } = (inputValue as QueryState) || {};
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
@@ -39,17 +40,26 @@ export const LanguageToggle: React.FC<{ promptModeIsAvailable: boolean }> = ({
       const actualLanguage = isAI ? 'PPL' : language;
 
       handleInputChange({
-        value: '',
         query: '',
         queryLanguage: actualLanguage,
         isPromptEditorMode: isAI,
       });
 
+      requestAnimationFrame(() =>
+        // Wait until monaco editor correctly switch the query langauge
+        handleInputChange({
+          value:
+            selectedIndex?.title && !isAI
+              ? generateDefaultQuery(selectedIndex?.title, actualLanguage)
+              : '',
+        })
+      );
+
       if (!isAI) {
         handleSetCurrInputType(actualLanguage);
       }
     },
-    [closePopover, handleInputChange, handleSetCurrInputType]
+    [selectedIndex, closePopover, handleInputChange, handleSetCurrInputType]
   );
 
   const badgeLabel = isPromptEditorMode ? 'AI' : queryLanguage || 'PPL';
