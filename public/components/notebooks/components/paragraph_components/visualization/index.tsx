@@ -38,18 +38,18 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
 
   const isRunning = paragraphValue.uiState?.isRunning;
   const dateFormat = uiSettings.get('dateFormat');
-  const [currentInput, setCurrentInput] = useState(inputJSON);
+  const [expandedPanelId, setExpandedPanelId] = useState<string | undefined>(undefined);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   // Watch for expandedPanelId changes to show/hide modal
   useEffect(() => {
-    setIsModalVisible(!!currentInput.expandedPanelId);
-  }, [currentInput.expandedPanelId]);
+    setIsModalVisible(!!expandedPanelId);
+  }, [expandedPanelId]);
 
   const closeModal = () => {
     setIsModalVisible(false);
     // Clear expandedPanelId to restore normal view
-    setCurrentInput({ ...currentInput, expandedPanelId: undefined });
+    setExpandedPanelId(undefined);
   };
 
   const panels = useMemo(() => {
@@ -117,11 +117,12 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
             >
               <DashboardContainerByValueRenderer
                 input={{
-                  ...currentInput,
+                  ...inputJSON,
+                  expandedPanelId,
                   panels,
                 }}
                 onInputUpdated={(newInput: DashboardContainerInput) => {
-                  setCurrentInput(newInput);
+                  setExpandedPanelId(newInput.expandedPanelId);
                 }}
               />
             </div>
@@ -132,7 +133,8 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
                   <div style={{ height: '70vh', position: 'relative' }}>
                     <DashboardContainerByValueRenderer
                       input={{
-                        ...currentInput,
+                        ...inputJSON,
+                        expandedPanelId,
                         hidePanelActions: true,
                         panels,
                       }}
