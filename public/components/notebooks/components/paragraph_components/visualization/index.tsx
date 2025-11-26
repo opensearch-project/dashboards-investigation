@@ -43,11 +43,7 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
 
   // Watch for expandedPanelId changes to show/hide modal
   useEffect(() => {
-    if (currentInput.expandedPanelId) {
-      setIsModalVisible(true);
-    } else {
-      setIsModalVisible(false);
-    }
+    setIsModalVisible(!!currentInput.expandedPanelId);
   }, [currentInput.expandedPanelId]);
 
   const closeModal = () => {

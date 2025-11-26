@@ -167,6 +167,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         }
         notebookContext.state.updateValue({
           dateCreated: res.dateCreated,
+          dateModified: res.dateModified,
           path: res.path,
           vizPrefix: res.vizPrefix,
           paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
