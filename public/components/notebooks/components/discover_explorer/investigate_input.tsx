@@ -101,7 +101,7 @@ export const InvestigateInput = ({ log }: { log?: Record<string, any> }) => {
           value={value}
           onChange={(e) => onChange(e)}
           aria-label={i18n.translate('investigate.discoverExplorer.investigationPanel.ariaLabel', {
-            defaultMessage: 'start investigation',
+            defaultMessage: 'Describe the issue you want to investigate.',
           })}
           onKeyUp={handleInputKeyUp}
           isLoading={disabled}
