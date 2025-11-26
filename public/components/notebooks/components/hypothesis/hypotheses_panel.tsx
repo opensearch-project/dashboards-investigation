@@ -187,7 +187,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     }
 
     return hypotheses.map((hypothesis, index) => (
-      <EuiFlexGroup key={`hypothesis-${index}`} alignItems="center" gutterSize="none">
+      <EuiFlexGroup key={`hypothesis-${hypothesis.id}`} alignItems="center" gutterSize="none">
         <HypothesisItem
           index={index}
           hypothesis={hypothesis}

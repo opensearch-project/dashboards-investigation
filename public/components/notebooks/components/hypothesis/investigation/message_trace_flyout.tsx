@@ -118,10 +118,7 @@ export const MessageTraceFlyout = ({
     if (!traceMessage?.response) {
       return true;
     }
-    if (!!message?.hits?.hits?.[0]?._source?.structured_data?.response) {
-      return false;
-    }
-    return true;
+    return !message?.hits?.hits?.[0]?._source?.structured_data?.response;
   }, [isLastMessage, traceMessage?.response, message, traces]);
 
   useEffect(() => {
