@@ -162,6 +162,8 @@ export const useNotebook = () => {
 
         context.state.updateValue({
           hypotheses,
+          dateModified:
+            response?.attributes?.savedNotebook?.dateModified || new Date().toISOString(),
         });
 
         return response;
@@ -190,7 +192,10 @@ export const useNotebook = () => {
           ? currentHypotheses.filter((h) => h.id !== hypothesisId)
           : [];
 
-        context.state.updateValue({ hypotheses: updatedHypotheses });
+        context.state.updateValue({
+          hypotheses: updatedHypotheses,
+          dateModified: new Date().toISOString(),
+        });
       } catch (error) {
         console.error('Error deleting hypotheses:', error);
         throw error;

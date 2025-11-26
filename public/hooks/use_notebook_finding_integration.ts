@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useContext } from 'react';
 import { FindingService, Finding, CallbackUnsubscribe } from '../services/finding_service';
 import { useInvestigation } from './use_investigation';
+import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 
 export interface UseNotebookFindingIntegrationProps {
   findingService: FindingService;
@@ -24,6 +25,7 @@ export const useNotebookFindingIntegration = (props: UseNotebookFindingIntegrati
   const { addNewFinding } = useInvestigation();
   const unsubscribeRef = useRef<CallbackUnsubscribe | null>(null);
   const isIntegratedRef = useRef<boolean>(false);
+  const context = useContext(NotebookReactContext);
 
   /**
    * Callback function that handles finding additions by creating new paragraphs
@@ -42,6 +44,10 @@ export const useNotebookFindingIntegration = (props: UseNotebookFindingIntegrati
           hypothesisIndex: 0,
           text: `%md\n${finding.markdown}`,
         });
+
+        context.state.updateValue({
+          dateModified: new Date().toISOString(),
+        });
       } catch (error) {
         console.error('Failed to add finding paragraph to notebook:', error, {
           findingId: finding.id,
@@ -50,7 +56,7 @@ export const useNotebookFindingIntegration = (props: UseNotebookFindingIntegrati
         // Don't throw error to prevent blocking other callbacks
       }
     },
-    [notebookId, addNewFinding]
+    [notebookId, addNewFinding, context.state]
   );
 
   /**

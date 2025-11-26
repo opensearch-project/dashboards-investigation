@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useContext, useMemo } from 'react';
-import { EuiLoadingContent, EuiSpacer, EuiText } from '@elastic/eui';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { EuiLoadingContent, EuiModal, EuiModalBody, EuiSpacer, EuiText } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
 import moment from 'moment';
@@ -38,6 +38,19 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
 
   const isRunning = paragraphValue.uiState?.isRunning;
   const dateFormat = uiSettings.get('dateFormat');
+  const [expandedPanelId, setExpandedPanelId] = useState<string | undefined>(undefined);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  // Watch for expandedPanelId changes to show/hide modal
+  useEffect(() => {
+    setIsModalVisible(!!expandedPanelId);
+  }, [expandedPanelId]);
+
+  const closeModal = () => {
+    setIsModalVisible(false);
+    // Clear expandedPanelId to restore normal view
+    setExpandedPanelId(undefined);
+  };
 
   const panels = useMemo(() => {
     if (!visualizationValue || !visualizationValue.id || !inputJSON) {
@@ -95,12 +108,41 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
             <EuiText size="s" style={{ marginLeft: 9 }}>
               {`${visualizationValue?.startTime} - ${visualizationValue?.endTime}`}
             </EuiText>
-            <DashboardContainerByValueRenderer
-              input={{
-                ...inputJSON,
-                panels,
+            <div
+              style={{
+                minHeight: '400px',
+                position: 'relative',
+                width: '100%',
               }}
-            />
+            >
+              <DashboardContainerByValueRenderer
+                input={{
+                  ...inputJSON,
+                  expandedPanelId,
+                  panels,
+                }}
+                onInputUpdated={(newInput: DashboardContainerInput) => {
+                  setExpandedPanelId(newInput.expandedPanelId);
+                }}
+              />
+            </div>
+            {/* Modal for expanded panel */}
+            {isModalVisible && (
+              <EuiModal onClose={closeModal} maxWidth="90vw">
+                <EuiModalBody style={{ width: '80vw' }}>
+                  <div style={{ height: '70vh', position: 'relative' }}>
+                    <DashboardContainerByValueRenderer
+                      input={{
+                        ...inputJSON,
+                        expandedPanelId,
+                        hidePanelActions: true,
+                        panels,
+                      }}
+                    />
+                  </div>
+                </EuiModalBody>
+              </EuiModal>
+            )}
           </>
         ) : null
       ) : null}
