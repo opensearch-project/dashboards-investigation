@@ -230,6 +230,16 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
     if (isDisabled) {
       return;
     }
+
+    // Block execution when in prompt mode without index selection
+    if (isPromptEditorMode && !selectedIndex?.title) {
+      notifications?.toasts.addWarning({
+        title: 'Index Required',
+        text: 'Please select an index before using natural language query.',
+      });
+      return;
+    }
+
     const queryToExecute = value || generateDefaultQuery(selectedIndex?.title, queryLanguage);
     handleInputChange({ value: queryToExecute });
     handleSubmit(
@@ -255,6 +265,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
     timeRange,
     localDataSourceId,
     queryLanguage,
+    notifications?.toasts,
   ]);
 
   const isQueryPanelLoading = isFetching || isLoading;
