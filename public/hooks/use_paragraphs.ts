@@ -187,8 +187,170 @@ export const useParagraphs = (context: { state: NotebookState }) => {
     [context.state]
   );
 
+  const batchCreateParagraphs = useCallback(
+    (props: {
+      startIndex: number;
+      paragraphs: Array<{
+        input: ParagraphBackendType<unknown>['input'];
+        dataSourceMDSId?: string;
+        aiGenerated?: boolean;
+      }>;
+    }) => {
+      return http
+        .post(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraphs/batch`, {
+          body: JSON.stringify({
+            noteId: context.state.value.id,
+            ...props,
+          }),
+        })
+        .then((res) => {
+          const newParagraphs = [...context.state.value.paragraphs];
+          const createdParagraphs = res.paragraphs.map((p: any) => new ParagraphState(p));
+          newParagraphs.splice(props.startIndex, 0, ...createdParagraphs);
+          context.state.updateValue({
+            paragraphs: newParagraphs,
+          });
+          return res;
+        })
+        .catch((err) => {
+          notifications.toasts.addDanger('Error adding paragraphs:', err);
+          console.error(err);
+        });
+    },
+    [context, notifications.toasts, http]
+  );
+
+  const batchRunParagraphs = useCallback(
+    async (props: { paragraphIds: string[] }) => {
+      const paragraphs = context.state.getParagraphsValue();
+      const { id: openedNoteId } = context.state.value;
+
+      const paragraphsToRun = await Promise.all(
+        props.paragraphIds.map(async (paragraphId) => {
+          const index = paragraphs.findIndex((p) => p.id === paragraphId);
+          if (index < 0) return null;
+
+          const para = paragraphs[index];
+          const contextPrompt = '';
+
+          return {
+            id: paragraphId,
+            input: {
+              inputType: para.input.inputType,
+              inputText: para.input.inputText,
+              parameters: { ...(para.input.parameters || {}), PERAgentContext: contextPrompt },
+            },
+            dataSourceMDSId: para.dataSourceMDSId || '',
+          };
+        })
+      );
+
+      const validParagraphs = paragraphsToRun.filter(Boolean);
+
+      return http
+        .post(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraphs/batch/run`, {
+          body: JSON.stringify({
+            noteId: openedNoteId,
+            paragraphs: validParagraphs,
+          }),
+        })
+        .then((res) => {
+          const updatedParagraphs = res.paragraphs.map((p: any) => new ParagraphState(p));
+          const newParagraphs = [...context.state.value.paragraphs];
+
+          updatedParagraphs.forEach((updatedPara: any) => {
+            const index = newParagraphs.findIndex((para) => para.value.id === updatedPara.value.id);
+            if (index !== -1) {
+              newParagraphs[index] = updatedPara;
+            }
+          });
+
+          context.state.updateValue({
+            paragraphs: newParagraphs,
+          });
+          return res;
+        })
+        .catch((err) => {
+          notifications.toasts.addDanger(
+            'Error running paragraphs, please make sure you have the correct permission.'
+          );
+          console.error(err);
+        });
+    },
+    [context, notifications.toasts, http]
+  );
+
+  const batchSaveParagraphs = useCallback(
+    (props: { paragraphStateValues: ParagraphStateValue[] }) => {
+      const paragraphsToSave = props.paragraphStateValues.map((paragraphStateValue) => {
+        const { id: paragraphId, input, output, dataSourceMDSId } = paragraphStateValue;
+        const findUpdateParagraphState = context.state.value.paragraphs.find(
+          (paragraph) => paragraph.value.id === paragraphId
+        );
+        if (findUpdateParagraphState) {
+          findUpdateParagraphState.updateUIState({ isRunning: true });
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const outputPayload = output?.map(({ execution_time: executionTime, ...others }) => others);
+        return {
+          paragraphId,
+          input,
+          dataSourceMDSId,
+          output: outputPayload,
+        };
+      });
+
+      const promise = http
+        .put(`${NOTEBOOKS_API_PREFIX}/savedNotebook/paragraphs/batch`, {
+          body: JSON.stringify({
+            noteId: context.state.value.id,
+            paragraphs: paragraphsToSave,
+          }),
+        })
+        .then((res) => {
+          const updatedParagraphs = res.paragraphs.map((p: any) => new ParagraphState(p));
+          const newParagraphs = [...context.state.value.paragraphs];
+
+          updatedParagraphs.forEach((updatedPara: any) => {
+            const index = newParagraphs.findIndex((para) => para.value.id === updatedPara.value.id);
+            if (index !== -1) {
+              newParagraphs[index] = updatedPara;
+            }
+          });
+
+          context.state.updateValue({
+            paragraphs: newParagraphs,
+          });
+          return res;
+        });
+
+      promise
+        .catch((err) => {
+          notifications.toasts.addDanger(
+            'Error updating paragraphs, please make sure you have the correct permission.'
+          );
+          console.error(err);
+        })
+        .finally(() => {
+          props.paragraphStateValues.forEach((paragraphStateValue) => {
+            const findUpdateParagraphState = context.state.value.paragraphs.find(
+              (paragraph) => paragraph.value.id === paragraphStateValue.id
+            );
+            if (findUpdateParagraphState) {
+              findUpdateParagraphState.updateUIState({ isRunning: false });
+            }
+          });
+        });
+
+      return promise;
+    },
+    [http, context.state, notifications.toasts]
+  );
+
   const payload = {
     createParagraph,
+    batchCreateParagraphs,
+    batchRunParagraphs,
     deleteParagraph: (index: number) => {
       if (index < 0) {
         return Promise.reject('Please provide a valid paragraph index');
@@ -254,6 +416,7 @@ export const useParagraphs = (context: { state: NotebookState }) => {
     moveParagraph,
     cloneParagraph,
     saveParagraph,
+    batchSaveParagraphs,
     runParagraph: useCallback(
       async <TOutput>(props: { index?: number; id?: string }) => {
         const { id: openedNoteId } = context.state.value;
