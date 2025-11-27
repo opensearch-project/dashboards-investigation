@@ -43,6 +43,7 @@ export const useParagraphs = (context: { state: NotebookState }) => {
           newParagraphs.splice(props.index, 0, new ParagraphState(res));
           context.state.updateValue({
             paragraphs: newParagraphs,
+            dateModified: new Date().toISOString(),
           });
           return context.state.value.paragraphs[props.index];
         })
@@ -75,6 +76,7 @@ export const useParagraphs = (context: { state: NotebookState }) => {
         paragraphStates.splice(targetIndex, 0, paragraphStates.splice(index, 1)[0]);
         context.state.updateValue({
           paragraphs: paragraphStates,
+          dateModified: new Date().toISOString(),
         });
       })
       .catch((err) => {
@@ -205,6 +207,7 @@ export const useParagraphs = (context: { state: NotebookState }) => {
           newParagraphs.splice(index, 1);
           context.state.updateValue({
             paragraphs: newParagraphs,
+            dateModified: new Date().toISOString(),
           });
           // no need to await. Cleans up context in background
           contextService.deleteParagraphContext(id, paragraph.id);
@@ -231,6 +234,7 @@ export const useParagraphs = (context: { state: NotebookState }) => {
           );
           context.state.updateValue({
             paragraphs: newParagraphs,
+            dateModified: new Date().toISOString(),
           });
           // Clean up context for deleted paragraphs
           paragraphIds.forEach((paragraphId) => {

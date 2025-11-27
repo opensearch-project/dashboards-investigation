@@ -122,6 +122,7 @@ export async function deleteParagraphs(
 
   noteBookInfo.attributes.savedNotebook.paragraphs = updatedparagraphs;
   try {
+    noteBookInfo.attributes.savedNotebook.dateModified = new Date().toISOString();
     await opensearchNotebooksClient.create(NOTEBOOK_SAVED_OBJECT, noteBookInfo.attributes, {
       id: params.noteId,
       overwrite: true,
@@ -143,6 +144,7 @@ export async function deleteParagraphsByIds(
   );
 
   noteBookInfo.attributes.savedNotebook.paragraphs = updatedparagraphs;
+  noteBookInfo.attributes.savedNotebook.dateModified = new Date().toISOString();
   try {
     const result = await opensearchNotebooksClient.create(
       NOTEBOOK_SAVED_OBJECT,

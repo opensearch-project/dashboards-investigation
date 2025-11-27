@@ -68,7 +68,7 @@ export const InvestigateInput = ({ log }: { log?: Record<string, any> }) => {
   };
 
   const handleInvestigation = async () => {
-    if (disabled) {
+    if (disabled || !value.trim()) {
       return;
     }
     setDisabled(true);
@@ -96,12 +96,12 @@ export const InvestigateInput = ({ log }: { log?: Record<string, any> }) => {
         <EuiFieldText
           placeholder={i18n.translate(
             'investigate.discoverExplorer.investigationPanel.placeholder',
-            { defaultMessage: 'Ask about potential privilege escalation attack' }
+            { defaultMessage: 'Describe the issue you want to investigate.' }
           )}
           value={value}
           onChange={(e) => onChange(e)}
           aria-label={i18n.translate('investigate.discoverExplorer.investigationPanel.ariaLabel', {
-            defaultMessage: 'Ask about potential privilege escalation attack',
+            defaultMessage: 'Describe the issue you want to investigate.',
           })}
           onKeyUp={handleInputKeyUp}
           isLoading={disabled}
@@ -113,7 +113,7 @@ export const InvestigateInput = ({ log }: { log?: Record<string, any> }) => {
           iconType="search"
           onClick={handleInvestigation}
           aria-label="Investigate"
-          disabled={disabled}
+          isDisabled={disabled || !value.trim()}
         />
       </EuiFlexItem>
     </EuiFlexGroup>
