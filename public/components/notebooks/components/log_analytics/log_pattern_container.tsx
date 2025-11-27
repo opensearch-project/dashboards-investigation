@@ -54,12 +54,10 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
   const onSaveOutput = useCallback(
     (result: LogPatternAnalysisResult) => {
       if (paragraphRef.current) {
-        saveParagraph({
-          paragraphStateValue: ParagraphState.updateOutputResult(paragraphRef.current, result),
-        });
+        paragraphState.updateOutput({ result });
       }
     },
-    [saveParagraph]
+    [paragraphState]
   );
 
   const { result, loadingStatus, error, handleExclude } = useLogPatternAnalysis(

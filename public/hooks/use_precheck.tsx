@@ -5,7 +5,11 @@
 
 import { useCallback, useContext } from 'react';
 import moment from 'moment';
+import { combineLatest, of } from 'rxjs';
+import { filter, take } from 'rxjs/operators';
 
+import { NotebookState } from 'common/state/notebook_state';
+import { NoteBookServices } from 'public/types';
 import {
   HypothesisItem,
   IndexInsightContent,
@@ -13,7 +17,7 @@ import {
   NoteBookSource,
   ParagraphBackendType,
 } from '../../common/types/notebooks';
-import { ParagraphState } from '../../common/state/paragraph_state';
+import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import {
   DATA_DISTRIBUTION_PARAGRAPH_TYPE,
   dateFormat,
@@ -23,10 +27,69 @@ import {
 import { getInputType } from '../../common/utils/paragraph';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { formatTimeRangeString } from '../../public/utils/time';
+import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
+
+const savePrecheckParagraph = ({
+  state,
+  batchSaveParagraphs,
+}: {
+  state: NotebookState;
+  batchSaveParagraphs: (props: {
+    paragraphStateValues: Array<ParagraphStateValue<string, unknown, {}>>;
+  }) => Promise<any>;
+}) => {
+  const dataDistributionState = state.value.paragraphs.find(
+    (p) => p.value.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
+  );
+  const logPatternState = state.value.paragraphs.find(
+    (p) => p.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
+  );
+
+  if (!dataDistributionState && !logPatternState) return;
+
+  const dataDistributionObs = dataDistributionState ? dataDistributionState.getValue$() : of(null);
+  const logPatternObs = logPatternState ? logPatternState.getValue$() : of(null);
+
+  combineLatest([dataDistributionObs, logPatternObs])
+    .pipe(
+      filter(([dataDistribution, logPattern]) => {
+        // Check if data distribution is ready
+        let dataDistributionReady = true;
+        if (dataDistribution) {
+          const output = ParagraphState.getOutput(dataDistribution);
+          const result = output?.result;
+          const fieldComparison = (result as any)?.fieldComparison;
+          dataDistributionReady = fieldComparison && fieldComparison.length > 0;
+        }
+
+        // Check if log pattern is ready
+        let logPatternReady = true;
+        if (logPattern) {
+          const output = ParagraphState.getOutput(logPattern);
+          logPatternReady = !!output?.result;
+        }
+
+        return dataDistributionReady && logPatternReady;
+      }),
+      take(1)
+    )
+    .subscribe(() => {
+      const paragraphsToSaveBatch = [];
+      if (dataDistributionState) paragraphsToSaveBatch.push(dataDistributionState.value);
+      if (logPatternState) paragraphsToSaveBatch.push(logPatternState.value);
+
+      batchSaveParagraphs({
+        paragraphStateValues: paragraphsToSaveBatch as any,
+      }).catch((err) => console.error('Error saving paragraphs: ', err));
+    });
+};
 
 export const usePrecheck = () => {
-  const { paragraphHooks } = useContext(NotebookReactContext);
-  const { batchCreateParagraphs, runParagraph, batchSaveParagraphs } = paragraphHooks;
+  const {
+    services: { paragraphService },
+  } = useOpenSearchDashboards<NoteBookServices>();
+  const { state, paragraphHooks } = useContext(NotebookReactContext);
+  const { batchCreateParagraphs, batchSaveParagraphs, runParagraph } = paragraphHooks;
 
   return {
     start: useCallback(
@@ -166,6 +229,7 @@ export const usePrecheck = () => {
               startIndex: totalParagraphLength,
               paragraphs: paragraphsToCreate,
             });
+            savePrecheckParagraph({ state, batchSaveParagraphs });
           } catch (e) {
             console.error('Error creating paragraphs in batch:', e);
           }
@@ -178,7 +242,7 @@ export const usePrecheck = () => {
           });
         }
       },
-      [batchCreateParagraphs]
+      [batchCreateParagraphs, batchSaveParagraphs, state]
     ),
     rerun: useCallback(
       async (
@@ -207,24 +271,30 @@ export const usePrecheck = () => {
           await runParagraph({ id: pplParagraph.value.id });
         }
 
-        const logPatternParagraph = paragraphStates.find(
-          (paragraphState) => paragraphState.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
-        );
-        if (logPatternParagraph) {
-          paragraphIdsToSave.push(logPatternParagraph.value.id);
-        }
+        // TODO: when support baseline time for log pattern and log sequence
+        // const logPatternParagraph = paragraphStates.find(
+        //   (paragraphState) => paragraphState.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
+        // );
+        // if (logPatternParagraph) {
+        //   paragraphIdsToSave.push(logPatternParagraph.value.id);
+        // }
 
         const dataDistributionParagraph = paragraphStates.find(
           (paragraphState) =>
             paragraphState.value.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
         );
         if (dataDistributionParagraph) {
+          await paragraphService
+            .getParagraphRegistry(DATA_DISTRIBUTION_PARAGRAPH_TYPE)
+            ?.runParagraph({
+              paragraphState: dataDistributionParagraph,
+              notebookStateValue: state.value,
+            });
           paragraphIdsToSave.push(dataDistributionParagraph.value.id);
         }
 
         if (paragraphIdsToSave.length > 0) {
           try {
-            // FIXME: this doesn't actually update the time range for log analyze and data distribution
             await batchSaveParagraphs({
               paragraphStateValues: paragraphIdsToSave
                 .map((id) => {
@@ -238,7 +308,7 @@ export const usePrecheck = () => {
           }
         }
       },
-      [runParagraph, batchSaveParagraphs]
+      [state.value, paragraphService, runParagraph, batchSaveParagraphs]
     ),
   };
 };
