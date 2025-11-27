@@ -19,6 +19,11 @@
         margin-bottom: -1px; // prevent layout shifting due to increase in border width;
     }
 
+    &--disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
     &__placeholder {
         position: absolute;
         left: 29px; // hard-code to match where the text is in editor
