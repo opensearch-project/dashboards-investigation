@@ -30,7 +30,7 @@ import {
   NoteBookSource,
 } from '../../../../../common/types/notebooks';
 import { NoteBookServices } from '../../../../types';
-import { DataDistributionInput } from './embeddable/types';
+import { DataDistributionInput, MemoItemProps } from './embeddable/types';
 import { EmbeddableRenderer } from '../../../../../../../src/plugins/embeddable/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { generateAllFieldCharts } from './render_data_distribution_vega';
@@ -193,6 +193,36 @@ export const DataDistributionContainer = ({
     );
   };
 
+  const BASE_FLEX_ITEM_STYLE = { minHeight: 300, minWidth: 300 };
+  const MemoItem: React.FC<MemoItemProps> = React.memo(
+    ({ uniqueKey, uniqueId, chartIndex, isSelected, spec }: MemoItemProps) => {
+      console.log('spec is', spec);
+      const itemStyle = useMemo(
+        () => ({
+          ...BASE_FLEX_ITEM_STYLE,
+          maxWidth: `${100 / ITEMS_PER_PAGE}%`,
+          opacity: isSelected ? 0.5 : 1,
+        }),
+        [isSelected]
+      );
+      return (
+        <EuiFlexItem grow={true} key={uniqueKey} style={itemStyle}>
+          {factory && spec && (
+            <EmbeddableRenderer
+              factory={factory}
+              input={{
+                id: uniqueId,
+                savedObjectId: '',
+                visInput: { spec },
+              }}
+            />
+          )}
+          {excludeButton(chartIndex, isSelected)}
+        </EuiFlexItem>
+      );
+    }
+  ) as React.FC<MemoItemProps>;
+
   const specsVis = !fetchDataLoading && !distributionLoading && (
     <EuiPanel hasShadow={false} borderRadius="l">
       {paginatedSpecs.length ? (
@@ -205,28 +235,13 @@ export const DataDistributionContainer = ({
               const isSelected = !!fieldComparison[chartIndex].excludeFromContext;
 
               return (
-                <EuiFlexItem
-                  grow={true}
-                  key={uniqueKey}
-                  style={{
-                    opacity: isSelected ? 0.5 : 1,
-                    minHeight: 300,
-                    minWidth: 300,
-                    maxWidth: `${100 / ITEMS_PER_PAGE}%`,
-                  }}
-                >
-                  {factory && spec && (
-                    <EmbeddableRenderer
-                      factory={factory}
-                      input={{
-                        id: uniqueId,
-                        savedObjectId: '',
-                        visInput: { spec },
-                      }}
-                    />
-                  )}
-                  {excludeButton(chartIndex, isSelected)}
-                </EuiFlexItem>
+                <MemoItem
+                  uniqueKey={uniqueKey}
+                  uniqueId={uniqueId}
+                  chartIndex={chartIndex}
+                  isSelected={isSelected}
+                  spec={spec}
+                />
               );
             })}
           </EuiFlexGroup>

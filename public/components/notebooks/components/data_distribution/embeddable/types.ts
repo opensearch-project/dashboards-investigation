@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { DashboardContainerInput } from '../../../../../../../../src/plugins/dashboard/public/application/embeddable/dashboard_container';
 import {
   EmbeddableOutput,
   SavedObjectEmbeddableInput,
@@ -22,4 +23,12 @@ export interface DataDistributionOutput extends EmbeddableOutput {
   editApp: string;
   editUrl: string;
   visTypeName: string;
+}
+
+export interface MemoItemProps {
+  uniqueKey: string;
+  uniqueId: string;
+  chartIndex: number;
+  isSelected: boolean;
+  spec: DashboardContainerInput;
 }
