@@ -30,7 +30,7 @@ import {
   NoteBookSource,
 } from '../../../../../common/types/notebooks';
 import { NoteBookServices } from '../../../../types';
-import { DataDistributionInput } from './embeddable/types';
+import { DataDistributionInput, MemoItemProps } from './embeddable/types';
 import { EmbeddableRenderer } from '../../../../../../../src/plugins/embeddable/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { generateAllFieldCharts } from './render_data_distribution_vega';
@@ -193,17 +193,10 @@ export const DataDistributionContainer = ({
     );
   };
 
-  interface MemoItemProps {
-    uniqueKey: string;
-    uniqueId: string;
-    chartIndex: number;
-    isSelected: boolean;
-    spec: any;
-  }
-
   const BASE_FLEX_ITEM_STYLE = { minHeight: 300, minWidth: 300 };
   const MemoItem: React.FC<MemoItemProps> = React.memo(
     ({ uniqueKey, uniqueId, chartIndex, isSelected, spec }: MemoItemProps) => {
+      console.log('spec is', spec);
       const itemStyle = useMemo(
         () => ({
           ...BASE_FLEX_ITEM_STYLE,
