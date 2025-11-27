@@ -12,7 +12,6 @@ import { NotebookReactContext } from '../../context_provider/context_provider';
 import { getInputType } from '../../../../../common/utils/paragraph';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NoteBookServices } from '../../../../types';
-import { isAgenticRunBefore } from './utils';
 import { NotebookType } from '../../../../../common/types/notebooks';
 
 export interface ParagraphProps {
@@ -52,10 +51,7 @@ export const Paragraph = (props: ParagraphProps) => {
         <div key={paragraph.value.id} className={paraClass}>
           <ParagraphComponent
             paragraphState={paragraph}
-            actionDisabled={isAgenticRunBefore({
-              notebookState: context.state,
-              id: paragraphValue.id,
-            })}
+            actionDisabled={notebookType === NotebookType.AGENTIC}
           />
         </div>
       )}

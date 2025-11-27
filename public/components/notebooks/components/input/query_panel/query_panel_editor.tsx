@@ -66,11 +66,19 @@ export const QueryPanelEditor: React.FC<{
         ['notebookQueryPanelEditor--focused']: isFocused,
         ['notebookQueryPanelEditor--promptMode']: isPromptMode,
         ['notebookQueryPanelEditor--promptIsTyping']: promptIsTyping,
+        ['notebookQueryPanelEditor--disabled']: isDisabled,
       })}
       data-test-subj="notebookQueryPanelEditor"
       onClick={onEditorClick}
     >
-      <CodeEditor value={value} {...editorProps} />
+      <CodeEditor
+        value={value}
+        {...editorProps}
+        options={{
+          ...editorProps.options,
+          readOnly: isDisabled,
+        }}
+      />
       {showPlaceholder && (
         <div className={`notebookQueryPanelEditor__placeholder`}>{placeholder}</div>
       )}
