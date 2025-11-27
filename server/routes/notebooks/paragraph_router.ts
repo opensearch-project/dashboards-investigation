@@ -18,7 +18,7 @@ import {
   batchCreateParagraphs,
   batchRunParagraphs,
   deleteParagraphs,
-  deleteParagraphsByIds,
+  batchDeleteParagraphs,
   updateFetchParagraph,
   updateRunFetchParagraph,
   batchSaveParagraphs,
@@ -191,7 +191,7 @@ export function registerParaRoute(router: IRouter) {
       response
     ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
       try {
-        const deleteResponse = await deleteParagraphsByIds(
+        const deleteResponse = await batchDeleteParagraphs(
           request.body,
           context.core.savedObjects.client
         );
