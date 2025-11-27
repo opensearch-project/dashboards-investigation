@@ -6,14 +6,10 @@
 import React from 'react';
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import { OTHER_PARAGRAPH_TYPE } from '../../common/constants/notebooks';
-import { Toast } from '../../../../src/core/public';
 import { NotebookStateValue } from '../../common/state/notebook_state';
 
 interface RunParagraphParams<TOutputResult, TInputParameters, TFullfilledOutput> {
   paragraphState: ParagraphState<TOutputResult, TInputParameters, TFullfilledOutput>;
-  saveParagraph: <T>(props: {
-    paragraphStateValue: ParagraphStateValue<T, unknown, {}>;
-  }) => Promise<void> | Toast;
   notebookStateValue: NotebookStateValue;
 }
 

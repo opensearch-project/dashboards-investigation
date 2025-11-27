@@ -52,7 +52,7 @@ export const useInvestigation = () => {
     batchCreateParagraphs,
     batchRunParagraphs,
     runParagraph,
-    deleteParagraphsByIds,
+    batchDeleteParagraphs,
   } = useContext(NotebookReactContext).paragraphHooks;
   const contextStateValue = useObservable(context.state.getValue$());
   const paragraphStates = useObservable(context.state.getParagraphStates$());
@@ -194,7 +194,7 @@ ${finding.evidence}
               if (findingParagraphIds.length > 0) {
                 try {
                   // Delete all existing finding paragraphs
-                  await deleteParagraphsByIds(findingParagraphIds);
+                  await batchDeleteParagraphs(findingParagraphIds);
                 } catch (error) {
                   errorTitle = 'Failed to clean up old findings';
                   throw error;
@@ -245,7 +245,7 @@ ${finding.evidence}
       context.state,
       storeInvestigationResponse,
       updateHypotheses,
-      deleteParagraphsByIds,
+      batchDeleteParagraphs,
     ]
   );
 
