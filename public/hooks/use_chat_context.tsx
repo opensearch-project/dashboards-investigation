@@ -19,11 +19,11 @@ export const useChatContextProvider = () => {
   const { context: topLevelContext, title, id, paragraphs, hypotheses } = context.state.value;
   const topLevelContextValue = useObservable(topLevelContext.getValue$(), topLevelContext.value);
   const chatThreadId$ = useMemo(() => {
-    if (!chat?.chatService?.getThreadId$) {
+    if (!chat?.getThreadId$) {
       return of('');
     }
-    return chat.chatService.getThreadId$();
-  }, [chat?.chatService]);
+    return chat.getThreadId$();
+  }, [chat]);
   const chatThreadId = useObservable(chatThreadId$);
 
   const hypothesesContext = useMemo(() => {
