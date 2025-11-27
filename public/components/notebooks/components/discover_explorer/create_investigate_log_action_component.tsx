@@ -4,22 +4,28 @@
  */
 
 import React from 'react';
-import { EuiPanel } from '@elastic/eui';
 
 import { OpenSearchDashboardsContextProvider } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
-import { InvestigateInput, InvestigateInputDedentServices } from './investigate_input';
+import {
+  StartInvestigationModal,
+  StartInvestigateModalDedentServices,
+} from './start_investigation_modal';
 
 export const createInvestigateLogActionComponent = ({
   services,
 }: {
-  services: InvestigateInputDedentServices;
+  services: StartInvestigateModalDedentServices;
 }) => {
-  return ({ context }: { context: { document: Record<string, any> } }) => {
+  return ({
+    context,
+    onClose,
+  }: {
+    context: { document: Record<string, any> };
+    onClose: () => void;
+  }) => {
     return (
       <OpenSearchDashboardsContextProvider services={services}>
-        <EuiPanel style={{ minWidth: 400 }}>
-          <InvestigateInput log={context.document} />
-        </EuiPanel>
+        <StartInvestigationModal log={context.document} closeModal={onClose} />
       </OpenSearchDashboardsContextProvider>
     );
   };

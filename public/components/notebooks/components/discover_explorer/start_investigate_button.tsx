@@ -4,29 +4,31 @@
  */
 
 import React, { useState } from 'react';
-import { EuiPopover, EuiSmallButtonEmpty } from '@elastic/eui';
+import { EuiSmallButtonEmpty } from '@elastic/eui';
 import { i18n } from '@osd/i18n';
-import { InvestigateInput } from './investigate_input';
+
+import { StartInvestigationModal } from './start_investigation_modal';
 
 export const StartInvestigateButton = () => {
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const handleTogglePopover = () => setIsPopoverOpen((value) => !value);
-  const closePopover = () => setIsPopoverOpen(false);
+  const [isVisible, setIsVisible] = useState(false);
   return (
-    <EuiPopover
-      button={
-        <EuiSmallButtonEmpty onClick={handleTogglePopover}>
-          {i18n.translate('investigate.discoverExplorer.resultsActionBar.startInvestigation', {
-            defaultMessage: 'Start Investigation',
-          })}
-        </EuiSmallButtonEmpty>
-      }
-      isOpen={isPopoverOpen}
-      closePopover={closePopover}
-      panelPaddingSize="s"
-      panelStyle={{ width: 420 }}
-    >
-      <InvestigateInput />
-    </EuiPopover>
+    <>
+      <EuiSmallButtonEmpty
+        onClick={() => {
+          setIsVisible(true);
+        }}
+      >
+        {i18n.translate('investigate.discoverExplorer.resultsActionBar.startInvestigation', {
+          defaultMessage: 'Start Investigation',
+        })}
+      </EuiSmallButtonEmpty>
+      {isVisible && (
+        <StartInvestigationModal
+          closeModal={() => {
+            setIsVisible(false);
+          }}
+        />
+      )}
+    </>
   );
 };
