@@ -211,7 +211,10 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
 
       return query;
     } catch (err) {
-      console.log(`Text2ppl error: ${err}`);
+      notifications?.toasts.addError(err, {
+        title: 'Failed to generate PPL query by natural language',
+        toastMessage: err.errorMessage,
+      });
       throw err;
     } finally {
       setIsFetching(false);
@@ -224,6 +227,7 @@ export const QueryPanel: React.FC<QueryPanelProps> = ({ prependWidget, appendWid
     localDataSourceId,
     services.http,
     handleInputChange,
+    notifications?.toasts,
   ]);
 
   const handleRunQuery = useCallback(async () => {
