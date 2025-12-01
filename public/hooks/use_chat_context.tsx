@@ -41,6 +41,10 @@ export const useChatContextProvider = () => {
   }, [hypotheses]);
 
   useEffect(() => {
+    if (!title) {
+      return;
+    }
+
     let changed = false;
     const contextId = `Investigation-${id}`;
 
