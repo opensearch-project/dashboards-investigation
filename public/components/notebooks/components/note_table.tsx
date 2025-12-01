@@ -550,7 +550,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
                   tableLayout="auto"
                   pagination={{
                     initialPageSize: 10,
-                    pageSizeOptions: [8, 10, 13],
+                    pageSizeOptions: [10, 20, 50],
                   }}
                   sorting={{
                     sort: {
