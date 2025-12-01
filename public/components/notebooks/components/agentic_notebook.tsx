@@ -76,10 +76,12 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
   );
-  const { id: openedNoteId, paragraphs: paragraphsStates, isLoading } = useObservable(
-    notebookContext.state.getValue$(),
-    notebookContext.state.value
-  );
+  const {
+    id: openedNoteId,
+    paragraphs: paragraphsStates,
+    isLoading,
+    isNotebookOwner,
+  } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const {
@@ -156,6 +158,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           hypotheses: res.hypotheses,
           runningMemory: res.runningMemory,
           historyMemory: res.historyMemory,
+          isNotebookOwner: res.isNotebookOwner,
         });
 
         // Check if there's an ongoing investigation to continue BEFORE calling start
@@ -342,7 +345,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               })
             : null}
 
-          {!isLoading && !isInvestigating && (
+          {!isLoading && !isInvestigating && isNotebookOwner && (
             <>
               <EuiSpacer size="s" />
               <EuiFlexGroup alignItems="center" gutterSize="none">
