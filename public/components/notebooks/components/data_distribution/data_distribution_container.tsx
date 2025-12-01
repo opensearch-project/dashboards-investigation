@@ -196,7 +196,6 @@ export const DataDistributionContainer = ({
   const BASE_FLEX_ITEM_STYLE = { minHeight: 300, minWidth: 300 };
   const MemoItem: React.FC<MemoItemProps> = React.memo(
     ({ uniqueKey, uniqueId, chartIndex, isSelected, spec }: MemoItemProps) => {
-      console.log('spec is', spec);
       const itemStyle = useMemo(
         () => ({
           ...BASE_FLEX_ITEM_STYLE,

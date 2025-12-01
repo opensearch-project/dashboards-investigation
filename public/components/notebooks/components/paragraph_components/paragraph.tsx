@@ -41,10 +41,14 @@ export const Paragraph = (props: ParagraphProps) => {
   const isClassicNotebook = notebookType === NotebookType.CLASSIC;
   const isFindingParagraph =
     notebookType !== NotebookType.CLASSIC && paragraph.value.input.inputType === 'MARKDOWN';
+  let isActionVisible = isClassicNotebook;
+  if (!isClassicNotebook && isFindingParagraph && context.state.value.isNotebookOwner) {
+    isActionVisible = true;
+  }
 
   return (
     <div className="notebookParagraphWrapper">
-      {(isClassicNotebook || isFindingParagraph) && (
+      {isActionVisible && (
         <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
       )}
       {ParagraphComponent && (
