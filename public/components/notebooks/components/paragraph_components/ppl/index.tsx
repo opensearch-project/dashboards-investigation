@@ -92,7 +92,7 @@ export const PPLParagraph = ({
   const error = queryObject?.error;
 
   const context = useContext(NotebookReactContext);
-  const { saveParagraph, runParagraph } = context.paragraphHooks;
+  const { runParagraph } = context.paragraphHooks;
   const { notebookType, dataSourceId: notebookDataSourceId } = useObservable(
     context.state.value.context.getValue$(),
     context.state.value.context.value
@@ -105,7 +105,6 @@ export const PPLParagraph = ({
   useEffectOnce(() => {
     paragraphRegistry?.runParagraph({
       paragraphState,
-      saveParagraph,
       notebookStateValue: context.state.value,
     });
   });

@@ -243,7 +243,7 @@ export async function deleteParagraphs(
   }
 }
 
-export async function deleteParagraphsByIds(
+export async function batchDeleteParagraphs(
   params: { noteId: string; paragraphIds: string[] },
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {

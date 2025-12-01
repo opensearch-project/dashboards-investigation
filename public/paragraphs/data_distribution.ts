@@ -12,7 +12,6 @@ import {
 } from '../../common/types/notebooks';
 import { DataDistributionService } from '../components/notebooks/components/data_distribution/data_distribution_service';
 import { getPPLQueryWithTimeRange } from '../utils/time';
-import { ParagraphState } from '../../common/state/paragraph_state';
 import { getNotifications } from '../services';
 
 export const DataDistributionParagraphItem: ParagraphRegistryItem<AnomalyVisualizationAnalysisOutputResult> = {
@@ -32,8 +31,7 @@ Anomaly detection has been performed on the data and the analysis identified ano
 ${JSON.stringify(selectedFieldComparison)}.
     `;
   },
-  runParagraph: async ({ paragraphState, saveParagraph, notebookStateValue }) => {
-    const paragraph = paragraphState.value;
+  runParagraph: async ({ paragraphState, notebookStateValue }) => {
     const {
       timeRange,
       timeField,
@@ -95,13 +93,11 @@ ${JSON.stringify(selectedFieldComparison)}.
         );
       }
 
-      if (paragraph) {
-        await saveParagraph({
-          paragraphStateValue: ParagraphState.updateOutputResult(paragraph, {
-            fieldComparison: dataDistribution || [],
-          }),
-        });
-      }
+      paragraphState.updateOutput({
+        result: {
+          fieldComparison: dataDistribution || [],
+        },
+      });
       updateLoadingState(false, false);
     } catch (error) {
       updateLoadingState(false, false, error.message);

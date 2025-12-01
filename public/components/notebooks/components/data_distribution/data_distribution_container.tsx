@@ -76,24 +76,21 @@ export const DataDistributionContainer = ({
   }, [fieldComparison, source]);
 
   useEffect(() => {
-    (async () => {
-      if (
-        error ||
-        fieldComparison ||
-        fetchDataLoading ||
-        distributionLoading ||
-        !paragraph ||
-        paragraph.uiState?.isRunning
-      ) {
-        return;
-      }
+    if (
+      error ||
+      fieldComparison ||
+      fetchDataLoading ||
+      distributionLoading ||
+      !paragraph ||
+      paragraph.uiState?.isRunning
+    ) {
+      return;
+    }
 
-      await paragraphRegistry?.runParagraph({
-        paragraphState,
-        saveParagraph,
-        notebookStateValue: context.state.value,
-      });
-    })();
+    paragraphRegistry?.runParagraph({
+      paragraphState,
+      notebookStateValue: context.state.value,
+    });
   }, [
     paragraphRegistry,
     fieldComparison,
@@ -102,7 +99,6 @@ export const DataDistributionContainer = ({
     paragraph,
     error,
     paragraphState,
-    saveParagraph,
     context.state.value,
   ]);
 
