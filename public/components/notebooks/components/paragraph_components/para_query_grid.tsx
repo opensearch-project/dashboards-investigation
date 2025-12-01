@@ -3,7 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { EuiDataGrid } from '@elastic/eui';
+import {
+  EuiDataGrid,
+  EuiModal,
+  EuiModalBody,
+  EuiModalHeader,
+  EuiModalHeaderTitle,
+  EuiButtonEmpty,
+} from '@elastic/eui';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface QueryDataGridProps {
@@ -21,6 +28,7 @@ function QueryDataGrid(props: QueryDataGridProps) {
   const { rowCount, queryColumns, dataValues } = props;
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   const onChangeItemsPerPage = useCallback(
     (pageSize) =>
@@ -55,22 +63,54 @@ function QueryDataGrid(props: QueryDataGridProps) {
     setVisibleColumns(getUpdatedVisibleColumns());
   }, [getUpdatedVisibleColumns]);
 
+  const dataGridComponent = (
+    <EuiDataGrid
+      aria-label="Query datagrid"
+      columns={queryColumns}
+      columnVisibility={{ visibleColumns, setVisibleColumns }}
+      rowCount={rowCount}
+      renderCellValue={renderCellValue}
+      pagination={{
+        ...pagination,
+        pageSizeOptions: [10, 20, 50],
+        onChangeItemsPerPage,
+        onChangePage,
+      }}
+      height={isModalVisible ? '' : '400px'}
+      toolbarVisibility={{
+        showFullScreenSelector: false,
+        ...(!isModalVisible && {
+          additionalControls: (
+            <EuiButtonEmpty
+              size="xs"
+              color="text"
+              onClick={() => setIsModalVisible(true)}
+              iconType="fullScreen"
+            >
+              Full screen
+            </EuiButtonEmpty>
+          ),
+        }),
+      }}
+    />
+  );
+
   return (
-    <div id="queryDataGrid">
-      <EuiDataGrid
-        aria-label="Query datagrid"
-        columns={queryColumns}
-        columnVisibility={{ visibleColumns, setVisibleColumns }}
-        rowCount={rowCount}
-        renderCellValue={renderCellValue}
-        pagination={{
-          ...pagination,
-          pageSizeOptions: [10, 20, 50],
-          onChangeItemsPerPage,
-          onChangePage,
-        }}
-      />
-    </div>
+    <>
+      <div id="queryDataGrid">{dataGridComponent}</div>
+      {isModalVisible && (
+        <EuiModal
+          onClose={() => setIsModalVisible(false)}
+          maxWidth="90vw"
+          style={{ width: '90vw' }}
+        >
+          <EuiModalHeader>
+            <EuiModalHeaderTitle>Query Results</EuiModalHeaderTitle>
+          </EuiModalHeader>
+          <EuiModalBody>{dataGridComponent}</EuiModalBody>
+        </EuiModal>
+      )}
+    </>
   );
 }
 

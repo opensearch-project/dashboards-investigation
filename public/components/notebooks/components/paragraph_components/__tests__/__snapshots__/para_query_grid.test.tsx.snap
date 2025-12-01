@@ -15,6 +15,7 @@ exports[`<QueryDataGridMemo /> spec renders the component 1`] = `
   >
     <div
       class="euiDataGrid euiDataGrid--bordersAll euiDataGrid--headerShade euiDataGrid--footerOverline euiDataGrid--rowHoverHighlight euiDataGrid--stickyFooter"
+      style="height: 400px;"
     />
   </div>
   <div
