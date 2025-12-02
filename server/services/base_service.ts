@@ -36,7 +36,10 @@ export class BaseService {
     }
     const savedObjectsClient = this.coreStart.savedObjects.getScopedClient(request);
     const uiSettingsClient = this.coreStart.uiSettings.asScopedToClient(savedObjectsClient);
-    const isAgenticFeatureEnabledBySetting = await uiSettingsClient.get(ENABLE_AI_FEATURES);
+
+    const isAgenticFeatureEnabledBySetting = Boolean(
+      await uiSettingsClient.get(ENABLE_AI_FEATURES).catch(() => false)
+    );
 
     try {
       const dynamicConfig = await client.getConfig(
