@@ -15,7 +15,7 @@ import {
 } from '../../../src/core/server';
 import { setupRoutes } from './routes/index';
 import { notebookSavedObject } from './saved_objects/observability_saved_object';
-import { setCapabilities, setMLService, setQueryService } from './services/get_set';
+import { setCapabilities, setLogger, setMLService, setQueryService } from './services/get_set';
 import { QueryService } from './services/query_service';
 import { MLService } from './services/ml_service';
 import { InvestigationPluginSetup, InvestigationPluginStart } from './types';
@@ -47,6 +47,7 @@ export class InvestigationPlugin
 
     setQueryService(new QueryService(this.logger));
     setMLService(new MLService());
+    setLogger(this.logger);
 
     // Register server side APIs
     setupRoutes({

@@ -6,7 +6,7 @@
 import { schema } from '@osd/config-schema';
 import { IOpenSearchDashboardsResponse, IRouter } from '../../../../../src/core/server';
 import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
-import { getOpenSearchClientTransport } from '../utils';
+import { getOpenSearchClientTransport, handleError } from '../utils';
 import { getMLService } from '../../services/get_set';
 import { LogPattern, LogSequenceEntry } from '../../../common/types/log_pattern';
 
@@ -79,10 +79,7 @@ export function registerLogPatternRoute(router: IRouter) {
           },
         });
       } catch (error) {
-        return response.custom({
-          statusCode: error.statusCode || 500,
-          body: error.body.error || 'Error analyzing log patterns',
-        });
+        return handleError(error, response);
       }
     }
   );

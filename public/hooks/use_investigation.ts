@@ -351,7 +351,7 @@ ${finding.evidence}
         const errorMessage = 'Failed to execute per agent';
         context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
         await updateHypotheses(hypothesesRef.current || []);
-        notifications.toasts.addError(e, { title: errorMessage });
+        notifications.toasts.addError(e.body || e, { title: errorMessage });
         setIsInvestigating(false);
       }
     },
