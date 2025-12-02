@@ -142,3 +142,9 @@ export const generateDefaultQuery = (
       : `SELECT * FROM ${indexName}`
     : '';
 };
+
+export const isDateAppenddablePPL = (query: string) => {
+  const trimmedQuery = query.trim();
+  const describePattern = /^describe/i;
+  return !describePattern.test(trimmedQuery);
+};

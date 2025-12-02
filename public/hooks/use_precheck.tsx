@@ -28,6 +28,7 @@ import { getInputType } from '../../common/utils/paragraph';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { formatTimeRangeString } from '../../public/utils/time';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
+import { isDateAppenddablePPL } from '../utils/query';
 
 const savePrecheckParagraph = ({
   state,
@@ -169,7 +170,8 @@ export const usePrecheck = () => {
           const canAnalyticDis =
             resContext?.source === NoteBookSource.DISCOVER &&
             resContext.variables?.['pplQuery'] &&
-            !resContext.variables?.log;
+            !resContext.variables?.log &&
+            isDateAppenddablePPL(resContext.variables.pplQuery);
 
           if (
             resContext?.timeRange &&
@@ -209,7 +211,7 @@ export const usePrecheck = () => {
               inputText: `%ppl ${pplQuery}`,
               inputType: 'CODE',
               parameters: {
-                noDatePicker: false,
+                noDatePicker: !isDateAppenddablePPL(pplQuery),
                 indexName: res.context.index,
                 timeField: res.context.timeField,
                 timeRange: {

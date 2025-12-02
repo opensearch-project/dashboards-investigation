@@ -6,7 +6,7 @@
 import { schema } from '@osd/config-schema';
 import { IOpenSearchDashboardsResponse, IRouter } from '../../../../../src/core/server';
 import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
-import { getOpenSearchClientTransport } from '../utils';
+import { getOpenSearchClientTransport, handleError } from '../utils';
 
 /**
  * Removes specified characters from the beginning of a string.
@@ -122,10 +122,7 @@ export function registerMLConnectorRoute(router: IRouter) {
           },
         });
       } catch (error) {
-        return response.custom({
-          statusCode: error.statusCode || 500,
-          body: error,
-        });
+        return handleError(error, response);
       }
     }
   );
