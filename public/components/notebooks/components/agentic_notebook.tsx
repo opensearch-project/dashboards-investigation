@@ -51,6 +51,7 @@ import { useChatContextProvider } from '../../../hooks/use_chat_context';
 import { HypothesisDetail, HypothesesPanel, ReinvestigateModal } from './hypothesis';
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
 import { formatTimeRangeString } from '../../../../public/utils/time';
+import { InvestigationPageContext } from './investigation_page_context';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
   openedNoteId: string;
@@ -58,7 +59,7 @@ interface AgenticNotebookProps extends NotebookComponentProps {
 
 function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const {
-    services: { notifications, findingService, chrome, chat, uiSettings },
+    services: { notifications, findingService, chrome, chat, uiSettings, contextProvider },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -72,7 +73,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   useChatContextProvider();
 
   const notebookContext = useContext(NotebookReactContext);
-  const { initialGoal, source, notebookType, timeRange } = useObservable(
+  const { initialGoal, source, notebookType, timeRange, dataSourceId } = useObservable(
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
   );
@@ -399,6 +400,12 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           dateFormat={uiSettings.get('dateFormat')}
           confirm={handleReinvestigate}
           closeModal={() => setIsReinvestigateModalVisible(false)}
+        />
+      )}
+      {contextProvider?.hooks?.usePageContext && (
+        <InvestigationPageContext
+          usePageContext={contextProvider.hooks.usePageContext}
+          dataSourceId={dataSourceId}
         />
       )}
     </>
