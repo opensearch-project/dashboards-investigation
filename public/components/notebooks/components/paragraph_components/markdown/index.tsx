@@ -110,8 +110,11 @@ export const MarkdownParagraph = ({
 
   if (isAIGeneratedFinding && output) {
     const description = /Description\:\s*(.*)\n/.exec(output.result)?.[1];
-    const evidence = /Evidence\:\s*(.*)/.exec(output.result)?.[1];
+    const evidence = /Evidence\:\s*(.*)/s.exec(output.result)?.[1];
     const importance = /Importance\:\s*(.*)/.exec(output.result)?.[1];
+    const aHasTypology =
+      description?.toLowerCase().includes('topology') ||
+      evidence?.toLowerCase().includes('topology');
 
     return (
       <>
@@ -133,7 +136,13 @@ export const MarkdownParagraph = ({
           </EuiFlexItem>
         </EuiFlexGroup>
         <EuiSpacer />
-        <div>{evidence}</div>
+        {aHasTypology ? (
+          <pre>
+            <MarkdownRender source={evidence} />
+          </pre>
+        ) : (
+          <div>{evidence}</div>
+        )}
       </>
     );
   }
