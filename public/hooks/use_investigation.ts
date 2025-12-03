@@ -67,7 +67,21 @@ export const useInvestigation = () => {
     async ({ payload }: { payload: PERAgentInvestigationResponse }) => {
       const findingId2ParagraphId: { [key: string]: string } = {};
       const startParagraphIndex = paragraphLengthRef.current;
-      const sortedFindings = payload.findings.slice().sort((a, b) => b.importance - a.importance);
+      const sortedFindings = payload.findings.slice().sort((a, b) => {
+        const aHasTypology =
+          a.description.toLowerCase().includes('topology') ||
+          a.evidence.toLowerCase().includes('topology');
+        const bHasTypology =
+          b.description.toLowerCase().includes('topology') ||
+          b.evidence.toLowerCase().includes('topology');
+        if (aHasTypology && !bHasTypology) {
+          return -1;
+        }
+        if (!aHasTypology && bHasTypology) {
+          return 1;
+        }
+        return b.importance - a.importance;
+      });
 
       const paragraphsToCreate = sortedFindings.map((finding) => ({
         input: {
