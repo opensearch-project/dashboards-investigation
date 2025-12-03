@@ -120,6 +120,23 @@ Your final result JSON must include:
 6. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
 7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**`;
 
+const getTimeScopePrompt = (timeRange: { from: string; to: string }) => `
+  ${
+    timeRange && timeRange.from && timeRange.to
+      ? `
+  ## Time Scope
+
+  Conduct the investigation within the specified timerange: ${timeRange.from} UTC to ${
+          timeRange.to
+        } UTC. The milliseconds format for the time scope is: ${+new Date(
+          timeRange.from
+        )} to ${+new Date(
+          timeRange.to
+        )}. Focus your analysis and data queries on this user-selected time period.`
+      : ''
+  }
+`;
+
 export function registerAgentExecutionRoute(router: IRouter) {
   // Execute agent
   router.post(
@@ -152,14 +169,7 @@ export function registerAgentExecutionRoute(router: IRouter) {
 
 You are a thoughtful and analytical planner agent specializing in **RE-INVESTIGATION**. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
 
-${
-  timeRange && timeRange.from && timeRange.to
-    ? `
-## Time Scope
-
-Conduct the investigation within the specified timerange: ${timeRange.from} UTC to ${timeRange.to} UTC. **Note: This time range may have been manually updated by the user from the original investigation.** Focus your analysis and data queries on this user-selected time period.`
-    : ''
-}
+${getTimeScopePrompt(timeRange)}
 
 ## Investigation Context
 **ORIGINAL QUESTION:** "${initialGoal}"
@@ -214,14 +224,7 @@ ${commonResponseFormat}
 # Investigation Planner Agent
 
 You are a thoughtful and analytical planner agent in a plan-execute-reflect framework. Your job is to design a clear, step-by-step plan for a given objective.
-${
-  timeRange && timeRange.from && timeRange.to
-    ? `
-## Time Scope
-
-Conduct the investigation within the specified timerange: ${timeRange.from} UTC to ${timeRange.to} UTC. Focus your analysis and data queries on this user-selected time period.`
-    : ''
-}
+${getTimeScopePrompt(timeRange)}
 
 ${commonInstructions}
 
