@@ -173,49 +173,54 @@ export class InvestigationPlugin
         }),
       });
 
-      setupDeps.chat?.suggestedActionsService?.registerProvider?.({
-        id: 'finding',
-        priority: 1,
-        isEnabled: () => true,
-        getSuggestions: async (context) => {
-          const [coreStart] = await core.getStartServices();
-          const currentAppId = await coreStart.application.currentAppId$.pipe(first()).toPromise();
+      if (services.chat?.suggestedActionsService) {
+        services.chat.suggestedActionsService.registerProvider({
+          id: 'finding',
+          priority: 1,
+          isEnabled: () => true,
+          getSuggestions: async (context) => {
+            const [coreStart] = await core.getStartServices();
+            const currentAppId = await coreStart.application.currentAppId$
+              .pipe(first())
+              .toPromise();
 
-          if (
-            currentAppId !== investigationNotebookID ||
-            !findingService.currentNotebookId ||
-            !context.currentMessage ||
-            !context.currentMessage.content
-          ) {
-            return [];
-          }
+            if (
+              currentAppId !== investigationNotebookID ||
+              !findingService.currentNotebookId ||
+              !context.currentMessage ||
+              !context.currentMessage.content
+            ) {
+              return [];
+            }
 
-          return [
-            {
-              actionType: 'customize',
-              message: 'Add current result to investigation as a finding',
-              action: async () => {
-                const input = context.messageHistory.findLast((message) => message.role === 'user')
-                  ?.content;
-                const output = context.currentMessage?.content;
+            return [
+              {
+                actionType: 'customize',
+                message: 'Add current result to investigation as a finding',
+                action: async () => {
+                  const input = context.messageHistory.findLast(
+                    (message) => message.role === 'user'
+                  )?.content;
+                  const output = context.currentMessage?.content;
 
-                const notebookId = context.pageContext?.['notebookId'];
+                  const notebookId = context.pageContext?.['notebookId'];
 
-                if (input && output) {
-                  try {
-                    await findingService.addFinding(input, output, notebookId);
-                    return true;
-                  } catch (error) {
-                    // Return false to indicate failure to the suggestion system
-                    return false;
+                  if (input && output) {
+                    try {
+                      await findingService.addFinding(input, output, notebookId);
+                      return true;
+                    } catch (error) {
+                      // Return false to indicate failure to the suggestion system
+                      return false;
+                    }
                   }
-                }
-                return false;
+                  return false;
+                },
               },
-            },
-          ];
-        },
-      });
+            ];
+          },
+        });
+      }
     })();
 
     // Return methods that should be available to other plugins
