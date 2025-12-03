@@ -22,12 +22,14 @@ import { LogAnalyticsLoadingPanel } from './log_analytics_loading_panel';
 interface LogInsightProps {
   logInsights: LogPattern[];
   isLoadingLogInsights: boolean;
+  disableExclude?: boolean;
   onExclude?: (item: LogPattern) => void;
 }
 
 export const LogInsight: React.FC<LogInsightProps> = ({
   logInsights,
   isLoadingLogInsights,
+  disableExclude,
   onExclude,
 }) => {
   const [openPopovers, setOpenPopovers] = useState<{ [key: string]: boolean }>({});
@@ -114,6 +116,7 @@ export const LogInsight: React.FC<LogInsightProps> = ({
                   aria-label="Deselect item"
                   onClick={() => onExclude(record)}
                   color="subdued"
+                  isDisabled={disableExclude}
                 />
               </EuiToolTip>
             ),

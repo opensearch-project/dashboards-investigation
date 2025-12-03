@@ -17,18 +17,86 @@ import { getNotifications } from '../services';
 export const DataDistributionParagraphItem: ParagraphRegistryItem<AnomalyVisualizationAnalysisOutputResult> = {
   ParagraphComponent: DataDistributionContainer,
   getContext: async (paragraph) => {
-    const selectedFieldComparison = paragraph?.output?.[0]?.result?.fieldComparison?.filter(
-      (item) => !item.excludeFromContext
+    const allFieldComparison = paragraph?.output?.[0]?.result?.fieldComparison || [];
+    const selectedFieldComparison = allFieldComparison.filter((item) => !item.excludeFromContext);
+
+    const hasBaseline = selectedFieldComparison.some((f) =>
+      f.topChanges.some((c) => c.baselinePercentage !== undefined)
     );
-    return ` ## Data Distribution Analysis Results
 
-### Step description
-This step calculate fields' distribution and find the outlines between baselineTimeRange and selectionTimeRange.
-These statistical deviations highlight potential areas of concern that may explain the underlying issue.
+    const methodologyText = hasBaseline
+      ? `Compares field value distributions between baseline and selection periods:
+- Analyzes categorical fields (keyword, boolean, text) and numeric fields (grouped into ranges)
+- Calculates percentage distribution for each field value
+- Ranks fields by divergence score (maximum percentage point shift between periods)`
+      : `Analyzes field value distributions in the selected time period:
+- Examines categorical fields (keyword, boolean, text) and numeric fields (grouped into ranges)
+- Calculates percentage distribution for each field value
+- Shows fields with highest cardinality and most significant values`;
 
-### Step result:
-Anomaly detection has been performed on the data and the analysis identified anomalies in the following fields:
-${JSON.stringify(selectedFieldComparison)}.
+    const guidelinesText = hasBaseline
+      ? `**PRIMARY EVIDENCE**: Use divergence scores and distribution shifts as concrete evidence.
+
+**Priority**: 
+- [CRITICAL] divergence >30%: Severe behavioral change
+- [HIGH] divergence >15%: Significant change requiring investigation  
+- [MEDIUM] divergence >5%: Notable change worth examining
+
+**Investigation Strategy**:
+1. Start with highest divergence fields - these show the strongest anomalies
+2. Look for correlated changes across multiple fields (e.g., error_code + status_code + response_time)
+3. Examine topChanges for each field to identify which specific values shifted
+4. Quantify impact using baseline → selection percentages
+5. Cross-reference with log patterns to validate hypotheses`
+      : `**PRIMARY EVIDENCE**: Use field distributions to understand data characteristics.
+
+**Investigation Strategy**:
+1. Look for error-related fields (status_code, error_code, level, severity) with high error percentages
+2. Examine fields with concentrated distributions (>80% in single value) - may indicate systemic issues
+3. Check topChanges to identify dominant field values that correlate with problems
+4. Cross-reference field values with log patterns to identify root causes`;
+
+    const formatFieldData = () => {
+      if (selectedFieldComparison.length === 0) return 'No field data available.';
+
+      return selectedFieldComparison
+        .map((field, i) => {
+          const changes = field.topChanges
+            .map((c) => {
+              if (c.baselinePercentage !== undefined) {
+                return `  - "${c.value}": ${c.baselinePercentage.toFixed(
+                  1
+                )}% → ${c.selectionPercentage.toFixed(1)}%`;
+              }
+              return `  - "${c.value}": ${c.selectionPercentage.toFixed(1)}%`;
+            })
+            .join('\n');
+
+          if (hasBaseline) {
+            return `[${i + 1}] Field: ${field.field}\n  Divergence: ${(
+              field.divergence * 100
+            ).toFixed(1)}%\n  Top Values:\n${changes}`;
+          }
+          return `[${i + 1}] Field: ${field.field}\n  Top Values:\n${changes}`;
+        })
+        .join('\n\n');
+    };
+
+    return `## Data Distribution Analysis
+
+### Methodology
+${methodologyText}
+
+### Field Data
+${formatFieldData()}
+
+### Analysis Guidelines
+${guidelinesText}
+
+**Query Construction**:
+- Use field names and top values to build targeted queries
+- Filter by high-percentage values to focus on dominant behaviors
+- Combine multiple fields to narrow down root cause
     `;
   },
   runParagraph: async ({ paragraphState, notebookStateValue }) => {

@@ -47,7 +47,7 @@ export const DataDistributionContainer = ({
   paragraphState: ParagraphState<AnomalyVisualizationAnalysisOutputResult>;
 }) => {
   const {
-    services: { embeddable, paragraphService },
+    services: { notifications, embeddable, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
   const context = useContext(NotebookReactContext);
   const topContextValue = useObservable(
@@ -61,6 +61,7 @@ export const DataDistributionContainer = ({
   const { saveParagraph } = context.paragraphHooks;
   const [activePage, setActivePage] = useState(0);
   const [distributionModalExpand, setDistributionModalExpand] = useState(false);
+  const [isUpdatingParagraph, setIsUpdatingParagraph] = useState(false);
   const factory = embeddable.getEmbeddableFactory<DataDistributionInput>('vega_visualization');
   const paragraphRegistry = paragraphService?.getParagraphRegistry(
     DATA_DISTRIBUTION_PARAGRAPH_TYPE
@@ -170,17 +171,30 @@ export const DataDistributionContainer = ({
             iconType={isSelected ? 'crossInCircleEmpty' : 'checkInCircleEmpty'}
             color="text"
             style={{ height: '16px', width: '16px' }}
+            isDisabled={isUpdatingParagraph}
             onClick={async () => {
-              const updatedFieldComparison = [...fieldComparison];
-              updatedFieldComparison[chartIndex] = {
-                ...fieldComparison[chartIndex],
-                excludeFromContext: !isSelected,
-              };
-              await saveParagraph({
-                paragraphStateValue: ParagraphState.updateOutputResult(paragraph, {
-                  fieldComparison: updatedFieldComparison || [],
-                }),
-              });
+              try {
+                setIsUpdatingParagraph(true);
+
+                const updatedFieldComparison = [...fieldComparison];
+                updatedFieldComparison[chartIndex] = {
+                  ...fieldComparison[chartIndex],
+                  excludeFromContext: !isSelected,
+                };
+                await saveParagraph({
+                  paragraphStateValue: ParagraphState.updateOutputResult(paragraph, {
+                    fieldComparison: updatedFieldComparison || [],
+                  }),
+                });
+              } catch (err) {
+                notifications.toasts.addDanger(
+                  i18n.translate('notebook.data.distribution.paragraph.error', {
+                    defaultMessage: 'Error updating paragraph',
+                  })
+                );
+              } finally {
+                setIsUpdatingParagraph(false);
+              }
             }}
             aria-label={isSelected ? 'Exclude from the results' : 'Select from the results'}
           />
@@ -235,7 +249,7 @@ export const DataDistributionContainer = ({
                   uniqueId={uniqueId}
                   chartIndex={chartIndex}
                   isSelected={isSelected}
-                  spec={spec}
+                  spec={spec as any}
                 />
               );
             })}
