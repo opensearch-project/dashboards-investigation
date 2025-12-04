@@ -524,27 +524,31 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
     ]
   );
 
-  const continueInvestigation = useCallback(async () => {
-    setIsInvestigating(true);
-    const { runningMemory } = context.state.value;
+  const continueInvestigation = useCallback(
+    async (abortController?: AbortController) => {
+      setIsInvestigating(true);
+      const { runningMemory } = context.state.value;
 
-    try {
-      if (!runningMemory?.parentInteractionId) {
-        throw new Error('No ongoing investigation to continue');
-      }
+      try {
+        if (!runningMemory?.parentInteractionId) {
+          throw new Error('No ongoing investigation to continue');
+        }
 
-      return pollInvestigationCompletion({
-        runningMemory,
-      }).finally(() => {
+        return pollInvestigationCompletion({
+          runningMemory,
+          abortController,
+        }).finally(() => {
+          setIsInvestigating(false);
+        });
+      } catch (error) {
+        const errorMessage = 'Failed to continue investigation';
+        context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
+        notifications.toasts.addError(error, { title: errorMessage });
         setIsInvestigating(false);
-      });
-    } catch (error) {
-      const errorMessage = 'Failed to continue investigation';
-      context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
-      notifications.toasts.addError(error, { title: errorMessage });
-      setIsInvestigating(false);
-    }
-  }, [context.state, notifications, pollInvestigationCompletion]);
+      }
+    },
+    [context.state, notifications, pollInvestigationCompletion]
+  );
 
   return {
     isInvestigating,
