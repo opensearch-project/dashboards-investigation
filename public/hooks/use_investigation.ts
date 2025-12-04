@@ -149,13 +149,7 @@ ${finding.evidence}
    * @returns Promise that resolves when investigation is complete or rejects on error
    */
   const pollInvestigationCompletion = useCallback(
-    ({
-      runningMemory,
-      abortController,
-    }: {
-      runningMemory: AgenticMemeory;
-      abortController?: AbortController;
-    }): Promise<void> => {
+    ({ runningMemory }: { runningMemory: AgenticMemeory }): Promise<void> => {
       const dataSourceId = context.state.value.context.value.dataSourceId;
 
       return new Promise((resolve, reject) => {
@@ -166,7 +160,7 @@ ${finding.evidence}
                 memoryContainerId: runningMemory?.memoryContainerId!,
                 messageId: runningMemory?.parentInteractionId!,
                 http,
-                signal: abortController?.signal,
+                signal: abortControllerRef.current?.signal,
                 dataSourceId,
               })
             ),
@@ -248,10 +242,10 @@ ${finding.evidence}
 
         const abortHandler = () => {
           subscription.unsubscribe();
-          abortController?.signal.removeEventListener('abort', abortHandler);
+          abortControllerRef.current?.signal.removeEventListener('abort', abortHandler);
           reject(new Error('Investigation aborted'));
         };
-        abortController?.signal.addEventListener('abort', abortHandler);
+        abortControllerRef.current?.signal.addEventListener('abort', abortHandler);
       });
     },
     [
@@ -365,7 +359,6 @@ ${finding.evidence}
 
         return pollInvestigationCompletion({
           runningMemory,
-          abortController,
         });
       } catch (e) {
         const errorMessage = 'Failed to execute per agent';
@@ -540,7 +533,6 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
 
       return pollInvestigationCompletion({
         runningMemory,
-        abortController: abortControllerRef.current,
       }).finally(() => {
         setIsInvestigating(false);
       });
