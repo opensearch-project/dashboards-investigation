@@ -92,11 +92,11 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     addNewFinding,
     rerunInvestigation,
     continueInvestigation,
+    cleanup,
   } = useInvestigation();
 
   const [findingText, setFindingText] = useState('');
   const [isModalVisibleAddFinding, setIsModalVisibleAddFinding] = useState(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   const closeModal = () => {
     setIsModalVisibleAddFinding(false);
@@ -144,10 +144,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   }, []);
 
   const loadNotebook = useCallback(() => {
-    if (!abortControllerRef.current) {
-      abortControllerRef.current = new AbortController();
-    }
-
     loadNotebookHook()
       .then(async (res) => {
         if (res.context) {
@@ -173,7 +169,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
         if (res.runningMemory) {
           try {
-            await continueInvestigation(abortControllerRef.current!);
+            await continueInvestigation();
           } catch (error) {
             console.error('Failed to continue investigation:', error);
           }
@@ -185,11 +181,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           context: notebookContext.state.value.context.value,
           paragraphs: res.paragraphs,
           hypotheses: hasOngoingInvestigation ? [{ id: 'placeholder' } as any] : res.hypotheses,
-          doInvestigate: (props) =>
-            doInvestigate({
-              ...props,
-              abortController: abortControllerRef.current!,
-            }),
+          doInvestigate,
         });
       })
       .catch((err) => {
@@ -218,10 +210,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     return () => {
       window.cancelAnimationFrame(rafId);
       // Abort any ongoing investigation when component unmounts
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
+      cleanup();
     };
   });
 
@@ -244,14 +233,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
       setIsReinvestigateModalVisible(false);
       setIsInvestigating(true);
-
-      // Abort previous investigation if exists
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      // Create new AbortController for this investigation
-      abortControllerRef.current = new AbortController();
 
       if (initialGoal !== question) {
         await updateNotebookContext({ initialGoal: question });
@@ -278,13 +259,11 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           investigationQuestion: question,
           initialGoal,
           timeRange: formattedTimeRange,
-          abortController: abortControllerRef.current,
         });
       } else {
         doInvestigate({
           investigationQuestion: question,
           timeRange: formattedTimeRange,
-          abortController: abortControllerRef.current,
         });
       }
     },

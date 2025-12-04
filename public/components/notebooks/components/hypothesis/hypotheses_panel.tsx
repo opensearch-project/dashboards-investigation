@@ -61,7 +61,6 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   const history = useHistory();
   const [showSteps, setShowSteps] = useState(false);
   const [traceMessageId, setTraceMessageId] = useState<string>();
-  const [executorMessages, setExecutorMessages] = useState<any[]>([]);
   const activeMemory = useMemo(() => {
     return isInvestigating ? runningMemory : historyMemory;
   }, [isInvestigating, runningMemory, historyMemory]);
@@ -93,10 +92,16 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     };
   }, [http, activeMemory, isInvestigating, isNotebookOwner]);
 
+  const executorMessages$ = useMemo(
+    () => PERAgentServices?.executorMemory.getMessages$() ?? new BehaviorSubject<any[]>([]),
+    [PERAgentServices]
+  );
+
+  const executorMessages = useObservable(executorMessages$, []);
+
   useEffect(() => {
     if (isInvestigating) {
       setShowSteps(true);
-      setExecutorMessages([]);
     } else {
       setShowSteps(false);
     }
@@ -181,7 +186,6 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
         messageService={PERAgentServices.message}
         executorMemoryService={PERAgentServices.executorMemory}
         onExplainThisStep={setTraceMessageId}
-        onMessagesChange={setExecutorMessages}
       />
     </EuiAccordion>
   );
