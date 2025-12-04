@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useContext, useState, useCallback, useRef } from 'react';
+import { useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { timer } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 import { useObservable } from 'react-use';
@@ -552,11 +552,14 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
     }
   }, [context.state, notifications, pollInvestigationCompletion]);
 
-  const cleanup = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, []);
 
   return {
@@ -566,6 +569,5 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
     addNewFinding,
     rerunInvestigation,
     continueInvestigation,
-    cleanup,
   };
 };

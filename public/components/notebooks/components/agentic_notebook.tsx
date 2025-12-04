@@ -92,7 +92,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     addNewFinding,
     rerunInvestigation,
     continueInvestigation,
-    cleanup,
   } = useInvestigation();
 
   const [findingText, setFindingText] = useState('');
@@ -209,8 +208,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     });
     return () => {
       window.cancelAnimationFrame(rafId);
-      // Abort any ongoing investigation when component unmounts
-      cleanup();
     };
   });
 
