@@ -26,12 +26,14 @@ interface Props {
   messageService: PERAgentMessageService;
   executorMemoryService: PERAgentMemoryService;
   onExplainThisStep: (messageId: string) => void;
+  onMessagesChange?: (messages: any[]) => void;
 }
 
 export const HypothesesStep = ({
   messageService,
   executorMemoryService,
   onExplainThisStep,
+  onMessagesChange,
 }: Props) => {
   const observables = useMemo(
     () => ({
@@ -44,6 +46,12 @@ export const HypothesesStep = ({
   const message = useObservable(observables.message$);
   const executorMessages = useObservable(observables.executorMessages$);
   const loadingExecutorMessage = useObservable(observables.messagePollingState$);
+
+  useEffect(() => {
+    if (onMessagesChange && executorMessages) {
+      onMessagesChange(executorMessages);
+    }
+  }, [executorMessages, onMessagesChange]);
 
   const renderTraces = () => {
     return (

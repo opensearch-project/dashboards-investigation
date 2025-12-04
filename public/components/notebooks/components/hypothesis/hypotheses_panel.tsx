@@ -5,11 +5,11 @@
 
 import {
   EuiAccordion,
+  EuiBeacon,
   EuiFlexGroup,
   EuiFlexItem,
   EuiHorizontalRule,
   EuiIcon,
-  EuiLoadingContent,
   EuiPanel,
   EuiSpacer,
   EuiText,
@@ -61,6 +61,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   const history = useHistory();
   const [showSteps, setShowSteps] = useState(false);
   const [traceMessageId, setTraceMessageId] = useState<string>();
+  const [executorMessages, setExecutorMessages] = useState<any[]>([]);
   const activeMemory = useMemo(() => {
     return isInvestigating ? runningMemory : historyMemory;
   }, [isInvestigating, runningMemory, historyMemory]);
@@ -95,6 +96,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   useEffect(() => {
     if (isInvestigating) {
       setShowSteps(true);
+      setExecutorMessages([]);
     } else {
       setShowSteps(false);
     }
@@ -179,13 +181,32 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
         messageService={PERAgentServices.message}
         executorMemoryService={PERAgentServices.executorMemory}
         onExplainThisStep={setTraceMessageId}
+        onMessagesChange={setExecutorMessages}
       />
     </EuiAccordion>
   );
 
   const renderHypothesesContent = () => {
     if (isInvestigating) {
-      return <EuiLoadingContent lines={3} />;
+      const hasSteps = executorMessages.length > 0;
+      const displayText = hasSteps
+        ? 'Gathering data in progress...'
+        : 'Planning for your investigation...';
+
+      return (
+        <>
+          <EuiSpacer size="l" />
+          <EuiFlexGroup alignItems="center" gutterSize="m">
+            <EuiFlexItem grow={false} style={{ paddingLeft: '6px' }}>
+              <EuiBeacon size={5} />
+            </EuiFlexItem>
+            <EuiFlexItem>
+              <EuiText>{displayText}</EuiText>
+            </EuiFlexItem>
+          </EuiFlexGroup>
+          <EuiSpacer size="l" />
+        </>
+      );
     } else if (!hypotheses?.length) {
       return <EuiText>No hypotheses generated</EuiText>;
     }
