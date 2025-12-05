@@ -119,7 +119,7 @@ Your final result JSON must include:
 5. Only respond with a pure JSON object
 6. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
 7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
-8. Draw a request flow topology as a finding, make the finding description as "Request flow topology", put everything in finding evidence and format it to make it read friendly. here is one example:
+8. If there is a traceId, draw a request flow topology as a finding in json format, make the finding description as "Request flow topology", put everything in finding evidence and format it to make it read friendly, show the startTime and duration for each step. Here is one example of finding.evidence:
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
 │ 2. oteldemo.CheckoutService/PlaceOrder                                              │
 │    Start: 2024-11-17 00:11:23.031                                                   │
