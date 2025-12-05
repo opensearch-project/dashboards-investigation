@@ -5,11 +5,11 @@
 
 import {
   EuiAccordion,
+  EuiBeacon,
   EuiFlexGroup,
   EuiFlexItem,
   EuiHorizontalRule,
   EuiIcon,
-  EuiLoadingContent,
   EuiPanel,
   EuiSpacer,
   EuiText,
@@ -91,6 +91,13 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
       executorMemory: executorMemoryService,
     };
   }, [http, activeMemory, isInvestigating, isNotebookOwner]);
+
+  const executorMessages$ = useMemo(
+    () => PERAgentServices?.executorMemory.getMessages$() ?? new BehaviorSubject<any[]>([]),
+    [PERAgentServices]
+  );
+
+  const executorMessages = useObservable(executorMessages$, []);
 
   useEffect(() => {
     if (isInvestigating) {
@@ -185,7 +192,25 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
 
   const renderHypothesesContent = () => {
     if (isInvestigating) {
-      return <EuiLoadingContent lines={3} />;
+      const hasSteps = executorMessages.length > 0;
+      const displayText = hasSteps
+        ? 'Gathering data in progress...'
+        : 'Planning for your investigation...';
+
+      return (
+        <>
+          <EuiSpacer size="l" />
+          <EuiFlexGroup alignItems="center" gutterSize="m">
+            <EuiFlexItem grow={false} style={{ paddingLeft: '6px' }}>
+              <EuiBeacon size={5} />
+            </EuiFlexItem>
+            <EuiFlexItem>
+              <EuiText>{displayText}</EuiText>
+            </EuiFlexItem>
+          </EuiFlexGroup>
+          <EuiSpacer size="l" />
+        </>
+      );
     } else if (!hypotheses?.length) {
       return <EuiText>No hypotheses generated</EuiText>;
     }
