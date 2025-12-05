@@ -64,7 +64,7 @@ ${jsonArrayToTsv(data)}
     const inputText = paragraphValue.input.inputText;
     const queryType = inputText.substring(0, 4) === '%sql' ? '_sql' : '_ppl';
     const queryParams = paragraphValue.input.parameters as any;
-    const generatedPPLQuery = queryParams.query; // t2ppl
+    const generatedPPLQuery = queryParams?.query; // t2ppl
     const inputQuery =
       ParagraphState.getOutput(paragraphValue)?.result ||
       queryParams?.query ||
