@@ -61,7 +61,7 @@ export const HypothesesStep = ({
               !executorMessage.response &&
               !message?.hits?.hits?.[0]?._source?.structured_data?.response;
             return (
-              <>
+              <React.Fragment key={index}>
                 <EuiPanel
                   key={executorMessage.message_id}
                   paddingSize="s"
@@ -117,7 +117,7 @@ export const HypothesesStep = ({
                   </EuiAccordion>
                 </EuiPanel>
                 <EuiSpacer size="s" />
-              </>
+              </React.Fragment>
             );
           })}
         {!!executorMessages && executorMessages.length > 0 && <EuiSpacer size="s" />}

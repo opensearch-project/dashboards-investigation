@@ -52,6 +52,7 @@ import { HypothesisDetail, HypothesesPanel, ReinvestigateModal } from './hypothe
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
 import { formatTimeRangeString } from '../../../../public/utils/time';
 import { InvestigationPageContext } from './investigation_page_context';
+import { migrateFindingParagraphs } from '../../../utils/finding_migration';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
   openedNoteId: string;
@@ -148,19 +149,29 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         if (res.context) {
           notebookContext.state.updateContext(res.context);
         }
+
+        const { migratedParagraphs, migratedIds } = migrateFindingParagraphs(res.paragraphs);
+
         notebookContext.state.updateValue({
           dateCreated: res.dateCreated,
           dateModified: res.dateModified,
           title: res.name,
           path: res.path,
           vizPrefix: res.vizPrefix,
-          paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
+          paragraphs: migratedParagraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
           owner: res.owner,
           hypotheses: res.hypotheses,
           runningMemory: res.runningMemory,
           historyMemory: res.historyMemory,
           isNotebookOwner: res.isNotebookOwner,
         });
+
+        if (migratedIds.length > 0) {
+          notifications.toasts.addInfo('Finding paragraphs migrated.');
+          await notebookContext.paragraphHooks.batchRunParagraphs({
+            paragraphIds: migratedIds,
+          });
+        }
 
         // Check if there's an ongoing investigation to continue BEFORE calling start
         // This prevents start() from triggering a new investigation when we should continue the existing one
@@ -191,6 +202,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       });
   }, [
     loadNotebookHook,
+    notebookContext.paragraphHooks,
     notifications.toasts,
     notebookContext.state,
     start,
@@ -204,7 +216,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     // TODO: remove the optional chain after each method
     (chrome as any).setIsNavDrawerLocked?.(false);
     const rafId = window.requestAnimationFrame(() => {
-      chat?.openWindow?.();
+      (chat as any)?.openWindow?.();
     });
     return () => {
       window.cancelAnimationFrame(rafId);
