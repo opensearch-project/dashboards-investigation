@@ -203,17 +203,19 @@ export const useParagraphs = (context: { state: NotebookState }) => {
           const index = paragraphs.findIndex((p) => p.id === paragraphId);
           if (index < 0) return null;
 
-          const para = paragraphs[index];
-          const contextPrompt = '';
+          const {
+            input: { inputType, inputText, parameters },
+            dataSourceMDSId = '',
+          } = paragraphs[index];
 
           return {
             id: paragraphId,
             input: {
-              inputType: para.input.inputType,
-              inputText: para.input.inputText,
-              parameters: { ...(para.input.parameters || {}), PERAgentContext: contextPrompt },
+              inputType,
+              inputText,
+              parameters,
             },
-            dataSourceMDSId: para.dataSourceMDSId || '',
+            dataSourceMDSId,
           };
         })
       );

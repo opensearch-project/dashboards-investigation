@@ -93,19 +93,14 @@ export const useInvestigation = () => {
         return b.importance - a.importance;
       });
 
-      const paragraphsToCreate = sortedFindings.map((finding) => ({
+      const paragraphsToCreate = sortedFindings.map(({ importance, description, evidence }) => ({
         input: {
-          inputText: `%md
-Importance: ${finding.importance}
-
-Description:
-${finding.description}
-
-Evidence:
-${finding.evidence}
-
-          `.trim(),
+          inputText: `%md ${evidence}`.trim(),
           inputType: 'MARKDOWN',
+          parameters: {
+            importance: +importance,
+            description,
+          },
         },
         aiGenerated: true,
       }));

@@ -26,7 +26,6 @@ export interface DataDistributionOutput extends EmbeddableOutput {
 }
 
 export interface MemoItemProps {
-  uniqueKey: string;
   uniqueId: string;
   chartIndex: number;
   isSelected: boolean;
