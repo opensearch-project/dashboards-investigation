@@ -119,75 +119,29 @@ Your final result JSON must include:
 5. Only respond with a pure JSON object
 6. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
 7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
-8. If there is a traceId, draw a request flow topology as a finding in json format, make the finding description as "Request flow topology", put everything in finding evidence and format it to make it read friendly, show the startTime and duration for each step. Here is one example of finding.evidence:
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│ 2. oteldemo.CheckoutService/PlaceOrder                                              │
-│    Start: 2024-11-17 00:11:23.031                                                   │
-│    Duration: 10,020,954 μs (10.02 sec).                                             │
-├─────────────────────────────────────────────────────────────────────────────────────┤
-│  ├─ prepareOrderItemsAndShippingQuoteFromCart                                       │
-│  │  Start: 2024-11-17 00:11:23.031                                                  │
-│  │  Duration: 9,323 μs (9.3 ms)                                                     │
-│  │                                                                                  │
-│  │  ├─ oteldemo.CartService/GetCart                                                 │
-│  │  │  Start: 2024-11-17 00:11:23.031                                               │
-│  │  │  Duration: 1,467 μs (1.5 ms)                                                  │
-│  │  │  └─ HGET                                                                      │
-│  │  │     Start: 2024-11-17 00:11:23.032                                            │
-│  │  │     Duration: 255 μs (0.3 ms)                                                 │
-│  │  │                                                                               │
-│  │  ├─ oteldemo.ProductCatalogService/GetProduct                                    │
-│  │  │  Start: 2024-11-17 00:11:23.033                                               │
-│  │  │  Duration: 871 μs (0.9 ms)                                                    │
-│  │  │                                                                               │
-│  │  ├─ oteldemo.CurrencyService/Convert                                             │
-│  │  │  Start: 2024-11-17 00:11:23.034                                               │
-│  │  │  Duration: 1,607 μs (1.6 ms)                                                  │
-│  │  │  └─ CurrencyService/Convert                                                   │
-│  │  │     Start: 2024-11-17 00:11:23.034                                            │
-│  │  │     Duration: 67 μs (0.07 ms)                                                 │
-│  │  │                                                                               │
-│  │  └─ oteldemo.ShippingService/GetQuote                                            │
-│  │     Start: 2024-11-17 00:11:23.035                                               │
-│  │     Duration: 2,543 μs (2.5 ms)                                                  │
-│  │     └─ oteldemo.ShippingService/GetQuote                                         │
-│  │        Start: 2024-11-17 00:11:23.036                                            │
-│  │        Duration: 1,722 μs (1.7 ms)                                               │
-│  │                                                                                  │
-│  ├─ oteldemo.CurrencyService/Convert                                                │
-│  │  Start: 2024-11-17 00:11:23.038                                                  │
-│  │  Duration: 1,865 μs (1.9 ms)                                                     │
-│  │  └─ CurrencyService/Convert                                                      │
-│  │     Start: 2024-11-17 00:11:23.040                                               │
-│  │     Duration: 28 μs (0.03 ms)                                                    │
-│  │                                                                                  │
-│  ├─ oteldemo.PaymentService/Charge.                                                 │
-│  │  Start: 2024-11-17 00:11:23.040                                                  │
-│  │  Duration: 10,002,671 μs (10.00 sec).                                            │
-│  │  └─ charge                                                                       │
-│  │     Start: 2024-11-17 00:11:23.042                                               │
-│  │     Duration: 10,000,630 μs (10.00 sec)                                          │
-│  │                                                                                  │
-│  ├─ oteldemo.ShippingService/ShipOrder                                              │
-│  │  Start: 2024-11-17 00:11:33.043                                                  │
-│  │  Duration: 1,128 μs (1.1 ms)                                                     │
-│  │                                                                                  │
-│  ├─ oteldemo.CartService/EmptyCart                                                  │
-│  │  Start: 2024-11-17 00:11:33.045                                                  │
-│  │  Duration: 2,720 μs (2.7 ms)                                                     │
-│  │  └─ HMSET → EXPIRE                                                               │
-│  │     Start: 2024-11-17 00:11:33.046-047                                           │
-│  │     Duration: 443 + 402 μs                                                       │
-│  │                                                                                  │
-│  └─ POST /send_order_confirmation                                                   │
-│     Start: 2024-11-17 00:11:33.048                                                  │
-│     Duration: 1,950 μs (1.9 ms)                                                     │
-│     └─ send_email                                                                   │
-│        Start: 2024-11-17 00:11:33.049                                               │
-│        Duration: 1,558 μs (1.6 ms)                                                  │
-│        └─ sinatra.render_template (x2)                                              │
-│           Duration: 559 + 647 μs                                                    │
-└─────────────────────────────────────────────────────────────────────────────────────┘`;
+8. If there is a traceId, create a "Request flow topology" finding with a tree structure in evidence showing service calls with startTime and duration. If there are multiple traceId and their Request flow topology are similar, only show one of them. Example format:
+┌─────────────────────────────────────────────────────────────────────┐
+├─ ServiceName (Start: timestamp, Duration: X sec)                    │
+│  └─ ChildOperation (Start: timestamp, Duration: Y sec)              │
+│  │                                                                  │
+│  ├─ PaymentService                                                  │
+│  │  Start: 2024-11-17 00:11:23.040                                  │
+│  │  Duration: 10.00 sec                                             │
+│  │  └─ charge                                                       │
+│  │     Start: 2024-11-17 00:11:23.042                               │
+│  │     Duration: 10.00 sec                                          │
+│  │                                                                  │
+│  ├─ ShippingService                                                 │
+│  │  Start: 2024-11-17 00:11:33.043                                  │
+│  │  Duration: 1.1 ms                                                │
+│  │                                                                  │
+│  └─ send_order_confirmation                                         │
+│     Start: 2024-11-17 00:11:33.048                                  │
+│     Duration: 1.9 ms                                                │
+│     └─ send_email                                                   │
+│        Start: 2024-11-17 00:11:33.049                               │
+│        Duration: 1.6 ms                                             │
+└─────────────────────────────────────────────────────────────────────┘`;
 
 const getTimeScopePrompt = (timeRange: { from: string; to: string }) => `
   ${
