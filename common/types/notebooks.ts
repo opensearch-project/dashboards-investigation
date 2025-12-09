@@ -159,6 +159,7 @@ export interface PERAgentHypothesisItem {
 export interface PERAgentInvestigationResponse {
   findings: PERAgentHypothesisFinding[];
   hypotheses: PERAgentHypothesisItem[];
+  investigationName?: string;
 }
 
 export interface NotebookComponentProps {

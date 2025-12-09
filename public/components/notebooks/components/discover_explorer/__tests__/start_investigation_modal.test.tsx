@@ -13,7 +13,10 @@ import {
   httpServiceMock,
   notificationServiceMock,
 } from '../../../../../../../../src/core/public/mocks';
-import { NOTEBOOKS_API_PREFIX } from '../../../../../../common/constants/notebooks';
+import {
+  DEFAULT_INVESTIGATION_NAME,
+  NOTEBOOKS_API_PREFIX,
+} from '../../../../../../common/constants/notebooks';
 
 describe('<StartInvestigationModal /> spec', () => {
   const httpMock = httpServiceMock.createStartContract();
@@ -134,7 +137,7 @@ describe('<StartInvestigationModal /> spec', () => {
       expect(httpMock.post).toHaveBeenCalledWith(
         `${NOTEBOOKS_API_PREFIX}/note/savedNotebook`,
         expect.objectContaining({
-          body: expect.stringContaining('Discover investigation'),
+          body: expect.stringContaining(DEFAULT_INVESTIGATION_NAME),
         })
       );
     });

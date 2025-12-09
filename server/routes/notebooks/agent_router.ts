@@ -51,7 +51,8 @@ Final result must be a stringified JSON object:
 \`\`\`json
 {
     "findings": array[object],
-    "hypotheses": array[object]
+    "hypotheses": array[object],
+    "investigationName": "string object which will be the auto generated name for the whole investigation, max 50 characters"
 }
 \`\`\`
 
@@ -107,7 +108,7 @@ Your final result JSON must include:
 \`\`\`json
 {
   "steps": [],
-  "result": "{\"findings\":[{\"id\":\"F1\",\"description\":\"High error rate detected\",\"importance\":90,\"evidence\":\"500+ errors in last hour\"}],\"hypotheses\":[{\"id\":\"H1\",\"title\":\"Database Connection Issue\",\"description\":\"Application errors caused by database connectivity problems\",\"likelihood\":85,\"supporting_findings\":[\"F1\"]}]}"
+  "result": "{\"investigationName\": \"Invalid payment token Investigation\",\"findings\":[{\"id\":\"F1\",\"description\":\"High error rate detected\",\"importance\":90,\"evidence\":\"500+ errors in last hour\"}],\"hypotheses\":[{\"id\":\"H1\",\"title\":\"Database Connection Issue\",\"description\":\"Application errors caused by database connectivity problems\",\"likelihood\":85,\"supporting_findings\":[\"F1\"]}]}"
 }
 \`\`\`
 
