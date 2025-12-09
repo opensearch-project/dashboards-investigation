@@ -13,7 +13,7 @@ const commonInstructions = `
 
 ## Core Planning Rules
 - Break the objective into an ordered list of atomic, self-contained Steps that, if executed, will lead to the final result or complete the objective
-- Each Step must state what to do, where, and which tool/parameters would be used. You do not execute tools, only reference them for planning. The Step format should be a xml format like <step><purpose>Query error logs for give time</purpose><context>context information for executor agent to solve this task</context><tool>Tool name and it's parameters if applicable</tool></step>
+- Each Step must state what to do, where, and which tool/parameters would be used. You do not execute tools, only reference them for planning. The Step format should be a xml format like <step><purpose>User friendly description of this task</purpose><context>detailed context information for executor agent to solve this task</context><tool>Tool name and it's parameters if applicable</tool></step>
 - Use only the provided tools; do not invent or assume tools. If no suitable tool applies, use reasoning or observations instead
 - Base your plan only on the data and information explicitly provided; do not rely on unstated knowledge or external facts
 - If there is insufficient information to create a complete plan, summarize what is known so far and clearly state what additional information is required to proceed
