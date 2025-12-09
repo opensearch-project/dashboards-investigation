@@ -23,7 +23,10 @@ import {
 import React, { useState, useMemo } from 'react';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import type { NoteBookServices } from '../../../../types';
-import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
+import {
+  DEFAULT_INVESTIGATION_NAME,
+  NOTEBOOKS_API_PREFIX,
+} from '../../../../../common/constants/notebooks';
 
 const suggestedActions = [
   {
@@ -116,7 +119,7 @@ export const StartInvestigationModal = ({ log, closeModal }: StartInvestigationM
     }
     setDisabled(true);
     try {
-      const id = await createNotebook('Discover investigation');
+      const id = await createNotebook(DEFAULT_INVESTIGATION_NAME);
       const path = `#/agentic/${id}`;
       application.navigateToApp('investigation-notebooks', {
         path,
