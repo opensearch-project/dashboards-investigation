@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useContext, useState, useCallback, useRef } from 'react';
+import { useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { timer } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 import { useObservable } from 'react-use';
@@ -63,6 +63,7 @@ export const useInvestigation = () => {
   hypothesesRef.current = contextStateValue?.hypotheses;
 
   const [isInvestigating, setIsInvestigating] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const storeInvestigationResponse = useCallback(
     async ({ payload }: { payload: PERAgentInvestigationResponse }) => {
@@ -177,13 +178,7 @@ ${finding.evidence}
    * @returns Promise that resolves when investigation is complete or rejects on error
    */
   const pollInvestigationCompletion = useCallback(
-    ({
-      runningMemory,
-      abortController,
-    }: {
-      runningMemory: AgenticMemeory;
-      abortController?: AbortController;
-    }): Promise<void> => {
+    ({ runningMemory }: { runningMemory: AgenticMemeory }): Promise<void> => {
       const dataSourceId = context.state.value.context.value.dataSourceId;
 
       return new Promise((resolve, reject) => {
@@ -194,7 +189,7 @@ ${finding.evidence}
                 memoryContainerId: runningMemory?.memoryContainerId!,
                 messageId: runningMemory?.parentInteractionId!,
                 http,
-                signal: abortController?.signal,
+                signal: abortControllerRef.current?.signal,
                 dataSourceId,
               })
             ),
@@ -281,10 +276,10 @@ ${finding.evidence}
 
         const abortHandler = () => {
           subscription.unsubscribe();
-          abortController?.signal.removeEventListener('abort', abortHandler);
+          abortControllerRef.current?.signal.removeEventListener('abort', abortHandler);
           reject(new Error('Investigation aborted'));
         };
-        abortController?.signal.addEventListener('abort', abortHandler);
+        abortControllerRef.current?.signal.addEventListener('abort', abortHandler);
       });
     },
     [
@@ -302,7 +297,6 @@ ${finding.evidence}
     async ({
       question,
       contextPrompt,
-      abortController,
       initialGoal,
       prevContent,
       timeRange,
@@ -312,8 +306,14 @@ ${finding.evidence}
       initialGoal?: string;
       prevContent?: boolean;
       timeRange?: { from: string; to: string };
-      abortController?: AbortController;
     }) => {
+      // Create new AbortController for this investigation
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+
+      const abortController = abortControllerRef.current;
       const dataSourceId = context.state.value.context.value.dataSourceId;
       setIsInvestigating(true);
       context.state.updateValue({ investigationError: undefined });
@@ -394,7 +394,6 @@ ${finding.evidence}
 
         return pollInvestigationCompletion({
           runningMemory,
-          abortController,
         });
       } catch (e) {
         const errorMessage = 'Failed to execute per agent';
@@ -430,11 +429,9 @@ ${finding.evidence}
     async ({
       investigationQuestion,
       timeRange,
-      abortController,
     }: {
       investigationQuestion: string;
       timeRange: { from: string; to: string } | undefined;
-      abortController?: AbortController;
     }) => {
       const notebookContextPrompt = await retrieveInvestigationContextPrompt();
 
@@ -442,7 +439,6 @@ ${finding.evidence}
         question: investigationQuestion,
         contextPrompt: notebookContextPrompt,
         timeRange,
-        abortController,
       });
     },
     [executeInvestigation, retrieveInvestigationContextPrompt]
@@ -474,12 +470,10 @@ ${finding.evidence}
       investigationQuestion,
       initialGoal,
       timeRange,
-      abortController,
     }: {
       investigationQuestion: string;
       initialGoal?: string;
       timeRange: { from: string; to: string } | undefined;
-      abortController?: AbortController;
     }) => {
       // Clear old memory IDs before starting new investigation
       context.state.updateValue({ runningMemory: undefined });
@@ -548,7 +542,6 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
         initialGoal,
         timeRange,
         prevContent: true,
-        abortController,
       });
     },
     [
@@ -562,6 +555,11 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
   const continueInvestigation = useCallback(async () => {
     setIsInvestigating(true);
     const { runningMemory } = context.state.value;
+
+    // Create AbortController if not exists
+    if (!abortControllerRef.current) {
+      abortControllerRef.current = new AbortController();
+    }
 
     try {
       if (!runningMemory?.parentInteractionId) {
@@ -580,6 +578,16 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
       setIsInvestigating(false);
     }
   }, [context.state, notifications, pollInvestigationCompletion]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
 
   return {
     isInvestigating,
