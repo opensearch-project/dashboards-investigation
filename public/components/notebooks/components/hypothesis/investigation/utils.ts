@@ -47,6 +47,45 @@ export const isMarkdownText = (text: string) => {
   return matchedTimes >= Math.min(markdownPatterns.length, 3);
 };
 
+export interface ParsedStep {
+  purpose: string;
+  context?: string;
+  tool?: string;
+  isStructured: boolean;
+}
+
+/**
+ * Parse a structured step format into its components
+ * Format: <step><purpose>...</purpose><context>...</context><tool>...</tool></step>
+ * Returns an object with purpose, context, and tool, or marks as unstructured
+ */
+export const parseStep = (stepText: string): ParsedStep => {
+  if (!stepText) {
+    return { purpose: stepText || '', isStructured: false };
+  }
+
+  // Try to extract purpose, context, and tool from structured format
+  const purposeMatch = stepText.match(/<purpose>(.*?)<\/purpose>/s);
+  const contextMatch = stepText.match(/<context>(.*?)<\/context>/s);
+  const toolMatch = stepText.match(/<tool>(.*?)<\/tool>/s);
+
+  if (purposeMatch && purposeMatch[1]) {
+    const purpose = purposeMatch[1].trim();
+    const context = contextMatch && contextMatch[1] ? contextMatch[1].trim() : undefined;
+    const tool = toolMatch && toolMatch[1] ? toolMatch[1].trim() : undefined;
+
+    return {
+      purpose,
+      context: context || undefined,
+      tool: tool || undefined,
+      isStructured: true,
+    };
+  }
+
+  // If not in structured format, return original text as purpose
+  return { purpose: stepText, isStructured: false };
+};
+
 export const getAllMessagesBySessionIdAndMemoryId = async (
   options: Parameters<typeof getMLCommonsAgenticMemoryMessages>[0]
 ) => {
@@ -58,7 +97,7 @@ export const getAllMessagesBySessionIdAndMemoryId = async (
         ...options,
         nextToken,
       });
-      result.hits.hits.forEach((hit: any) => {
+      result.hits.hits.forEach((hit: unknown) => {
         const structuredData = hit._source.structured_data;
         messages.push({
           input: structuredData.input,
@@ -88,7 +127,7 @@ export const getAllTracesMessages = async (
       });
 
       const hits = result.hits?.hits || [];
-      hits.forEach((hit: any) => {
+      hits.forEach((hit: unknown) => {
         const structuredData = hit._source.structured_data;
         traces.push(structuredData);
       });
