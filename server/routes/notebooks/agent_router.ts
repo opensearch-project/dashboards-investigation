@@ -21,6 +21,8 @@ const commonInstructions = `
 - Avoid vague instructions; be specific about data sources, indexes, or parameters
 - Never make assumptions or rely on implicit knowledge
 - Respond only in JSON format
+${/* Avoid too many tokens when it is an index pattern */ ''}
+- When using ListIndexTool, use include_details false when the input is an index pattern or wildcard.
 
 ## Step Examples
 **Good example:** "Use Tool to sample documents from index: 'my-index'"
