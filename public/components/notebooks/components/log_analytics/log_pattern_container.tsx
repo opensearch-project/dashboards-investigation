@@ -104,10 +104,12 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
   // Save results when needed
   useEffect(() => {
     if (paragraphRef.current && resultChanged) {
-      saveParagraph({
-        paragraphStateValue: ParagraphState.updateOutputResult(paragraphRef.current, result),
-      });
-      setResultChanged(false);
+      (async () => {
+        await saveParagraph({
+          paragraphStateValue: ParagraphState.updateOutputResult(paragraphRef.current!, result),
+        });
+        setResultChanged(false);
+      })();
     }
   }, [result, resultChanged, saveParagraph]);
 
@@ -159,6 +161,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
       <LogInsight
         logInsights={result?.logInsights || []}
         isLoadingLogInsights={loadingStatus.isLoadingLogInsights}
+        disableExclude={!!resultChanged}
         onExclude={handleLogInsightExclude}
       />
       <EuiSpacer size="s" />
@@ -167,6 +170,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
         patternMapDifference={result?.patternMapDifference || []}
         isLoadingPatternMapDifference={loadingStatus.isLoadingPatternMapDifference}
         isNotApplicable={!processedContext?.timeRange?.baselineFrom}
+        disableExclude={!!resultChanged}
         onExclude={handlePatternDifferenceExclude}
       />
       <EuiSpacer size="s" />
@@ -180,6 +184,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
             processedContext.indexInsight?.trace_id_field
           )
         }
+        disableExclude={!!resultChanged}
         onExclude={handleLogSequenceExclude}
       />
     </EuiPanel>
