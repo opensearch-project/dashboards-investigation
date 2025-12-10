@@ -6,7 +6,7 @@
 import { BehaviorSubject, Observable, Subscription, timer } from 'rxjs';
 import { concatMap, takeWhile } from 'rxjs/operators';
 import { CoreStart } from '../../../../../../../../../src/core/public';
-import { executeMLCommonsAgenticMessage } from '../../../../../../utils/ml_commons_apis';
+import { getFinalMessage } from '../utils';
 
 export class PERAgentMessageService {
   private _dataSourceId?: string;
@@ -28,7 +28,7 @@ export class PERAgentMessageService {
     this._subscription = timer(0, 5000)
       .pipe(
         concatMap(() => {
-          return executeMLCommonsAgenticMessage({
+          return getFinalMessage({
             memoryContainerId: this._memoryContainerId,
             messageId,
             http: this._http,
@@ -36,11 +36,11 @@ export class PERAgentMessageService {
             dataSourceId: this._dataSourceId,
           });
         }),
-        takeWhile((message) => !message?.hits?.hits?.[0]?._source?.structured_data?.response, true)
+        takeWhile((message) => !message, true)
       )
       .subscribe((message) => {
         this._message$.next(message);
-        if (!!message?.hits?.hits?.[0]?._source?.structured_data?.response) {
+        if (!!message) {
           this._pollingState$.next(false);
         }
       });

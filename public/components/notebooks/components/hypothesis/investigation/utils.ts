@@ -4,6 +4,7 @@
  */
 
 import {
+  executeMLCommonsAgenticMessage,
   getMLCommonsAgenticMemoryMessages,
   getMLCommonsAgenticTracesMessages,
 } from '../../../../../utils/ml_commons_apis';
@@ -105,4 +106,20 @@ export const getAllTracesMessages = async (
   } while (!!nextToken);
 
   return traces;
+};
+
+export const getFinalMessage = async (
+  options: Parameters<typeof executeMLCommonsAgenticMessage>[0]
+) => {
+  let finalMessage;
+  try {
+    const response = await executeMLCommonsAgenticMessage(options);
+    finalMessage = response?.hits?.hits?.[0]?._source?.structured_data?.response;
+  } catch (error) {
+    console.log('error', error);
+    // if (error instanceof A)
+    console.error('Failed to execute ml commons agentic message api');
+    finalMessage = null;
+  }
+  return finalMessage;
 };
