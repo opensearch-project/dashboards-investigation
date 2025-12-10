@@ -116,8 +116,6 @@ export const getFinalMessage = async (
     const response = await executeMLCommonsAgenticMessage(options);
     finalMessage = response?.hits?.hits?.[0]?._source?.structured_data?.response;
   } catch (error) {
-    console.log('error', error);
-    // if (error instanceof A)
     console.error('Failed to execute ml commons agentic message api');
     finalMessage = null;
   }
