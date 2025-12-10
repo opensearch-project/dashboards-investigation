@@ -18,7 +18,7 @@ import {
   EuiAccordion,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
-import { isMarkdownText } from './investigation/utils';
+import { isMarkdownText, parseStep } from './investigation/utils';
 import { PERAgentMessageService } from './investigation/services/per_agent_message_service';
 import { PERAgentMemoryService } from './investigation/services/per_agent_memory_service';
 
@@ -82,10 +82,10 @@ export const HypothesesStep = ({
                     buttonContent={
                       <EuiFlexGroup
                         gutterSize="s"
-                        alignItems="center"
+                        alignItems="flexStart"
                         style={{ overflow: 'hidden' }}
                       >
-                        <EuiFlexItem grow={false}>
+                        <EuiFlexItem grow={false} style={{ paddingTop: '2px' }}>
                           {isLastMessageLoading ? (
                             <EuiLoadingSpinner size="m" />
                           ) : (
@@ -93,7 +93,24 @@ export const HypothesesStep = ({
                           )}
                         </EuiFlexItem>
                         <EuiFlexItem>
-                          <EuiText size="s">{executorMessage.input}</EuiText>
+                          {(() => {
+                            const parsedStep = parseStep(executorMessage.input);
+                            return (
+                              <div>
+                                <EuiText size="s">
+                                  <strong>{parsedStep.purpose}</strong>
+                                </EuiText>
+                                {parsedStep.context && (
+                                  <>
+                                    <EuiSpacer size="xs" />
+                                    <EuiText size="xs" color="subdued">
+                                      {parsedStep.context}
+                                    </EuiText>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </EuiFlexItem>
                       </EuiFlexGroup>
                     }
