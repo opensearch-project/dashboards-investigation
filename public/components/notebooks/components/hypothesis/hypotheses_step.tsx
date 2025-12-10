@@ -59,7 +59,7 @@ export const HypothesesStep = ({
             const isLastMessageLoading =
               index === executorMessages.length - 1 && !executorMessage.response && !message;
             return (
-              <>
+              <React.Fragment key={index}>
                 <EuiPanel
                   key={executorMessage.message_id}
                   paddingSize="s"
@@ -115,7 +115,7 @@ export const HypothesesStep = ({
                   </EuiAccordion>
                 </EuiPanel>
                 <EuiSpacer size="s" />
-              </>
+              </React.Fragment>
             );
           })}
         {!!executorMessages && executorMessages.length > 0 && <EuiSpacer size="s" />}
