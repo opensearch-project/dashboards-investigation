@@ -59,9 +59,16 @@ interface AgenticNotebookProps extends NotebookComponentProps {
 
 function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const {
-    services: { notifications, findingService, chrome, chat, uiSettings, contextProvider },
+    services: {
+      notifications,
+      findingService,
+      chrome,
+      chat,
+      uiSettings,
+      contextProvider,
+      workspaces,
+    },
   } = useOpenSearchDashboards<NoteBookServices>();
-
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isReinvestigateModalVisible, setIsReinvestigateModalVisible] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
@@ -81,7 +88,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     id: openedNoteId,
     paragraphs: paragraphsStates,
     isLoading,
-    isNotebookOwner,
+    isNotebookReadonly,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
@@ -106,6 +113,13 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     await addNewFinding({ text: `%md\n${findingText}` });
     closeModal();
   };
+
+  useEffect(() => {
+    const subscription = workspaces.currentWorkspace$.subscribe((currentWorkspace) => {
+      notebookContext.state.updateValue({ isNotebookReadonly: currentWorkspace?.readonly });
+    });
+    return () => subscription.unsubscribe();
+  }, [workspaces.currentWorkspace$, notebookContext.state]);
 
   // Initialize finding integration for automatic UI updates when findings are added
   useNotebookFindingIntegration({
@@ -159,7 +173,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           hypotheses: res.hypotheses,
           runningMemory: res.runningMemory,
           historyMemory: res.historyMemory,
-          isNotebookOwner: res.isNotebookOwner,
         });
 
         // Check if there's an ongoing investigation to continue BEFORE calling start
@@ -204,7 +217,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     // TODO: remove the optional chain after each method
     (chrome as any).setIsNavDrawerLocked?.(false);
     const rafId = window.requestAnimationFrame(() => {
-      chat?.openWindow?.();
+      (chat as any)?.openWindow?.();
     });
     return () => {
       window.cancelAnimationFrame(rafId);
@@ -346,7 +359,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               })
             : null}
 
-          {!isLoading && !isInvestigating && isNotebookOwner && (
+          {!isLoading && !isInvestigating && !isNotebookReadonly && (
             <>
               <EuiSpacer size="s" />
               <EuiFlexGroup alignItems="center" gutterSize="none">

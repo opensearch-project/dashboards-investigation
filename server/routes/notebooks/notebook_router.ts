@@ -219,7 +219,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
           request.body.notebookId,
           opensearchNotebooksClient
         );
-        noteBookInfo.attributes.savedNotebook = {
+        (noteBookInfo.attributes as any).savedNotebook = {
           ...noteBookInfo.attributes.savedNotebook,
           ...noteObject,
         };
@@ -265,14 +265,9 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
           NOTEBOOK_SAVED_OBJECT,
           request.params.noteId
         );
-        const savedNotebook = notebookinfo.attributes.savedNotebook as NotebookBackendType;
+        const savedNotebook = (notebookinfo as any).attributes.savedNotebook as NotebookBackendType;
         return response.ok({
-          body: {
-            ...savedNotebook,
-            isNotebookOwner: savedNotebook.owner
-              ? savedNotebook.owner === getUserName(request)
-              : true,
-          },
+          body: savedNotebook,
         });
       } catch (error) {
         return response.custom({
@@ -306,7 +301,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
           request.body.noteId
         );
         const createCloneNotebook = cloneNotebook(
-          getNotebook.attributes.savedNotebook,
+          (getNotebook as any).attributes.savedNotebook,
           request.body.name
         );
         const createdNotebook = await opensearchNotebooksClient.create(

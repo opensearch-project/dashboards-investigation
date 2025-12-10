@@ -107,6 +107,7 @@ export class InvestigationPlugin
         findingService,
         usageCollection: depsStart.usageCollection,
         overlay: depsStart.overlay,
+        workspaces: coreStart.workspaces,
       };
       return services;
     };

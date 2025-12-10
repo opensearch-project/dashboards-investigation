@@ -42,7 +42,7 @@ export const Paragraph = (props: ParagraphProps) => {
   const isFindingParagraph =
     notebookType !== NotebookType.CLASSIC && paragraph.value.input.inputType === 'MARKDOWN';
   let isActionVisible = isClassicNotebook;
-  if (!isClassicNotebook && isFindingParagraph && context.state.value.isNotebookOwner) {
+  if (!isClassicNotebook && isFindingParagraph && !context.state.value.isNotebookReadonly) {
     isActionVisible = true;
   }
 
