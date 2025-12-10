@@ -46,7 +46,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
     });
   };
 
-  const { isNotebookOwner } = useObservable(
+  const { isNotebookReadonly } = useObservable(
     notebookContext.state.getValue$(),
     notebookContext.state.value
   );
@@ -93,7 +93,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
         <EuiTitle>
           <h2 style={{ paddingLeft: '20px' }}>Issue summary and impact</h2>
         </EuiTitle>
-        {isNotebookOwner ? (
+        {!isNotebookReadonly ? (
           <EuiButton
             style={{ marginRight: '20px' }}
             onClick={() => openReinvestigateModal()}

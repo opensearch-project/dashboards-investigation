@@ -69,6 +69,7 @@ export function cloneNotebook(fetchedNotebook: NotebookBackendType, name: string
     backend: 'kibana_1.0',
     paragraphs: fetchedNotebook.paragraphs,
     path: name,
+    owner: fetchedNotebook.owner,
   };
 
   return {

@@ -319,8 +319,10 @@ ${finding.evidence}
       context.state.updateValue({ investigationError: undefined });
 
       try {
-        if (!context.state.value.isNotebookOwner) {
-          throw new Error('Only owner of this notebook can start the investigation');
+        if (context.state.value.isNotebookReadonly) {
+          throw new Error(
+            'Only user with write permission of this notebook can start the investigation'
+          );
         }
 
         if (context.state.value.context.value.initialGoal !== question) {

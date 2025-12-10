@@ -25,7 +25,7 @@ export interface NotebookStateValue {
   runningMemory?: AgenticMemeory;
   historyMemory?: AgenticMemeory;
   investigationError?: string;
-  isNotebookOwner: boolean;
+  isNotebookReadonly: boolean;
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {

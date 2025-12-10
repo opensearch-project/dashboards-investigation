@@ -56,7 +56,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     runningMemory,
     historyMemory,
     investigationError,
-    isNotebookOwner,
+    isNotebookReadonly,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const history = useHistory();
   const [showSteps, setShowSteps] = useState(false);
@@ -66,7 +66,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   }, [isInvestigating, runningMemory, historyMemory]);
 
   const PERAgentServices = useMemo(() => {
-    if (!activeMemory?.executorMemoryId || !activeMemory?.memoryContainerId || !isNotebookOwner) {
+    if (!activeMemory?.executorMemoryId || !activeMemory?.memoryContainerId || isNotebookReadonly) {
       return null;
     }
 
@@ -80,7 +80,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
         if (!isInvestigating && activeMemory) {
           return false;
         }
-        return !messageService.getMessageValue()?.hits?.hits?.[0]?._source?.structured_data
+        return !(messageService.getMessageValue() as any)?.hits?.hits?.[0]?._source?.structured_data
           ?.response;
       },
       activeMemory.memoryContainerId
@@ -90,7 +90,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
       message: messageService,
       executorMemory: executorMemoryService,
     };
-  }, [http, activeMemory, isInvestigating, isNotebookOwner]);
+  }, [http, activeMemory, isInvestigating, isNotebookReadonly]);
 
   const executorMessages$ = useMemo(
     () => PERAgentServices?.executorMemory.getMessages$() ?? new BehaviorSubject<any[]>([]),
@@ -173,7 +173,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     return null;
   }
 
-  const investigationSteps = PERAgentServices && isNotebookOwner && (
+  const investigationSteps = PERAgentServices && !isNotebookReadonly && (
     <EuiAccordion
       id="investigation-steps"
       buttonContent="Investigation Steps"
@@ -257,7 +257,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
               AI Agent continuously evaluates and ranks hypotheses based on evidence
             </EuiText>
           </EuiFlexGroup>
-          {hypotheses?.length && !isInvestigating ? (
+          {hypotheses?.length && !isInvestigating && !isNotebookReadonly ? (
             <HypothesesFeedback
               appName={appName}
               usageCollection={usageCollection}
@@ -276,7 +276,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
           }}
           dataSourceId={context.value.dataSourceId}
           currentExecutorMemoryId={activeMemory?.executorMemoryId}
-          memoryContainerId={activeMemory?.memoryContainerId}
+          memoryContainerId={activeMemory?.memoryContainerId as string}
         />
       )}
     </>
