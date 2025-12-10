@@ -16,7 +16,6 @@ import { NotebookReactContext } from '../components/notebooks/context_provider/c
 import {
   createAgenticExecutionMemory,
   executeMLCommonsAgent,
-  executeMLCommonsAgenticMessage,
   getMLCommonsAgentDetail,
   getMLCommonsConfig,
 } from '../utils/ml_commons_apis';
@@ -26,6 +25,7 @@ import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_age
 import { useNotebook } from './use_notebook';
 import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
 import { DEFAULT_INVESTIGATION_NAME, NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
+import { getFinalMessage } from '../components/notebooks/components/hypothesis/investigation/utils';
 
 const getFindingFromParagraph = (paragraph: ParagraphStateValue<unknown>) => {
   return `
@@ -185,7 +185,7 @@ ${finding.evidence}
         const subscription = timer(0, 5000)
           .pipe(
             concatMap(() =>
-              executeMLCommonsAgenticMessage({
+              getFinalMessage({
                 memoryContainerId: runningMemory?.memoryContainerId!,
                 messageId: runningMemory?.parentInteractionId!,
                 http,
@@ -193,13 +193,10 @@ ${finding.evidence}
                 dataSourceId,
               })
             ),
-            takeWhile(
-              (message) => !message?.hits?.hits?.[0]?._source?.structured_data?.response,
-              true
-            )
+            takeWhile((message) => !message, true)
           )
           .subscribe(async (message) => {
-            const response = message?.hits?.hits?.[0]?._source?.structured_data?.response;
+            const response = message;
             if (!response) {
               return;
             }

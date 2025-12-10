@@ -100,7 +100,11 @@ ${JSON.stringify(selectedFieldComparison)}.
       });
       updateLoadingState(false, false);
     } catch (error) {
-      updateLoadingState(false, false, error.message);
+      updateLoadingState(
+        false,
+        false,
+        error.message || error.body || 'Failed to fetch data distribution'
+      );
       getNotifications().toasts.addDanger(error.message);
     }
   },

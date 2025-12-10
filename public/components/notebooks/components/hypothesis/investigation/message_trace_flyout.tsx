@@ -118,7 +118,7 @@ export const MessageTraceFlyout = ({
     if (!traceMessage?.response) {
       return true;
     }
-    return !message?.hits?.hits?.[0]?._source?.structured_data?.response;
+    return !message;
   }, [isLastMessage, traceMessage?.response, message, traces]);
 
   useEffect(() => {
