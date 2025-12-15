@@ -80,8 +80,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
         if (!isInvestigating && activeMemory) {
           return false;
         }
-        return !(messageService.getMessageValue() as any)?.hits?.hits?.[0]?._source?.structured_data
-          ?.response;
+        return !messageService.getMessageValue();
       },
       activeMemory.memoryContainerId
     );
