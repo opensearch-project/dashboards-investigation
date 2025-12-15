@@ -22,6 +22,7 @@ interface LogSequenceProps {
   baselineSequences?: LogSequenceEntry[];
   isLoadingLogSequence: boolean;
   isNotApplicable: boolean;
+  disableExclude?: boolean;
   onExclude?: (item: LogSequenceEntry) => void;
 }
 
@@ -29,6 +30,7 @@ export const LogSequence: React.FC<LogSequenceProps> = ({
   exceptionalSequences,
   isLoadingLogSequence,
   isNotApplicable,
+  disableExclude,
   onExclude,
 }) => {
   // Columns for sequence entries table
@@ -85,6 +87,7 @@ export const LogSequence: React.FC<LogSequenceProps> = ({
                   aria-label="Deselect item"
                   onClick={() => onExclude(record)}
                   color="subdued"
+                  isDisabled={disableExclude}
                 />
               </EuiToolTip>
             ),

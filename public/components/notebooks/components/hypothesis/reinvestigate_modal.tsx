@@ -11,12 +11,12 @@ import {
   EuiModalHeaderTitle,
   EuiModalBody,
   EuiFormRow,
-  EuiFieldText,
   EuiSpacer,
   EuiSwitch,
   EuiModalFooter,
   EuiButton,
   EuiSuperDatePicker,
+  EuiTextArea,
 } from '@elastic/eui';
 import moment from 'moment';
 import dateMath from '@elastic/datemath';
@@ -84,7 +84,7 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
         </EuiModalHeader>
         <EuiModalBody>
           <EuiFormRow label="Edit initial goal">
-            <EuiFieldText value={value} onChange={(e) => setValue(e.target.value)} required />
+            <EuiTextArea value={value} onChange={(e) => setValue(e.target.value)} required />
           </EuiFormRow>
           {!!timeRange && (
             <>

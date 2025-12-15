@@ -24,6 +24,7 @@ interface PatternDifferenceProps {
   patternMapDifference: LogPattern[];
   isLoadingPatternMapDifference: boolean;
   isNotApplicable: boolean;
+  disableExclude?: boolean;
   onExclude?: (item: LogPattern) => void;
 }
 
@@ -78,6 +79,7 @@ export const PatternDifference: React.FC<PatternDifferenceProps> = ({
   patternMapDifference,
   isLoadingPatternMapDifference,
   isNotApplicable,
+  disableExclude,
   onExclude,
 }) => {
   // Columns for pattern difference table
@@ -164,6 +166,7 @@ export const PatternDifference: React.FC<PatternDifferenceProps> = ({
                   aria-label="Deselect item"
                   onClick={() => onExclude(record)}
                   color="subdued"
+                  isDisabled={disableExclude}
                 />
               </EuiToolTip>
             ),
