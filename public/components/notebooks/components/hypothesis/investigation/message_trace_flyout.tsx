@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import moment from 'moment';
-import MarkdownRender from '@nteract/markdown';
+import ReactMarkdown from 'react-markdown';
 import {
   EuiAccordion,
   EuiText,
@@ -50,7 +50,7 @@ const renderTraceString = ({ text, fallback }: { text: string | undefined; fallb
   }
 
   return isMarkdownText(text) ? (
-    <MarkdownRender source={text} />
+    <ReactMarkdown source={text} />
   ) : (
     <EuiCodeBlock isCopyable>{text}</EuiCodeBlock>
   );

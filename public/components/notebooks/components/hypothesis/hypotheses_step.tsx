@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useMemo } from 'react';
-import MarkdownRender from '@nteract/markdown';
+import ReactMarkdown from 'react-markdown';
 import {
   EuiLoadingContent,
   EuiText,
@@ -105,7 +105,7 @@ export const HypothesesStep = ({
                       <EuiPanel paddingSize="l" hasShadow={false} hasBorder={false} color="subdued">
                         <EuiText className="markdown-output-text" size="s">
                           {isMarkdownText(executorMessage.response) ? (
-                            <MarkdownRender source={executorMessage.response} />
+                            <ReactMarkdown source={executorMessage.response} />
                           ) : (
                             executorMessage.response
                           )}

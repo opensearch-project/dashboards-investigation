@@ -17,7 +17,7 @@ import {
   EuiTitle,
 } from '@elastic/eui';
 import { useEffectOnce, useObservable } from 'react-use';
-import MarkdownRender from '@nteract/markdown';
+import ReactMarkdown from 'react-markdown';
 import { useContext } from 'react';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
@@ -102,7 +102,7 @@ export const MarkdownParagraph = ({
           data-test-subj="markdownOutputText"
           size="s"
         >
-          <MarkdownRender source={output.result} />
+          <ReactMarkdown source={output.result} />
         </EuiText>
       </>
     );
@@ -138,7 +138,7 @@ export const MarkdownParagraph = ({
         <EuiSpacer />
         {aHasTypology ? (
           <pre>
-            <MarkdownRender source={evidence} />
+            <ReactMarkdown source={evidence} />
           </pre>
         ) : (
           <div>{evidence}</div>
@@ -203,7 +203,7 @@ export const MarkdownParagraph = ({
           data-test-subj="markdownOutputText"
           size="s"
         >
-          <MarkdownRender source={ParagraphState.getOutput(paragraphValue)?.result} />
+          <ReactMarkdown source={ParagraphState.getOutput(paragraphValue)?.result} />
         </EuiText>
       )}
     </>
