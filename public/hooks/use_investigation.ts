@@ -311,7 +311,7 @@ ${finding.evidence}
     }: {
       question: string;
       contextPrompt: string;
-      timeRange: InvestigationTimeRange;
+      timeRange?: InvestigationTimeRange;
       initialGoal?: string;
       prevContent?: boolean;
     }) => {
@@ -441,7 +441,7 @@ ${finding.evidence}
       timeRange,
     }: {
       investigationQuestion: string;
-      timeRange: InvestigationTimeRange;
+      timeRange?: InvestigationTimeRange;
     }) => {
       const notebookContextPrompt = await retrieveInvestigationContextPrompt();
 
@@ -483,7 +483,7 @@ ${finding.evidence}
     }: {
       investigationQuestion: string;
       initialGoal?: string;
-      timeRange: InvestigationTimeRange;
+      timeRange?: InvestigationTimeRange;
     }) => {
       // Clear old memory IDs before starting new investigation
       context.state.updateValue({ runningMemory: undefined });

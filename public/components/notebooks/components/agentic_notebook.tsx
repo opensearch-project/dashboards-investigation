@@ -227,50 +227,52 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const handleReinvestigate = useCallback(
     async ({
       question,
-      updatedTimeRange,
       isReinvestigate,
+      updatedTimeRange,
     }: {
       question: string;
-      updatedTimeRange: Omit<InvestigationTimeRange, 'baselineFrom' | 'baselineTo'>;
       isReinvestigate: boolean;
+      updatedTimeRange?: Omit<InvestigationTimeRange, 'baselineFrom' | 'baselineTo'>;
     }) => {
       setIsReinvestigateModalVisible(false);
       setIsInvestigating(true);
 
+      const updates: { initialGoal?: string; timeRange?: InvestigationTimeRange } = {};
+
       if (initialGoal !== question) {
-        await updateNotebookContext({ initialGoal: question });
+        updates.initialGoal = question;
       }
 
-      const newTimeRange = {
-        ...updatedTimeRange,
-        baselineFrom: timeRange?.baselineFrom ?? 0,
-        baselineTo: timeRange?.baselineTo ?? 0,
-      };
+      const newTimeRange = updatedTimeRange
+        ? {
+            ...updatedTimeRange,
+            baselineFrom: timeRange?.baselineFrom ?? 0,
+            baselineTo: timeRange?.baselineTo ?? 0,
+          }
+        : undefined;
 
-      if (
+      const hasTimeRangeChanged =
         updatedTimeRange &&
         (timeRange?.selectionFrom !== updatedTimeRange.selectionFrom ||
-          timeRange?.selectionTo !== updatedTimeRange.selectionTo)
-      ) {
-        await updateNotebookContext({
-          // FIXME: when support baseline time
-          timeRange: newTimeRange,
-        });
+          timeRange?.selectionTo !== updatedTimeRange.selectionTo);
+
+      if (hasTimeRangeChanged) {
+        updates.timeRange = newTimeRange;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await updateNotebookContext(updates);
+      }
+
+      if (hasTimeRangeChanged) {
         await rerunPrecheck(paragraphsStates, newTimeRange);
       }
 
-      if (isReinvestigate) {
-        rerunInvestigation({
-          investigationQuestion: question,
-          initialGoal,
-          timeRange: newTimeRange,
-        });
-      } else {
-        doInvestigate({
-          investigationQuestion: question,
-          timeRange: newTimeRange,
-        });
-      }
+      (isReinvestigate ? rerunInvestigation : doInvestigate)({
+        investigationQuestion: question,
+        timeRange: newTimeRange,
+        ...(isReinvestigate && { initialGoal }),
+      });
     },
     [
       initialGoal,

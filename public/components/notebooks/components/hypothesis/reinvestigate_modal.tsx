@@ -23,18 +23,15 @@ import dateMath from '@elastic/datemath';
 
 import { InvestigationTimeRange } from '../../../../../common/types/notebooks';
 
+type DatePickerTimeRange = Omit<InvestigationTimeRange, 'baselineFrom' | 'baselineTo'> | undefined;
+
 interface ReinvestigateModalProps {
   initialGoal: string;
-  timeRange:
-    | {
-        selectionFrom: number;
-        selectionTo: number;
-      }
-    | undefined;
+  timeRange: DatePickerTimeRange | undefined;
   dateFormat: string;
   confirm: (params: {
     question: string;
-    updatedTimeRange: Omit<InvestigationTimeRange, 'baselineFrom' | 'baselineTo'>;
+    updatedTimeRange: DatePickerTimeRange;
     isReinvestigate: boolean;
   }) => void;
   closeModal: () => void;
@@ -110,7 +107,7 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
             onClick={() => {
               confirm({
                 question: value,
-                updatedTimeRange: selectedTimeRange || ({} as any),
+                updatedTimeRange: selectedTimeRange,
                 isReinvestigate: checked,
               });
             }}

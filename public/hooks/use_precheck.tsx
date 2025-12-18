@@ -99,7 +99,7 @@ export const usePrecheck = () => {
         paragraphs: Array<ParagraphBackendType<unknown>>;
         doInvestigate: (props: {
           investigationQuestion: string;
-          timeRange: InvestigationTimeRange;
+          timeRange?: InvestigationTimeRange;
         }) => Promise<unknown>;
         hypotheses?: HypothesisItem[];
       }) => {
@@ -240,7 +240,7 @@ export const usePrecheck = () => {
         if (res.context?.initialGoal && !res.hypotheses?.length) {
           res.doInvestigate({
             investigationQuestion: res.context?.initialGoal || '',
-            timeRange: res.context?.timeRange || ({} as any),
+            timeRange: res.context?.timeRange,
           });
         }
       },
@@ -249,14 +249,14 @@ export const usePrecheck = () => {
     rerun: useCallback(
       async (
         paragraphStates: Array<ParagraphState<unknown>>,
-        timeRange: InvestigationTimeRange
+        timeRange?: InvestigationTimeRange
       ) => {
         const paragraphIdsToSave: string[] = [];
 
         const pplParagraph = paragraphStates.find((paragraphState) =>
           paragraphState.value.input.inputText.startsWith('%ppl')
         );
-        if (pplParagraph) {
+        if (pplParagraph && timeRange) {
           pplParagraph?.updateInput({
             ...pplParagraph.value.input,
             parameters: {
