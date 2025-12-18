@@ -237,10 +237,10 @@ export const usePrecheck = () => {
           }
         }
 
-        if (res.context?.initialGoal && res.context?.timeRange && !res.hypotheses?.length) {
+        if (res.context?.initialGoal && !res.hypotheses?.length) {
           res.doInvestigate({
             investigationQuestion: res.context?.initialGoal || '',
-            timeRange: res.context?.timeRange,
+            timeRange: res.context?.timeRange || ({} as any),
           });
         }
       },

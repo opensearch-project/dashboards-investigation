@@ -108,13 +108,11 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
         <EuiModalFooter>
           <EuiButton
             onClick={() => {
-              if (selectedTimeRange) {
-                confirm({
-                  question: value,
-                  updatedTimeRange: selectedTimeRange,
-                  isReinvestigate: checked,
-                });
-              }
+              confirm({
+                question: value,
+                updatedTimeRange: selectedTimeRange || ({} as any),
+                isReinvestigate: checked,
+              });
             }}
             fill
             disabled={!value.trim()}

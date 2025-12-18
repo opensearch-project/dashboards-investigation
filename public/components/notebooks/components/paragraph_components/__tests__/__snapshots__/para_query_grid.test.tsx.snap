@@ -14,8 +14,7 @@ exports[`<QueryDataGridMemo /> spec renders the component 1`] = `
     data-focus-lock-disabled="disabled"
   >
     <div
-      class="euiDataGrid euiDataGrid--bordersAll euiDataGrid--headerShade euiDataGrid--footerOverline euiDataGrid--rowHoverHighlight euiDataGrid--stickyFooter"
-      style="height: 400px;"
+      class="euiDataGrid euiDataGrid--bordersAll euiDataGrid--headerShade euiDataGrid--footerOverline euiDataGrid--rowHoverHighlight euiDataGrid--stickyFooter paraQueryDatagrid"
     />
   </div>
   <div

@@ -156,9 +156,9 @@ const getTimeScopePrompt = (timeRange: { selectionFrom: number; selectionTo: num
   - Start time: ${timeRange.selectionFrom} milliseconds
   - End time: ${timeRange.selectionTo} milliseconds
   
-  Human-readable format (UTC): ${new Date(timeRange.selectionFrom).toISOString()} to ${new Date(
-          timeRange.selectionTo
-        ).toISOString()}
+  Only use this human-readable format (UTC) when Unix timestamps are not supported for the time field: ${new Date(
+    timeRange.selectionFrom
+  ).toISOString()} to ${new Date(timeRange.selectionTo).toISOString()}
   
   Focus your analysis and data queries strictly within this time period using the millisecond timestamps above.`
       : ''
