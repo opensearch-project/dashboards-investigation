@@ -25,7 +25,6 @@
     "@algolia/autocomplete-core": "^1.4.1",
     "@algolia/autocomplete-theme-classic": "^1.2.1",
     "ajv": "^8.11.0",
-    "react-markdown": "^4.3.1",
     "autosize": "^6.0.1",
     "json5": "^2.2.3",
     "mime": "^3.0.0",

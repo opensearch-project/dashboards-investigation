@@ -11,13 +11,13 @@ import {
   EuiFlexGroup,
   EuiFlexItem,
   EuiLoadingContent,
+  EuiMarkdownFormat,
   EuiSmallButton,
   EuiSpacer,
   EuiText,
   EuiTitle,
 } from '@elastic/eui';
 import { useEffectOnce, useObservable } from 'react-use';
-import ReactMarkdown from 'react-markdown';
 import { useContext } from 'react';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
@@ -102,7 +102,7 @@ export const MarkdownParagraph = ({
           data-test-subj="markdownOutputText"
           size="s"
         >
-          <ReactMarkdown source={output.result} />
+          <EuiMarkdownFormat>{output.result}</EuiMarkdownFormat>
         </EuiText>
       </>
     );
@@ -115,6 +115,8 @@ export const MarkdownParagraph = ({
     const aHasTypology =
       description?.toLowerCase().includes('topology') ||
       evidence?.toLowerCase().includes('topology');
+
+    console.log(evidence);
 
     return (
       <>
@@ -136,13 +138,7 @@ export const MarkdownParagraph = ({
           </EuiFlexItem>
         </EuiFlexGroup>
         <EuiSpacer />
-        {aHasTypology ? (
-          <pre>
-            <ReactMarkdown source={evidence} />
-          </pre>
-        ) : (
-          <div>{evidence}</div>
-        )}
+        {aHasTypology ? <pre>{evidence}</pre> : <div>{evidence}</div>}
       </>
     );
   }
@@ -203,7 +199,9 @@ export const MarkdownParagraph = ({
           data-test-subj="markdownOutputText"
           size="s"
         >
-          <ReactMarkdown source={ParagraphState.getOutput(paragraphValue)?.result} />
+          <EuiMarkdownFormat>
+            {ParagraphState.getOutput(paragraphValue)?.result || ''}
+          </EuiMarkdownFormat>
         </EuiText>
       )}
     </>

@@ -4,7 +4,6 @@
  */
 
 import React, { useEffect, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
 import {
   EuiLoadingContent,
   EuiText,
@@ -16,6 +15,7 @@ import {
   EuiSmallButtonEmpty,
   EuiLoadingSpinner,
   EuiAccordion,
+  EuiMarkdownFormat,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import { isMarkdownText } from './investigation/utils';
@@ -105,7 +105,7 @@ export const HypothesesStep = ({
                       <EuiPanel paddingSize="l" hasShadow={false} hasBorder={false} color="subdued">
                         <EuiText className="markdown-output-text" size="s">
                           {isMarkdownText(executorMessage.response) ? (
-                            <ReactMarkdown source={executorMessage.response} />
+                            <EuiMarkdownFormat>{executorMessage.response}</EuiMarkdownFormat>
                           ) : (
                             executorMessage.response
                           )}
