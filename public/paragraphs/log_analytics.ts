@@ -197,8 +197,6 @@ ${terminologyText}
 ### Investigation Guidelines
 **PRIMARY EVIDENCE**: Use these patterns as concrete evidence for root cause analysis.
 
-**CRITICAL - User Exclusions**: Items marked "[USER EXCLUDED - DO NOT INVESTIGATE]" have been manually dismissed by the user as irrelevant, noise, or already investigated. DO NOT analyze, reference, or suggest investigating these patterns. They represent false leads or known non-issues.
-
 ${priorityText}
 
 **Query Construction**:

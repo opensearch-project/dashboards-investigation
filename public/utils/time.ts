@@ -81,24 +81,3 @@ export const addTimeRangeFilter = (query: string, params: any) => {
   );
   return getPPLQueryWithTimeRange(query, fromDate, toDate, timeField);
 };
-
-export const formatTimeRangeString = (
-  unixTimeRange:
-    | {
-        selectionFrom: number;
-        selectionTo: number;
-      }
-    | undefined,
-  dateFormat = defaultDateFormat
-) => {
-  if (!unixTimeRange) {
-    return {
-      from: '',
-      to: '',
-    };
-  }
-  return {
-    from: moment.utc(unixTimeRange.selectionFrom).format(dateFormat),
-    to: moment.utc(unixTimeRange.selectionTo).format(dateFormat),
-  };
-};

@@ -29,6 +29,7 @@ import { useEffectOnce, useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
 import { ParagraphState } from '../../../../common/state/paragraph_state';
 import {
+  InvestigationTimeRange,
   NotebookComponentProps,
   NoteBookSource,
   NotebookType,
@@ -50,7 +51,6 @@ import { SummaryCard } from './summary_card';
 import { useChatContextProvider } from '../../../hooks/use_chat_context';
 import { HypothesisDetail, HypothesesPanel, ReinvestigateModal } from './hypothesis';
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
-import { formatTimeRangeString } from '../../../../public/utils/time';
 import { InvestigationPageContext } from './investigation_page_context';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
@@ -231,22 +231,21 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       isReinvestigate,
     }: {
       question: string;
-      updatedTimeRange:
-        | {
-            selectionFrom: number;
-            selectionTo: number;
-          }
-        | undefined;
+      updatedTimeRange: Omit<InvestigationTimeRange, 'baselineFrom' | 'baselineTo'>;
       isReinvestigate: boolean;
     }) => {
-      const formattedTimeRange = formatTimeRangeString(updatedTimeRange);
-
       setIsReinvestigateModalVisible(false);
       setIsInvestigating(true);
 
       if (initialGoal !== question) {
         await updateNotebookContext({ initialGoal: question });
       }
+
+      const newTimeRange = {
+        ...updatedTimeRange,
+        baselineFrom: timeRange?.baselineFrom ?? 0,
+        baselineTo: timeRange?.baselineTo ?? 0,
+      };
 
       if (
         updatedTimeRange &&
@@ -255,25 +254,21 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       ) {
         await updateNotebookContext({
           // FIXME: when support baseline time
-          timeRange: {
-            baselineFrom: timeRange?.baselineFrom ?? 0,
-            baselineTo: timeRange?.baselineTo ?? 0,
-            ...updatedTimeRange,
-          },
+          timeRange: newTimeRange,
         });
-        await rerunPrecheck(paragraphsStates, formattedTimeRange);
+        await rerunPrecheck(paragraphsStates, newTimeRange);
       }
 
       if (isReinvestigate) {
         rerunInvestigation({
           investigationQuestion: question,
           initialGoal,
-          timeRange: formattedTimeRange,
+          timeRange: newTimeRange,
         });
       } else {
         doInvestigate({
           investigationQuestion: question,
-          timeRange: formattedTimeRange,
+          timeRange: newTimeRange,
         });
       }
     },

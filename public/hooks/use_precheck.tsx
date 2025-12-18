@@ -13,6 +13,7 @@ import { NoteBookServices } from 'public/types';
 import {
   HypothesisItem,
   IndexInsightContent,
+  InvestigationTimeRange,
   NotebookContext,
   NoteBookSource,
   ParagraphBackendType,
@@ -26,7 +27,6 @@ import {
 } from '../../common/constants/notebooks';
 import { getInputType } from '../../common/utils/paragraph';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
-import { formatTimeRangeString } from '../../public/utils/time';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { isDateAppenddablePPL } from '../utils/query';
 
@@ -99,7 +99,7 @@ export const usePrecheck = () => {
         paragraphs: Array<ParagraphBackendType<unknown>>;
         doInvestigate: (props: {
           investigationQuestion: string;
-          timeRange: { from: string; to: string };
+          timeRange: InvestigationTimeRange;
         }) => Promise<unknown>;
         hypotheses?: HypothesisItem[];
       }) => {
@@ -237,10 +237,10 @@ export const usePrecheck = () => {
           }
         }
 
-        if (res.context?.initialGoal && !res.hypotheses?.length) {
+        if (res.context?.initialGoal && res.context?.timeRange && !res.hypotheses?.length) {
           res.doInvestigate({
             investigationQuestion: res.context?.initialGoal || '',
-            timeRange: formatTimeRangeString(res.context?.timeRange),
+            timeRange: res.context?.timeRange,
           });
         }
       },
@@ -249,10 +249,7 @@ export const usePrecheck = () => {
     rerun: useCallback(
       async (
         paragraphStates: Array<ParagraphState<unknown>>,
-        timeRange: {
-          from: string;
-          to: string;
-        }
+        timeRange: InvestigationTimeRange
       ) => {
         const paragraphIdsToSave: string[] = [];
 
@@ -265,8 +262,8 @@ export const usePrecheck = () => {
             parameters: {
               ...(pplParagraph.value.input.parameters as any),
               timeRange: {
-                from: moment.utc(timeRange.from).local().format(dateFormat),
-                to: moment.utc(timeRange.to).local().format(dateFormat),
+                from: moment(timeRange.selectionFrom).format(dateFormat),
+                to: moment(timeRange.selectionTo).format(dateFormat),
               },
             },
           });

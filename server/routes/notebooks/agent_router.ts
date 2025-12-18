@@ -146,19 +146,21 @@ Your final result JSON must include:
 │        Duration: 1.6 ms                                             │
 └─────────────────────────────────────────────────────────────────────┘`;
 
-const getTimeScopePrompt = (timeRange: { from: string; to: string }) => `
+const getTimeScopePrompt = (timeRange: { selectionFrom: number; selectionTo: number }) => `
   ${
-    timeRange && timeRange.from && timeRange.to
+    timeRange && timeRange.selectionFrom && timeRange.selectionTo
       ? `
   ## Time Scope
 
-  Conduct the investigation within the specified timerange: ${timeRange.from} UTC to ${
-          timeRange.to
-        } UTC. The milliseconds format for the time scope is: ${+new Date(
-          timeRange.from
-        )} to ${+new Date(
-          timeRange.to
-        )}. Focus your analysis and data queries on this user-selected time period.`
+  **CRITICAL: Use these exact Unix timestamps (in milliseconds) for all time-based queries and analysis:**
+  - Start time: ${timeRange.selectionFrom} milliseconds
+  - End time: ${timeRange.selectionTo} milliseconds
+  
+  Human-readable format (UTC): ${new Date(timeRange.selectionFrom).toISOString()} to ${new Date(
+          timeRange.selectionTo
+        ).toISOString()}
+  
+  Focus your analysis and data queries strictly within this time period using the millisecond timestamps above.`
       : ''
   }
 `;

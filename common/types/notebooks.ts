@@ -26,17 +26,19 @@ export enum NotebookType {
   CLASSIC = 'Classic',
 }
 
+export interface InvestigationTimeRange {
+  selectionFrom: number;
+  selectionTo: number;
+  baselineFrom: number;
+  baselineTo: number;
+}
+
 export interface NotebookContext {
   dataSourceId?: string;
   timeField?: string;
   index?: string;
   currentTime?: number; // the time when PPL been executed when trigger from discovery
-  timeRange?: {
-    selectionFrom: number;
-    selectionTo: number;
-    baselineFrom: number;
-    baselineTo: number;
-  };
+  timeRange?: InvestigationTimeRange;
   source?: NoteBookSource;
   filters?: Array<Record<string, any>>; // For phase 1, we only support DSL filter
   summary?: string;

@@ -20,7 +20,11 @@ import {
   getMLCommonsConfig,
 } from '../utils/ml_commons_apis';
 import { extractParentInteractionId } from '../../common/utils/task';
-import { AgenticMemeory, PERAgentInvestigationResponse } from '../../common/types/notebooks';
+import {
+  AgenticMemeory,
+  InvestigationTimeRange,
+  PERAgentInvestigationResponse,
+} from '../../common/types/notebooks';
 import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_agent';
 import { useNotebook } from './use_notebook';
 import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
@@ -307,9 +311,9 @@ ${finding.evidence}
     }: {
       question: string;
       contextPrompt: string;
+      timeRange: InvestigationTimeRange;
       initialGoal?: string;
       prevContent?: boolean;
-      timeRange?: { from: string; to: string };
     }) => {
       // Create new AbortController for this investigation
       if (abortControllerRef.current) {
@@ -437,7 +441,7 @@ ${finding.evidence}
       timeRange,
     }: {
       investigationQuestion: string;
-      timeRange: { from: string; to: string } | undefined;
+      timeRange: InvestigationTimeRange;
     }) => {
       const notebookContextPrompt = await retrieveInvestigationContextPrompt();
 
@@ -479,7 +483,7 @@ ${finding.evidence}
     }: {
       investigationQuestion: string;
       initialGoal?: string;
-      timeRange: { from: string; to: string } | undefined;
+      timeRange: InvestigationTimeRange;
     }) => {
       // Clear old memory IDs before starting new investigation
       context.state.updateValue({ runningMemory: undefined });
