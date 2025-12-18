@@ -71,3 +71,9 @@
 .notebookLastUpdatedLabel {
   align-content: center;
 }
+
+.paraQueryDatagrid {
+  .euiDataGrid__virtualized {
+    height: unset !important;
+  }
+}
