@@ -116,8 +116,6 @@ export const MarkdownParagraph = ({
       description?.toLowerCase().includes('topology') ||
       evidence?.toLowerCase().includes('topology');
 
-    console.log(evidence);
-
     return (
       <>
         <EuiFlexGroup justifyContent="spaceBetween" style={{ marginInlineEnd: 20 }}>

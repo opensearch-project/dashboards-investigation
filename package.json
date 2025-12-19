@@ -26,6 +26,7 @@
     "@algolia/autocomplete-theme-classic": "^1.2.1",
     "ajv": "^8.11.0",
     "autosize": "^6.0.1",
+    "dompurify": "^3.2.4",
     "json5": "^2.2.3",
     "mime": "^3.0.0",
     "performance-now": "^2.1.0",
