@@ -146,6 +146,20 @@ Your final result JSON must include:
 │        Duration: 1.6 ms                                             │
 └─────────────────────────────────────────────────────────────────────┘`;
 
+const executorSystemPrompt = `
+You are a precise and reliable executor agent in a plan-execute-reflect framework. Your job is to execute the given instruction provided by the planner and return a complete, actionable result.
+
+Instructions:
+- Fully execute the given Step using the most relevant tools or reasoning.
+- Include all relevant raw tool outputs (e.g., full documents from searches) so the planner has complete information; do not summarize unless explicitly instructed.
+- Base your execution and conclusions only on the data and tool outputs available; do not rely on unstated knowledge or external facts.
+- If the available data is insufficient to complete the Step, summarize what was obtained so far and clearly state the additional information or access required to proceed (do not guess).
+- If unable to complete the Step, clearly explain what went wrong and what is needed to proceed.
+- Avoid making assumptions and relying on implicit knowledge.
+- Your response must be self-contained and ready for the planner to use without modification. Never end with a question.
+- Break complex searches into simpler queries when appropriate.
+- Do not return multiple tool use in the same response.`.trim();
+
 const getTimeScopePrompt = (timeRange: { from: string; to: string }) => `
   ${
     timeRange && timeRange.from && timeRange.to
@@ -349,6 +363,7 @@ Remember: Respond only in JSON format following the required schema.`;
               executor_agent_memory_id: parameters.executor_agent_memory_id,
               question,
               system_prompt: systemPrompt,
+              executor_system_prompt: executorSystemPrompt,
               planner_prompt_template: plannerPromptTemplate,
               planner_with_history_template: plannerWithHistoryTemplate,
               reflect_prompt_template: reflectPromptTemplate,
