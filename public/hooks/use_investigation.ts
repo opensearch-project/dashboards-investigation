@@ -23,6 +23,7 @@ import { extractParentInteractionId } from '../../common/utils/task';
 import {
   AgenticMemeory,
   InvestigationTimeRange,
+  FindingParagraphParameters,
   PERAgentInvestigationResponse,
 } from '../../common/types/notebooks';
 import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_agent';
@@ -90,10 +91,12 @@ export const useInvestigation = () => {
             inputText: `%md ${evidence}`.trim(),
             inputType: 'MARKDOWN',
             parameters: {
-              importance: +importance,
-              description,
-              type,
-            },
+              finding: {
+                importance: +importance,
+                description,
+                type,
+              },
+            } as FindingParagraphParameters,
           },
           aiGenerated: true,
         })
@@ -457,6 +460,9 @@ export const useInvestigation = () => {
         input: {
           inputText: text,
           inputType: 'MARKDOWN',
+          parameters: {
+            finding: {},
+          },
         },
         aiGenerated: false,
       });

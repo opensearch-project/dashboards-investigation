@@ -151,6 +151,10 @@ export interface PERAgentHypothesisFinding {
   type?: string;
 }
 
+export interface FindingParagraphParameters {
+  finding?: Omit<PERAgentHypothesisFinding, 'id'> & { feedback?: string };
+}
+
 export interface PERAgentHypothesisItem {
   id: string;
   title: string;

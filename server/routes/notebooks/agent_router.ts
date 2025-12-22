@@ -82,6 +82,8 @@ Your final result JSON must include:
 }
 \`\`\`
 
+**CRITICAL for TOPOLOGY findings:** When creating a topology finding, you MUST place the complete topology graph (the ASCII tree visualization) in the "evidence" field, NOT in the "description" field. The "description" field should contain a brief summary or title of the topology.
+
 ### Hypothesis Structure
 \`\`\`json
 {

@@ -13,12 +13,8 @@ import { NotebookReactContext } from '../../context_provider/context_provider';
 import { getInputType } from '../../../../../common/utils/paragraph';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NoteBookServices } from '../../../../types';
-import { NotebookType, PERAgentHypothesisFinding } from '../../../../../common/types/notebooks';
+import { NotebookType, FindingParagraphParameters } from '../../../../../common/types/notebooks';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
-
-type FindingParagraphParameters = Omit<PERAgentHypothesisFinding, 'id'> & {
-  feedback?: string;
-};
 
 export interface ParagraphProps {
   index: number;
@@ -46,7 +42,9 @@ export const Paragraph = (props: ParagraphProps) => {
 
   const isClassicNotebook = notebookType === NotebookType.CLASSIC;
   const isFindingParagraph =
-    notebookType !== NotebookType.CLASSIC && paragraph.value.input.inputType === 'MARKDOWN';
+    !isClassicNotebook &&
+    !!(paragraphValue.input.parameters as FindingParagraphParameters)?.finding;
+
   let isActionVisible = isClassicNotebook;
   if (!isClassicNotebook && isFindingParagraph && !context.state.value.isNotebookReadonly) {
     isActionVisible = true;
@@ -59,10 +57,10 @@ export const Paragraph = (props: ParagraphProps) => {
     if (!isFindingParagraph || !output) return null;
 
     const parameters = paragraphValue.input.parameters as FindingParagraphParameters;
-    const description = parameters?.description;
-    const importance = parameters?.importance;
-    const feedback = parameters?.feedback;
-    const isTopology = parameters?.type === 'TOPOLOGY';
+    const description = parameters?.finding?.description;
+    const importance = parameters?.finding?.importance;
+    const feedback = parameters?.finding?.feedback;
+    const isTopology = parameters?.finding?.type === 'TOPOLOGY';
 
     return (
       <>
@@ -104,8 +102,9 @@ export const Paragraph = (props: ParagraphProps) => {
       {ParagraphComponent && (
         <div key={paragraph.value.id} className={paraClass}>
           {renderFindingHeader()}
-          {(paragraphValue.input.parameters as FindingParagraphParameters)?.type === 'TOPOLOGY' ? (
-            <pre>{output?.result}</pre>
+          {(paragraphValue.input.parameters as FindingParagraphParameters)?.finding?.type ===
+          'TOPOLOGY' ? (
+            <pre style={{ whiteSpace: 'pre-wrap' }}>{output?.result}</pre>
           ) : (
             <ParagraphComponent
               paragraphState={paragraph}
