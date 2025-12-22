@@ -16,10 +16,12 @@ import {
   EuiTitle,
   EuiFlyoutBody,
   EuiMarkdownFormat,
+  EuiEmptyPrompt,
+  EuiSmallButton,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import { timer } from 'rxjs';
-import { concatMap } from 'rxjs/operators';
+import { concatMap, delay, retryWhen, scan, timeout } from 'rxjs/operators';
 import type { NoteBookServices } from 'public/types';
 
 import { getTimeGapFromDates } from '../../../../../utils/time';
@@ -29,17 +31,11 @@ import { getAllTracesMessages, isMarkdownText } from './utils';
 import { PERAgentMemoryService } from './services/per_agent_memory_service';
 import { PERAgentMessageService } from './services/per_agent_message_service';
 
-const renderTraceString = ({ text, fallback }: { text: string | undefined; fallback: string }) => {
-  if (!text) {
-    return fallback;
-  }
-  let json;
+const renderTraceString = ({ text, fallback }: { text?: string; fallback: string }) => {
+  if (!text) return fallback;
+
   try {
-    json = JSON.parse(text);
-  } catch {
-    json = undefined;
-  }
-  if (json) {
+    const json = JSON.parse(text);
     return (
       <EuiErrorBoundary>
         <EuiCodeBlock {...(text.length < 100000 ? { language: 'json' } : {})} isCopyable>
@@ -47,13 +43,13 @@ const renderTraceString = ({ text, fallback }: { text: string | undefined; fallb
         </EuiCodeBlock>
       </EuiErrorBoundary>
     );
+  } catch {
+    return isMarkdownText(text) ? (
+      <EuiMarkdownFormat>{text}</EuiMarkdownFormat>
+    ) : (
+      <EuiCodeBlock isCopyable>{text}</EuiCodeBlock>
+    );
   }
-
-  return isMarkdownText(text) ? (
-    <EuiMarkdownFormat>{text}</EuiMarkdownFormat>
-  ) : (
-    <EuiCodeBlock isCopyable>{text}</EuiCodeBlock>
-  );
 };
 
 export const MessageTraceFlyout = ({
@@ -74,9 +70,12 @@ export const MessageTraceFlyout = ({
   memoryContainerId: string;
 }) => {
   const {
-    services: { http, overlays },
+    services: { http, overlays, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
-  const [traces, setTraces] = useState([]);
+
+  const [traces, setTraces] = useState<any[]>([]);
+  const [traceError, setTraceError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const [paddingRight, setPaddingRight] = useState('0px');
 
   useEffect(() => {
@@ -90,18 +89,10 @@ export const MessageTraceFlyout = ({
     return () => subscription.unsubscribe();
   }, [overlays]);
 
-  const tracesLengthRef = useRef(traces.length);
-  tracesLengthRef.current = traces.length;
-  const observables = useMemo(
-    () => ({
-      message$: messageService.getMessage$(),
-      executorMessages$: executorMemoryService.getMessages$(),
-    }),
-    [messageService, executorMemoryService]
-  );
-  const message = useObservable(observables.message$);
-  const messages = useObservable(observables.executorMessages$);
+  const message = messageService.getMessageValue();
+  const messages = useObservable(executorMemoryService.getMessages$());
   const messageIndex = messages?.findIndex((item) => item.message_id === messageId) ?? -1;
+
   const traceMessage = messages?.[messageIndex];
   const messageCreateTime = traceMessage?.create_time;
   const isLastMessage = messageIndex !== -1 && messageIndex + 1 === messages?.length;
@@ -109,22 +100,21 @@ export const MessageTraceFlyout = ({
   const shouldLoad = useMemo(() => {
     if (traces.length === 0) {
       return true;
-    }
-
-    if (!isLastMessage) {
+    } else if (!isLastMessage) {
       return false;
-    }
-
-    if (!traceMessage?.response) {
+    } else if (!traceMessage?.response) {
       return true;
     }
     return !message;
   }, [isLastMessage, traceMessage?.response, message, traces]);
 
+  const shouldStartPolling = useMemo(() => shouldLoad || retryKey > 0, [shouldLoad, retryKey]);
+
+  const tracesLengthRef = useRef(traces.length);
+  tracesLengthRef.current = traces.length;
+
   useEffect(() => {
-    if (!shouldLoad) {
-      return;
-    }
+    if (!shouldStartPolling) return;
 
     const abortController = new AbortController();
     const subscription = timer(0, 5000)
@@ -139,57 +129,139 @@ export const MessageTraceFlyout = ({
             dataSourceId,
             nextToken: tracesLengthRef.current,
           })
+        ),
+        timeout(20 * 1000),
+        retryWhen((errors) =>
+          errors.pipe(
+            delay(5000),
+            scan((retryCount, err) => {
+              if (retryCount >= 2) {
+                throw err;
+              }
+              return retryCount + 1;
+            }, 0)
+          )
         )
       )
-      .subscribe((messageTraces) => {
-        setTraces((prevTraces) => [...prevTraces, ...messageTraces]);
+      .subscribe({
+        next: (newTraces) => {
+          setTraces((prev) => [...prev, ...newTraces]);
+        },
+        error: (err) => {
+          if (err.name !== 'AbortError') {
+            const errorMessage = err.body?.message || err?.message || 'Unknown error occurred';
+            setTraceError(errorMessage);
+            notifications.toasts.addDanger({
+              title: 'Failed to load trace data',
+              text: errorMessage,
+            });
+          }
+        },
       });
     return () => {
       abortController.abort('Flyout unmount.');
       subscription.unsubscribe();
     };
-  }, [messageId, shouldLoad, http, dataSourceId, currentExecutorMemoryId, memoryContainerId]);
+  }, [
+    messageId,
+    shouldLoad,
+    http,
+    dataSourceId,
+    currentExecutorMemoryId,
+    memoryContainerId,
+    retryKey,
+    notifications.toasts,
+    shouldStartPolling,
+  ]);
 
-  const renderTraces = () => {
-    if (!shouldLoad && traces.length === 0) {
-      return (
-        <EuiText className="markdown-output-text" size="s">
-          No traces data.
-        </EuiText>
-      );
-    }
-    return traces.map(
-      (
-        { input, response, message_id: traceMessageId, origin, create_time: traceCreateTime },
-        index
-      ) => {
-        const isFromLLM = origin?.toLowerCase() === 'llm';
-        let durationStr = '';
-        if (traces[index - 1]) {
-          durationStr = getTimeGapFromDates(
-            moment(traces[index - 1].create_time),
-            moment(traceCreateTime)
-          );
-        } else if (messageCreateTime) {
-          durationStr = getTimeGapFromDates(moment(messageCreateTime), moment(traceCreateTime));
-        }
-        let reason: string = input;
-        let responseJson;
-        if (isFromLLM && /^\s*\{/.test(response)) {
-          try {
-            responseJson = JSON.parse(response);
-          } catch (e) {
-            console.error('Failed to parse json', e);
-          }
+  const handleRetry = () => {
+    setTraceError(null);
+    setTraces([]);
+    setRetryKey((k) => k + 1);
+  };
+
+  const processedTraces = useMemo(() => {
+    return traces.map((trace, index) => {
+      const { input, response, origin, create_time: createTime } = trace;
+      const isFromLLM = origin?.toLowerCase() === 'llm';
+
+      let durationStr = '';
+      const prevTime = traces[index - 1]?.create_time ?? messageCreateTime;
+
+      if (prevTime) {
+        durationStr = getTimeGapFromDates(moment(prevTime), moment(createTime));
+      }
+
+      let responseJson: any;
+      let reason = input;
+
+      if (isFromLLM && typeof response === 'string' && response.trim().startsWith('{')) {
+        try {
+          responseJson = JSON.parse(response);
           if (
             responseJson?.stopReason === 'tool_use' &&
-            responseJson?.output?.message?.content?.[0].text
+            responseJson?.output?.message?.content?.[0]?.text
           ) {
             reason = responseJson.output.message.content[0].text;
           }
+        } catch (err) {
+          console.error(err);
         }
+      }
+
+      return {
+        ...trace,
+        isFromLLM,
+        durationStr,
+        reason,
+        responseJson,
+      };
+    });
+  }, [traces, messageCreateTime]);
+
+  const renderTraces = () => {
+    if (traceError) {
+      return (
+        <EuiEmptyPrompt
+          iconType="alert"
+          color="danger"
+          title={<h3>Failed to load trace data</h3>}
+          body={<EuiText>{traceError}</EuiText>}
+          actions={
+            <EuiSmallButton color="primary" fill onClick={handleRetry}>
+              Retry
+            </EuiSmallButton>
+          }
+        />
+      );
+    }
+
+    if (!shouldLoad && traces.length === 0) {
+      return (
+        <EuiEmptyPrompt
+          iconType="editorStrike"
+          title={<h3>No trace data</h3>}
+          body={<EuiText>No trace information available for this step.</EuiText>}
+        />
+      );
+    }
+
+    return processedTraces.map(
+      (
+        {
+          input,
+          response,
+          trace_number: traceNumber,
+          origin,
+          isFromLLM,
+          reason,
+          durationStr,
+          responseJson,
+        },
+        index
+      ) => {
         return (
-          <React.Fragment key={traceMessageId}>
+          <React.Fragment key={traceNumber}>
             <EuiAccordion
               id={`trace-${index}`}
               buttonContent={`Step ${index + 1} - ${isFromLLM ? reason : `Execute ${origin}`} ${
@@ -242,7 +314,7 @@ export const MessageTraceFlyout = ({
 
       <EuiFlyoutBody>
         {renderTraces()}
-        {shouldLoad && <EuiLoadingContent />}
+        {shouldLoad && !traceError && <EuiLoadingContent />}
       </EuiFlyoutBody>
     </EuiFlyout>
   );
