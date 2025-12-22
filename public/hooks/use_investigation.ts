@@ -80,14 +80,12 @@ export const useInvestigation = () => {
       const startParagraphIndex = paragraphLengthRef.current;
       const sortedFindings = payload.findings.slice().sort((a, b) => b.importance - a.importance);
 
-      // Move TOPOLOGY type finding to the front
-      const topologyIndex = sortedFindings.findIndex((f) => f.type === 'TOPOLOGY');
-      if (topologyIndex > 0) {
-        const [topologyFinding] = sortedFindings.splice(topologyIndex, 1);
-        sortedFindings.unshift(topologyFinding);
-      }
+      // Move all TOPOLOGY type findings to the front
+      const topologyFindings = sortedFindings.filter((f) => f.type === 'TOPOLOGY');
+      const nonTopologyFindings = sortedFindings.filter((f) => f.type !== 'TOPOLOGY');
+      const reorderedFindings = [...topologyFindings, ...nonTopologyFindings];
 
-      const paragraphsToCreate = sortedFindings.map(
+      const paragraphsToCreate = reorderedFindings.map(
         ({ importance, description, evidence, type }) => ({
           input: {
             inputText: `%md ${evidence}`.trim(),
@@ -112,7 +110,7 @@ export const useInvestigation = () => {
 
         if (batchResult?.paragraphs) {
           batchResult.paragraphs.forEach((paragraph: any, index: number) => {
-            findingId2ParagraphId[sortedFindings[index].id] = paragraph.id;
+            findingId2ParagraphId[reorderedFindings[index].id] = paragraph.id;
           });
 
           // Run the created paragraphs

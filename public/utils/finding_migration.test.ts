@@ -36,7 +36,7 @@ describe('migrateFindingParagraphs', () => {
     });
   });
 
-  it('should not migrate paragraphs without aiGenerated flag', () => {
+  it('should migrate user findings by adding empty finding object', () => {
     const paragraphs: Array<ParagraphBackendType<unknown>> = [
       {
         id: 'para-1',
@@ -45,11 +45,27 @@ describe('migrateFindingParagraphs', () => {
           inputType: 'MARKDOWN',
           inputText: '%md text',
         },
-        output: [
-          {
-            result: 'Importance: 5\nDescription: Test\nEvidence: Evidence',
+      } as ParagraphBackendType<unknown>,
+    ];
+
+    const { migratedParagraphs, migratedIds } = migrateFindingParagraphs(paragraphs);
+
+    expect(migratedIds).toEqual(['para-1']);
+    expect(migratedParagraphs[0].input.parameters).toEqual({ finding: {} });
+  });
+
+  it('should not migrate user findings that already have finding parameter', () => {
+    const paragraphs: Array<ParagraphBackendType<unknown>> = [
+      {
+        id: 'para-1',
+        aiGenerated: false,
+        input: {
+          inputType: 'MARKDOWN',
+          inputText: '%md text',
+          parameters: {
+            finding: {},
           },
-        ],
+        },
       } as ParagraphBackendType<unknown>,
     ];
 
