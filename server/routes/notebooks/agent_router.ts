@@ -77,7 +77,8 @@ Your final result JSON must include:
     "id": string,
     "description": string,
     "importance": number (0-100),
-    "evidence": string
+    "evidence": string,
+    "type": string (optional, use "TOPOLOGY" for topology graph findings)
 }
 \`\`\`
 
@@ -122,29 +123,39 @@ Your final result JSON must include:
 5. Only respond with a pure JSON object
 6. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
 7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
-8. If there is a traceId, create a "Request flow topology" finding with a tree structure in evidence showing service calls with startTime and duration. If there are multiple traceId and their Request flow topology are similar, only show one of them. Example format:
-┌─────────────────────────────────────────────────────────────────────┐
-├─ ServiceName (Start: timestamp, Duration: X sec)                    │
-│  └─ ChildOperation (Start: timestamp, Duration: Y sec)              │
-│  │                                                                  │
-│  ├─ PaymentService                                                  │
-│  │  Start: 2024-11-17 00:11:23.040                                  │
-│  │  Duration: 10.00 sec                                             │
-│  │  └─ charge                                                       │
-│  │     Start: 2024-11-17 00:11:23.042                               │
-│  │     Duration: 10.00 sec                                          │
-│  │                                                                  │
-│  ├─ ShippingService                                                 │
-│  │  Start: 2024-11-17 00:11:33.043                                  │
-│  │  Duration: 1.1 ms                                                │
-│  │                                                                  │
-│  └─ send_order_confirmation                                         │
-│     Start: 2024-11-17 00:11:33.048                                  │
-│     Duration: 1.9 ms                                                │
-│     └─ send_email                                                   │
-│        Start: 2024-11-17 00:11:33.049                               │
-│        Duration: 1.6 ms                                             │
-└─────────────────────────────────────────────────────────────────────┘`;
+8. **Topology Generation Rule:** When trace data with traceId is available, create a "Request flow topology" finding to visualize the service call hierarchy. Set "type": "TOPOLOGY" for these findings. Consolidate similar topologies - if multiple traces show identical flow patterns, include only one representative example.
+
+### Topology Format Requirements:
+- Use tree structure with consistent indentation (2 spaces per level)
+- Include service/operation names with Start time (ISO format) and Duration
+- Show parent-child relationships clearly with └─ for children
+- Mark failed operations with [FAILED] or [ERROR] prefix
+- For parallel operations, list them at the same indentation level
+- Keep the topology focused on the critical path (limit depth to 5 levels)
+
+### Example Topology:
+┌──────────────────────────────────────────────────────────────────────┐
+│ Request Flow Topology (TraceId: abc123)                              │
+├──────────────────────────────────────────────────────────────────────┤
+│ CheckoutService                                                      │
+│   Start: 2024-11-17 00:11:23.040                                     │
+│   Duration: 11.10 sec                                                │
+│   └─ PaymentService                                                  │
+│       Start: 2024-11-17 00:11:23.042                                 │
+│       Duration: 10.00 sec                                            │
+│       └─ charge [FAILED]                                             │
+│           Start: 2024-11-17 00:11:23.045                             │
+│           Duration: 9.98 sec                                         │
+│   └─ ShippingService                                                 │
+│       Start: 2024-11-17 00:11:33.043                                 │
+│       Duration: 1.1 ms                                               │
+│   └─ NotificationService                                             │
+│       Start: 2024-11-17 00:11:33.048                                 │
+│       Duration: 1.9 ms                                               │
+│       └─ send_email                                                  │
+│           Start: 2024-11-17 00:11:33.049                             │
+│           Duration: 1.6 ms                                           │
+└──────────────────────────────────────────────────────────────────────┘`;
 
 const getTimeScopePrompt = (timeRange: { selectionFrom: number; selectionTo: number }) => `
   ${

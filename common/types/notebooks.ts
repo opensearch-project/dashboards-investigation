@@ -148,6 +148,7 @@ export interface PERAgentHypothesisFinding {
   description: string;
   importance: number;
   evidence: string;
+  type?: string;
 }
 
 export interface PERAgentHypothesisItem {

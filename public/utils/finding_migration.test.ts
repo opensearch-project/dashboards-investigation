@@ -165,4 +165,87 @@ describe('migrateFindingParagraphs', () => {
     expect(migratedParagraphs[0].input.inputText).toBe('%md Evidence 1');
     expect(migratedParagraphs[1]).toEqual(paragraphs[1]);
   });
+
+  it('should add type TOPOLOGY when description contains topology', () => {
+    const paragraphs: Array<ParagraphBackendType<unknown>> = [
+      {
+        id: 'para-1',
+        aiGenerated: true,
+        input: {
+          inputType: 'MARKDOWN',
+          inputText: '%md old',
+        },
+        output: [
+          {
+            result:
+              'Importance: 8\nDescription: Request Flow Topology\nEvidence: Service call hierarchy',
+          },
+        ],
+      } as ParagraphBackendType<unknown>,
+    ];
+
+    const { migratedParagraphs, migratedIds } = migrateFindingParagraphs(paragraphs);
+
+    expect(migratedIds).toEqual(['para-1']);
+    expect(migratedParagraphs[0].input.parameters).toEqual({
+      importance: 8,
+      description: 'Request Flow Topology',
+      type: 'TOPOLOGY',
+    });
+  });
+
+  it('should add type TOPOLOGY when evidence contains topology', () => {
+    const paragraphs: Array<ParagraphBackendType<unknown>> = [
+      {
+        id: 'para-1',
+        aiGenerated: true,
+        input: {
+          inputType: 'MARKDOWN',
+          inputText: '%md old',
+        },
+        output: [
+          {
+            result:
+              'Importance: 7\nDescription: Service flow\nEvidence: Topology graph shows service dependencies',
+          },
+        ],
+      } as ParagraphBackendType<unknown>,
+    ];
+
+    const { migratedParagraphs, migratedIds } = migrateFindingParagraphs(paragraphs);
+
+    expect(migratedIds).toEqual(['para-1']);
+    expect(migratedParagraphs[0].input.parameters).toEqual({
+      importance: 7,
+      description: 'Service flow',
+      type: 'TOPOLOGY',
+    });
+  });
+
+  it('should not add type TOPOLOGY for non-topology findings', () => {
+    const paragraphs: Array<ParagraphBackendType<unknown>> = [
+      {
+        id: 'para-1',
+        aiGenerated: true,
+        input: {
+          inputType: 'MARKDOWN',
+          inputText: '%md old',
+        },
+        output: [
+          {
+            result: 'Importance: 6\nDescription: Regular finding\nEvidence: Normal evidence',
+          },
+        ],
+      } as ParagraphBackendType<unknown>,
+    ];
+
+    const { migratedParagraphs, migratedIds } = migrateFindingParagraphs(paragraphs);
+
+    expect(migratedIds).toEqual(['para-1']);
+    expect(migratedParagraphs[0].input.parameters).toEqual({
+      importance: 6,
+      description: 'Regular finding',
+    });
+    expect(migratedParagraphs[0].input.parameters).not.toHaveProperty('type');
+  });
 });
