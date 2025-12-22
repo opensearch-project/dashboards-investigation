@@ -4,21 +4,22 @@
  */
 
 import { EuiText } from '@elastic/eui';
-import React from 'react';
-import { Media } from '@nteract/outputs';
+import React, { useMemo } from 'react';
 import { useObservable } from 'react-use';
+import DOMPurify from 'dompurify';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
 
 export const OtherParagraph = (props: { paragraphState: ParagraphState<string> }) => {
   const paragraphValue = useObservable(props.paragraphState.getValue$());
   const val = ParagraphState.getOutput(paragraphValue)?.result;
+  const sanitizedHtml = useMemo(() => DOMPurify.sanitize(val || ''), [val]);
 
   switch (ParagraphState.getOutput(paragraphValue)?.outputType) {
     case 'HTML':
       return (
         <EuiText>
-          {/* eslint-disable-next-line react/jsx-pascal-case */}
-          <Media.HTML data={val} />
+          {/* eslint-disable-next-line react/no-danger */}
+          <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
         </EuiText>
       );
     case 'IMG':

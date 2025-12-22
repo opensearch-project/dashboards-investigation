@@ -4,7 +4,6 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import moment from 'moment';
-import MarkdownRender from '@nteract/markdown';
 import {
   EuiAccordion,
   EuiText,
@@ -16,6 +15,7 @@ import {
   EuiFlyoutHeader,
   EuiTitle,
   EuiFlyoutBody,
+  EuiMarkdownFormat,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import { timer } from 'rxjs';
@@ -50,7 +50,7 @@ const renderTraceString = ({ text, fallback }: { text: string | undefined; fallb
   }
 
   return isMarkdownText(text) ? (
-    <MarkdownRender source={text} />
+    <EuiMarkdownFormat>{text}</EuiMarkdownFormat>
   ) : (
     <EuiCodeBlock isCopyable>{text}</EuiCodeBlock>
   );
