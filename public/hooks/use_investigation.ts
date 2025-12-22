@@ -77,33 +77,29 @@ export const useInvestigation = () => {
     async ({ payload }: { payload: PERAgentInvestigationResponse }) => {
       const findingId2ParagraphId: { [key: string]: string } = {};
       const startParagraphIndex = paragraphLengthRef.current;
-      const sortedFindings = payload.findings.slice().sort((a, b) => {
-        const aHasTypology =
-          a.description.toLowerCase().includes('topology') ||
-          a.evidence.toLowerCase().includes('topology');
-        const bHasTypology =
-          b.description.toLowerCase().includes('topology') ||
-          b.evidence.toLowerCase().includes('topology');
-        if (aHasTypology && !bHasTypology) {
-          return -1;
-        }
-        if (!aHasTypology && bHasTypology) {
-          return 1;
-        }
-        return b.importance - a.importance;
-      });
+      const sortedFindings = payload.findings.slice().sort((a, b) => b.importance - a.importance);
 
-      const paragraphsToCreate = sortedFindings.map(({ importance, description, evidence }) => ({
-        input: {
-          inputText: `%md ${evidence}`.trim(),
-          inputType: 'MARKDOWN',
-          parameters: {
-            importance: +importance,
-            description,
+      // Move TOPOLOGY type finding to the front
+      const topologyIndex = sortedFindings.findIndex((f) => f.type === 'TOPOLOGY');
+      if (topologyIndex > 0) {
+        const [topologyFinding] = sortedFindings.splice(topologyIndex, 1);
+        sortedFindings.unshift(topologyFinding);
+      }
+
+      const paragraphsToCreate = sortedFindings.map(
+        ({ importance, description, evidence, type }) => ({
+          input: {
+            inputText: `%md ${evidence}`.trim(),
+            inputType: 'MARKDOWN',
+            parameters: {
+              importance: +importance,
+              description,
+              type,
+            },
           },
-        },
-        aiGenerated: true,
-      }));
+          aiGenerated: true,
+        })
+      );
 
       try {
         const batchResult = await batchCreateParagraphs({

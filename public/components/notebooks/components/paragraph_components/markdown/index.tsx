@@ -129,7 +129,7 @@ export const MarkdownParagraph = ({
           size="s"
           style={{
             // TODO remove this when add buttons
-            ...(notebookType === NotebookType.AGENTIC && { marginBottom: '-1.5rem' }),
+            ...(notebookType !== NotebookType.AGENTIC && { marginBottom: '1.5rem' }),
           }}
         >
           <EuiMarkdownFormat>

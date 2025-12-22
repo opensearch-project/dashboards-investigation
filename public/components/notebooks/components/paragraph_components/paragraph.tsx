@@ -13,8 +13,12 @@ import { NotebookReactContext } from '../../context_provider/context_provider';
 import { getInputType } from '../../../../../common/utils/paragraph';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NoteBookServices } from '../../../../types';
-import { NotebookType } from '../../../../../common/types/notebooks';
+import { NotebookType, PERAgentHypothesisFinding } from '../../../../../common/types/notebooks';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
+
+type FindingParagraphParameters = Omit<PERAgentHypothesisFinding, 'id'> & {
+  feedback?: string;
+};
 
 export interface ParagraphProps {
   index: number;
@@ -54,10 +58,11 @@ export const Paragraph = (props: ParagraphProps) => {
   const renderFindingHeader = () => {
     if (!isFindingParagraph || !output) return null;
 
-    const parameters = paragraphValue.input.parameters as any;
+    const parameters = paragraphValue.input.parameters as FindingParagraphParameters;
     const description = parameters?.description;
     const importance = parameters?.importance;
     const feedback = parameters?.feedback;
+    const isTopology = parameters?.type === 'TOPOLOGY';
 
     return (
       <>
@@ -66,7 +71,7 @@ export const Paragraph = (props: ParagraphProps) => {
             <EuiTitle size="xs">
               <span>
                 {isAIGenerated && description && importance !== undefined
-                  ? `Finding: ${description} | Importance: ${importance}`
+                  ? `Finding: ${description} ${isTopology ? '' : `| Importance: ${importance}`}`
                   : 'User Finding'}
               </span>
             </EuiTitle>
@@ -99,10 +104,14 @@ export const Paragraph = (props: ParagraphProps) => {
       {ParagraphComponent && (
         <div key={paragraph.value.id} className={paraClass}>
           {renderFindingHeader()}
-          <ParagraphComponent
-            paragraphState={paragraph}
-            actionDisabled={notebookType === NotebookType.AGENTIC}
-          />
+          {(paragraphValue.input.parameters as FindingParagraphParameters)?.type === 'TOPOLOGY' ? (
+            <pre>{output?.result}</pre>
+          ) : (
+            <ParagraphComponent
+              paragraphState={paragraph}
+              actionDisabled={notebookType === NotebookType.AGENTIC}
+            />
+          )}
         </div>
       )}
     </div>

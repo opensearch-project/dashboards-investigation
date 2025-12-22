@@ -14,14 +14,19 @@ export const migrateFindingParagraphs = (paragraphs: Array<ParagraphBackendType<
       paragraph.input.inputType === 'MARKDOWN' &&
       paragraph.output?.[0]?.result
     ) {
-      const result = (paragraph.output[0] as any).result;
+      const result = paragraph.output[0].result as string;
       const isOldFormat = result.startsWith('Importance:') && result.includes('Description:');
 
       if (isOldFormat) {
         migratedIds.push(paragraph.id);
-        const description = /Description\:\s*(.*)\n/.exec(result)?.[1];
-        const evidence = /Evidence\:\s*(.*)/s.exec(result)?.[1];
+        const description = /Description\:\s*(.*)\n/.exec(result)?.[1] || '';
+        const evidence = /Evidence\:\s*(.*)/s.exec(result)?.[1] || '';
         const importance = +(/Importance\:\s*(.*)/.exec(result)?.[1] || 0);
+
+        const isTopology =
+          description.toLowerCase().includes('topology') ||
+          evidence.toLowerCase().includes('topology');
+
         return {
           ...paragraph,
           input: {
@@ -29,7 +34,8 @@ export const migrateFindingParagraphs = (paragraphs: Array<ParagraphBackendType<
             inputText: `%md ${evidence}`.trim(),
             parameters: {
               importance: isNaN(importance) ? 0 : importance,
-              description: description || '',
+              description,
+              ...(isTopology && { type: 'TOPOLOGY' }),
             },
           },
         };
