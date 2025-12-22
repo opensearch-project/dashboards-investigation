@@ -5,10 +5,9 @@
 
 import React, { useContext } from 'react';
 import { useObservable } from 'react-use';
-import moment from 'moment';
-import { EuiBadge, EuiFlexGroup, EuiFlexItem, EuiSpacer, EuiText, EuiTitle } from '@elastic/eui';
 import { uiSettingsService } from '../../../../../common/utils';
 import { ParagraphActionPanel } from './paragraph_actions_panel';
+import { FindingHeader } from './finding_header';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { getInputType } from '../../../../../common/utils/paragraph';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
@@ -53,47 +52,6 @@ export const Paragraph = (props: ParagraphProps) => {
   const output = ParagraphState.getOutput(paragraphValue);
   const isAIGenerated = !isClassicNotebook && paragraphValue.aiGenerated === true;
 
-  const renderFindingHeader = () => {
-    if (!isFindingParagraph || !output) return null;
-
-    const parameters = paragraphValue.input.parameters as FindingParagraphParameters;
-    const description = parameters?.finding?.description;
-    const importance = parameters?.finding?.importance;
-    const feedback = parameters?.finding?.feedback;
-    const isTopology = parameters?.finding?.type === 'TOPOLOGY';
-
-    return (
-      <>
-        <EuiFlexGroup justifyContent="spaceBetween" style={{ marginInlineEnd: 20 }}>
-          <EuiFlexItem grow={false}>
-            <EuiTitle size="xs">
-              <span>
-                {isAIGenerated && description && importance !== undefined
-                  ? `Finding: ${description} ${isTopology ? '' : `| Importance: ${importance}`}`
-                  : 'User Finding'}
-              </span>
-            </EuiTitle>
-          </EuiFlexItem>
-          <EuiFlexItem grow={false}>
-            <EuiText size="xs" color="subdued" style={{ whiteSpace: 'nowrap' }}>
-              {isAIGenerated ? 'Updated' : 'Created'}&nbsp;
-              {moment(paragraphValue.dateModified).fromNow()}
-            </EuiText>
-          </EuiFlexItem>
-        </EuiFlexGroup>
-        <EuiSpacer size="s" />
-        {isAIGenerated && (
-          <EuiFlexGroup gutterSize="none" justifyContent="spaceBetween">
-            <EuiBadge>AI Generated</EuiBadge>
-            {feedback === 'CONFIRMED' && <EuiBadge color="warning">Confirmed</EuiBadge>}
-            {feedback === 'REJECTED' && <EuiBadge color="warning">Rejected</EuiBadge>}
-          </EuiFlexGroup>
-        )}
-        <EuiSpacer size="s" />
-      </>
-    );
-  };
-
   return (
     <div className="notebookParagraphWrapper">
       {isActionVisible && (
@@ -101,7 +59,13 @@ export const Paragraph = (props: ParagraphProps) => {
       )}
       {ParagraphComponent && (
         <div key={paragraph.value.id} className={paraClass}>
-          {renderFindingHeader()}
+          {isFindingParagraph && !!output && (
+            <FindingHeader
+              parameters={paragraphValue.input.parameters as FindingParagraphParameters}
+              dateModified={paragraphValue.dateModified}
+              isAIGenerated={isAIGenerated}
+            />
+          )}
           {(paragraphValue.input.parameters as FindingParagraphParameters)?.finding?.type ===
           'TOPOLOGY' ? (
             <pre style={{ whiteSpace: 'pre-wrap' }}>{output?.result}</pre>

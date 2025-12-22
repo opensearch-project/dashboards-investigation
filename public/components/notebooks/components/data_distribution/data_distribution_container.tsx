@@ -238,14 +238,13 @@ export const DataDistributionContainer = ({
         <>
           <EuiFlexGroup wrap responsive={false}>
             {paginatedSpecs.map((spec, specIndex) => {
-              const uniqueKey = `${activePage * ITEMS_PER_PAGE + specIndex}`;
               const uniqueId = `dis-id-${activePage * ITEMS_PER_PAGE + specIndex}`;
               const chartIndex = activePage * ITEMS_PER_PAGE + specIndex;
               const isSelected = !!fieldComparison[chartIndex].excludeFromContext;
 
               return (
                 <MemoItem
-                  key={uniqueKey}
+                  key={uniqueId}
                   uniqueId={uniqueId}
                   chartIndex={chartIndex}
                   isSelected={isSelected}
