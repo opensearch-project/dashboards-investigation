@@ -4,7 +4,7 @@
  */
 
 import { migrateFindingParagraphs } from './finding_migration';
-import { ParagraphBackendType } from '../../common/types/notebooks';
+import { FindingParagraphParameters, ParagraphBackendType } from '../../common/types/notebooks';
 
 describe('migrateFindingParagraphs', () => {
   it('should migrate old format finding paragraphs', () => {
@@ -29,8 +29,10 @@ describe('migrateFindingParagraphs', () => {
     expect(migratedIds).toEqual(['para-1']);
     expect(migratedParagraphs[0].input.inputText).toBe('%md Some evidence text');
     expect(migratedParagraphs[0].input.parameters).toEqual({
-      importance: 5,
-      description: 'Test finding',
+      finding: {
+        importance: 5,
+        description: 'Test finding',
+      },
     });
   });
 
@@ -124,8 +126,10 @@ describe('migrateFindingParagraphs', () => {
 
     expect(migratedIds).toEqual(['para-1']);
     expect(migratedParagraphs[0].input.parameters).toEqual({
-      importance: 0,
-      description: '',
+      finding: {
+        importance: 0,
+        description: '',
+      },
     });
   });
 
@@ -188,9 +192,11 @@ describe('migrateFindingParagraphs', () => {
 
     expect(migratedIds).toEqual(['para-1']);
     expect(migratedParagraphs[0].input.parameters).toEqual({
-      importance: 8,
-      description: 'Request Flow Topology',
-      type: 'TOPOLOGY',
+      finding: {
+        importance: 8,
+        description: 'Request Flow Topology',
+        type: 'TOPOLOGY',
+      },
     });
   });
 
@@ -216,9 +222,11 @@ describe('migrateFindingParagraphs', () => {
 
     expect(migratedIds).toEqual(['para-1']);
     expect(migratedParagraphs[0].input.parameters).toEqual({
-      importance: 7,
-      description: 'Service flow',
-      type: 'TOPOLOGY',
+      finding: {
+        importance: 7,
+        description: 'Service flow',
+        type: 'TOPOLOGY',
+      },
     });
   });
 
@@ -243,9 +251,13 @@ describe('migrateFindingParagraphs', () => {
 
     expect(migratedIds).toEqual(['para-1']);
     expect(migratedParagraphs[0].input.parameters).toEqual({
-      importance: 6,
-      description: 'Regular finding',
+      finding: {
+        importance: 6,
+        description: 'Regular finding',
+      },
     });
-    expect(migratedParagraphs[0].input.parameters).not.toHaveProperty('type');
+    expect(
+      (migratedParagraphs[0].input.parameters as FindingParagraphParameters).finding
+    ).not.toHaveProperty('type');
   });
 });

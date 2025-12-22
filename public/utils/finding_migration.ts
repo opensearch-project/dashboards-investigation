@@ -33,9 +33,11 @@ export const migrateFindingParagraphs = (paragraphs: Array<ParagraphBackendType<
             ...paragraph.input,
             inputText: `%md ${evidence}`.trim(),
             parameters: {
-              importance: isNaN(importance) ? 0 : importance,
-              description,
-              ...(isTopology && { type: 'TOPOLOGY' }),
+              finding: {
+                importance: isNaN(importance) ? 0 : importance,
+                description,
+                ...(isTopology && { type: 'TOPOLOGY' }),
+              },
             },
           },
         };
