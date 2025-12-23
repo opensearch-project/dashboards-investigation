@@ -259,10 +259,17 @@ ${finding.evidence}
               const errorMessage = error.message;
               context.state.updateValue({ investigationError: errorMessage });
               await updateHypotheses(hypothesesRef.current || []);
-              notifications.toasts.addError(error, {
-                title: errorTitle,
-                toastMessage: errorMessage,
-              });
+              notifications.toasts.addError(
+                {
+                  ...error,
+                  stack: '',
+                  message: errorMessage,
+                },
+                {
+                  title: errorTitle,
+                  toastMessage: errorMessage,
+                }
+              );
               reject(error);
             } finally {
               context.state.updateValue({ runningMemory: undefined });
@@ -573,7 +580,7 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
     } catch (error) {
       const errorMessage = 'Failed to continue investigation';
       context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
-      notifications.toasts.addError(error, { title: errorMessage });
+      notifications.toasts.addError(error.body || error, { title: errorMessage });
       setIsInvestigating(false);
     }
   }, [context.state, notifications, pollInvestigationCompletion]);
