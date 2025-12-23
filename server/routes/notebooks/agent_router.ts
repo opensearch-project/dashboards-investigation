@@ -150,17 +150,13 @@ const getTimeScopePrompt = (timeRange: { selectionFrom: number; selectionTo: num
   ${
     timeRange && timeRange.selectionFrom && timeRange.selectionTo
       ? `
-  ## Time Scope
+## Time Scope
 
-  **CRITICAL: Use these exact Unix timestamps (in milliseconds) for all time-based queries and analysis:**
-  - Start time: ${timeRange.selectionFrom} milliseconds
-  - End time: ${timeRange.selectionTo} milliseconds
-  
-  Only use this human-readable format (UTC) when Unix timestamps are not supported for the time field: ${new Date(
-    timeRange.selectionFrom
-  ).toISOString()} to ${new Date(timeRange.selectionTo).toISOString()}
-  
-  Focus your analysis and data queries strictly within this time period using the millisecond timestamps above.`
+**CRITICAL: Use this exact time range for your investigation:**
+- Start time: ${new Date(timeRange.selectionFrom).toISOString()}
+- End time: ${new Date(timeRange.selectionTo).toISOString()}
+
+Use these ISO 8601 UTC timestamps (format: YYYY-MM-DDTHH:mm:ss.sssZ) for all time-based queries and analysis.`
       : ''
   }
 `;
@@ -196,9 +192,7 @@ export function registerAgentExecutionRoute(router: IRouter) {
 # Re-Investigation Agent
 
 You are a thoughtful and analytical planner agent specializing in **RE-INVESTIGATION**. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
-
 ${getTimeScopePrompt(timeRange)}
-
 ## Investigation Context
 **ORIGINAL QUESTION:** "${initialGoal}"
 

@@ -62,7 +62,7 @@ export const generateContextPromptFromParagraphs = async ({
 };
 
 const getTimezoneFullfilledDateString = (time: number): string =>
-  moment.utc(time).format('YYYY-MM-DD HH:mm:ss');
+  moment.utc(time).format('YYYY-MM-DDTHH:mm:ss.SSS[Z]');
 
 export const getNotebookTopLevelContextPrompt = (notebookInfo: NotebookContext) => {
   const { index, timeField, timeRange, filters, variables, summary, log } = notebookInfo || {};
