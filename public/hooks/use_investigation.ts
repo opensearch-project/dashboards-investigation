@@ -80,13 +80,18 @@ export const useInvestigation = () => {
       const startParagraphIndex = paragraphLengthRef.current;
       const sortedFindings = payload.findings.slice().sort((a, b) => b.importance - a.importance);
 
-      // Move all TOPOLOGY type findings to the front
-      const topologyFindings = sortedFindings.filter((f) => f.type === 'TOPOLOGY');
-      const nonTopologyFindings = sortedFindings.filter((f) => f.type !== 'TOPOLOGY');
-      const reorderedFindings = [...topologyFindings, ...nonTopologyFindings];
-
-      const paragraphsToCreate = reorderedFindings.map(
-        ({ importance, description, evidence, type }) => ({
+      const paragraphsToCreate = [
+        ...(payload.topologies || []).map(({ body, description }) => ({
+          input: {
+            inputText: body,
+            inputType: 'TOPOLOGY',
+            parameters: {
+              description,
+            },
+          },
+          aiGenerated: true,
+        })),
+        ...sortedFindings.map(({ importance, description, evidence, type }) => ({
           input: {
             inputText: `%md ${evidence}`.trim(),
             inputType: 'MARKDOWN',
@@ -99,8 +104,8 @@ export const useInvestigation = () => {
             } as FindingParagraphParameters,
           },
           aiGenerated: true,
-        })
-      );
+        })),
+      ];
 
       try {
         const batchResult = await batchCreateParagraphs({
@@ -109,8 +114,12 @@ export const useInvestigation = () => {
         });
 
         if (batchResult?.paragraphs) {
+          const topologyCount = payload.topologies?.length || 0;
           batchResult.paragraphs.forEach((paragraph: any, index: number) => {
-            findingId2ParagraphId[reorderedFindings[index].id] = paragraph.id;
+            const findingIndex = index - topologyCount;
+            if (findingIndex >= 0 && sortedFindings[findingIndex]) {
+              findingId2ParagraphId[sortedFindings[findingIndex].id] = paragraph.id;
+            }
           });
 
           // Run the created paragraphs
@@ -437,7 +446,7 @@ export const useInvestigation = () => {
       paragraphService,
       paragraphs: allParagraphs,
       notebookInfo: topContext,
-      ignoreInputTypes: ['MARKDOWN'],
+      ignoreInputTypes: ['MARKDOWN', 'TOPOLOGY'],
     });
   }, [context, paragraphService]);
 

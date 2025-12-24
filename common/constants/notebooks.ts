@@ -18,6 +18,7 @@ export const OPENSEARCH_NOTEBOOKS_API = {
 // Paragraph types
 export const LOG_PATTERN_PARAGRAPH_TYPE = 'LOG_PATTERN';
 export const DATA_DISTRIBUTION_PARAGRAPH_TYPE = 'ANOMALY_ANALYSIS';
+export const TOPOLOGY_PARAGRAPH_TYPE = 'TOPOLOGY';
 export const PPL_PARAGRAPH_TYPE = 'ppl';
 export const OTHER_PARAGRAPH_TYPE = 'OTHER';
 

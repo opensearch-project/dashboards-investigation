@@ -163,9 +163,15 @@ export interface PERAgentHypothesisItem {
   supporting_findings: string[];
 }
 
+export interface PERAgentTopology {
+  description: string;
+  body: string;
+}
+
 export interface PERAgentInvestigationResponse {
   findings: PERAgentHypothesisFinding[];
   hypotheses: PERAgentHypothesisItem[];
+  topologies: PERAgentTopology[];
   investigationName?: string;
 }
 

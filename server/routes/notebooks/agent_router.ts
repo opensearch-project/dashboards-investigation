@@ -54,6 +54,7 @@ Final result must be a stringified JSON object:
 {
     "findings": array[object],
     "hypotheses": array[object],
+    "topologies": array[object],
     "investigationName": "string object which will be the auto generated name for the whole investigation, max 50 characters"
 }
 \`\`\`
@@ -70,6 +71,10 @@ Your final result JSON must include:
   * **"description"**: Clear statement of the hypothesis
   * **"likelihood"**: Rating from 0-100 indicating probability of being correct
   * **"supporting_findings"**: Array of finding IDs that support or relate to this hypothesis
+- **"topologies"**: An array of topology objects, each containing:
+  * **"id"**: A unique identifier for the topology (e.g., "T1", "T2")
+  * **"description"**: A brief title or summary for the topology graph
+  * **"body"**: The complete topology graph markdown (ASCII tree visualization)
 
 ### Finding Structure
 \`\`\`json
@@ -77,12 +82,9 @@ Your final result JSON must include:
     "id": string,
     "description": string,
     "importance": number (0-100),
-    "evidence": string,
-    "type": string (optional, use "TOPOLOGY" for topology graph findings)
+    "evidence": string
 }
 \`\`\`
-
-**CRITICAL for TOPOLOGY findings:** When creating a topology finding, you MUST place the complete topology graph (the ASCII tree visualization) in the "evidence" field, NOT in the "description" field. The "description" field should contain a brief summary or title of the topology.
 
 ### Hypothesis Structure
 \`\`\`json
@@ -92,6 +94,15 @@ Your final result JSON must include:
     "description": string,
     "likelihood": number (0-100),
     "supporting_findings": array[string]
+}
+\`\`\`
+
+### Topology Structure
+\`\`\`json
+{
+    "id": string,
+    "description": string,
+    "body": string
 }
 \`\`\`
 
@@ -113,7 +124,7 @@ Your final result JSON must include:
 \`\`\`json
 {
   "steps": [],
-  "result": "{\"investigationName\": \"Invalid payment token Investigation\",\"findings\":[{\"id\":\"F1\",\"description\":\"High error rate detected\",\"importance\":90,\"evidence\":\"500+ errors in last hour\"}],\"hypotheses\":[{\"id\":\"H1\",\"title\":\"Database Connection Issue\",\"description\":\"Application errors caused by database connectivity problems\",\"likelihood\":85,\"supporting_findings\":[\"F1\"]}]}"
+  "result": "{\"investigationName\": \"Invalid payment token Investigation\",\"findings\":[{\"id\":\"F1\",\"description\":\"High error rate detected\",\"importance\":90,\"evidence\":\"500+ errors in last hour\"}],\"hypotheses\":[{\"id\":\"H1\",\"title\":\"Database Connection Issue\",\"description\":\"Application errors caused by database connectivity problems\",\"likelihood\":85,\"supporting_findings\":[\"F1\"]}],\"topology\":[]}"
 }
 \`\`\`
 
@@ -125,7 +136,7 @@ Your final result JSON must include:
 5. Only respond with a pure JSON object
 6. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
 7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
-8. **Topology Generation Rule:** When trace data with traceId is available, create a "Request flow topology" finding to visualize the service call hierarchy. Set "type": "TOPOLOGY" for these findings. Consolidate similar topologies - if multiple traces show identical flow patterns, include only one representative example.
+8. **Topology Generation Rule:** When trace data with traceId is available, create a single topology object in the "topologies" array to visualize the most critical service call hierarchy. Generate only one topology that represents the most important or problematic flow pattern.
 
 ### Topology Format Requirements:
 - Use tree structure with consistent indentation (2 spaces per level)

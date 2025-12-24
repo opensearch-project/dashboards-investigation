@@ -375,6 +375,15 @@ export async function runParagraph<TOutput>(
               execution_time: `${(now() - startTime).toFixed(3)} ms`,
             },
           ];
+        } else if (inputType === 'TOPOLOGY') {
+          updatedParagraph.dateModified = new Date().toISOString();
+          updatedParagraph.output = [
+            {
+              outputType: 'TOPOLOGY',
+              result: '',
+              execution_time: `${(now() - startTime).toFixed(3)} ms`,
+            },
+          ];
         } else if (formatNotRecognized(paragraphs[index].input.inputText)) {
           updatedParagraph.output = [
             {
