@@ -26,6 +26,7 @@ import { useNotebook } from './use_notebook';
 import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
 import { DEFAULT_INVESTIGATION_NAME, NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { getFinalMessage } from '../components/notebooks/components/hypothesis/investigation/utils';
+import { useToast } from './use_toast';
 
 const getFindingFromParagraph = (paragraph: ParagraphStateValue<unknown>) => {
   return `
@@ -45,8 +46,9 @@ const convertParagraphsToFindings = (paragraphs: Array<ParagraphStateValue<unkno
 export const useInvestigation = () => {
   const context = useContext(NotebookReactContext);
   const {
-    services: { http, notifications, paragraphService },
+    services: { http, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
+  const { addError } = useToast();
   const { updateHypotheses, updateNotebookContext } = useNotebook();
   const {
     createParagraph,
@@ -218,12 +220,16 @@ ${finding.evidence}
                 responseJson = JSON.parse(response);
               } catch (error) {
                 errorTitle = 'Failed to execute per agent';
-                throw new Error(`Invalid per agent response: ${response}`);
+                const throwedError = new Error('Invalid per agent response');
+                throwedError.cause = response;
+                throw throwedError;
               }
 
               if (!isValidPERAgentInvestigationResponse(responseJson)) {
                 errorTitle = 'Failed to execute per agent';
-                throw new Error(`Invalid per agent response: ${responseJson}`);
+                const throwedError = new Error('Invalid per agent response');
+                throwedError.cause = responseJson;
+                throw throwedError;
               }
 
               if (findingParagraphIds.length > 0) {
@@ -259,17 +265,10 @@ ${finding.evidence}
               const errorMessage = error.message;
               context.state.updateValue({ investigationError: errorMessage });
               await updateHypotheses(hypothesesRef.current || []);
-              notifications.toasts.addError(
-                {
-                  ...error,
-                  stack: '',
-                  message: errorMessage,
-                },
-                {
-                  title: errorTitle,
-                  toastMessage: errorMessage,
-                }
-              );
+              addError({
+                error,
+                title: errorTitle,
+              });
               reject(error);
             } finally {
               context.state.updateValue({ runningMemory: undefined });
@@ -288,12 +287,12 @@ ${finding.evidence}
     },
     [
       http,
-      notifications,
       context.state,
       storeInvestigationResponse,
       updateInvestigationName,
       updateHypotheses,
       batchDeleteParagraphs,
+      addError,
     ]
   );
 
@@ -405,7 +404,10 @@ ${finding.evidence}
         const errorMessage = 'Failed to execute per agent';
         context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
         await updateHypotheses(hypothesesRef.current || []);
-        notifications.toasts.addError(e.body || e, { title: errorMessage });
+        addError({
+          title: errorMessage,
+          error: e,
+        });
         setIsInvestigating(false);
       }
     },
@@ -416,7 +418,7 @@ ${finding.evidence}
       updateHypotheses,
       contextStateValue?.hypotheses,
       pollInvestigationCompletion,
-      notifications.toasts,
+      addError,
     ]
   );
   const retrieveInvestigationContextPrompt = useCallback(async () => {
@@ -580,10 +582,13 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
     } catch (error) {
       const errorMessage = 'Failed to continue investigation';
       context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
-      notifications.toasts.addError(error.body || error, { title: errorMessage });
+      addError({
+        error,
+        title: errorMessage,
+      });
       setIsInvestigating(false);
     }
-  }, [context.state, notifications, pollInvestigationCompletion]);
+  }, [context.state, pollInvestigationCompletion, addError]);
 
   // Cleanup on unmount
   useEffect(() => {
