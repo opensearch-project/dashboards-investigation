@@ -59,7 +59,7 @@ export const getAllMessagesBySessionIdAndMemoryId = async (
         nextToken,
       });
       result.hits.hits.forEach((hit: any) => {
-        const structuredData = hit._source.structured_data;
+        const structuredData = hit._source.structured_data_blob;
         messages.push({
           input: structuredData.input,
           response: structuredData.response,
@@ -89,7 +89,7 @@ export const getAllTracesMessages = async (
 
       const hits = result.hits?.hits || [];
       hits.forEach((hit: any) => {
-        const structuredData = hit._source.structured_data;
+        const structuredData = hit._source.structured_data_blob;
         traces.push(structuredData);
       });
 
@@ -114,7 +114,7 @@ export const getFinalMessage = async (
   let finalMessage;
   try {
     const response = await executeMLCommonsAgenticMessage(options);
-    finalMessage = response?.hits?.hits?.[0]?._source?.structured_data?.response;
+    finalMessage = response?.hits?.hits?.[0]?._source?.structured_data_blob?.response;
   } catch (error) {
     console.error('Failed to execute ml commons agentic message api');
     finalMessage = null;
