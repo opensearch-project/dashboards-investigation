@@ -4,9 +4,16 @@
  */
 
 import { schema } from '@osd/config-schema';
+import LRUCache from 'lru-cache';
 import { IOpenSearchDashboardsResponse, IRouter } from '../../../../../src/core/server';
 import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
 import { getOpenSearchClientTransport, handleError } from '../utils';
+
+// Initialize LRU cache with max 100 entries and 1 hour TTL
+const mlProxyCache = new LRUCache<string, string>({
+  max: 100,
+  maxAge: 1000 * 60 * 60, // 1 hour
+});
 
 /**
  * Removes specified characters from the beginning of a string.
@@ -89,6 +96,19 @@ export function registerMLConnectorRoute(router: IRouter) {
     },
     async (context, request, response): Promise<IOpenSearchDashboardsResponse> => {
       const { method, path } = request.query;
+      const matchIndexInsight = /\/_plugins\/_ml\/insights\/[^/]+\/LOG_RELATED_INDEX_CHECK$/.test(
+        path
+      );
+      let cacheKey = '';
+      if (matchIndexInsight) {
+        const indexName = path.match(/\/insights\/([^/]+)\//)?.[1] || '';
+        cacheKey = `${request.query.dataSourceId || 'local'}:${indexName}`;
+        if (mlProxyCache.has(cacheKey)) {
+          return response.ok({
+            body: mlProxyCache.get(cacheKey),
+          });
+        }
+      }
 
       // Validate if the specific ML API is allowed
       if (!isAllowedMLPath(path)) {
@@ -112,6 +132,13 @@ export function registerMLConnectorRoute(router: IRouter) {
           method,
           body: request.body,
         });
+        if (
+          matchIndexInsight &&
+          (result.statusCode || 200) >= 200 &&
+          (result.statusCode || 200) < 300
+        ) {
+          mlProxyCache.set(cacheKey, result.body);
+        }
         const contentType = result.headers?.['Content-Type'];
 
         return response.custom({
