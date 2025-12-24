@@ -239,7 +239,8 @@ export class DataDistributionService {
   ): SummaryDataItem[] {
     // Only take the first N significant differences
     const topDifferences = differences.filter((diff) => diff.divergence > 0).slice(0, maxResults);
-    const sourceFromDis = this.source === NoteBookSource.DISCOVER;
+    const sourceFromDis =
+      this.source === NoteBookSource.DISCOVER || this.source === NoteBookSource.CHAT;
 
     return topDifferences.map((diff) => {
       const { field, divergence, selectionDist, baselineDist } = diff;

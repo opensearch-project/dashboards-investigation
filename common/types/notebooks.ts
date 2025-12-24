@@ -19,6 +19,7 @@ export interface OptionsType {
 
 export enum NoteBookSource {
   DISCOVER = 'Discover',
+  CHAT = 'Chat',
 }
 
 export enum NotebookType {
@@ -53,6 +54,7 @@ export interface NotebookContext {
   notebookType?: NotebookType;
   initialGoal?: string;
   log?: Record<string, any>;
+  symptom?: string;
 }
 
 export interface ParagraphBackendType<TOutputResult, TInputParameters = unknown> {
