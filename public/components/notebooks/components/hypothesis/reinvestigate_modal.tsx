@@ -21,23 +21,17 @@ import {
 import moment from 'moment';
 import dateMath from '@elastic/datemath';
 
+import { InvestigationTimeRange } from '../../../../../common/types/notebooks';
+
+type DatePickerTimeRange = Omit<InvestigationTimeRange, 'baselineFrom' | 'baselineTo'> | undefined;
+
 interface ReinvestigateModalProps {
   initialGoal: string;
-  timeRange:
-    | {
-        selectionFrom: number;
-        selectionTo: number;
-      }
-    | undefined;
+  timeRange: DatePickerTimeRange | undefined;
   dateFormat: string;
   confirm: (params: {
     question: string;
-    updatedTimeRange:
-      | {
-          selectionFrom: number;
-          selectionTo: number;
-        }
-      | undefined;
+    updatedTimeRange: DatePickerTimeRange;
     isReinvestigate: boolean;
   }) => void;
   closeModal: () => void;
@@ -110,13 +104,13 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
         </EuiModalBody>
         <EuiModalFooter>
           <EuiButton
-            onClick={() =>
+            onClick={() => {
               confirm({
                 question: value,
                 updatedTimeRange: selectedTimeRange,
                 isReinvestigate: checked,
-              })
-            }
+              });
+            }}
             fill
             disabled={!value.trim()}
           >

@@ -65,6 +65,7 @@ function QueryDataGrid(props: QueryDataGridProps) {
 
   const dataGridComponent = (
     <EuiDataGrid
+      className="paraQueryDatagrid"
       aria-label="Query datagrid"
       columns={queryColumns}
       columnVisibility={{ visibleColumns, setVisibleColumns }}
@@ -76,7 +77,6 @@ function QueryDataGrid(props: QueryDataGridProps) {
         onChangeItemsPerPage,
         onChangePage,
       }}
-      height={isModalVisible ? '' : '400px'}
       toolbarVisibility={{
         showFullScreenSelector: false,
         ...(!isModalVisible && {

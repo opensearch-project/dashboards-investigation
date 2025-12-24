@@ -146,19 +146,17 @@ Your final result JSON must include:
 │        Duration: 1.6 ms                                             │
 └─────────────────────────────────────────────────────────────────────┘`;
 
-const getTimeScopePrompt = (timeRange: { from: string; to: string }) => `
+const getTimeScopePrompt = (timeRange: { selectionFrom: number; selectionTo: number }) => `
   ${
-    timeRange && timeRange.from && timeRange.to
+    timeRange && timeRange.selectionFrom && timeRange.selectionTo
       ? `
-  ## Time Scope
+## Time Scope
 
-  Conduct the investigation within the specified timerange: ${timeRange.from} UTC to ${
-          timeRange.to
-        } UTC. The milliseconds format for the time scope is: ${+new Date(
-          timeRange.from
-        )} to ${+new Date(
-          timeRange.to
-        )}. Focus your analysis and data queries on this user-selected time period.`
+**CRITICAL: Use this exact time range for your investigation:**
+- Start time: ${new Date(timeRange.selectionFrom).toISOString()}
+- End time: ${new Date(timeRange.selectionTo).toISOString()}
+
+Use these ISO 8601 UTC timestamps (format: YYYY-MM-DDTHH:mm:ss.sssZ) for all time-based queries and analysis.`
       : ''
   }
 `;
@@ -194,9 +192,7 @@ export function registerAgentExecutionRoute(router: IRouter) {
 # Re-Investigation Agent
 
 You are a thoughtful and analytical planner agent specializing in **RE-INVESTIGATION**. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
-
 ${getTimeScopePrompt(timeRange)}
-
 ## Investigation Context
 **ORIGINAL QUESTION:** "${initialGoal}"
 

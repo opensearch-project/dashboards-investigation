@@ -12,7 +12,7 @@
  */
 
 import moment from 'moment';
-import { formatTimeGap, getTimeGapFromDates, formatTimeRangeString } from '../time';
+import { formatTimeGap, getTimeGapFromDates } from '../time';
 
 describe('time utilities', () => {
   describe('formatTimeGap', () => {
@@ -109,34 +109,6 @@ describe('time utilities', () => {
 
       expect(functionResult).toBe(directResult);
       expect(functionResult).toBe('1 hour 30 minutes');
-    });
-  });
-
-  describe('formatTimeRangeString', () => {
-    it('should return empty strings when unixTimeRange is undefined', () => {
-      const result = formatTimeRangeString(undefined);
-      expect(result).toEqual({ from: '', to: '' });
-    });
-
-    it('should format unix timestamps with default date format', () => {
-      const unixTimeRange = {
-        selectionFrom: 1672531200000, // 2023-01-01 00:00:00.000
-        selectionTo: 1672617600000, // 2023-01-02 00:00:00.000
-      };
-      const result = formatTimeRangeString(unixTimeRange);
-      expect(result.from).toBe('2023-01-01 00:00:00.000');
-      expect(result.to).toBe('2023-01-02 00:00:00.000');
-    });
-
-    it('should format unix timestamps with custom date format', () => {
-      const unixTimeRange = {
-        selectionFrom: 1672531200000,
-        selectionTo: 1672617600000,
-      };
-      const customFormat = 'YYYY-MM-DD';
-      const result = formatTimeRangeString(unixTimeRange, customFormat);
-      expect(result.from).toBe('2023-01-01');
-      expect(result.to).toBe('2023-01-02');
     });
   });
 });

@@ -29,6 +29,7 @@ import { useEffectOnce, useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
 import { ParagraphState } from '../../../../common/state/paragraph_state';
 import {
+  InvestigationTimeRange,
   NotebookComponentProps,
   NoteBookSource,
   NotebookType,
@@ -50,7 +51,6 @@ import { SummaryCard } from './summary_card';
 import { useChatContextProvider } from '../../../hooks/use_chat_context';
 import { HypothesisDetail, HypothesesPanel, ReinvestigateModal } from './hypothesis';
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
-import { formatTimeRangeString } from '../../../../public/utils/time';
 import { InvestigationPageContext } from './investigation_page_context';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
@@ -227,55 +227,52 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   const handleReinvestigate = useCallback(
     async ({
       question,
-      updatedTimeRange,
       isReinvestigate,
+      updatedTimeRange,
     }: {
       question: string;
-      updatedTimeRange:
-        | {
-            selectionFrom: number;
-            selectionTo: number;
-          }
-        | undefined;
       isReinvestigate: boolean;
+      updatedTimeRange?: Omit<InvestigationTimeRange, 'baselineFrom' | 'baselineTo'>;
     }) => {
-      const formattedTimeRange = formatTimeRangeString(updatedTimeRange);
-
       setIsReinvestigateModalVisible(false);
       setIsInvestigating(true);
 
+      const updates: { initialGoal?: string; timeRange?: InvestigationTimeRange } = {};
+
       if (initialGoal !== question) {
-        await updateNotebookContext({ initialGoal: question });
+        updates.initialGoal = question;
       }
 
-      if (
-        updatedTimeRange &&
-        (timeRange?.selectionFrom !== updatedTimeRange.selectionFrom ||
-          timeRange?.selectionTo !== updatedTimeRange.selectionTo)
-      ) {
-        await updateNotebookContext({
-          // FIXME: when support baseline time
-          timeRange: {
+      const newTimeRange = updatedTimeRange
+        ? {
+            ...updatedTimeRange,
             baselineFrom: timeRange?.baselineFrom ?? 0,
             baselineTo: timeRange?.baselineTo ?? 0,
-            ...updatedTimeRange,
-          },
-        });
-        await rerunPrecheck(paragraphsStates, formattedTimeRange);
+          }
+        : undefined;
+
+      const hasTimeRangeChanged =
+        updatedTimeRange &&
+        (timeRange?.selectionFrom !== updatedTimeRange.selectionFrom ||
+          timeRange?.selectionTo !== updatedTimeRange.selectionTo);
+
+      if (hasTimeRangeChanged) {
+        updates.timeRange = newTimeRange;
       }
 
-      if (isReinvestigate) {
-        rerunInvestigation({
-          investigationQuestion: question,
-          initialGoal,
-          timeRange: formattedTimeRange,
-        });
-      } else {
-        doInvestigate({
-          investigationQuestion: question,
-          timeRange: formattedTimeRange,
-        });
+      if (Object.keys(updates).length > 0) {
+        await updateNotebookContext(updates);
       }
+
+      if (hasTimeRangeChanged) {
+        await rerunPrecheck(paragraphsStates, newTimeRange);
+      }
+
+      (isReinvestigate ? rerunInvestigation : doInvestigate)({
+        investigationQuestion: question,
+        timeRange: newTimeRange,
+        ...(isReinvestigate && { initialGoal }),
+      });
     },
     [
       initialGoal,
