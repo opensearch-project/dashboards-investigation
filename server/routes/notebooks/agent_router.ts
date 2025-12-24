@@ -74,7 +74,8 @@ Your final result JSON must include:
 - **"topologies"**: An array of topology objects, each containing:
   * **"id"**: A unique identifier for the topology (e.g., "T1", "T2")
   * **"description"**: A brief title or summary for the topology graph
-  * **"body"**: The complete topology graph markdown (ASCII tree visualization)
+  * **"traceId"**: The trace ID associated with this topology
+  * **"nodes"**: Array of node objects representing services/operations
 
 ### Finding Structure
 \`\`\`json
@@ -102,7 +103,15 @@ Your final result JSON must include:
 {
     "id": string,
     "description": string,
-    "body": string
+    "traceId": string,
+    "nodes": array[{
+        "id": string,
+        "name": string,
+        "startTime": string,
+        "duration": string,
+        "status": "success" | "failed" | "error",
+        "parentId": string | null
+    }]
 }
 \`\`\`
 
@@ -136,39 +145,16 @@ Your final result JSON must include:
 5. Only respond with a pure JSON object
 6. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
 7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
-8. **Topology Generation Rule:** When trace data with traceId is available, create a single topology object in the "topologies" array to visualize the most critical service call hierarchy. Generate only one topology that represents the most important or problematic flow pattern.
+8. **Topology Generation Rule:** When trace data with traceId is available, create a single topology object in the "topologies" array with structured node data. Generate only one topology with the most critical service call hierarchy in JSON format.
 
-### Topology Format Requirements:
-- Use tree structure with consistent indentation (2 spaces per level)
-- Include service/operation names with Start time (ISO format) and Duration
-- Show parent-child relationships clearly with └─ for children
-- Mark failed operations with [FAILED] or [ERROR] prefix
-- For parallel operations, list them at the same indentation level
-- Keep the topology focused on the critical path (limit depth to 5 levels)
+### Topology Node Requirements:
+- Each node represents a service or operation in the trace
+- Use parentId to establish hierarchy (null for root nodes)
+- Include precise startTime (ISO format) and duration
+- Mark failed operations with status "failed" or "error"
+- Keep focused on critical path (limit to 10 nodes max)
 
-### Example Topology:
-┌──────────────────────────────────────────────────────────────────────┐
-│ Request Flow Topology (TraceId: abc123)                              │
-├──────────────────────────────────────────────────────────────────────┤
-│ CheckoutService                                                      │
-│   Start: 2024-11-17 00:11:23.040                                     │
-│   Duration: 11.10 sec                                                │
-│   └─ PaymentService                                                  │
-│       Start: 2024-11-17 00:11:23.042                                 │
-│       Duration: 10.00 sec                                            │
-│       └─ charge [FAILED]                                             │
-│           Start: 2024-11-17 00:11:23.045                             │
-│           Duration: 9.98 sec                                         │
-│   └─ ShippingService                                                 │
-│       Start: 2024-11-17 00:11:33.043                                 │
-│       Duration: 1.1 ms                                               │
-│   └─ NotificationService                                             │
-│       Start: 2024-11-17 00:11:33.048                                 │
-│       Duration: 1.9 ms                                               │
-│       └─ send_email                                                  │
-│           Start: 2024-11-17 00:11:33.049                             │
-│           Duration: 1.6 ms                                           │
-└──────────────────────────────────────────────────────────────────────┘`;
+`;
 
 const getTimeScopePrompt = (timeRange: { selectionFrom: number; selectionTo: number }) => `
   ${

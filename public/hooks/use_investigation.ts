@@ -31,6 +31,7 @@ import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_age
 import { useNotebook } from './use_notebook';
 import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
 import { DEFAULT_INVESTIGATION_NAME, NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
+import { renderTopologyGraph } from '../utils/visualization';
 import { useToast } from './use_toast';
 import { SharedMessagePollingService } from '../components/notebooks/components/hypothesis/investigation/services/shared_message_polling_service';
 import { INTERVAL_TIME } from '../../common/constants/investigation';
@@ -81,12 +82,12 @@ export const useInvestigation = () => {
       const sortedFindings = payload.findings.slice().sort((a, b) => b.importance - a.importance);
 
       const paragraphsToCreate = [
-        ...(payload.topologies || []).map(({ body, description }) => ({
+        ...(payload.topologies || []).map((topology) => ({
           input: {
-            inputText: body,
+            inputText: renderTopologyGraph(topology),
             inputType: 'TOPOLOGY',
             parameters: {
-              description,
+              description: topology.description,
             },
           },
           aiGenerated: true,
