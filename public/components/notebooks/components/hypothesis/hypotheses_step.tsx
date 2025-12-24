@@ -18,7 +18,7 @@ import {
   EuiMarkdownFormat,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
-import { isMarkdownText } from './investigation/utils';
+import { isMarkdownText, parseStep } from './investigation/utils';
 import { PERAgentMessageService } from './investigation/services/per_agent_message_service';
 import { PERAgentMemoryService } from './investigation/services/per_agent_memory_service';
 
@@ -93,7 +93,7 @@ export const HypothesesStep = ({
                           )}
                         </EuiFlexItem>
                         <EuiFlexItem>
-                          <EuiText size="s">{executorMessage.input}</EuiText>
+                          <EuiText size="s">{parseStep(executorMessage.input).purpose}</EuiText>
                         </EuiFlexItem>
                       </EuiFlexGroup>
                     }

@@ -25,7 +25,7 @@ import type { NoteBookServices } from 'public/types';
 import { getTimeGapFromDates } from '../../../../../utils/time';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
-import { getAllTracesMessages, isMarkdownText } from './utils';
+import { getAllTracesMessages, isMarkdownText, parseStep } from './utils';
 import { PERAgentMemoryService } from './services/per_agent_memory_service';
 import { PERAgentMessageService } from './services/per_agent_message_service';
 
@@ -173,7 +173,7 @@ export const MessageTraceFlyout = ({
         } else if (messageCreateTime) {
           durationStr = getTimeGapFromDates(moment(messageCreateTime), moment(traceCreateTime));
         }
-        let reason: string = input;
+        let reason: string = parseStep(input).purpose;
         let responseJson;
         if (isFromLLM && /^\s*\{/.test(response)) {
           try {
