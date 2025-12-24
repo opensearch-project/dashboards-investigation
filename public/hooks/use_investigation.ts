@@ -30,6 +30,7 @@ import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_age
 import { useNotebook } from './use_notebook';
 import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
 import { DEFAULT_INVESTIGATION_NAME, NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
+import { renderTopologyGraph } from '../utils/visualization';
 import { getFinalMessage } from '../components/notebooks/components/hypothesis/investigation/utils';
 import { useToast } from './use_toast';
 
@@ -79,12 +80,12 @@ export const useInvestigation = () => {
       const sortedFindings = payload.findings.slice().sort((a, b) => b.importance - a.importance);
 
       const paragraphsToCreate = [
-        ...(payload.topologies || []).map(({ body, description }) => ({
+        ...(payload.topologies || []).map((topology) => ({
           input: {
-            inputText: body,
+            inputText: renderTopologyGraph(topology),
             inputType: 'TOPOLOGY',
             parameters: {
-              description,
+              description: topology.description,
             },
           },
           aiGenerated: true,

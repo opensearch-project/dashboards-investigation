@@ -26,10 +26,14 @@ export const Paragraph = (props: ParagraphProps) => {
 
   const context = useContext(NotebookReactContext);
   const paragraph = context.state.value.paragraphs[index];
-  const paragraphValue = useObservable(paragraph.getValue$(), paragraph.value);
+  const paragraphValue = useObservable(paragraph?.getValue$(), paragraph?.value);
   const {
     services: { paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
+
+  if (!paragraph || !paragraphValue) {
+    return null;
+  }
 
   const paraClass = `notebooks-paragraph notebooks-paragraph-${
     uiSettingsService.get('theme:darkMode') ? 'dark' : 'light'

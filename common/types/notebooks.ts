@@ -163,9 +163,20 @@ export interface PERAgentHypothesisItem {
   supporting_findings: string[];
 }
 
+export interface PERAgentTopologyNode {
+  id: string;
+  name: string;
+  startTime: string;
+  duration: string;
+  status: 'success' | 'failed' | 'error';
+  parentId: string | null;
+}
+
 export interface PERAgentTopology {
+  id: string;
   description: string;
-  body: string;
+  traceId: string;
+  nodes: PERAgentTopologyNode[];
 }
 
 export interface PERAgentInvestigationResponse {

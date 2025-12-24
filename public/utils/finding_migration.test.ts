@@ -4,7 +4,7 @@
  */
 
 import { migrateFindingParagraphs } from './finding_migration';
-import { FindingParagraphParameters, ParagraphBackendType } from '../../common/types/notebooks';
+import { ParagraphBackendType } from '../../common/types/notebooks';
 
 describe('migrateFindingParagraphs', () => {
   it('should migrate old format finding paragraphs', () => {
@@ -186,7 +186,7 @@ describe('migrateFindingParagraphs', () => {
     expect(migratedParagraphs[1]).toEqual(paragraphs[1]);
   });
 
-  it('should add type TOPOLOGY when description contains topology', () => {
+  it('should convert topology findings to TOPOLOGY inputType', () => {
     const paragraphs: Array<ParagraphBackendType<unknown>> = [
       {
         id: 'para-1',
@@ -207,16 +207,14 @@ describe('migrateFindingParagraphs', () => {
     const { migratedParagraphs, migratedIds } = migrateFindingParagraphs(paragraphs);
 
     expect(migratedIds).toEqual(['para-1']);
+    expect(migratedParagraphs[0].input.inputType).toBe('TOPOLOGY');
+    expect(migratedParagraphs[0].input.inputText).toBe('Service call hierarchy');
     expect(migratedParagraphs[0].input.parameters).toEqual({
-      finding: {
-        importance: 8,
-        description: 'Request Flow Topology',
-        type: 'TOPOLOGY',
-      },
+      description: 'Request Flow Topology',
     });
   });
 
-  it('should add type TOPOLOGY when evidence contains topology', () => {
+  it('should convert topology findings to TOPOLOGY inputType when evidence contains topology', () => {
     const paragraphs: Array<ParagraphBackendType<unknown>> = [
       {
         id: 'para-1',
@@ -237,16 +235,14 @@ describe('migrateFindingParagraphs', () => {
     const { migratedParagraphs, migratedIds } = migrateFindingParagraphs(paragraphs);
 
     expect(migratedIds).toEqual(['para-1']);
+    expect(migratedParagraphs[0].input.inputType).toBe('TOPOLOGY');
+    expect(migratedParagraphs[0].input.inputText).toBe('Topology graph shows service dependencies');
     expect(migratedParagraphs[0].input.parameters).toEqual({
-      finding: {
-        importance: 7,
-        description: 'Service flow',
-        type: 'TOPOLOGY',
-      },
+      description: 'Service flow',
     });
   });
 
-  it('should not add type TOPOLOGY for non-topology findings', () => {
+  it('should keep non-topology findings as MARKDOWN with finding parameters', () => {
     const paragraphs: Array<ParagraphBackendType<unknown>> = [
       {
         id: 'para-1',
@@ -266,14 +262,12 @@ describe('migrateFindingParagraphs', () => {
     const { migratedParagraphs, migratedIds } = migrateFindingParagraphs(paragraphs);
 
     expect(migratedIds).toEqual(['para-1']);
+    expect(migratedParagraphs[0].input.inputType).toBe('MARKDOWN');
     expect(migratedParagraphs[0].input.parameters).toEqual({
       finding: {
         importance: 6,
         description: 'Regular finding',
       },
     });
-    expect(
-      (migratedParagraphs[0].input.parameters as FindingParagraphParameters).finding
-    ).not.toHaveProperty('type');
   });
 });

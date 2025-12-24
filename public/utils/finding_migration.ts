@@ -24,6 +24,20 @@ export const migrateFindingParagraphs = (paragraphs: Array<ParagraphBackendType<
             description.toLowerCase().includes('topology') ||
             evidence.toLowerCase().includes('topology');
 
+          if (isTopology) {
+            return {
+              ...paragraph,
+              input: {
+                ...paragraph.input,
+                inputType: 'TOPOLOGY',
+                inputText: evidence.trim(),
+                parameters: {
+                  description,
+                },
+              },
+            };
+          }
+
           return {
             ...paragraph,
             input: {
@@ -33,7 +47,6 @@ export const migrateFindingParagraphs = (paragraphs: Array<ParagraphBackendType<
                 finding: {
                   importance: isNaN(importance) ? 0 : importance,
                   description,
-                  ...(isTopology && { type: 'TOPOLOGY' }),
                 },
               },
             },

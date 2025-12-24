@@ -7,6 +7,7 @@ import { getPanelValue, createDashboardVizObject, DEFAULT_VIZ_INPUT_VALUE } from
 import { VisualizationInputValue } from 'public/components/notebooks/components/input/visualization_input';
 import { DashboardContainerInput } from '../../../../src/plugins/dashboard/public';
 import { ViewMode } from '../../../../src/plugins/embeddable/public';
+import { renderTopologyGraph } from './visualization';
 
 describe('visualization utils', () => {
   describe('getPanelValue', () => {
@@ -283,5 +284,82 @@ describe('visualization utils', () => {
 
       expect(DEFAULT_VIZ_INPUT_VALUE).toEqual(original);
     });
+  });
+});
+
+describe('renderTopologyGraph', () => {
+  it('should render complete topology graph with expected format', () => {
+    const topology = {
+      id: 'T1',
+      description: 'Product Addition Flow - User adding OLJCESPC7Z to cart resulting in 500 error',
+      traceId: 'dfde0cdceffee06b1794943cb7ea4ae3',
+      nodes: [
+        {
+          id: 'load-generator',
+          name: 'load-generator: add_to_cart',
+          startTime: '2025-12-24T06:12:40.603Z',
+          duration: '11ms',
+          status: 'success' as const,
+          parentId: null,
+        },
+        {
+          id: 'frontend-proxy-1',
+          name: 'frontend-proxy: GET /api/products/OLJCESPC7Z',
+          startTime: '2025-12-24T06:12:40.604Z',
+          duration: '3ms',
+          status: 'failed' as const,
+          parentId: 'load-generator',
+        },
+        {
+          id: 'product-catalog',
+          name: 'product-catalog: GetProduct (no logs)',
+          startTime: '2025-12-24T06:12:40.604Z',
+          duration: '3ms',
+          status: 'failed' as const,
+          parentId: 'frontend-proxy-1',
+        },
+        {
+          id: 'frontend-proxy-2',
+          name: 'frontend-proxy: POST /api/cart',
+          startTime: '2025-12-24T06:12:40.610Z',
+          duration: '4ms',
+          status: 'success' as const,
+          parentId: 'load-generator',
+        },
+        {
+          id: 'cart',
+          name: 'cart: AddItemAsync',
+          startTime: '2025-12-24T06:12:40.612Z',
+          duration: '2ms',
+          status: 'success' as const,
+          parentId: 'frontend-proxy-2',
+        },
+      ],
+    };
+
+    const result = renderTopologyGraph(topology);
+
+    const expectedGraph = `┌─────────────────────────────────────────────────────────────────────────────────┐
+│ Product Addition Flow - User adding OLJCESPC7Z to cart resulting in 500 error   │
+│ Trace ID: dfde0cdceffee06b1794943cb7ea4ae3                                      │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│ load-generator: add_to_cart                                                     │
+│     Start: 2025-12-24T06:12:40.603Z                                             │
+│     Duration: 11ms                                                              │
+│     └─ [FAILED] frontend-proxy: GET /api/products/OLJCESPC7Z                    │
+│        Start: 2025-12-24T06:12:40.604Z                                          │
+│        Duration: 3ms                                                            │
+│        └─ [FAILED] product-catalog: GetProduct (no logs)                        │
+│           Start: 2025-12-24T06:12:40.604Z                                       │
+│           Duration: 3ms                                                         │
+│     └─ frontend-proxy: POST /api/cart                                           │
+│        Start: 2025-12-24T06:12:40.610Z                                          │
+│        Duration: 4ms                                                            │
+│        └─ cart: AddItemAsync                                                    │
+│           Start: 2025-12-24T06:12:40.612Z                                       │
+│           Duration: 2ms                                                         │
+└─────────────────────────────────────────────────────────────────────────────────┘`;
+
+    expect(result).toBe(expectedGraph);
   });
 });
