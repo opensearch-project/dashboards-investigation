@@ -11,6 +11,7 @@ import { filter, take } from 'rxjs/operators';
 import { NotebookState } from 'common/state/notebook_state';
 import { NoteBookServices } from 'public/types';
 import {
+  AnomalyVisualizationAnalysisOutputResult,
   HypothesisItem,
   IndexInsightContent,
   InvestigationTimeRange,
@@ -30,14 +31,16 @@ import { NotebookReactContext } from '../components/notebooks/context_provider/c
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { isDateAppenddablePPL } from '../utils/query';
 
-const savePrecheckParagraph = ({
+const waitForPrecheckContexts = ({
   state,
-  batchSaveParagraphs,
+  onReady,
 }: {
   state: NotebookState;
-  batchSaveParagraphs: (props: {
-    paragraphStateValues: Array<ParagraphStateValue<string, unknown, {}>>;
-  }) => Promise<any>;
+  onReady: (
+    dataDistributionState?: ParagraphState<unknown>,
+    logPatternState?: ParagraphState<unknown>,
+    pplState?: ParagraphState<unknown>
+  ) => void;
 }) => {
   const dataDistributionState = state.value.paragraphs.find(
     (p) => p.value.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
@@ -45,44 +48,45 @@ const savePrecheckParagraph = ({
   const logPatternState = state.value.paragraphs.find(
     (p) => p.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
   );
-
-  if (!dataDistributionState && !logPatternState) return;
+  const pplState = state.value.paragraphs.find((p) => p.value.input.inputText?.startsWith('%ppl'));
+  if (!dataDistributionState && !logPatternState && !pplState) {
+    onReady();
+    return;
+  }
 
   const dataDistributionObs = dataDistributionState ? dataDistributionState.getValue$() : of(null);
   const logPatternObs = logPatternState ? logPatternState.getValue$() : of(null);
+  const pplObs = pplState ? pplState.getValue$() : of(null);
 
-  combineLatest([dataDistributionObs, logPatternObs])
+  combineLatest([dataDistributionObs, logPatternObs, pplObs])
     .pipe(
-      filter(([dataDistribution, logPattern]) => {
-        // Check if data distribution is ready
+      filter(([dataDistribution, logPattern, ppl]) => {
         let dataDistributionReady = true;
         if (dataDistribution) {
+          const hasError = dataDistribution.uiState?.dataDistribution?.error;
           const output = ParagraphState.getOutput(dataDistribution);
-          const result = output?.result;
-          const fieldComparison = (result as any)?.fieldComparison;
-          dataDistributionReady = fieldComparison && fieldComparison.length > 0;
+          const fieldComparison = (output?.result as AnomalyVisualizationAnalysisOutputResult)
+            ?.fieldComparison;
+          dataDistributionReady = !!hasError || (fieldComparison && fieldComparison.length > 0);
         }
 
-        // Check if log pattern is ready
         let logPatternReady = true;
         if (logPattern) {
           const output = ParagraphState.getOutput(logPattern);
-          logPatternReady = !!output?.result;
+          const error = logPattern.uiState?.logPattern?.error;
+          logPatternReady = !!output?.result || !!error;
         }
 
-        return dataDistributionReady && logPatternReady;
+        let pplReady = true;
+        if (ppl) {
+          pplReady = !!ppl.fullfilledOutput;
+        }
+
+        return dataDistributionReady && logPatternReady && pplReady;
       }),
       take(1)
     )
-    .subscribe(() => {
-      const paragraphsToSaveBatch = [];
-      if (dataDistributionState) paragraphsToSaveBatch.push(dataDistributionState.value);
-      if (logPatternState) paragraphsToSaveBatch.push(logPatternState.value);
-
-      batchSaveParagraphs({
-        paragraphStateValues: paragraphsToSaveBatch as any,
-      }).catch((err) => console.error('Error saving paragraphs: ', err));
-    });
+    .subscribe(() => onReady(dataDistributionState, logPatternState, pplState));
 };
 
 export const usePrecheck = () => {
@@ -224,23 +228,39 @@ export const usePrecheck = () => {
           });
         }
 
-        if (paragraphsToCreate.length > 0) {
-          try {
-            // Create all paragraphs in batch
-            await batchCreateParagraphs({
-              startIndex: totalParagraphLength,
-              paragraphs: paragraphsToCreate,
-            });
-            savePrecheckParagraph({ state, batchSaveParagraphs });
-          } catch (e) {
-            console.error('Error creating paragraphs in batch:', e);
+        const shouldInvestigate = res.context?.initialGoal && !res.hypotheses?.length;
+        if (paragraphsToCreate.length > 0 || shouldInvestigate) {
+          if (paragraphsToCreate.length > 0) {
+            try {
+              await batchCreateParagraphs({
+                startIndex: totalParagraphLength,
+                paragraphs: paragraphsToCreate,
+              });
+            } catch (e) {
+              console.error('Error creating paragraphs in batch:', e);
+            }
           }
-        }
 
-        if (res.context?.initialGoal && !res.hypotheses?.length) {
-          res.doInvestigate({
-            investigationQuestion: res.context?.initialGoal || '',
-            timeRange: res.context?.timeRange,
+          waitForPrecheckContexts({
+            state,
+            onReady: (dataDistributionState, logPatternState) => {
+              const paragraphsToSaveBatch = [];
+              if (dataDistributionState) paragraphsToSaveBatch.push(dataDistributionState.value);
+              if (logPatternState) paragraphsToSaveBatch.push(logPatternState.value);
+
+              if (paragraphsToSaveBatch.length > 0) {
+                batchSaveParagraphs({
+                  paragraphStateValues: paragraphsToSaveBatch as Array<ParagraphStateValue<string>>,
+                }).catch((err) => console.error('Error saving paragraphs: ', err));
+              }
+
+              if (shouldInvestigate) {
+                res.doInvestigate({
+                  investigationQuestion: res.context?.initialGoal || '',
+                  timeRange: res.context?.timeRange,
+                });
+              }
+            },
           });
         }
       },

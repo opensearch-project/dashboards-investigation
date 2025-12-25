@@ -60,11 +60,19 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
     [paragraphState]
   );
 
+  const setUiState = useCallback(
+    (uiState) => {
+      paragraphState.updateUIState(uiState);
+    },
+    [paragraphState]
+  );
+
   const { result, loadingStatus, error, handleExclude } = useLogPatternAnalysis(
     http,
     processedContext,
     onSaveOutput,
-    existingResult
+    existingResult,
+    setUiState
   );
 
   const toggleChange = useCallback((changeId: string) => {
