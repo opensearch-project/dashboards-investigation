@@ -4,12 +4,13 @@
  */
 
 import { useContext, useState, useCallback, useRef, useEffect } from 'react';
-import { timer } from 'rxjs';
-import { concatMap, takeWhile } from 'rxjs/operators';
 import { useObservable } from 'react-use';
 
 import type { NoteBookServices } from 'public/types';
 import type { ParagraphStateValue } from 'common/state/paragraph_state';
+import { firstValueFrom } from '@osd/std';
+import { concatMap, filter } from 'rxjs/operators';
+import { EMPTY, fromEvent, race, throwError } from 'rxjs';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 
@@ -29,8 +30,9 @@ import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_age
 import { useNotebook } from './use_notebook';
 import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
 import { DEFAULT_INVESTIGATION_NAME, NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
-import { getFinalMessage } from '../components/notebooks/components/hypothesis/investigation/utils';
 import { useToast } from './use_toast';
+import { SharedMessagePollingService } from '../components/notebooks/components/hypothesis/investigation/services/shared_message_polling_service';
+import { INTERVAL_TIME } from '../../common/constants/investigation';
 
 const getFindingFromParagraph = (paragraph: ParagraphStateValue<unknown>) => {
   return `
@@ -179,125 +181,134 @@ ${finding.evidence}
     [contextStateValue?.title, context.state, http]
   );
 
+  const handlePollingSuccess = useCallback(
+    async (message: string, runningMemory: AgenticMemeory) => {
+      let errorTitle = 'Failed to complete investigation';
+
+      try {
+        let responseJson;
+
+        try {
+          responseJson = JSON.parse(message);
+        } catch {
+          errorTitle = 'Failed to parse response';
+          const throwedError = new Error('Invalid per agent response');
+          throwedError.cause = message;
+          throw throwedError;
+        }
+
+        if (!isValidPERAgentInvestigationResponse(responseJson)) {
+          errorTitle = 'Failed to parse response';
+          const throwedError = new Error('Invalid per agent response');
+          throwedError.cause = responseJson;
+          throw throwedError;
+        }
+
+        // Successful investigation, deleted all old finding paragraphs
+        const findingParagraphIds = context.state
+          .getParagraphsValue()
+          .filter(
+            (paragraph) =>
+              paragraph.input.inputType === 'MARKDOWN' && paragraph.aiGenerated === true
+          )
+          .map((paragraph) => paragraph.id);
+
+        if (findingParagraphIds.length > 0) {
+          try {
+            // Delete all existing finding paragraphs
+            await batchDeleteParagraphs(findingParagraphIds);
+          } catch (error) {
+            errorTitle = 'Failed to clean up old findings';
+            throw error;
+          }
+        }
+        await storeInvestigationResponse({ payload: responseJson });
+
+        if (responseJson.investigationName) {
+          await updateInvestigationName(responseJson.investigationName);
+        }
+
+        context.state.updateValue({
+          historyMemory: runningMemory,
+          investigationError: undefined,
+        });
+      } catch (error) {
+        const errorMessage = error.message;
+        context.state.updateValue({ investigationError: errorMessage });
+        await updateHypotheses(hypothesesRef.current || []);
+        addError({
+          error,
+          title: errorTitle,
+        });
+      } finally {
+        context.state.updateValue({ runningMemory: undefined });
+        setIsInvestigating(false);
+      }
+    },
+    [
+      context.state,
+      batchDeleteParagraphs,
+      storeInvestigationResponse,
+      updateInvestigationName,
+      updateHypotheses,
+      addError,
+    ]
+  );
+
+  const handlePollingFailure = useCallback(
+    async (error: any) => {
+      if (error.message === 'ABORTED') {
+        return;
+      }
+      const errorMessage = 'Failed to poll investigation message';
+      addError({
+        error,
+        title: errorMessage,
+      });
+      context.state.updateValue({
+        runningMemory: undefined,
+        investigationError: errorMessage,
+      });
+      setIsInvestigating(false);
+      await updateHypotheses(hypothesesRef.current || []);
+    },
+    [context.state, updateHypotheses, addError]
+  );
+
   /**
    * Poll for investigation completion and process the response
    * @returns Promise that resolves when investigation is complete or rejects on error
    */
   const pollInvestigationCompletion = useCallback(
-    ({ runningMemory }: { runningMemory: AgenticMemeory }): Promise<void> => {
+    async ({ runningMemory }: { runningMemory: AgenticMemeory }): Promise<void> => {
       const dataSourceId = context.state.value.context.value.dataSourceId;
+      const sharedPollingService = SharedMessagePollingService.getInstance(http);
+      const abortSignal = abortControllerRef.current?.signal;
 
-      return new Promise((resolve, reject) => {
-        const subscription = timer(0, 5000)
-          .pipe(
-            concatMap(() =>
-              getFinalMessage({
-                memoryContainerId: runningMemory?.memoryContainerId!,
-                messageId: runningMemory?.parentInteractionId!,
-                http,
-                signal: abortControllerRef.current?.signal,
+      try {
+        const message = await firstValueFrom(
+          race(
+            sharedPollingService
+              .poll({
+                memoryContainerId: runningMemory.memoryContainerId!,
+                messageId: runningMemory.parentInteractionId!,
                 dataSourceId,
+                pollInterval: INTERVAL_TIME,
               })
-            ),
-            takeWhile((message) => !message, true)
-          )
-          .subscribe(async (message) => {
-            const response = message;
-            if (!response) {
-              return;
-            }
-
-            let errorTitle = 'Failed to complete investigation';
-
-            try {
-              // Successful investigation, deleted all old finding paragraphs
-              const findingParagraphIds = context.state
-                .getParagraphsValue()
-                .filter(
-                  (paragraph) =>
-                    paragraph.input.inputType === 'MARKDOWN' && paragraph.aiGenerated === true
+              .pipe(filter(Boolean)),
+            abortSignal
+              ? fromEvent(abortSignal, 'abort').pipe(
+                  concatMap(() => throwError(new Error('ABORTED')))
                 )
-                .map((paragraph) => paragraph.id);
-
-              let responseJson;
-              try {
-                responseJson = JSON.parse(response);
-              } catch (error) {
-                errorTitle = 'Failed to execute per agent';
-                const throwedError = new Error('Invalid per agent response');
-                throwedError.cause = response;
-                throw throwedError;
-              }
-
-              if (!isValidPERAgentInvestigationResponse(responseJson)) {
-                errorTitle = 'Failed to execute per agent';
-                const throwedError = new Error('Invalid per agent response');
-                throwedError.cause = responseJson;
-                throw throwedError;
-              }
-
-              if (findingParagraphIds.length > 0) {
-                try {
-                  // Delete all existing finding paragraphs
-                  await batchDeleteParagraphs(findingParagraphIds);
-                } catch (error) {
-                  errorTitle = 'Failed to clean up old findings';
-                  throw error;
-                }
-              }
-
-              try {
-                await storeInvestigationResponse({
-                  payload: responseJson,
-                });
-              } catch (error) {
-                errorTitle = 'Failed to save investigation results';
-                throw error;
-              }
-
-              // Update notebook title if suggested_title is provided and name is default investigation name
-              if (responseJson.investigationName) {
-                await updateInvestigationName(responseJson.investigationName);
-              }
-
-              context.state.updateValue({
-                historyMemory: runningMemory,
-                investigationError: undefined,
-              });
-              resolve(undefined);
-            } catch (error) {
-              const errorMessage = error.message;
-              context.state.updateValue({ investigationError: errorMessage });
-              await updateHypotheses(hypothesesRef.current || []);
-              addError({
-                error,
-                title: errorTitle,
-              });
-              reject(error);
-            } finally {
-              context.state.updateValue({ runningMemory: undefined });
-              setIsInvestigating(false);
-              subscription.unsubscribe();
-            }
-          });
-
-        const abortHandler = () => {
-          subscription.unsubscribe();
-          abortControllerRef.current?.signal.removeEventListener('abort', abortHandler);
-          reject(new Error('Investigation aborted'));
-        };
-        abortControllerRef.current?.signal.addEventListener('abort', abortHandler);
-      });
+              : EMPTY
+          )
+        );
+        await handlePollingSuccess(message as string, runningMemory);
+      } catch (error) {
+        await handlePollingFailure(error);
+      }
     },
-    [
-      http,
-      context.state,
-      storeInvestigationResponse,
-      updateInvestigationName,
-      updateHypotheses,
-      batchDeleteParagraphs,
-      addError,
-    ]
+    [http, context.state, handlePollingSuccess, handlePollingFailure]
   );
 
   const executeInvestigation = useCallback(
@@ -314,6 +325,9 @@ ${finding.evidence}
       initialGoal?: string;
       prevContent?: boolean;
     }) => {
+      setIsInvestigating(true);
+      context.state.updateValue({ investigationError: undefined });
+
       // Create new AbortController for this investigation
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -322,8 +336,6 @@ ${finding.evidence}
 
       const abortController = abortControllerRef.current;
       const dataSourceId = context.state.value.context.value.dataSourceId;
-      setIsInvestigating(true);
-      context.state.updateValue({ investigationError: undefined });
 
       try {
         if (context.state.value.isNotebookReadonly) {

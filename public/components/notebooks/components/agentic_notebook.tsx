@@ -179,7 +179,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         // This prevents start() from triggering a new investigation when we should continue the existing one
         const hasOngoingInvestigation = res.runningMemory;
 
-        if (res.runningMemory) {
+        if (hasOngoingInvestigation) {
           try {
             await continueInvestigation();
           } catch (error) {

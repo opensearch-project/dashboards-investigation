@@ -16,6 +16,8 @@ import {
   EuiLoadingSpinner,
   EuiAccordion,
   EuiMarkdownFormat,
+  EuiEmptyPrompt,
+  EuiSmallButton,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import { isMarkdownText } from './investigation/utils';
@@ -36,16 +38,35 @@ export const HypothesesStep = ({
   const observables = useMemo(
     () => ({
       executorMessages$: executorMemoryService.getMessages$(),
+      executorError$: executorMemoryService.getError$(),
       messagePollingState$: executorMemoryService.getPollingState$(),
-      message$: messageService.getMessage$(),
     }),
-    [executorMemoryService, messageService]
+    [executorMemoryService]
   );
-  const message = useObservable(observables.message$);
+  const message = messageService.getMessageValue();
+  const executorError = useObservable(observables.executorError$);
   const executorMessages = useObservable(observables.executorMessages$);
   const loadingExecutorMessage = useObservable(observables.messagePollingState$);
 
   const renderTraces = () => {
+    if (executorError) {
+      return (
+        <>
+          <EuiSpacer size="m" />
+          <EuiEmptyPrompt
+            iconType="alert"
+            color="danger"
+            title={<h3>Failed to load investigation steps</h3>}
+            body={<EuiText size="s">{executorError}</EuiText>}
+            actions={
+              <EuiSmallButton color="primary" fill onClick={() => executorMemoryService.retry()}>
+                Retry
+              </EuiSmallButton>
+            }
+          />
+        </>
+      );
+    }
     return (
       <>
         <EuiSpacer size="s" />
@@ -59,13 +80,8 @@ export const HypothesesStep = ({
             const isLastMessageLoading =
               index === executorMessages.length - 1 && !executorMessage.response && !message;
             return (
-              <>
-                <EuiPanel
-                  key={executorMessage.message_id}
-                  paddingSize="s"
-                  borderRadius="l"
-                  hasBorder
-                >
+              <React.Fragment key={executorMessage.message_id}>
+                <EuiPanel paddingSize="s" borderRadius="l" hasBorder>
                   <EuiAccordion
                     id={executorMessage.message_id}
                     arrowDisplay="right"
@@ -115,7 +131,7 @@ export const HypothesesStep = ({
                   </EuiAccordion>
                 </EuiPanel>
                 <EuiSpacer size="s" />
-              </>
+              </React.Fragment>
             );
           })}
         {!!executorMessages && executorMessages.length > 0 && <EuiSpacer size="s" />}
@@ -133,7 +149,7 @@ export const HypothesesStep = ({
   return (
     <>
       {renderTraces()}
-      {/* {(loadingExecutorMessage || !message || !message.response) && <EuiLoadingContent />} */}
+      {(loadingExecutorMessage || !message) && !executorError && <EuiLoadingContent />}
     </>
   );
 };

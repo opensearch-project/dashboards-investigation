@@ -3,63 +3,46 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BehaviorSubject, Observable, Subscription, timer } from 'rxjs';
-import { concatMap, takeWhile } from 'rxjs/operators';
+import { BehaviorSubject, Subscription } from 'rxjs';
 import { CoreStart } from '../../../../../../../../../src/core/public';
-import { getFinalMessage } from '../utils';
+import { SharedMessagePollingService } from './shared_message_polling_service';
+import { INTERVAL_TIME } from '../../../../../../../common/constants/investigation';
 
 export class PERAgentMessageService {
-  private _dataSourceId?: string;
   private _message$ = new BehaviorSubject<unknown>(null);
-  private _pollingState$ = new BehaviorSubject(false);
-  _abortController?: AbortController;
   private _subscription?: Subscription;
+  private _sharedPollingService: SharedMessagePollingService;
 
-  constructor(private _http: CoreStart['http'], private _memoryContainerId: string) {}
+  constructor(private _http: CoreStart['http'], private _memoryContainerId: string) {
+    this._sharedPollingService = SharedMessagePollingService.getInstance(_http);
+  }
 
   setup({ dataSourceId, messageId }: { dataSourceId?: string; messageId: string }) {
-    this._dataSourceId = dataSourceId;
-
-    if (this._abortController) {
+    if (this._subscription && !this._subscription.closed) {
       return;
     }
 
-    this._pollingState$.next(true);
-    this._subscription = timer(0, 5000)
-      .pipe(
-        concatMap(() => {
-          return getFinalMessage({
-            memoryContainerId: this._memoryContainerId,
-            messageId,
-            http: this._http,
-            signal: this._abortController?.signal,
-            dataSourceId: this._dataSourceId,
-          });
-        }),
-        takeWhile((message) => !message, true)
-      )
-      .subscribe((message) => {
+    const pollingObservable = this._sharedPollingService.poll({
+      memoryContainerId: this._memoryContainerId,
+      messageId,
+      dataSourceId,
+      pollInterval: INTERVAL_TIME,
+    });
+
+    this._subscription = pollingObservable.subscribe({
+      next: (message) => {
         this._message$.next(message);
-        if (!!message) {
-          this._pollingState$.next(false);
-        }
-      });
+      },
+      error: () => {
+        this.stop();
+      },
+    });
   }
 
-  stop(reason?: string) {
-    this._abortController?.abort(reason);
+  stop() {
     this._subscription?.unsubscribe();
     this._message$.next(null);
-    this._pollingState$.next(false);
   }
-
-  getMessage$ = (): Observable<any> => this._message$.asObservable();
 
   getMessageValue = () => this._message$.getValue();
-
-  getPollingState$ = () => this._pollingState$.asObservable();
-
-  reset() {
-    this._message$.next(null);
-  }
 }

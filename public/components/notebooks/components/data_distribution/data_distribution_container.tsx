@@ -245,6 +245,7 @@ export const DataDistributionContainer = ({
 
               return (
                 <MemoItem
+                  key={uniqueKey}
                   uniqueKey={uniqueKey}
                   uniqueId={uniqueId}
                   chartIndex={chartIndex}

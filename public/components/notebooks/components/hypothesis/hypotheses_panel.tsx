@@ -99,11 +99,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   const executorMessages = useObservable(executorMessages$, []);
 
   useEffect(() => {
-    if (isInvestigating) {
-      setShowSteps(true);
-    } else {
-      setShowSteps(false);
-    }
+    setShowSteps(isInvestigating);
   }, [isInvestigating]);
 
   useEffect(() => {
@@ -122,7 +118,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
       });
 
       return () => {
-        PERAgentServices.message.stop('Component cleanup');
+        PERAgentServices.message.stop();
         PERAgentServices.executorMemory.stop('Component unmount');
       };
     }
@@ -131,7 +127,6 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     context.value.dataSourceId,
     activeMemory?.executorMemoryId,
     activeMemory?.parentInteractionId,
-    isInvestigating,
   ]);
 
   const statusBadge = useMemo(() => {
