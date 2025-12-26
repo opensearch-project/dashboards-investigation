@@ -30,6 +30,10 @@ import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/ope
 import { getAllTracesMessages, isMarkdownText } from './utils';
 import { PERAgentMemoryService } from './services/per_agent_memory_service';
 import { PERAgentMessageService } from './services/per_agent_message_service';
+import {
+  INTERVAL_TIME,
+  REQUEST_TIMEOUT_MS,
+} from '../../../../../../common/constants/investigation';
 
 const renderTraceString = ({ text, fallback }: { text?: string; fallback: string }) => {
   if (!text) return fallback;
@@ -100,9 +104,13 @@ export const MessageTraceFlyout = ({
   const shouldLoad = useMemo(() => {
     if (traces.length === 0) {
       return true;
-    } else if (!isLastMessage) {
+    }
+
+    if (!isLastMessage) {
       return false;
-    } else if (!traceMessage?.response) {
+    }
+
+    if (!traceMessage?.response) {
       return true;
     }
     return !message;
@@ -117,7 +125,7 @@ export const MessageTraceFlyout = ({
     if (!shouldStartPolling) return;
 
     const abortController = new AbortController();
-    const subscription = timer(0, 5000)
+    const subscription = timer(0, INTERVAL_TIME)
       .pipe(
         concatMap(() =>
           getAllTracesMessages({
@@ -130,10 +138,10 @@ export const MessageTraceFlyout = ({
             nextToken: tracesLengthRef.current,
           })
         ),
-        timeout(20 * 1000),
+        timeout(REQUEST_TIMEOUT_MS),
         retryWhen((errors) =>
           errors.pipe(
-            delay(5000),
+            delay(INTERVAL_TIME),
             scan((retryCount, err) => {
               if (retryCount >= 2) {
                 throw err;

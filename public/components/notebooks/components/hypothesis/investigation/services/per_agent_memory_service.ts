@@ -7,6 +7,10 @@ import { BehaviorSubject, Observable, Subscription, timer, from } from 'rxjs';
 import { concatMap, takeWhile, timeout, retryWhen, delay, scan } from 'rxjs/operators';
 import { CoreStart } from '../../../../../../../../../src/core/public';
 import { getAllMessagesBySessionIdAndMemoryId } from '../utils';
+import {
+  INTERVAL_TIME,
+  REQUEST_TIMEOUT_MS,
+} from '../../../../../../../common/constants/investigation';
 
 export class PERAgentMemoryService {
   private _dataSourceId?: string;
@@ -63,14 +67,14 @@ export class PERAgentMemoryService {
       this._pollingMemoryId = memoryId;
       this._pollingState$.next(true);
 
-      this._pollingSubscription = timer(1500, 5000)
+      this._pollingSubscription = timer(1500, INTERVAL_TIME)
         .pipe(
           takeWhile(() => this._shouldContinuePolling() && !this._hasError, true),
           concatMap(() => this._fetchMessages(memoryId)),
-          timeout(20 * 1000),
+          timeout(REQUEST_TIMEOUT_MS),
           retryWhen((errors) =>
             errors.pipe(
-              delay(5000),
+              delay(INTERVAL_TIME),
               scan((retryCount, err) => {
                 if (retryCount >= 2) {
                   throw err;

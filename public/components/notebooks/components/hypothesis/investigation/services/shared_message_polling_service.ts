@@ -7,13 +7,16 @@ import { Observable, timer, throwError, from, of } from 'rxjs';
 import { concatMap, takeWhile, finalize, shareReplay, catchError, timeout } from 'rxjs/operators';
 import { CoreStart } from '../../../../../../../../../src/core/public';
 import { getFinalMessage } from '../utils';
+import {
+  INTERVAL_TIME,
+  REQUEST_TIMEOUT_MS,
+} from '../../../../../../../common/constants/investigation';
 
 interface PollingInstance {
   observable: Observable<any>;
   abortController: AbortController;
 }
 
-const REQUEST_TIMEOUT_MS = 30 * 1000;
 const TIMEOUT_MS = 20 * 60 * 1000;
 const MAX_ERROR_COUNT = 5;
 
@@ -34,7 +37,7 @@ export class SharedMessagePollingService {
     memoryContainerId,
     messageId,
     dataSourceId,
-    pollInterval = 5000,
+    pollInterval = INTERVAL_TIME,
   }: {
     memoryContainerId: string;
     messageId: string;

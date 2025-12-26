@@ -30,9 +30,9 @@ import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_age
 import { useNotebook } from './use_notebook';
 import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
 import { DEFAULT_INVESTIGATION_NAME, NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
-import { getFinalMessage } from '../components/notebooks/components/hypothesis/investigation/utils';
 import { useToast } from './use_toast';
 import { SharedMessagePollingService } from '../components/notebooks/components/hypothesis/investigation/services/shared_message_polling_service';
+import { INTERVAL_TIME } from '../../common/constants/investigation';
 
 const getFindingFromParagraph = (paragraph: ParagraphStateValue<unknown>) => {
   return `
@@ -181,8 +181,8 @@ ${finding.evidence}
     [contextStateValue?.title, context.state, http]
   );
 
-  const handleInvestigationSuccess = useCallback(
-    async (message: any, runningMemory: AgenticMemeory) => {
+  const handlePollingSuccess = useCallback(
+    async (message: string, runningMemory: AgenticMemeory) => {
       let errorTitle = 'Failed to complete investigation';
 
       try {
@@ -191,14 +191,14 @@ ${finding.evidence}
         try {
           responseJson = JSON.parse(message);
         } catch {
-          errorTitle = 'Failed to execute per agent';
+          errorTitle = 'Failed to parse response';
           const throwedError = new Error('Invalid per agent response');
-          throwedError.cause = response;
+          throwedError.cause = message;
           throw throwedError;
         }
 
         if (!isValidPERAgentInvestigationResponse(responseJson)) {
-          errorTitle = 'Failed to execute per agent';
+          errorTitle = 'Failed to parse response';
           const throwedError = new Error('Invalid per agent response');
           throwedError.cause = responseJson;
           throw throwedError;
@@ -251,20 +251,20 @@ ${finding.evidence}
       storeInvestigationResponse,
       updateInvestigationName,
       updateHypotheses,
-      notifications.toasts,
+      addError,
     ]
   );
 
-  const handleInvestigationFailure = useCallback(
+  const handlePollingFailure = useCallback(
     async (error: any) => {
       if (error.message === 'ABORTED') {
         return;
       }
       const errorMessage = 'Failed to poll investigation message';
       addError({
-          error,
-          title: errorMessage,
-        });
+        error,
+        title: errorMessage,
+      });
       context.state.updateValue({
         runningMemory: undefined,
         investigationError: errorMessage,
@@ -272,7 +272,7 @@ ${finding.evidence}
       setIsInvestigating(false);
       await updateHypotheses(hypothesesRef.current || []);
     },
-    [notifications.toasts, context.state, updateHypotheses]
+    [context.state, updateHypotheses, addError]
   );
 
   /**
@@ -293,246 +293,246 @@ ${finding.evidence}
                 memoryContainerId: runningMemory.memoryContainerId!,
                 messageId: runningMemory.parentInteractionId!,
                 dataSourceId,
-                pollInterval: 5000,
+                pollInterval: INTERVAL_TIME,
               })
               .pipe(filter(Boolean)),
             abortSignal
               ? fromEvent(abortSignal, 'abort').pipe(
-                concatMap(() => throwError(new Error('ABORTED')))
-              )
+                  concatMap(() => throwError(new Error('ABORTED')))
+                )
               : EMPTY
           )
         );
-        await handleInvestigationSuccess(message, runningMemory);
+        await handlePollingSuccess(message as string, runningMemory);
       } catch (error) {
-        await handleInvestigationFailure(error);
+        await handlePollingFailure(error);
       }
     },
-    [http, context.state, handleInvestigationSuccess, handleInvestigationFailure]
+    [http, context.state, handlePollingSuccess, handlePollingFailure]
   );
 
-const executeInvestigation = useCallback(
-  async ({
-    question,
-    contextPrompt,
-    initialGoal,
-    prevContent,
-    timeRange,
-  }: {
-    question: string;
-    contextPrompt: string;
-    timeRange?: InvestigationTimeRange;
-    initialGoal?: string;
-    prevContent?: boolean;
-  }) => {
-    setIsInvestigating(true);
-    context.state.updateValue({ investigationError: undefined });
-
-    // Create new AbortController for this investigation
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    const abortController = abortControllerRef.current;
-    const dataSourceId = context.state.value.context.value.dataSourceId;
-
-    try {
-      if (context.state.value.isNotebookReadonly) {
-        throw new Error(
-          'Only user with write permission of this notebook can start the investigation'
-        );
-      }
-
-      if (context.state.value.context.value.initialGoal !== question) {
-        await updateNotebookContext({ initialGoal: question });
-      }
-
-      const agentId = (
-        await getMLCommonsConfig({
-          http,
-          signal: abortController?.signal,
-          configName: 'os_deep_research',
-          dataSourceId,
-        })
-      ).configuration.agent_id;
-
-      if (!agentId) {
-        throw new Error('agentId is null');
-      }
-
-      const memoryContainerId = (
-        await getMLCommonsAgentDetail({
-          http,
-          agentId,
-          dataSourceId,
-        })
-      )?.memory?.memory_container_id;
-
-      const executorMemoryId = (
-        await createAgenticExecutionMemory({
-          http,
-          dataSourceId,
-          memoryContainerId,
-        })
-      )?.session_id;
-
-      if (!executorMemoryId) {
-        throw new Error('executorMemoryId is null');
-      }
-
-      const result = await executeMLCommonsAgent({
-        http,
-        agentId,
-        async: true,
-        dataSourceId,
-        parameters: {
-          question,
-          context: contextPrompt,
-          executor_agent_memory_id: executorMemoryId,
-          initialGoal,
-          prevContent,
-          timeRange,
-        },
-      });
-
-      const parentInteractionId = extractParentInteractionId(result);
-
-      if (!parentInteractionId) {
-        throw new Error('parentInteractionId id is null');
-      }
-
-      const runningMemory: AgenticMemeory = {
-        memoryContainerId,
-        parentInteractionId,
-        executorMemoryId,
-      };
-
-      context.state.updateValue({ runningMemory });
-
-      // Immediately save these IDs to backend so they persist across page refreshes
-      await updateHypotheses(contextStateValue?.hypotheses || []);
-
-      return pollInvestigationCompletion({
-        runningMemory,
-      });
-    } catch (e) {
-      const errorMessage = 'Failed to execute per agent';
-      context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
-      await updateHypotheses(hypothesesRef.current || []);
-      addError({
-        title: errorMessage,
-        error: e,
-      });
-      setIsInvestigating(false);
-    }
-  },
-  [
-    context.state,
-    http,
-    updateNotebookContext,
-    updateHypotheses,
-    contextStateValue?.hypotheses,
-    pollInvestigationCompletion,
-    addError,
-  ]
-);
-const retrieveInvestigationContextPrompt = useCallback(async () => {
-  const allParagraphs = context.state.getParagraphsValue();
-  const topContext = context.state.value.context.value;
-
-  return await generateContextPromptFromParagraphs({
-    paragraphService,
-    paragraphs: allParagraphs,
-    notebookInfo: topContext,
-    ignoreInputTypes: ['MARKDOWN'],
-  });
-}, [context, paragraphService]);
-
-const doInvestigate = useCallback(
-  async ({
-    investigationQuestion,
-    timeRange,
-  }: {
-    investigationQuestion: string;
-    timeRange?: InvestigationTimeRange;
-  }) => {
-    const notebookContextPrompt = await retrieveInvestigationContextPrompt();
-
-    return executeInvestigation({
-      question: investigationQuestion,
-      contextPrompt: notebookContextPrompt,
+  const executeInvestigation = useCallback(
+    async ({
+      question,
+      contextPrompt,
+      initialGoal,
+      prevContent,
       timeRange,
-    });
-  },
-  [executeInvestigation, retrieveInvestigationContextPrompt]
-);
+    }: {
+      question: string;
+      contextPrompt: string;
+      timeRange?: InvestigationTimeRange;
+      initialGoal?: string;
+      prevContent?: boolean;
+    }) => {
+      setIsInvestigating(true);
+      context.state.updateValue({ investigationError: undefined });
 
-const doInvestigateRef = useRef(doInvestigate);
-doInvestigateRef.current = doInvestigate;
+      // Create new AbortController for this investigation
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
 
-const addNewFinding = useCallback(
-  async ({ text }: { text: string }) => {
-    const paragraph = await createParagraph({
-      index: paragraphLengthRef.current,
-      input: {
-        inputText: text,
-        inputType: 'MARKDOWN',
-      },
-      aiGenerated: false,
-    });
+      const abortController = abortControllerRef.current;
+      const dataSourceId = context.state.value.context.value.dataSourceId;
 
-    if (paragraph) {
-      await runParagraph({ id: paragraph.value.id });
-    }
-  },
-  [createParagraph, runParagraph]
-);
-
-const rerunInvestigation = useCallback(
-  async ({
-    investigationQuestion,
-    initialGoal,
-    timeRange,
-  }: {
-    investigationQuestion: string;
-    initialGoal?: string;
-    timeRange?: InvestigationTimeRange;
-  }) => {
-    // Clear old memory IDs before starting new investigation
-    context.state.updateValue({ runningMemory: undefined });
-    const allParagraphs = context.state.getParagraphsValue();
-    const notebookContextPrompt = await retrieveInvestigationContextPrompt();
-
-    const originalHypotheses = contextStateValue?.hypotheses || [];
-
-    const { supportingFindingParagraphs, newAddedFindingParagraphs } = allParagraphs.reduce(
-      (acc, paragraph) => {
-        if (paragraph.input.inputType === 'MARKDOWN') {
-          if (paragraph.aiGenerated === true) {
-            acc.supportingFindingParagraphs.push(paragraph);
-          } else if (paragraph.aiGenerated === false) {
-            acc.newAddedFindingParagraphs.push(paragraph);
-          }
+      try {
+        if (context.state.value.isNotebookReadonly) {
+          throw new Error(
+            'Only user with write permission of this notebook can start the investigation'
+          );
         }
 
-        return acc;
-      },
-      {
-        supportingFindingParagraphs: [] as typeof allParagraphs,
-        newAddedFindingParagraphs: [] as typeof allParagraphs,
-      }
-    );
+        if (context.state.value.context.value.initialGoal !== question) {
+          await updateNotebookContext({ initialGoal: question });
+        }
 
-    const currentStatePrompt = `${notebookContextPrompt}
+        const agentId = (
+          await getMLCommonsConfig({
+            http,
+            signal: abortController?.signal,
+            configName: 'os_deep_research',
+            dataSourceId,
+          })
+        ).configuration.agent_id;
+
+        if (!agentId) {
+          throw new Error('agentId is null');
+        }
+
+        const memoryContainerId = (
+          await getMLCommonsAgentDetail({
+            http,
+            agentId,
+            dataSourceId,
+          })
+        )?.memory?.memory_container_id;
+
+        const executorMemoryId = (
+          await createAgenticExecutionMemory({
+            http,
+            dataSourceId,
+            memoryContainerId,
+          })
+        )?.session_id;
+
+        if (!executorMemoryId) {
+          throw new Error('executorMemoryId is null');
+        }
+
+        const result = await executeMLCommonsAgent({
+          http,
+          agentId,
+          async: true,
+          dataSourceId,
+          parameters: {
+            question,
+            context: contextPrompt,
+            executor_agent_memory_id: executorMemoryId,
+            initialGoal,
+            prevContent,
+            timeRange,
+          },
+        });
+
+        const parentInteractionId = extractParentInteractionId(result);
+
+        if (!parentInteractionId) {
+          throw new Error('parentInteractionId id is null');
+        }
+
+        const runningMemory: AgenticMemeory = {
+          memoryContainerId,
+          parentInteractionId,
+          executorMemoryId,
+        };
+
+        context.state.updateValue({ runningMemory });
+
+        // Immediately save these IDs to backend so they persist across page refreshes
+        await updateHypotheses(contextStateValue?.hypotheses || []);
+
+        return pollInvestigationCompletion({
+          runningMemory,
+        });
+      } catch (e) {
+        const errorMessage = 'Failed to execute per agent';
+        context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
+        await updateHypotheses(hypothesesRef.current || []);
+        addError({
+          title: errorMessage,
+          error: e,
+        });
+        setIsInvestigating(false);
+      }
+    },
+    [
+      context.state,
+      http,
+      updateNotebookContext,
+      updateHypotheses,
+      contextStateValue?.hypotheses,
+      pollInvestigationCompletion,
+      addError,
+    ]
+  );
+  const retrieveInvestigationContextPrompt = useCallback(async () => {
+    const allParagraphs = context.state.getParagraphsValue();
+    const topContext = context.state.value.context.value;
+
+    return await generateContextPromptFromParagraphs({
+      paragraphService,
+      paragraphs: allParagraphs,
+      notebookInfo: topContext,
+      ignoreInputTypes: ['MARKDOWN'],
+    });
+  }, [context, paragraphService]);
+
+  const doInvestigate = useCallback(
+    async ({
+      investigationQuestion,
+      timeRange,
+    }: {
+      investigationQuestion: string;
+      timeRange?: InvestigationTimeRange;
+    }) => {
+      const notebookContextPrompt = await retrieveInvestigationContextPrompt();
+
+      return executeInvestigation({
+        question: investigationQuestion,
+        contextPrompt: notebookContextPrompt,
+        timeRange,
+      });
+    },
+    [executeInvestigation, retrieveInvestigationContextPrompt]
+  );
+
+  const doInvestigateRef = useRef(doInvestigate);
+  doInvestigateRef.current = doInvestigate;
+
+  const addNewFinding = useCallback(
+    async ({ text }: { text: string }) => {
+      const paragraph = await createParagraph({
+        index: paragraphLengthRef.current,
+        input: {
+          inputText: text,
+          inputType: 'MARKDOWN',
+        },
+        aiGenerated: false,
+      });
+
+      if (paragraph) {
+        await runParagraph({ id: paragraph.value.id });
+      }
+    },
+    [createParagraph, runParagraph]
+  );
+
+  const rerunInvestigation = useCallback(
+    async ({
+      investigationQuestion,
+      initialGoal,
+      timeRange,
+    }: {
+      investigationQuestion: string;
+      initialGoal?: string;
+      timeRange?: InvestigationTimeRange;
+    }) => {
+      // Clear old memory IDs before starting new investigation
+      context.state.updateValue({ runningMemory: undefined });
+      const allParagraphs = context.state.getParagraphsValue();
+      const notebookContextPrompt = await retrieveInvestigationContextPrompt();
+
+      const originalHypotheses = contextStateValue?.hypotheses || [];
+
+      const { supportingFindingParagraphs, newAddedFindingParagraphs } = allParagraphs.reduce(
+        (acc, paragraph) => {
+          if (paragraph.input.inputType === 'MARKDOWN') {
+            if (paragraph.aiGenerated === true) {
+              acc.supportingFindingParagraphs.push(paragraph);
+            } else if (paragraph.aiGenerated === false) {
+              acc.newAddedFindingParagraphs.push(paragraph);
+            }
+          }
+
+          return acc;
+        },
+        {
+          supportingFindingParagraphs: [] as typeof allParagraphs,
+          newAddedFindingParagraphs: [] as typeof allParagraphs,
+        }
+      );
+
+      const currentStatePrompt = `${notebookContextPrompt}
 
 # Current Hypotheses State
 ${originalHypotheses.reduce((acc, hypothesis, index) => {
-      const currentHypothesisFindingParagraphIds = [
-        ...hypothesis.supportingFindingParagraphIds,
-        ...(hypothesis.newAddedFindingIds ?? []),
-      ].join(', ');
-      return `${acc}
+  const currentHypothesisFindingParagraphIds = [
+    ...hypothesis.supportingFindingParagraphIds,
+    ...(hypothesis.newAddedFindingIds ?? []),
+  ].join(', ');
+  return `${acc}
 ## Hypothesis ${index + 1}
 
 Title: ${hypothesis.title}
@@ -545,82 +545,83 @@ Likelihood: ${hypothesis.likelihood}
 ${currentHypothesisFindingParagraphIds}
 
     `;
-    }, '')}
+}, '')}
 
 # Current Finding Paragraphs
 
 ## Supporting Findings
 ${convertParagraphsToFindings(supportingFindingParagraphs)}
 
-${newAddedFindingParagraphs.length
-        ? `## Additional Supporting Findings (Manually Added - Pay Special Attention)
+${
+  newAddedFindingParagraphs.length
+    ? `## Additional Supporting Findings (Manually Added - Pay Special Attention)
 ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
-        : ''
-      }
+    : ''
+}
 `;
 
-    return executeInvestigation({
-      question: investigationQuestion,
-      contextPrompt: currentStatePrompt,
-      initialGoal,
-      timeRange,
-      prevContent: true,
-    });
-  },
-  [
-    context.state,
-    retrieveInvestigationContextPrompt,
-    contextStateValue?.hypotheses,
-    executeInvestigation,
-  ]
-);
+      return executeInvestigation({
+        question: investigationQuestion,
+        contextPrompt: currentStatePrompt,
+        initialGoal,
+        timeRange,
+        prevContent: true,
+      });
+    },
+    [
+      context.state,
+      retrieveInvestigationContextPrompt,
+      contextStateValue?.hypotheses,
+      executeInvestigation,
+    ]
+  );
 
-const continueInvestigation = useCallback(async () => {
-  setIsInvestigating(true);
-  const { runningMemory } = context.state.value;
+  const continueInvestigation = useCallback(async () => {
+    setIsInvestigating(true);
+    const { runningMemory } = context.state.value;
 
-  // Create AbortController if not exists
-  if (!abortControllerRef.current) {
-    abortControllerRef.current = new AbortController();
-  }
-
-  try {
-    if (!runningMemory?.parentInteractionId) {
-      throw new Error('No ongoing investigation to continue');
+    // Create AbortController if not exists
+    if (!abortControllerRef.current) {
+      abortControllerRef.current = new AbortController();
     }
 
-    return pollInvestigationCompletion({
-      runningMemory,
-    }).finally(() => {
+    try {
+      if (!runningMemory?.parentInteractionId) {
+        throw new Error('No ongoing investigation to continue');
+      }
+
+      return pollInvestigationCompletion({
+        runningMemory,
+      }).finally(() => {
+        setIsInvestigating(false);
+      });
+    } catch (error) {
+      const errorMessage = 'Failed to continue investigation';
+      context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
+      addError({
+        error,
+        title: errorMessage,
+      });
       setIsInvestigating(false);
-    });
-  } catch (error) {
-    const errorMessage = 'Failed to continue investigation';
-    context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
-    addError({
-      error,
-      title: errorMessage,
-    });
-    setIsInvestigating(false);
-  }
-}, [context.state, pollInvestigationCompletion, addError]);
-
-// Cleanup on unmount
-useEffect(() => {
-  return () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
     }
-  };
-}, []);
+  }, [context.state, pollInvestigationCompletion, addError]);
 
-return {
-  isInvestigating,
-  setIsInvestigating,
-  doInvestigate,
-  addNewFinding,
-  rerunInvestigation,
-  continueInvestigation,
-};
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
+
+  return {
+    isInvestigating,
+    setIsInvestigating,
+    doInvestigate,
+    addNewFinding,
+    rerunInvestigation,
+    continueInvestigation,
+  };
 };

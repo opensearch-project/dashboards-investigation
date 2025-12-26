@@ -6,6 +6,7 @@
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { CoreStart } from '../../../../../../../../../src/core/public';
 import { SharedMessagePollingService } from './shared_message_polling_service';
+import { INTERVAL_TIME } from '../../../../../../../common/constants/investigation';
 
 export class PERAgentMessageService {
   private _message$ = new BehaviorSubject<unknown>(null);
@@ -25,7 +26,7 @@ export class PERAgentMessageService {
       memoryContainerId: this._memoryContainerId,
       messageId,
       dataSourceId,
-      pollInterval: 5000,
+      pollInterval: INTERVAL_TIME,
     });
 
     this._subscription = pollingObservable.subscribe({

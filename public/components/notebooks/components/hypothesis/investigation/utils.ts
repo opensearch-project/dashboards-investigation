@@ -111,9 +111,10 @@ export const getFinalMessage = async (
 ) => {
   try {
     const response = await executeMLCommonsAgenticMessage(options);
-    finalMessage =
+    const finalMessage =
       response?.hits?.hits?.[0]?._source?.structured_data_blob?.response ||
       response?.hits?.hits?.[0]?._source?.structured_data?.response;
+    return finalMessage;
   } catch (error) {
     if (error.name === 'AbortError') {
       return null;
