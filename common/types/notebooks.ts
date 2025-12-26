@@ -148,6 +148,11 @@ export interface PERAgentHypothesisFinding {
   description: string;
   importance: number;
   evidence: string;
+  type?: string;
+}
+
+export interface FindingParagraphParameters {
+  finding?: Omit<PERAgentHypothesisFinding, 'id'> & { feedback?: string };
 }
 
 export interface PERAgentHypothesisItem {
@@ -158,9 +163,26 @@ export interface PERAgentHypothesisItem {
   supporting_findings: string[];
 }
 
+export interface PERAgentTopologyNode {
+  id: string;
+  name: string;
+  startTime: string;
+  duration: string;
+  status: 'success' | 'failed' | 'error';
+  parentId: string | null;
+}
+
+export interface PERAgentTopology {
+  id: string;
+  description: string;
+  traceId: string;
+  nodes: PERAgentTopologyNode[];
+}
+
 export interface PERAgentInvestigationResponse {
   findings: PERAgentHypothesisFinding[];
   hypotheses: PERAgentHypothesisItem[];
+  topologies: PERAgentTopology[];
   investigationName?: string;
 }
 

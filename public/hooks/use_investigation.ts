@@ -23,12 +23,17 @@ import { extractParentInteractionId } from '../../common/utils/task';
 import {
   AgenticMemeory,
   InvestigationTimeRange,
+  FindingParagraphParameters,
   PERAgentInvestigationResponse,
 } from '../../common/types/notebooks';
 import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_agent';
 import { useNotebook } from './use_notebook';
 import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
-import { DEFAULT_INVESTIGATION_NAME, NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
+import {
+  DEFAULT_INVESTIGATION_NAME,
+  NOTEBOOKS_API_PREFIX,
+  TOPOLOGY_PARAGRAPH_TYPE,
+} from '../../common/constants/notebooks';
 import { getFinalMessage } from '../components/notebooks/components/hypothesis/investigation/utils';
 import { useToast } from './use_toast';
 
@@ -75,38 +80,34 @@ export const useInvestigation = () => {
     async ({ payload }: { payload: PERAgentInvestigationResponse }) => {
       const findingId2ParagraphId: { [key: string]: string } = {};
       const startParagraphIndex = paragraphLengthRef.current;
-      const sortedFindings = payload.findings.slice().sort((a, b) => {
-        const aHasTypology =
-          a.description.toLowerCase().includes('topology') ||
-          a.evidence.toLowerCase().includes('topology');
-        const bHasTypology =
-          b.description.toLowerCase().includes('topology') ||
-          b.evidence.toLowerCase().includes('topology');
-        if (aHasTypology && !bHasTypology) {
-          return -1;
-        }
-        if (!aHasTypology && bHasTypology) {
-          return 1;
-        }
-        return b.importance - a.importance;
-      });
+      const sortedFindings = payload.findings.slice().sort((a, b) => b.importance - a.importance);
 
-      const paragraphsToCreate = sortedFindings.map((finding) => ({
-        input: {
-          inputText: `%md
-Importance: ${finding.importance}
-
-Description:
-${finding.description}
-
-Evidence:
-${finding.evidence}
-
-          `.trim(),
-          inputType: 'MARKDOWN',
-        },
-        aiGenerated: true,
-      }));
+      const paragraphsToCreate = [
+        ...(payload.topologies || []).map((topology) => ({
+          input: {
+            inputText: JSON.stringify(topology),
+            inputType: TOPOLOGY_PARAGRAPH_TYPE,
+            parameters: {
+              description: topology.description,
+            },
+          },
+          aiGenerated: true,
+        })),
+        ...sortedFindings.map(({ importance, description, evidence, type }) => ({
+          input: {
+            inputText: `%md ${evidence}`.trim(),
+            inputType: 'MARKDOWN',
+            parameters: {
+              finding: {
+                importance: +importance,
+                description,
+                type,
+              },
+            } as FindingParagraphParameters,
+          },
+          aiGenerated: true,
+        })),
+      ];
 
       try {
         const batchResult = await batchCreateParagraphs({
@@ -115,8 +116,12 @@ ${finding.evidence}
         });
 
         if (batchResult?.paragraphs) {
+          const topologyCount = payload.topologies?.length || 0;
           batchResult.paragraphs.forEach((paragraph: any, index: number) => {
-            findingId2ParagraphId[sortedFindings[index].id] = paragraph.id;
+            const findingIndex = index - topologyCount;
+            if (findingIndex >= 0 && sortedFindings[findingIndex]) {
+              findingId2ParagraphId[sortedFindings[findingIndex].id] = paragraph.id;
+            }
           });
 
           // Run the created paragraphs
@@ -213,10 +218,7 @@ ${finding.evidence}
               // Successful investigation, deleted all old finding paragraphs
               const findingParagraphIds = context.state
                 .getParagraphsValue()
-                .filter(
-                  (paragraph) =>
-                    paragraph.input.inputType === 'MARKDOWN' && paragraph.aiGenerated === true
-                )
+                .filter((paragraph) => paragraph.aiGenerated === true)
                 .map((paragraph) => paragraph.id);
 
               let responseJson;
@@ -433,7 +435,7 @@ ${finding.evidence}
       paragraphService,
       paragraphs: allParagraphs,
       notebookInfo: topContext,
-      ignoreInputTypes: ['MARKDOWN'],
+      ignoreInputTypes: ['MARKDOWN', TOPOLOGY_PARAGRAPH_TYPE],
     });
   }, [context, paragraphService]);
 
@@ -466,6 +468,9 @@ ${finding.evidence}
         input: {
           inputText: text,
           inputType: 'MARKDOWN',
+          parameters: {
+            finding: {},
+          },
         },
         aiGenerated: false,
       });
