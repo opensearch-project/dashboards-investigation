@@ -70,15 +70,10 @@ export const Paragraph = (props: ParagraphProps) => {
               isAIGenerated={isAIGenerated}
             />
           )}
-          {(paragraphValue.input.parameters as FindingParagraphParameters)?.finding?.type ===
-          'TOPOLOGY' ? (
-            <pre style={{ whiteSpace: 'pre-wrap' }}>{output?.result}</pre>
-          ) : (
-            <ParagraphComponent
-              paragraphState={paragraph}
-              actionDisabled={notebookType === NotebookType.AGENTIC}
-            />
-          )}
+          <ParagraphComponent
+            paragraphState={paragraph}
+            actionDisabled={notebookType === NotebookType.AGENTIC}
+          />
         </div>
       )}
     </div>

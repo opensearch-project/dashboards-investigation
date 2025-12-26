@@ -29,7 +29,11 @@ import {
 import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_agent';
 import { useNotebook } from './use_notebook';
 import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
-import { DEFAULT_INVESTIGATION_NAME, NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
+import {
+  DEFAULT_INVESTIGATION_NAME,
+  NOTEBOOKS_API_PREFIX,
+  TOPOLOGY_PARAGRAPH_TYPE,
+} from '../../common/constants/notebooks';
 import { renderTopologyGraph } from '../utils/visualization';
 import { getFinalMessage } from '../components/notebooks/components/hypothesis/investigation/utils';
 import { useToast } from './use_toast';
@@ -83,7 +87,7 @@ export const useInvestigation = () => {
         ...(payload.topologies || []).map((topology) => ({
           input: {
             inputText: renderTopologyGraph(topology),
-            inputType: 'TOPOLOGY',
+            inputType: TOPOLOGY_PARAGRAPH_TYPE,
             parameters: {
               description: topology.description,
             },
@@ -432,7 +436,7 @@ export const useInvestigation = () => {
       paragraphService,
       paragraphs: allParagraphs,
       notebookInfo: topContext,
-      ignoreInputTypes: ['MARKDOWN', 'TOPOLOGY'],
+      ignoreInputTypes: ['MARKDOWN', TOPOLOGY_PARAGRAPH_TYPE],
     });
   }, [context, paragraphService]);
 
