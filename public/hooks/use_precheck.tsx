@@ -5,10 +5,9 @@
 
 import { useCallback, useContext } from 'react';
 import moment from 'moment';
-import { combineLatest, of } from 'rxjs';
+import { combineLatest } from 'rxjs';
 import { filter, take } from 'rxjs/operators';
 
-import { NotebookState } from 'common/state/notebook_state';
 import { NoteBookServices } from 'public/types';
 import {
   AnomalyVisualizationAnalysisOutputResult,
@@ -32,61 +31,49 @@ import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dash
 import { isDateAppenddablePPL } from '../utils/query';
 
 const waitForPrecheckContexts = ({
-  state,
+  paragraphStates,
   onReady,
 }: {
-  state: NotebookState;
-  onReady: (
-    dataDistributionState?: ParagraphState<unknown>,
-    logPatternState?: ParagraphState<unknown>,
-    pplState?: ParagraphState<unknown>
-  ) => void;
+  paragraphStates: Array<ParagraphState<unknown>>;
+  onReady: (paragraphStates: Array<ParagraphState<unknown>>) => void;
 }) => {
-  const dataDistributionState = state.value.paragraphs.find(
-    (p) => p.value.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
-  );
-  const logPatternState = state.value.paragraphs.find(
-    (p) => p.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
-  );
-  const pplState = state.value.paragraphs.find((p) => p.value.input.inputText?.startsWith('%ppl'));
-  if (!dataDistributionState && !logPatternState && !pplState) {
-    onReady();
+  if (paragraphStates.length === 0) {
+    onReady([]);
     return;
   }
 
-  const dataDistributionObs = dataDistributionState ? dataDistributionState.getValue$() : of(null);
-  const logPatternObs = logPatternState ? logPatternState.getValue$() : of(null);
-  const pplObs = pplState ? pplState.getValue$() : of(null);
+  const observables = paragraphStates.map((p) => p.getValue$());
 
-  combineLatest([dataDistributionObs, logPatternObs, pplObs])
+  combineLatest(observables)
     .pipe(
-      filter(([dataDistribution, logPattern, ppl]) => {
-        let dataDistributionReady = true;
-        if (dataDistribution) {
-          const hasError = dataDistribution.uiState?.dataDistribution?.error;
-          const output = ParagraphState.getOutput(dataDistribution);
-          const fieldComparison = (output?.result as AnomalyVisualizationAnalysisOutputResult)
-            ?.fieldComparison;
-          dataDistributionReady = !!hasError || (fieldComparison && fieldComparison.length > 0);
-        }
+      filter((values) => {
+        return values.every((value) => {
+          const inputType = value.input.inputType;
 
-        let logPatternReady = true;
-        if (logPattern) {
-          const output = ParagraphState.getOutput(logPattern);
-          const error = logPattern.uiState?.logPattern?.error;
-          logPatternReady = !!output?.result || !!error;
-        }
+          if (inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE) {
+            const hasError = value.uiState?.dataDistribution?.error;
+            const output = ParagraphState.getOutput(value);
+            const fieldComparison = (output?.result as AnomalyVisualizationAnalysisOutputResult)
+              ?.fieldComparison;
+            return !!hasError || (fieldComparison && fieldComparison.length > 0);
+          }
 
-        let pplReady = true;
-        if (ppl) {
-          pplReady = !!ppl.fullfilledOutput;
-        }
+          if (inputType === LOG_PATTERN_PARAGRAPH_TYPE) {
+            const output = ParagraphState.getOutput(value);
+            const error = value.uiState?.logPattern?.error;
+            return !!output?.result || !!error;
+          }
 
-        return dataDistributionReady && logPatternReady && pplReady;
+          if (value.input.inputText?.startsWith('%ppl')) {
+            return !!value.fullfilledOutput;
+          }
+
+          return true;
+        });
       }),
       take(1)
     )
-    .subscribe(() => onReady(dataDistributionState, logPatternState, pplState));
+    .subscribe(() => onReady(paragraphStates));
 };
 
 export const usePrecheck = () => {
@@ -241,16 +228,26 @@ export const usePrecheck = () => {
             }
           }
 
-          waitForPrecheckContexts({
-            state,
-            onReady: (dataDistributionState, logPatternState) => {
-              const paragraphsToSaveBatch = [];
-              if (dataDistributionState) paragraphsToSaveBatch.push(dataDistributionState.value);
-              if (logPatternState) paragraphsToSaveBatch.push(logPatternState.value);
+          const precheckParagraphs = state.value.paragraphs.filter((p) => {
+            const { inputType, inputText } = p.value.input;
+            return (
+              inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE ||
+              inputType === LOG_PATTERN_PARAGRAPH_TYPE ||
+              inputText?.startsWith('%ppl')
+            );
+          });
 
-              if (paragraphsToSaveBatch.length > 0) {
+          waitForPrecheckContexts({
+            paragraphStates: precheckParagraphs,
+            onReady: (paragraphStates) => {
+              const paragraphsToSave = paragraphStates.filter(
+                (p) => !p.value.input.inputText?.startsWith('%ppl')
+              );
+              if (paragraphsToSave.length > 0) {
                 batchSaveParagraphs({
-                  paragraphStateValues: paragraphsToSaveBatch as Array<ParagraphStateValue<string>>,
+                  paragraphStateValues: paragraphsToSave.map((p) => p.value) as Array<
+                    ParagraphStateValue<string>
+                  >,
                 }).catch((err) => console.error('Error saving paragraphs: ', err));
               }
 
