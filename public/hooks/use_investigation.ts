@@ -35,7 +35,6 @@ import {
   NOTEBOOKS_API_PREFIX,
   TOPOLOGY_PARAGRAPH_TYPE,
 } from '../../common/constants/notebooks';
-import { renderTopologyGraph } from '../utils/visualization';
 import { useToast } from './use_toast';
 import { SharedMessagePollingService } from '../components/notebooks/components/hypothesis/investigation/services/shared_message_polling_service';
 import { INTERVAL_TIME } from '../../common/constants/investigation';
@@ -88,7 +87,7 @@ export const useInvestigation = () => {
       const paragraphsToCreate = [
         ...(payload.topologies || []).map((topology) => ({
           input: {
-            inputText: renderTopologyGraph(topology),
+            inputText: JSON.stringify(topology),
             inputType: TOPOLOGY_PARAGRAPH_TYPE,
             parameters: {
               description: topology.description,
