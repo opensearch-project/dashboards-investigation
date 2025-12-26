@@ -53,23 +53,19 @@ export const getAllMessagesBySessionIdAndMemoryId = async (
   const messages: Trace[] = [];
   let nextToken = options.nextToken;
   do {
-    try {
-      const result = await getMLCommonsAgenticMemoryMessages({
-        ...options,
-        nextToken,
+    const result = await getMLCommonsAgenticMemoryMessages({
+      ...options,
+      nextToken,
+    });
+    result.hits.hits.forEach((hit: any) => {
+      const structuredData = hit._source.structured_data_blob || hit._source.structured_data;
+      messages.push({
+        input: structuredData.input,
+        response: structuredData.response,
+        message_id: hit._id,
       });
-      result.hits.hits.forEach((hit: any) => {
-        const structuredData = hit._source.structured_data_blob || hit._source.structured_data;
-        messages.push({
-          input: structuredData.input,
-          response: structuredData.response,
-          message_id: hit._id,
-        });
-      });
-      nextToken = result.next_token;
-    } catch (error) {
-      throw error;
-    }
+    });
+    nextToken = result.next_token;
   } while (!!nextToken);
   return messages;
 };
@@ -80,26 +76,22 @@ export const getAllTracesMessages = async (
   const traces: Trace[] = [];
   let nextToken = options.nextToken;
   do {
-    try {
-      const result = await getMLCommonsAgenticTracesMessages({
-        ...options,
-        nextToken,
-      });
+    const result = await getMLCommonsAgenticTracesMessages({
+      ...options,
+      nextToken,
+    });
 
-      const hits = result.hits?.hits || [];
-      hits.forEach((hit: any) => {
-        const structuredData = hit._source.structured_data_blob || hit._source.structured_data;
-        traces.push(structuredData);
-      });
+    const hits = result.hits?.hits || [];
+    hits.forEach((hit: any) => {
+      const structuredData = hit._source.structured_data_blob || hit._source.structured_data;
+      traces.push(structuredData);
+    });
 
-      if (hits.length > 0) {
-        const lastHit = hits[hits.length - 1];
-        nextToken = lastHit.sort?.[0];
-      } else {
-        nextToken = undefined;
-      }
-    } catch (error) {
-      throw error;
+    if (hits.length > 0) {
+      const lastHit = hits[hits.length - 1];
+      nextToken = lastHit.sort?.[0];
+    } else {
+      nextToken = undefined;
     }
   } while (!!nextToken);
 
