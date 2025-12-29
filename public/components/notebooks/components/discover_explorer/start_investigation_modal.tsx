@@ -179,6 +179,7 @@ export const StartInvestigationModal = ({ log, closeModal }: StartInvestigationM
             onKeyUp={handleInputKeyUp}
             disabled={disabled}
             fullWidth
+            rows={3}
           />
         </EuiFormRow>
         <EuiSpacer size="s" />
