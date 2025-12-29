@@ -3,20 +3,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BehaviorSubject, Observable, Subscription, timer } from 'rxjs';
-import { concatMap, takeWhile } from 'rxjs/operators';
+import { BehaviorSubject, Observable, Subscription, timer, from } from 'rxjs';
+import { concatMap, takeWhile, timeout, retryWhen, delay, scan } from 'rxjs/operators';
 import { CoreStart } from '../../../../../../../../../src/core/public';
 import { getAllMessagesBySessionIdAndMemoryId } from '../utils';
+import {
+  INTERVAL_TIME,
+  REQUEST_TIMEOUT_MS,
+} from '../../../../../../../common/constants/investigation';
 
 export class PERAgentMemoryService {
   private _dataSourceId?: string;
   private _pollingMemoryId?: string;
-  private _poolingFinished?: boolean;
+  private _pollingFinished = false;
+
   private _messages$ = new BehaviorSubject<any[]>([]);
-  private _pollingState$ = new BehaviorSubject(false);
-  _abortController?: AbortController;
+  private _pollingState$ = new BehaviorSubject<boolean>(false);
+  private _error$ = new BehaviorSubject<string | null>(null);
+
+  private _abortController?: AbortController;
   private _memorySubscription?: Subscription;
-  private _subscription?: Subscription;
+  private _pollingSubscription?: Subscription;
+
+  private _hasError = false;
 
   constructor(
     private _http: CoreStart['http'],
@@ -33,72 +42,79 @@ export class PERAgentMemoryService {
     if (!this._http || this._abortController) {
       return;
     }
-    const http = this._http;
+
     this._abortController = new AbortController();
 
-    // Unsubscribe from any existing subscription
+    // clean previous
     this._memorySubscription?.unsubscribe();
-    this._subscription?.unsubscribe();
+    this._pollingSubscription?.unsubscribe();
 
-    // Create task subscription
     this._memorySubscription = this._memoryId$.subscribe((memoryId) => {
-      // Unsubscribe from previous polling subscription when memoryId changes
-      this._subscription?.unsubscribe();
+      // memoryId changed → reset polling subscription
+      this._pollingSubscription?.unsubscribe();
 
       if (this._pollingMemoryId !== memoryId) {
-        this._poolingFinished = false;
+        this._pollingFinished = false;
+        this._hasError = false;
+        this._error$.next(null);
         this._messages$.next([]);
       }
 
-      if (!memoryId || this._poolingFinished) {
+      if (!memoryId || this._pollingFinished) {
         return;
       }
+
       this._pollingMemoryId = memoryId;
       this._pollingState$.next(true);
 
-      this._subscription = timer(0, 5000)
+      this._pollingSubscription = timer(1500, INTERVAL_TIME)
         .pipe(
-          concatMap(() => {
-            const originalMessages = this._messages$.getValue();
-            const lastMessage = originalMessages[originalMessages.length - 1];
-            const previousMessages = lastMessage?.response
-              ? originalMessages
-              : originalMessages.slice(0, -1);
-
-            return getAllMessagesBySessionIdAndMemoryId({
-              memoryContainerId: this._memoryContainerId,
-              sessionId: memoryId,
-              http,
-              signal: this._abortController?.signal,
-              dataSourceId: this._dataSourceId,
-              nextToken: previousMessages.length,
-            }).then((newMessages) => [...previousMessages, ...newMessages]);
-          }),
-          takeWhile(() => this._shouldContinuePolling(), true)
+          takeWhile(() => this._shouldContinuePolling() && !this._hasError, true),
+          concatMap(() => this._fetchMessages(memoryId)),
+          timeout(REQUEST_TIMEOUT_MS),
+          retryWhen((errors) =>
+            errors.pipe(
+              delay(INTERVAL_TIME),
+              scan((retryCount, err) => {
+                if (retryCount >= 2) {
+                  throw err;
+                }
+                return retryCount + 1;
+              }, 0)
+            )
+          )
         )
-        .subscribe((messages) => {
-          this._messages$.next(messages);
-          if (!this._shouldContinuePolling()) {
-            this._pollingState$.next(false);
-            this._poolingFinished = true;
-          }
+        .subscribe({
+          next: (messages) => {
+            this._messages$.next(messages);
+
+            if (!this._shouldContinuePolling()) {
+              this._pollingFinished = true;
+              this._pollingState$.next(false);
+            }
+          },
+          error: (err) => {
+            if (err.name !== 'AbortError') {
+              const errorMessage = err.body?.message || err?.message || 'Unknown error occurred';
+              this._hasError = true;
+              this._error$.next(errorMessage);
+              this._stopPolling();
+            }
+          },
         });
     });
-    return () => {
-      this._stopPolling();
-    };
+
+    return () => this._stopPolling('stopPolling called');
   }
 
-  private _stopPolling(reason?: string) {
-    if (!this._abortController) {
-      return;
-    }
-    this._pollingState$.next(false);
-    this._abortController?.abort(reason ?? 'Stop polling');
-    this._abortController = undefined;
-    // Unsubscribe from any existing subscription
-    this._memorySubscription?.unsubscribe();
-    this._subscription?.unsubscribe();
+  retry() {
+    if (!this._hasError) return;
+
+    this._hasError = false;
+    this._error$.next(null);
+
+    // continue polling from current state
+    this.startPolling();
   }
 
   stop(reason?: string) {
@@ -106,7 +122,52 @@ export class PERAgentMemoryService {
     this._messages$.next([]);
   }
 
-  getMessages$ = (): Observable<any[]> => this._messages$.asObservable();
+  getMessages$(): Observable<any[]> {
+    return this._messages$.asObservable();
+  }
 
-  getPollingState$ = () => this._pollingState$.asObservable();
+  getPollingState$(): Observable<boolean> {
+    return this._pollingState$.asObservable();
+  }
+
+  getError$(): Observable<string | null> {
+    return this._error$.asObservable();
+  }
+
+  private _fetchMessages(memoryId: string) {
+    const http = this._http;
+    const existingMessages = this._messages$.getValue();
+    const lastMessage = existingMessages[existingMessages.length - 1];
+
+    const previousMessages = lastMessage?.response
+      ? existingMessages
+      : existingMessages.slice(0, -1);
+
+    return from(
+      getAllMessagesBySessionIdAndMemoryId({
+        memoryContainerId: this._memoryContainerId,
+        sessionId: memoryId,
+        http,
+        signal: this._abortController?.signal,
+        dataSourceId: this._dataSourceId,
+        nextToken: previousMessages.length,
+      })
+    ).pipe(
+      concatMap((newMessages) => {
+        return [[...previousMessages, ...newMessages]];
+      })
+    );
+  }
+
+  private _stopPolling(reason?: string) {
+    this._pollingState$.next(false);
+    this._abortController?.abort(reason ?? 'Stop polling');
+    this._abortController = undefined;
+
+    this._memorySubscription?.unsubscribe();
+    this._pollingSubscription?.unsubscribe();
+
+    this._memorySubscription = undefined;
+    this._pollingSubscription = undefined;
+  }
 }
