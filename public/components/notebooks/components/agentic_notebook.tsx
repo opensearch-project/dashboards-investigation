@@ -191,9 +191,8 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           });
         }
 
-        // Check if there's an ongoing investigation to continue BEFORE calling start
-        // This prevents start() from triggering a new investigation when we should continue the existing one
-        const hasOngoingInvestigation = res.runningMemory;
+        // Check if there's an ongoing investigation to continue
+        const hasOngoingInvestigation = res.runningMemory?.parentInteractionId;
 
         if (hasOngoingInvestigation) {
           const isOwner = !!res.currentUser && res.currentUser === res.runningMemory?.owner;
@@ -204,16 +203,15 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               title: 'Investigation in progress',
               text: `User (${res.runningMemory?.owner}) is currently running an investigation. Please wait for it to complete and refresh the page.`,
             });
-            return;
           }
+          return;
         }
 
-        // Pass a dummy hypothesis array to prevent start() from auto-triggering investigation
-        // when we're continuing an existing one
+        // Only call start() for new notebooks or completed investigations
         await start({
           context: notebookContext.state.value.context.value,
           paragraphs: res.paragraphs,
-          hypotheses: hasOngoingInvestigation ? [{ id: 'placeholder' } as any] : res.hypotheses,
+          hypotheses: res.hypotheses,
           doInvestigate,
         });
       })
