@@ -141,6 +141,16 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
       );
     }
 
+    if (runningMemory?.owner && runningMemory.owner !== currentUser) {
+      return (
+        <HypothesisBadge
+          label="Other user is doing investigation, show previous Investigation"
+          color={euiThemeVars.euiColorWarning}
+          icon="check"
+        />
+      );
+    }
+
     if (isInvestigating || !historyMemory) {
       return (
         <HypothesisBadge
@@ -158,7 +168,14 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
         icon="check"
       />
     );
-  }, [investigationError, isInvestigating, historyMemory, hypotheses]);
+  }, [
+    investigationError,
+    isInvestigating,
+    historyMemory,
+    hypotheses,
+    currentUser,
+    runningMemory?.owner,
+  ]);
 
   const handleClickHypothesis = (hypothesisId: string) => {
     history.push(`/agentic/${notebookId}/hypothesis/${hypothesisId}`);
