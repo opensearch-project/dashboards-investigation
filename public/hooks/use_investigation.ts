@@ -34,6 +34,7 @@ import { DEFAULT_INVESTIGATION_NAME, NOTEBOOKS_API_PREFIX } from '../../common/c
 import { useToast } from './use_toast';
 import { SharedMessagePollingService } from '../components/notebooks/components/hypothesis/investigation/services/shared_message_polling_service';
 import { INTERVAL_TIME } from '../../common/constants/investigation';
+import { NotebookBackendType } from '../../common/types/notebooks';
 
 const getFindingFromParagraph = (paragraph: ParagraphStateValue<unknown>) => {
   return `
@@ -53,7 +54,7 @@ const convertParagraphsToFindings = (paragraphs: Array<ParagraphStateValue<unkno
 export const useInvestigation = () => {
   const context = useContext(NotebookReactContext);
   const {
-    services: { http, paragraphService },
+    services: { http, paragraphService, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { addError } = useToast();
   const { updateHypotheses, updateNotebookContext } = useNotebook();
@@ -73,6 +74,42 @@ export const useInvestigation = () => {
 
   const [isInvestigating, setIsInvestigating] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  /**
+   * Check if there's an ongoing investigation by another user
+   * Fetches the latest notebook data from backend to ensure accuracy across multiple tabs
+   * @returns true if there's an ongoing investigation by another user, false otherwise
+   */
+  const checkOngoingInvestigation = useCallback(async (): Promise<boolean> => {
+    const { id: notebookId } = context.state.value;
+
+    try {
+      // Fetch the latest notebook data from backend
+      const latestNotebook = await http.get<NotebookBackendType>(
+        `${NOTEBOOKS_API_PREFIX}/note/savedNotebook/${notebookId}`
+      );
+
+      const runningMemory = latestNotebook.runningMemory;
+
+      // Check if there's an ongoing investigation by another user
+      if (runningMemory?.parentInteractionId) {
+        const investigationOwner = runningMemory.owner;
+        notifications.toasts.addWarning({
+          title: 'Investigation in progress',
+          text: `User (${investigationOwner}) is currently running an investigation. Please wait for it to complete before starting a new one.`,
+        });
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      addError({
+        error,
+        title: 'Failed to check ongoing investigation',
+      });
+      return true;
+    }
+  }, [context.state, http, notifications.toasts, addError]);
 
   const storeInvestigationResponse = useCallback(
     async ({ payload }: { payload: PERAgentInvestigationResponse }) => {
@@ -222,7 +259,7 @@ export const useInvestigation = () => {
         });
       } catch (error) {
         const errorMessage = error.message;
-        context.state.updateValue({ investigationError: errorMessage });
+        context.state.updateValue({ investigationError: errorMessage, runningMemory: undefined });
         await updateHypotheses(hypothesesRef.current || []);
         addError({
           error,
@@ -394,6 +431,7 @@ export const useInvestigation = () => {
           memoryContainerId,
           parentInteractionId,
           executorMemoryId,
+          owner: context.state.value.currentUser || undefined,
         };
 
         context.state.updateValue({ runningMemory });
@@ -614,5 +652,6 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
     addNewFinding,
     rerunInvestigation,
     continueInvestigation,
+    checkOngoingInvestigation,
   };
 };

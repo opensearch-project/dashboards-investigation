@@ -57,6 +57,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     historyMemory,
     investigationError,
     isNotebookReadonly,
+    currentUser,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const history = useHistory();
   const [showSteps, setShowSteps] = useState(false);
@@ -167,7 +168,10 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     return null;
   }
 
-  const investigationSteps = PERAgentServices && !isNotebookReadonly && (
+  // Only show investigation steps if current user is the owner of the active memory (investigation trigger user)
+  const isOwner = !!currentUser && currentUser === activeMemory?.owner;
+
+  const investigationSteps = PERAgentServices && !isNotebookReadonly && isOwner && (
     <EuiAccordion
       id="investigation-steps"
       buttonContent="Investigation Steps"
