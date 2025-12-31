@@ -21,6 +21,7 @@ export interface NotebookStateValue {
   path: string;
   vizPrefix: string;
   owner?: string;
+  currentUser?: string;
   hypotheses?: HypothesisItem[];
   runningMemory?: AgenticMemeory;
   historyMemory?: AgenticMemeory;
