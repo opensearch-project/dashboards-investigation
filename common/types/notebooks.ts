@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { Filter } from '../../../../src/plugins/data/common';
+
 export interface OptionsType {
   baseUrl: string;
   payload?: any;
@@ -19,6 +21,7 @@ export interface OptionsType {
 
 export enum NoteBookSource {
   DISCOVER = 'Discover',
+  VISUALIZATION = 'VISUALIZATION',
 }
 
 export enum NotebookType {
@@ -29,8 +32,8 @@ export enum NotebookType {
 export interface InvestigationTimeRange {
   selectionFrom: number;
   selectionTo: number;
-  baselineFrom: number;
-  baselineTo: number;
+  baselineFrom?: number;
+  baselineTo?: number;
 }
 
 export interface NotebookContext {
@@ -47,6 +50,9 @@ export interface NotebookContext {
     // used for source type: Discover
     pplQuery?: string;
     [key: string]: unknown;
+
+    // used for source type: Discover visualization
+    visualizationFilters: Filter[];
   };
   memoryId?: string;
   indexInsight?: IndexInsightContent;

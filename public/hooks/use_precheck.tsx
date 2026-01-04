@@ -20,6 +20,7 @@ import {
 } from '../../common/types/notebooks';
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import {
+  DASHBOARDS_VISUALIZATION_TYPE,
   DATA_DISTRIBUTION_PARAGRAPH_TYPE,
   dateFormat,
   LOG_PATTERN_PARAGRAPH_TYPE,
@@ -29,6 +30,7 @@ import { getInputType } from '../../common/utils/paragraph';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { isDateAppenddablePPL } from '../utils/query';
+import { createDashboardVizObject } from '../utils/visualization';
 
 export const waitForPrecheckContexts = ({
   paragraphStates,
@@ -159,7 +161,7 @@ export const usePrecheck = () => {
         if (!anomalyAnalysisParaExists) {
           const resContext = res.context;
           const canAnalyticDis =
-            resContext?.source === NoteBookSource.DISCOVER &&
+            resContext?.source === (NoteBookSource.DISCOVER || NoteBookSource.VISUALIZATION) &&
             resContext.variables?.['pplQuery'] &&
             !resContext.variables?.log &&
             isDateAppenddablePPL(resContext.variables.pplQuery);
@@ -215,6 +217,41 @@ export const usePrecheck = () => {
           });
         }
 
+        // Collect visualization paragraph
+        if (
+          res.context?.source === NoteBookSource.VISUALIZATION &&
+          !res.paragraphs.find(
+            (paragraph) => getInputType(paragraph) === DASHBOARDS_VISUALIZATION_TYPE
+          ) &&
+          res.context.variables?.['savedObjectId'] &&
+          res.context.timeRange
+        ) {
+          const formatToLocalTime = (timestamp: number) => moment(timestamp).format(dateFormat);
+          const savedObjectId = res.context.variables.savedObjectId as string;
+          const visualizationFilters = res.context.variables.visualizationFilters || [];
+
+          // Create visualization input value with saved object ID and time range
+          const vizInputValue = {
+            type: 'explore', // Type for discover visualizations
+            id: savedObjectId,
+            startTime: formatToLocalTime(res.context.timeRange.selectionFrom),
+            endTime: formatToLocalTime(res.context.timeRange.selectionTo),
+          };
+
+          // Create dashboard viz object and add filters
+          const dashboardVizObject = createDashboardVizObject(vizInputValue);
+          dashboardVizObject.filters = visualizationFilters as any[];
+
+          paragraphsToCreate.push({
+            input: {
+              inputText: JSON.stringify(dashboardVizObject),
+              inputType: DASHBOARDS_VISUALIZATION_TYPE,
+              parameters: vizInputValue,
+            },
+            dataSourceMDSId: res.context.dataSourceId || '',
+          });
+        }
+
         const shouldInvestigate = res.context?.initialGoal && !res.hypotheses?.length;
         if (paragraphsToCreate.length > 0 || shouldInvestigate) {
           if (paragraphsToCreate.length > 0) {
@@ -233,7 +270,8 @@ export const usePrecheck = () => {
             return (
               inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE ||
               inputType === LOG_PATTERN_PARAGRAPH_TYPE ||
-              inputText?.startsWith('%ppl')
+              inputText?.startsWith('%ppl') ||
+              inputType === DASHBOARDS_VISUALIZATION_TYPE
             );
           });
 

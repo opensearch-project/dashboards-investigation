@@ -32,3 +32,7 @@ export const OBSERVABILITY_VISUALIZATION_TYPE = 'observability-visualization';
 export const DASHBOARDS_VISUALIZATION_TYPE = 'visualization';
 
 export const DEFAULT_INVESTIGATION_NAME = 'Discover investigation';
+
+export const DEFAULT_VISUALIZATION_NAME = 'Visualization investigation';
+
+export const EXPLORE_VISUALIZATION_TYPE = 'explore';
