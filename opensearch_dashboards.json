@@ -13,7 +13,8 @@
     "opensearchDashboardsUtils",
     "savedObjects",
     "visualizations",
-    "expressions"
+    "expressions",
+    "uiActions"
   ],
   "optionalPlugins": [
     "dataSource",

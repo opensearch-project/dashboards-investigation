@@ -313,7 +313,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               showUpgradeModal={() => {}}
             />
           )}
-          {source === NoteBookSource.DISCOVER && (
+          {(source === NoteBookSource.DISCOVER || source === NoteBookSource.VISUALIZATION) && (
             <>
               <SummaryCard
                 isInvestigating={isInvestigating}
