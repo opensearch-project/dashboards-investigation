@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import moment from 'moment';
+import { ParagraphUIState } from 'common/state/paragraph_state';
 import {
   LogPatternAnalysisResult,
   LogPattern,
@@ -35,7 +36,8 @@ export const useLogPatternAnalysis = (
   http: HttpSetup,
   analysisParameters: Partial<NotebookContext>,
   saveParaOutput?: (result: LogPatternAnalysisResult) => void,
-  existingResult?: string
+  existingResult?: string,
+  setUiState?: (uiState: Pick<ParagraphUIState, 'logPattern'>) => void
 ) => {
   const [result, setResult] = useState<LogPatternAnalysisResult>();
   const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({
@@ -158,10 +160,12 @@ export const useLogPatternAnalysis = (
       }
     } catch (err) {
       if (err.name !== 'AbortError') {
-        setError(err.message || 'Analysis failed');
+        const errorMessage = err.message || 'Analysis failed';
+        setError(errorMessage);
+        setUiState?.({ logPattern: { error: errorMessage } });
       }
     }
-  }, [buildApiRequests, http]);
+  }, [buildApiRequests, setUiState, http]);
 
   const allRequestsComplete =
     !loadingStatus.isLoadingLogInsights &&

@@ -5,12 +5,12 @@
 
 import { useCallback, useContext } from 'react';
 import moment from 'moment';
-import { combineLatest, of } from 'rxjs';
+import { combineLatest } from 'rxjs';
 import { filter, take } from 'rxjs/operators';
 
-import { NotebookState } from 'common/state/notebook_state';
 import { NoteBookServices } from 'public/types';
 import {
+  AnomalyVisualizationAnalysisOutputResult,
   HypothesisItem,
   IndexInsightContent,
   InvestigationTimeRange,
@@ -30,59 +30,50 @@ import { NotebookReactContext } from '../components/notebooks/context_provider/c
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { isDateAppenddablePPL } from '../utils/query';
 
-const savePrecheckParagraph = ({
-  state,
-  batchSaveParagraphs,
+const waitForPrecheckContexts = ({
+  paragraphStates,
+  onReady,
 }: {
-  state: NotebookState;
-  batchSaveParagraphs: (props: {
-    paragraphStateValues: Array<ParagraphStateValue<string, unknown, {}>>;
-  }) => Promise<any>;
+  paragraphStates: Array<ParagraphState<unknown>>;
+  onReady: (paragraphStates: Array<ParagraphState<unknown>>) => void;
 }) => {
-  const dataDistributionState = state.value.paragraphs.find(
-    (p) => p.value.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
-  );
-  const logPatternState = state.value.paragraphs.find(
-    (p) => p.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
-  );
+  if (paragraphStates.length === 0) {
+    onReady([]);
+    return;
+  }
 
-  if (!dataDistributionState && !logPatternState) return;
+  const observables = paragraphStates.map((p) => p.getValue$());
 
-  const dataDistributionObs = dataDistributionState ? dataDistributionState.getValue$() : of(null);
-  const logPatternObs = logPatternState ? logPatternState.getValue$() : of(null);
-
-  combineLatest([dataDistributionObs, logPatternObs])
+  combineLatest(observables)
     .pipe(
-      filter(([dataDistribution, logPattern]) => {
-        // Check if data distribution is ready
-        let dataDistributionReady = true;
-        if (dataDistribution) {
-          const output = ParagraphState.getOutput(dataDistribution);
-          const result = output?.result;
-          const fieldComparison = (result as any)?.fieldComparison;
-          dataDistributionReady = fieldComparison && fieldComparison.length > 0;
-        }
+      filter((values) => {
+        return values.every((value) => {
+          const inputType = value.input.inputType;
 
-        // Check if log pattern is ready
-        let logPatternReady = true;
-        if (logPattern) {
-          const output = ParagraphState.getOutput(logPattern);
-          logPatternReady = !!output?.result;
-        }
+          if (inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE) {
+            const hasError = value.uiState?.dataDistribution?.error;
+            const output = ParagraphState.getOutput(value);
+            const fieldComparison = (output?.result as AnomalyVisualizationAnalysisOutputResult)
+              ?.fieldComparison;
+            return !!hasError || (fieldComparison && fieldComparison.length > 0);
+          }
 
-        return dataDistributionReady && logPatternReady;
+          if (inputType === LOG_PATTERN_PARAGRAPH_TYPE) {
+            const output = ParagraphState.getOutput(value);
+            const error = value.uiState?.logPattern?.error;
+            return !!output?.result || !!error;
+          }
+
+          if (value.input.inputText?.startsWith('%ppl')) {
+            return !!value.fullfilledOutput;
+          }
+
+          return true;
+        });
       }),
       take(1)
     )
-    .subscribe(() => {
-      const paragraphsToSaveBatch = [];
-      if (dataDistributionState) paragraphsToSaveBatch.push(dataDistributionState.value);
-      if (logPatternState) paragraphsToSaveBatch.push(logPatternState.value);
-
-      batchSaveParagraphs({
-        paragraphStateValues: paragraphsToSaveBatch as any,
-      }).catch((err) => console.error('Error saving paragraphs: ', err));
-    });
+    .subscribe(() => onReady(paragraphStates));
 };
 
 export const usePrecheck = () => {
@@ -224,23 +215,49 @@ export const usePrecheck = () => {
           });
         }
 
-        if (paragraphsToCreate.length > 0) {
-          try {
-            // Create all paragraphs in batch
-            await batchCreateParagraphs({
-              startIndex: totalParagraphLength,
-              paragraphs: paragraphsToCreate,
-            });
-            savePrecheckParagraph({ state, batchSaveParagraphs });
-          } catch (e) {
-            console.error('Error creating paragraphs in batch:', e);
+        const shouldInvestigate = res.context?.initialGoal && !res.hypotheses?.length;
+        if (paragraphsToCreate.length > 0 || shouldInvestigate) {
+          if (paragraphsToCreate.length > 0) {
+            try {
+              await batchCreateParagraphs({
+                startIndex: totalParagraphLength,
+                paragraphs: paragraphsToCreate,
+              });
+            } catch (e) {
+              console.error('Error creating paragraphs in batch:', e);
+            }
           }
-        }
 
-        if (res.context?.initialGoal && !res.hypotheses?.length) {
-          res.doInvestigate({
-            investigationQuestion: res.context?.initialGoal || '',
-            timeRange: res.context?.timeRange,
+          const precheckParagraphs = state.value.paragraphs.filter((p) => {
+            const { inputType, inputText } = p.value.input;
+            return (
+              inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE ||
+              inputType === LOG_PATTERN_PARAGRAPH_TYPE ||
+              inputText?.startsWith('%ppl')
+            );
+          });
+
+          waitForPrecheckContexts({
+            paragraphStates: precheckParagraphs,
+            onReady: (paragraphStates) => {
+              const paragraphsToSave = paragraphStates.filter(
+                (p) => !p.value.input.inputText?.startsWith('%ppl')
+              );
+              if (paragraphsToSave.length > 0) {
+                batchSaveParagraphs({
+                  paragraphStateValues: paragraphsToSave.map((p) => p.value) as Array<
+                    ParagraphStateValue<string>
+                  >,
+                }).catch((err) => console.error('Error saving paragraphs: ', err));
+              }
+
+              if (shouldInvestigate) {
+                res.doInvestigate({
+                  investigationQuestion: res.context?.initialGoal || '',
+                  timeRange: res.context?.timeRange,
+                });
+              }
+            },
           });
         }
       },
