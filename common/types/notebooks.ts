@@ -90,6 +90,7 @@ export interface AgenticMemeory {
   executorMemoryId?: string;
   parentInteractionId?: string;
   memoryContainerId?: string;
+  owner?: string;
 }
 
 export type ParagraphInputType<TParameters = unknown> = ParagraphBackendType<TParameters>['input'];
@@ -103,6 +104,7 @@ export interface NotebookBackendType {
   path: string;
   vizPrefix?: string;
   owner?: string;
+  currentUser?: string;
   hypotheses?: HypothesisItem[];
   runningMemory?: AgenticMemeory;
   historyMemory?: AgenticMemeory;

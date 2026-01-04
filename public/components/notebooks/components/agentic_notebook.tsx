@@ -99,6 +99,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     addNewFinding,
     rerunInvestigation,
     continueInvestigation,
+    checkOngoingInvestigation,
   } = useInvestigation();
 
   const [findingText, setFindingText] = useState('');
@@ -170,29 +171,33 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           vizPrefix: res.vizPrefix,
           paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
           owner: res.owner,
+          currentUser: res.currentUser,
           hypotheses: res.hypotheses,
           runningMemory: res.runningMemory,
           historyMemory: res.historyMemory,
         });
 
-        // Check if there's an ongoing investigation to continue BEFORE calling start
-        // This prevents start() from triggering a new investigation when we should continue the existing one
-        const hasOngoingInvestigation = res.runningMemory;
+        // Check if there's an ongoing investigation to continue
+        const hasOngoingInvestigation = res.runningMemory?.parentInteractionId;
 
         if (hasOngoingInvestigation) {
-          try {
+          const isOwner = !!res.currentUser && res.currentUser === res.runningMemory?.owner;
+          if (isOwner) {
             await continueInvestigation();
-          } catch (error) {
-            console.error('Failed to continue investigation:', error);
+          } else {
+            notifications.toasts.addWarning({
+              title: 'Investigation in progress',
+              text: `User (${res.runningMemory?.owner}) is currently running an investigation. Please wait for it to complete and refresh the page.`,
+            });
           }
+          return;
         }
 
-        // Pass a dummy hypothesis array to prevent start() from auto-triggering investigation
-        // when we're continuing an existing one
+        // Only call start() for new notebooks or completed investigations
         await start({
           context: notebookContext.state.value.context.value,
           paragraphs: res.paragraphs,
-          hypotheses: hasOngoingInvestigation ? [{ id: 'placeholder' } as any] : res.hypotheses,
+          hypotheses: res.hypotheses,
           doInvestigate,
         });
       })
@@ -234,6 +239,12 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       isReinvestigate: boolean;
       updatedTimeRange?: Omit<InvestigationTimeRange, 'baselineFrom' | 'baselineTo'>;
     }) => {
+      // Check for ongoing investigation by another user before starting
+      const hasOngoingInvestigation = await checkOngoingInvestigation();
+      if (hasOngoingInvestigation) {
+        return;
+      }
+
       setIsReinvestigateModalVisible(false);
       setIsInvestigating(true);
 
@@ -284,6 +295,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       doInvestigate,
       setIsReinvestigateModalVisible,
       rerunPrecheck,
+      checkOngoingInvestigation,
     ]
   );
 

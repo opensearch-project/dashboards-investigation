@@ -185,6 +185,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
               executorMemoryId: schema.maybe(schema.string()),
               parentInteractionId: schema.maybe(schema.string()),
               memoryContainerId: schema.maybe(schema.string()),
+              owner: schema.maybe(schema.string()),
             })
           ),
           historyMemory: schema.nullable(
@@ -192,6 +193,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
               executorMemoryId: schema.maybe(schema.string()),
               parentInteractionId: schema.maybe(schema.string()),
               memoryContainerId: schema.maybe(schema.string()),
+              owner: schema.maybe(schema.string()),
             })
           ),
         }),
@@ -258,6 +260,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
       request,
       response
     ): Promise<IOpenSearchDashboardsResponse<any | ResponseError>> => {
+      const userName = getUserName(request);
       const opensearchNotebooksClient: SavedObjectsClientContract =
         context.core.savedObjects.client;
       try {
@@ -267,7 +270,10 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
         );
         const savedNotebook = (notebookinfo as any).attributes.savedNotebook as NotebookBackendType;
         return response.ok({
-          body: savedNotebook,
+          body: {
+            ...savedNotebook,
+            currentUser: userName,
+          },
         });
       } catch (error) {
         return response.custom({
