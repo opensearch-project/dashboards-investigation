@@ -161,8 +161,8 @@ export const usePrecheck = () => {
         if (!anomalyAnalysisParaExists) {
           const resContext = res.context;
           const canAnalyticDis =
-            resContext?.source === (NoteBookSource.DISCOVER || NoteBookSource.VISUALIZATION) &&
-            resContext.variables?.['pplQuery'] &&
+            [NoteBookSource.DISCOVER, NoteBookSource.VISUALIZATION].includes(resContext?.source!) &&
+            resContext?.variables?.['pplQuery'] &&
             !resContext.variables?.log &&
             isDateAppenddablePPL(resContext.variables.pplQuery);
 
