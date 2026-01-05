@@ -10,6 +10,7 @@ import {
   IndexInsight,
   NotebookBackendType,
   NotebookContext,
+  PERAgentTopology,
 } from 'common/types/notebooks';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
@@ -144,13 +145,18 @@ export const useNotebook = () => {
   }, [context.state, http, showParagraphRunning, fetchIndexInsights]);
 
   const updateHypotheses = useCallback(
-    async (hypotheses: HypothesisItem[], isNewHypotheses?: boolean) => {
+    async (
+      hypotheses: HypothesisItem[],
+      topologies?: PERAgentTopology[],
+      isNewHypotheses?: boolean
+    ) => {
       const { id: openedNoteId, runningMemory, historyMemory } = context.state.value;
       try {
         const response = await http.put(`${NOTEBOOKS_API_PREFIX}/note/updateHypotheses`, {
           body: JSON.stringify({
             notebookId: openedNoteId,
             hypotheses,
+            topologies,
             ...(isNewHypotheses
               ? { historyMemory: runningMemory }
               : { historyMemory: historyMemory || null }),
@@ -162,6 +168,7 @@ export const useNotebook = () => {
 
         context.state.updateValue({
           hypotheses,
+          topologies,
           dateModified:
             response?.attributes?.savedNotebook?.dateModified || new Date().toISOString(),
         });

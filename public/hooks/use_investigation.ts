@@ -30,11 +30,7 @@ import {
 import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_agent';
 import { useNotebook } from './use_notebook';
 import { generateContextPromptFromParagraphs } from '../services/helpers/per_agent';
-import {
-  DEFAULT_INVESTIGATION_NAME,
-  NOTEBOOKS_API_PREFIX,
-  TOPOLOGY_PARAGRAPH_TYPE,
-} from '../../common/constants/notebooks';
+import { DEFAULT_INVESTIGATION_NAME, NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
 import { useToast } from './use_toast';
 import { SharedMessagePollingService } from '../components/notebooks/components/hypothesis/investigation/services/shared_message_polling_service';
 import { INTERVAL_TIME } from '../../common/constants/investigation';
@@ -84,18 +80,8 @@ export const useInvestigation = () => {
       const startParagraphIndex = paragraphLengthRef.current;
       const sortedFindings = payload.findings.slice().sort((a, b) => b.importance - a.importance);
 
-      const paragraphsToCreate = [
-        ...(payload.topologies || []).map((topology) => ({
-          input: {
-            inputText: JSON.stringify(topology),
-            inputType: TOPOLOGY_PARAGRAPH_TYPE,
-            parameters: {
-              description: topology.description,
-            },
-          },
-          aiGenerated: true,
-        })),
-        ...sortedFindings.map(({ importance, description, evidence, type }) => ({
+      const paragraphsToCreate = sortedFindings.map(
+        ({ importance, description, evidence, type }) => ({
           input: {
             inputText: `%md ${evidence}`.trim(),
             inputType: 'MARKDOWN',
@@ -108,8 +94,8 @@ export const useInvestigation = () => {
             } as FindingParagraphParameters,
           },
           aiGenerated: true,
-        })),
-      ];
+        })
+      );
 
       try {
         const batchResult = await batchCreateParagraphs({
@@ -118,12 +104,8 @@ export const useInvestigation = () => {
         });
 
         if (batchResult?.paragraphs) {
-          const topologyCount = payload.topologies?.length || 0;
           batchResult.paragraphs.forEach((paragraph: any, index: number) => {
-            const findingIndex = index - topologyCount;
-            if (findingIndex >= 0 && sortedFindings[findingIndex]) {
-              findingId2ParagraphId[sortedFindings[findingIndex].id] = paragraph.id;
-            }
+            findingId2ParagraphId[sortedFindings[index].id] = paragraph.id;
           });
 
           // Run the created paragraphs
@@ -144,13 +126,14 @@ export const useInvestigation = () => {
             ...hypothesis.supporting_findings
               .map((id) => findingId2ParagraphId[id] || (id.startsWith('paragraph_') ? id : null))
               .filter((id) => !!id),
-          ],
+          ] as string[],
           dateCreated: new Date().toISOString(),
           dateModified: new Date().toISOString(),
         }))
         .sort((a, b) => b.likelihood - a.likelihood);
       try {
-        await updateHypotheses([...(newHypotheses as any)], true);
+        // here
+        await updateHypotheses([...newHypotheses], payload.topologies || [], true);
       } catch (e) {
         console.error('Failed to update investigation result', e);
       }
@@ -450,7 +433,7 @@ export const useInvestigation = () => {
       paragraphService,
       paragraphs: allParagraphs,
       notebookInfo: topContext,
-      ignoreInputTypes: ['MARKDOWN', TOPOLOGY_PARAGRAPH_TYPE],
+      ignoreInputTypes: ['MARKDOWN'],
     });
   }, [context, paragraphService]);
 

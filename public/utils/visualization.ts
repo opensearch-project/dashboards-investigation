@@ -81,7 +81,7 @@ export const renderTopologyGraph = (topology: PERAgentTopology): string => {
 
   const renderNode = (node: PERAgentTopologyNode, depth: number = 0): string => {
     const indent = '   '.repeat(depth);
-    const statusPrefix = node.status === 'failed' || node.status === 'error' ? '[FAILED] ' : '';
+    const statusPrefix = node.status !== 'success' ? `[${node.status.toUpperCase()}] ` : '';
     const connector = depth > 0 ? ' └─ ' : '';
 
     let result = `${indent}${connector}${statusPrefix}${node.name}\n`;

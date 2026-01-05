@@ -12,8 +12,13 @@ import { NotebookReactContext } from '../../context_provider/context_provider';
 import { getInputType } from '../../../../../common/utils/paragraph';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NoteBookServices } from '../../../../types';
-import { NotebookType, FindingParagraphParameters } from '../../../../../common/types/notebooks';
+import {
+  NotebookType,
+  FindingParagraphParameters,
+  ParagraphBackendType,
+} from '../../../../../common/types/notebooks';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
+import { Topology } from '../topology';
 
 export interface ParagraphProps {
   index: number;
@@ -55,6 +60,20 @@ export const Paragraph = (props: ParagraphProps) => {
 
   const output = ParagraphState.getOutput(paragraphValue);
   const isAIGenerated = !isClassicNotebook && paragraphValue.aiGenerated === true;
+
+  const isTypology =
+    paragraphValue.input.inputText.toLowerCase().includes('topology') ||
+    (paragraphValue.input.parameters as FindingParagraphParameters)?.finding?.description
+      ?.toLowerCase()
+      .includes('topology');
+
+  if (isTypology) {
+    return (
+      <Topology
+        legacyTopology={paragraphValue as ParagraphBackendType<string, FindingParagraphParameters>}
+      />
+    );
+  }
 
   return (
     <div className="notebookParagraphWrapper">

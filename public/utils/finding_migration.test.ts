@@ -186,7 +186,7 @@ describe('migrateFindingParagraphs', () => {
     expect(migratedParagraphs[1]).toEqual(paragraphs[1]);
   });
 
-  it('should convert topology findings to TOPOLOGY inputType', () => {
+  it('should migrate topology findings as MARKDOWN with finding parameters', () => {
     const paragraphs: Array<ParagraphBackendType<unknown>> = [
       {
         id: 'para-1',
@@ -207,14 +207,17 @@ describe('migrateFindingParagraphs', () => {
     const { migratedParagraphs, migratedIds } = migrateFindingParagraphs(paragraphs);
 
     expect(migratedIds).toEqual(['para-1']);
-    expect(migratedParagraphs[0].input.inputType).toBe('TOPOLOGY');
-    expect(migratedParagraphs[0].input.inputText).toBe('Service call hierarchy');
+    expect(migratedParagraphs[0].input.inputType).toBe('MARKDOWN');
+    expect(migratedParagraphs[0].input.inputText).toBe('%md Service call hierarchy');
     expect(migratedParagraphs[0].input.parameters).toEqual({
-      description: 'Request Flow Topology',
+      finding: {
+        importance: 8,
+        description: 'Request Flow Topology',
+      },
     });
   });
 
-  it('should convert topology findings to TOPOLOGY inputType when evidence contains topology', () => {
+  it('should migrate topology findings with topology keyword in evidence as MARKDOWN with finding parameters', () => {
     const paragraphs: Array<ParagraphBackendType<unknown>> = [
       {
         id: 'para-1',
@@ -235,10 +238,15 @@ describe('migrateFindingParagraphs', () => {
     const { migratedParagraphs, migratedIds } = migrateFindingParagraphs(paragraphs);
 
     expect(migratedIds).toEqual(['para-1']);
-    expect(migratedParagraphs[0].input.inputType).toBe('TOPOLOGY');
-    expect(migratedParagraphs[0].input.inputText).toBe('Topology graph shows service dependencies');
+    expect(migratedParagraphs[0].input.inputType).toBe('MARKDOWN');
+    expect(migratedParagraphs[0].input.inputText).toBe(
+      '%md Topology graph shows service dependencies'
+    );
     expect(migratedParagraphs[0].input.parameters).toEqual({
-      description: 'Service flow',
+      finding: {
+        importance: 7,
+        description: 'Service flow',
+      },
     });
   });
 

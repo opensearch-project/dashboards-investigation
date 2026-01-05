@@ -7,7 +7,6 @@ import React from 'react';
 import moment from 'moment';
 import { EuiBadge, EuiFlexGroup, EuiFlexItem, EuiSpacer, EuiText, EuiTitle } from '@elastic/eui';
 import { FindingParagraphParameters } from '../../../../../common/types/notebooks';
-import { TOPOLOGY_PARAGRAPH_TYPE } from '../../../../../common/constants/notebooks';
 
 interface FindingHeaderProps {
   parameters: FindingParagraphParameters;
@@ -19,7 +18,6 @@ export const FindingHeader = ({ parameters, dateModified, isAIGenerated }: Findi
   const description = parameters?.finding?.description;
   const importance = parameters?.finding?.importance;
   const feedback = parameters?.finding?.feedback;
-  const isTopology = parameters?.finding?.type === TOPOLOGY_PARAGRAPH_TYPE;
 
   return (
     <>
@@ -27,8 +25,10 @@ export const FindingHeader = ({ parameters, dateModified, isAIGenerated }: Findi
         <EuiFlexItem grow={false}>
           <EuiTitle size="xs">
             <span>
-              {isAIGenerated && description && importance !== undefined
-                ? `Finding: ${description} ${isTopology ? '' : `| Importance: ${importance}`}`
+              {isAIGenerated
+                ? `Finding: ${description || 'AI generated finding'} ${
+                    importance ? `| Importance: ${importance}` : ''
+                  } `
                 : 'User Finding'}
             </span>
           </EuiTitle>

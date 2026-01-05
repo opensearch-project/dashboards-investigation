@@ -75,6 +75,7 @@ Your final result JSON must include:
   * **"id"**: A unique identifier for the topology (e.g., "T1", "T2")
   * **"description"**: A brief title or summary for the topology graph
   * **"traceId"**: The trace ID associated with this topology
+  * **"hypothesisIds"**: Array of hypothesis IDs that this topology supports
   * **"nodes"**: Array of node objects representing services/operations
 
 ### Finding Structure
@@ -104,12 +105,13 @@ Your final result JSON must include:
     "id": string,
     "description": string,
     "traceId": string,
+    "hypothesisIds": array[string],
     "nodes": array[{
         "id": string,
         "name": string,
         "startTime": string,
         "duration": string,
-        "status": "success" | "failed" | "error",
+        "status": string,
         "parentId": string | null
     }]
 }
@@ -151,7 +153,7 @@ Your final result JSON must include:
 - Each node represents a service or operation in the trace
 - Use parentId to establish hierarchy (null for root nodes)
 - Include precise startTime (ISO format) and duration
-- Mark failed operations with status "failed" or "error"
+- Provide descriptive status (e.g., "success", "failed", "error", "latency", "timeout", etc.)
 - Keep focused on critical path (limit to 10 nodes max)
 
 `;

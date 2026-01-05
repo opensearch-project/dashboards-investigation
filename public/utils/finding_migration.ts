@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { TOPOLOGY_PARAGRAPH_TYPE } from '../../common/constants/notebooks';
 import { FindingParagraphParameters, ParagraphBackendType } from '../../common/types/notebooks';
 
 export const migrateFindingParagraphs = (paragraphs: Array<ParagraphBackendType<unknown>>) => {
@@ -20,24 +19,6 @@ export const migrateFindingParagraphs = (paragraphs: Array<ParagraphBackendType<
           const description = /Description\:\s*(.*)\n/.exec(result)?.[1] || '';
           const evidence = /Evidence\:\s*(.*)/s.exec(result)?.[1] || '';
           const importance = +(/Importance\:\s*(.*)/.exec(result)?.[1] || 0);
-
-          const isTopology =
-            description.toLowerCase().includes('topology') ||
-            evidence.toLowerCase().includes('topology');
-
-          if (isTopology) {
-            return {
-              ...paragraph,
-              input: {
-                ...paragraph.input,
-                inputType: TOPOLOGY_PARAGRAPH_TYPE,
-                inputText: evidence.trim(),
-                parameters: {
-                  description,
-                },
-              },
-            };
-          }
 
           return {
             ...paragraph,

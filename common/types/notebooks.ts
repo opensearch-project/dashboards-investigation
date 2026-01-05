@@ -106,6 +106,7 @@ export interface NotebookBackendType {
   hypotheses?: HypothesisItem[];
   runningMemory?: AgenticMemeory;
   historyMemory?: AgenticMemeory;
+  topologies: PERAgentTopology[];
 }
 
 export interface SummaryDataItem {
@@ -177,6 +178,7 @@ export interface PERAgentTopology {
   description: string;
   traceId: string;
   nodes: PERAgentTopologyNode[];
+  hypothesisIds: string[];
 }
 
 export interface PERAgentInvestigationResponse {
