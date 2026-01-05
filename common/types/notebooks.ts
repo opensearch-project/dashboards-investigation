@@ -52,7 +52,7 @@ export interface NotebookContext {
     [key: string]: unknown;
 
     // used for source type: Discover visualization
-    visualizationFilters: Filter[];
+    visualizationFilters?: Filter[];
   };
   memoryId?: string;
   indexInsight?: IndexInsightContent;
