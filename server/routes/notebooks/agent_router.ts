@@ -54,6 +54,7 @@ Final result must be a stringified JSON object:
 {
     "findings": array[object],
     "hypotheses": array[object],
+    "topologies": array[object],
     "investigationName": "string object which will be the auto generated name for the whole investigation, max 50 characters"
 }
 \`\`\`
@@ -70,6 +71,12 @@ Your final result JSON must include:
   * **"description"**: Clear statement of the hypothesis
   * **"likelihood"**: Rating from 0-100 indicating probability of being correct
   * **"supporting_findings"**: Array of finding IDs that support or relate to this hypothesis
+- **"topologies"**: An array of topology objects, each containing:
+  * **"id"**: A unique identifier for the topology (e.g., "T1", "T2")
+  * **"description"**: A brief title or summary for the topology graph
+  * **"traceId"**: The trace ID associated with this topology
+  * **"hypothesisIds"**: Array of hypothesis IDs that this topology supports
+  * **"nodes"**: Array of node objects representing services/operations
 
 ### Finding Structure
 \`\`\`json
@@ -92,6 +99,24 @@ Your final result JSON must include:
 }
 \`\`\`
 
+### Topology Structure
+\`\`\`json
+{
+    "id": string,
+    "description": string,
+    "traceId": string,
+    "hypothesisIds": array[string],
+    "nodes": array[{
+        "id": string,
+        "name": string,
+        "startTime": string,
+        "duration": string,
+        "status": string,
+        "parentId": string | null
+    }]
+}
+\`\`\`
+
 ### Likelihood Guidelines
 - **Strong likelihood (70-100)**: High confidence, substantial supporting evidence
 - **Moderate likelihood (40-70)**: Medium confidence, some supporting evidence
@@ -110,7 +135,7 @@ Your final result JSON must include:
 \`\`\`json
 {
   "steps": [],
-  "result": "{\"investigationName\": \"Invalid payment token Investigation\",\"findings\":[{\"id\":\"F1\",\"description\":\"High error rate detected\",\"importance\":90,\"evidence\":\"500+ errors in last hour\"}],\"hypotheses\":[{\"id\":\"H1\",\"title\":\"Database Connection Issue\",\"description\":\"Application errors caused by database connectivity problems\",\"likelihood\":85,\"supporting_findings\":[\"F1\"]}]}"
+  "result": "{\"investigationName\": \"Invalid payment token Investigation\",\"findings\":[{\"id\":\"F1\",\"description\":\"High error rate detected\",\"importance\":90,\"evidence\":\"500+ errors in last hour\"}],\"hypotheses\":[{\"id\":\"H1\",\"title\":\"Database Connection Issue\",\"description\":\"Application errors caused by database connectivity problems\",\"likelihood\":85,\"supporting_findings\":[\"F1\"]}],\"topology\":[]}"
 }
 \`\`\`
 
@@ -122,29 +147,16 @@ Your final result JSON must include:
 5. Only respond with a pure JSON object
 6. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
 7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
-8. If there is a traceId, create a "Request flow topology" finding with a tree structure in evidence showing service calls with startTime and duration. If there are multiple traceId and their Request flow topology are similar, only show one of them. Example format:
-┌─────────────────────────────────────────────────────────────────────┐
-├─ ServiceName (Start: timestamp, Duration: X sec)                    │
-│  └─ ChildOperation (Start: timestamp, Duration: Y sec)              │
-│  │                                                                  │
-│  ├─ PaymentService                                                  │
-│  │  Start: 2024-11-17 00:11:23.040                                  │
-│  │  Duration: 10.00 sec                                             │
-│  │  └─ charge                                                       │
-│  │     Start: 2024-11-17 00:11:23.042                               │
-│  │     Duration: 10.00 sec                                          │
-│  │                                                                  │
-│  ├─ ShippingService                                                 │
-│  │  Start: 2024-11-17 00:11:33.043                                  │
-│  │  Duration: 1.1 ms                                                │
-│  │                                                                  │
-│  └─ send_order_confirmation                                         │
-│     Start: 2024-11-17 00:11:33.048                                  │
-│     Duration: 1.9 ms                                                │
-│     └─ send_email                                                   │
-│        Start: 2024-11-17 00:11:33.049                               │
-│        Duration: 1.6 ms                                             │
-└─────────────────────────────────────────────────────────────────────┘`;
+8. **Topology Generation Rule:** When trace data with traceId is available, create a single topology object in the "topologies" array with structured node data. Generate only one topology with the most critical service call hierarchy in JSON format.
+
+### Topology Node Requirements:
+- Each node represents a service or operation in the trace
+- Use parentId to establish hierarchy (null for root nodes)
+- Include precise startTime (ISO format) and duration
+- Provide descriptive status (e.g., "success", "failed", "error", "latency", "timeout", etc.)
+- Keep focused on critical path (limit to 10 nodes max)
+
+`;
 
 const getTimeScopePrompt = (timeRange: { selectionFrom: number; selectionTo: number }) => `
   ${

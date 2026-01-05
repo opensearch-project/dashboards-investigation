@@ -205,7 +205,7 @@ export const DataDistributionContainer = ({
 
   const BASE_FLEX_ITEM_STYLE = { minHeight: 300, minWidth: 300 };
   const MemoItem: React.FC<MemoItemProps> = React.memo(
-    ({ uniqueKey, uniqueId, chartIndex, isSelected, spec }: MemoItemProps) => {
+    ({ uniqueId, chartIndex, isSelected, spec }: MemoItemProps) => {
       const itemStyle = useMemo(
         () => ({
           ...BASE_FLEX_ITEM_STYLE,
@@ -215,7 +215,7 @@ export const DataDistributionContainer = ({
         [isSelected]
       );
       return (
-        <EuiFlexItem grow={true} key={uniqueKey} style={itemStyle}>
+        <EuiFlexItem grow={true} style={itemStyle}>
           {factory && spec && (
             <EmbeddableRenderer
               factory={factory}
@@ -238,15 +238,13 @@ export const DataDistributionContainer = ({
         <>
           <EuiFlexGroup wrap responsive={false}>
             {paginatedSpecs.map((spec, specIndex) => {
-              const uniqueKey = `${activePage * ITEMS_PER_PAGE + specIndex}`;
               const uniqueId = `dis-id-${activePage * ITEMS_PER_PAGE + specIndex}`;
               const chartIndex = activePage * ITEMS_PER_PAGE + specIndex;
               const isSelected = !!fieldComparison[chartIndex].excludeFromContext;
 
               return (
                 <MemoItem
-                  key={uniqueKey}
-                  uniqueKey={uniqueKey}
+                  key={uniqueId}
                   uniqueId={uniqueId}
                   chartIndex={chartIndex}
                   isSelected={isSelected}

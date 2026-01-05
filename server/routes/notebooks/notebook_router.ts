@@ -194,6 +194,26 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
               memoryContainerId: schema.maybe(schema.string()),
             })
           ),
+          topologies: schema.nullable(
+            schema.arrayOf(
+              schema.object({
+                id: schema.string(),
+                description: schema.string(),
+                traceId: schema.string(),
+                hypothesisIds: schema.arrayOf(schema.string()),
+                nodes: schema.arrayOf(
+                  schema.object({
+                    id: schema.string(),
+                    name: schema.string(),
+                    startTime: schema.string(),
+                    duration: schema.string(),
+                    status: schema.string(),
+                    parentId: schema.nullable(schema.string()),
+                  })
+                ),
+              })
+            )
+          ),
         }),
       },
     },
@@ -207,6 +227,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
       try {
         const noteObject = {
           hypotheses: request.body.hypotheses,
+          topologies: request.body.topologies,
           dateModified: new Date().toISOString(),
           ...(request.body.runningMemory
             ? { runningMemory: request.body.runningMemory }

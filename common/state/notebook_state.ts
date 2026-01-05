@@ -4,7 +4,12 @@
  */
 
 import { distinctUntilChanged, map } from 'rxjs/operators';
-import { AgenticMemeory, HypothesisItem, NotebookContext } from '../types/notebooks';
+import {
+  AgenticMemeory,
+  HypothesisItem,
+  NotebookContext,
+  PERAgentTopology,
+} from '../types/notebooks';
 import { ObservableState } from './observable_state';
 import { ParagraphState } from './paragraph_state';
 import { TopContextState } from './top_context_state';
@@ -26,6 +31,7 @@ export interface NotebookStateValue {
   historyMemory?: AgenticMemeory;
   investigationError?: string;
   isNotebookReadonly: boolean;
+  topologies: PERAgentTopology[];
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {

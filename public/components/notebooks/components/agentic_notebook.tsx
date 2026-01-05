@@ -52,6 +52,8 @@ import { useChatContextProvider } from '../../../hooks/use_chat_context';
 import { HypothesisDetail, HypothesesPanel, ReinvestigateModal } from './hypothesis';
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
 import { InvestigationPageContext } from './investigation_page_context';
+import { migrateFindingParagraphs } from '../../../utils/finding_migration';
+import { Topology } from './topology';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
   openedNoteId: string;
@@ -89,6 +91,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     paragraphs: paragraphsStates,
     isLoading,
     isNotebookReadonly,
+    topologies,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
@@ -162,18 +165,29 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         if (res.context) {
           notebookContext.state.updateContext(res.context);
         }
+
+        const { migratedParagraphs, migratedIds } = migrateFindingParagraphs(res.paragraphs);
+
         notebookContext.state.updateValue({
           dateCreated: res.dateCreated,
           dateModified: res.dateModified,
           title: res.name,
           path: res.path,
           vizPrefix: res.vizPrefix,
-          paragraphs: res.paragraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
+          paragraphs: migratedParagraphs.map((paragraph) => new ParagraphState<unknown>(paragraph)),
           owner: res.owner,
           hypotheses: res.hypotheses,
           runningMemory: res.runningMemory,
           historyMemory: res.historyMemory,
+          topologies: res.topologies,
         });
+
+        if (migratedIds.length > 0) {
+          notifications.toasts.addInfo('Finding paragraphs migrated.');
+          await notebookContext.paragraphHooks.batchRunParagraphs({
+            paragraphIds: migratedIds,
+          });
+        }
 
         // Check if there's an ongoing investigation to continue BEFORE calling start
         // This prevents start() from triggering a new investigation when we should continue the existing one
@@ -204,6 +218,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       });
   }, [
     loadNotebookHook,
+    notebookContext.paragraphHooks,
     notifications.toasts,
     notebookContext.state,
     start,
@@ -355,7 +370,11 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                 );
               })
             : null}
-
+          {isLoading || isInvestigating || !topologies
+            ? null
+            : topologies.map((topolopy) => {
+                return <Topology topologyItem={topolopy} />;
+              })}
           {!isLoading && !isInvestigating && !isNotebookReadonly && (
             <>
               <EuiSpacer size="s" />

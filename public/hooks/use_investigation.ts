@@ -24,6 +24,7 @@ import { extractParentInteractionId } from '../../common/utils/task';
 import {
   AgenticMemeory,
   InvestigationTimeRange,
+  FindingParagraphParameters,
   PERAgentInvestigationResponse,
 } from '../../common/types/notebooks';
 import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_agent';
@@ -77,38 +78,24 @@ export const useInvestigation = () => {
     async ({ payload }: { payload: PERAgentInvestigationResponse }) => {
       const findingId2ParagraphId: { [key: string]: string } = {};
       const startParagraphIndex = paragraphLengthRef.current;
-      const sortedFindings = payload.findings.slice().sort((a, b) => {
-        const aHasTypology =
-          a.description.toLowerCase().includes('topology') ||
-          a.evidence.toLowerCase().includes('topology');
-        const bHasTypology =
-          b.description.toLowerCase().includes('topology') ||
-          b.evidence.toLowerCase().includes('topology');
-        if (aHasTypology && !bHasTypology) {
-          return -1;
-        }
-        if (!aHasTypology && bHasTypology) {
-          return 1;
-        }
-        return b.importance - a.importance;
-      });
+      const sortedFindings = payload.findings.slice().sort((a, b) => b.importance - a.importance);
 
-      const paragraphsToCreate = sortedFindings.map((finding) => ({
-        input: {
-          inputText: `%md
-Importance: ${finding.importance}
-
-Description:
-${finding.description}
-
-Evidence:
-${finding.evidence}
-
-          `.trim(),
-          inputType: 'MARKDOWN',
-        },
-        aiGenerated: true,
-      }));
+      const paragraphsToCreate = sortedFindings.map(
+        ({ importance, description, evidence, type }) => ({
+          input: {
+            inputText: `%md ${evidence}`.trim(),
+            inputType: 'MARKDOWN',
+            parameters: {
+              finding: {
+                importance: +importance,
+                description,
+                type,
+              },
+            } as FindingParagraphParameters,
+          },
+          aiGenerated: true,
+        })
+      );
 
       try {
         const batchResult = await batchCreateParagraphs({
@@ -139,13 +126,14 @@ ${finding.evidence}
             ...hypothesis.supporting_findings
               .map((id) => findingId2ParagraphId[id] || (id.startsWith('paragraph_') ? id : null))
               .filter((id) => !!id),
-          ],
+          ] as string[],
           dateCreated: new Date().toISOString(),
           dateModified: new Date().toISOString(),
         }))
         .sort((a, b) => b.likelihood - a.likelihood);
       try {
-        await updateHypotheses([...(newHypotheses as any)], true);
+        // here
+        await updateHypotheses([...newHypotheses], payload.topologies || [], true);
       } catch (e) {
         console.error('Failed to update investigation result', e);
       }
@@ -478,6 +466,9 @@ ${finding.evidence}
         input: {
           inputText: text,
           inputType: 'MARKDOWN',
+          parameters: {
+            finding: {},
+          },
         },
         aiGenerated: false,
       });
