@@ -81,9 +81,12 @@ export interface HypothesisItem {
   description: string;
   likelihood: number;
   supportingFindingParagraphIds: string[];
+  irrelevantFindingParagraphIds?: string[];
+  userSelectedFindingParagraphIds?: string[];
   newAddedFindingIds?: string[];
   dateCreated: string;
   dateModified: string;
+  status?: string;
 }
 
 export interface AgenticMemeory {
@@ -155,7 +158,7 @@ export interface PERAgentHypothesisFinding {
 }
 
 export interface FindingParagraphParameters {
-  finding?: Omit<PERAgentHypothesisFinding, 'id'> & { feedback?: string };
+  finding?: Omit<PERAgentHypothesisFinding, 'id'> & { feedback?: 'CONFIRMED' | 'REJECTED' };
 }
 
 export interface PERAgentHypothesisItem {

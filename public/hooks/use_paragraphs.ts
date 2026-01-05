@@ -89,7 +89,8 @@ export const useParagraphs = (context: { state: NotebookState }) => {
   );
 
   const saveParagraph = useCallback(
-    function <T>(props: { paragraphStateValue: ParagraphStateValue<T> }) {
+    function <T>(props: { paragraphStateValue: ParagraphStateValue<T>; showLoading?: boolean }) {
+      const { showLoading = true } = props;
       const { id: paragraphId, input, output, dataSourceMDSId } = props.paragraphStateValue;
       const findUpdateParagraphState = context.state.value.paragraphs.find(
         (paragraph) => paragraph.value.id === paragraphId
@@ -98,9 +99,11 @@ export const useParagraphs = (context: { state: NotebookState }) => {
         return notifications.toasts.addDanger('The paragraph you want to save can not be found');
       }
 
-      findUpdateParagraphState.updateUIState({
-        isRunning: true,
-      });
+      if (showLoading) {
+        findUpdateParagraphState.updateUIState({
+          isRunning: showLoading,
+        });
+      }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const outputPayload = output?.map(({ execution_time: executionTime, ...others }) => others);
       const promise = http
@@ -127,9 +130,11 @@ export const useParagraphs = (context: { state: NotebookState }) => {
           console.error(err);
         })
         .finally(() => {
-          findUpdateParagraphState.updateUIState({
-            isRunning: false,
-          });
+          if (showLoading) {
+            findUpdateParagraphState.updateUIState({
+              isRunning: false,
+            });
+          }
         });
 
       return promise;

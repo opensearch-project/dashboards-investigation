@@ -52,8 +52,19 @@ const getErrorTitle = (error: any, defaultTitle: string): string =>
   error?.errorTitle || defaultTitle;
 
 const getFindingFromParagraph = (paragraph: ParagraphStateValue<unknown>) => {
+  const feedback = (paragraph.input.parameters as FindingParagraphParameters)?.finding?.feedback;
+  let feedbackText = '';
+
+  if (feedback === 'CONFIRMED') {
+    feedbackText = ' **[USER CONFIRMED]**';
+  } else if (feedback === 'REJECTED') {
+    feedbackText = ' **[USER REJECTED]**';
+  } else {
+    feedbackText = ' **[NO USER FEEDBACK YET]**';
+  }
+
   return `
-### Finding (ID: ${paragraph.id})
+### Finding (ID: ${paragraph.id})${feedbackText}
 ${paragraph.input.inputText}
     `;
 };
@@ -573,16 +584,50 @@ export const useInvestigation = () => {
         }
       );
 
+      const confirmedFindings = supportingFindingParagraphs.filter(
+        (p) => (p.input.parameters as FindingParagraphParameters)?.finding?.feedback === 'CONFIRMED'
+      );
+      const rejectedFindings = supportingFindingParagraphs.filter(
+        (p) => (p.input.parameters as FindingParagraphParameters)?.finding?.feedback === 'REJECTED'
+      );
+      const noFeedbackFindings = supportingFindingParagraphs.filter(
+        (p) => !(p.input.parameters as FindingParagraphParameters)?.finding?.feedback
+      );
+
+      const activeHypotheses = originalHypotheses.filter((h) => h.status !== 'RULED_OUT');
+      const ruledOutHypotheses = originalHypotheses.filter((h) => h.status === 'RULED_OUT');
+
       const currentStatePrompt = `${notebookContextPrompt}
 
+# User Feedback Summary
+The user has reviewed your previous investigation and provided the following feedback:
+- Confirmed Findings: ${confirmedFindings.length}
+- Rejected Findings: ${rejectedFindings.length}
+- User Added Findings: ${newAddedFindingParagraphs.length}
+- Ruled Out Hypotheses: ${ruledOutHypotheses.length}
+- Active Hypotheses: ${activeHypotheses.length}
+
+IMPORTANT INSTRUCTIONS:
+1. DO NOT reuse findings marked as REJECTED - the user has determined these are incorrect
+2. PRIORITIZE findings marked as CONFIRMED - the user has validated these as accurate
+3. PAY SPECIAL ATTENTION to manually added findings - these represent critical user insights
+4. DO NOT pursue hypotheses marked as RULED_OUT - the user has eliminated these possibilities
+5. For findings marked as "irrelevant" to a hypothesis, do not associate them with that hypothesis again
+6. For findings marked as "user selected" for a hypothesis, these are findings the user explicitly chose as highly relevant - give them extra weight
+7. Findings with no user feedback are implicitly accepted - the user has not rejected them, so they can be used with moderate confidence
+
 # Current Hypotheses State
-${originalHypotheses.reduce((acc, hypothesis, index) => {
-  const currentHypothesisFindingParagraphIds = [
-    ...hypothesis.supportingFindingParagraphIds,
-    ...(hypothesis.newAddedFindingIds ?? []),
-  ].join(', ');
-  return `${acc}
-## Hypothesis ${index + 1}
+${
+  activeHypotheses.length
+    ? activeHypotheses.reduce((acc, hypothesis, index) => {
+        const supportingFindingIds = [
+          ...hypothesis.supportingFindingParagraphIds,
+          ...(hypothesis.newAddedFindingIds ?? []),
+        ].join(', ');
+        const selectedFindingIds = (hypothesis.userSelectedFindingParagraphIds ?? []).join(', ');
+        const irrelevantFindingIds = (hypothesis.irrelevantFindingParagraphIds ?? []).join(', ');
+        return `${acc}
+## Active Hypothesis ${index + 1}
 
 Title: ${hypothesis.title}
 
@@ -590,20 +635,63 @@ Description: ${hypothesis.description}
 
 Likelihood: ${hypothesis.likelihood}
 
-### Supporting Finding Paragraph Ids
-${currentHypothesisFindingParagraphIds}
+Supporting Finding IDs: ${supportingFindingIds || 'None'}
+
+User Selected Finding IDs (High Priority): ${selectedFindingIds || 'None'}
+
+Irrelevant Finding IDs (User Marked): ${irrelevantFindingIds || 'None'}
 
     `;
-}, '')}
+      }, '')
+    : 'No active hypotheses.'
+}
+${
+  ruledOutHypotheses.length
+    ? `## Ruled Out Hypotheses (DO NOT PURSUE)
+
+${ruledOutHypotheses
+  .map(
+    (h, i) => `
+### Ruled Out Hypothesis ${i + 1}
+
+Title: ${h.title}
+
+Description: ${h.description}
+
+Reason: User determined this hypothesis is not viable
+
+`
+  )
+  .join('')}`
+    : ''
+}
 
 # Current Finding Paragraphs
-
-## Supporting Findings
-${convertParagraphsToFindings(supportingFindingParagraphs)}
-
+${
+  confirmedFindings.length
+    ? `
+## User Confirmed Findings (HIGH CONFIDENCE - Use These)
+${convertParagraphsToFindings(confirmedFindings)}`
+    : ''
+}
+${
+  rejectedFindings.length
+    ? `
+## User Rejected Findings (DO NOT USE - Incorrect/Unreliable)
+${convertParagraphsToFindings(rejectedFindings)}`
+    : ''
+}
+${
+  noFeedbackFindings.length
+    ? `
+## Findings Without User Feedback (ACCEPTABLE - Not Rejected by User)
+${convertParagraphsToFindings(noFeedbackFindings)}`
+    : ''
+}
 ${
   newAddedFindingParagraphs.length
-    ? `## Additional Supporting Findings (Manually Added - Pay Special Attention)
+    ? `
+## User Added Findings (CRITICAL - User Provided Evidence)
 ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
     : ''
 }

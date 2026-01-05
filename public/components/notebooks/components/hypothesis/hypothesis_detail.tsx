@@ -20,13 +20,13 @@ import {
   EuiLoadingContent,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { useHistory, useLocation, useParams } from 'react-router-dom';
 import { NoteBookServices } from 'public/types';
-import { HypothesisItem as HypothesisItemProps } from 'common/types/notebooks';
 import moment from 'moment';
+import { FindingParagraphParameters } from 'common/types/notebooks';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
-import { LikelihoodBadge } from './hypothesis_badge';
+import { HypothesisBadge, LikelihoodBadge } from './hypothesis_badge';
 import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
 
 import { NotebookReactContext } from '../../context_provider/context_provider';
@@ -35,43 +35,73 @@ import './hypothesis_detail.scss';
 
 export const HypothesisDetail: React.FC = () => {
   const {
-    services: { http },
+    services: { http, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
+  const [isSaving, setIsSaving] = useState(false);
   const history = useHistory();
   const location = useLocation();
   const { id: notebookId } = useParams<{ id: string }>();
 
   const notebookContext = useContext(NotebookReactContext);
-  const { paragraphs: paragraphsStates } = useObservable(
+  const { paragraphs: paragraphsStates, hypotheses } = useObservable(
     notebookContext.state.getValue$(),
     notebookContext.state.value
   );
 
-  const [currentHypothesis, setCurrentHypothesis] = useState<HypothesisItemProps | undefined>();
   const [toggleIdSelected] = useState('evidence');
 
   const pathParts = location.pathname.split('/');
   const hypothesisIndex = pathParts.indexOf('hypothesis');
   const hypothesisId = hypothesisIndex !== -1 ? pathParts[hypothesisIndex + 1] : null;
 
-  useEffect(() => {
-    const fetchHypothesis = async () => {
-      try {
-        // TODO: we should have a get by id?
-        const response = await http.get<HypothesisItemProps[]>(
-          `${NOTEBOOKS_API_PREFIX}/savedNotebook/${notebookId}/hypotheses`
-        );
-        const hypothesis = response.find((res) => res.id === hypothesisId);
-        if (!hypothesis) {
-          console.error(`Hypothesis ${hypothesisId} not found`);
-        }
-        setCurrentHypothesis(hypothesis);
-      } catch (error) {
-        console.error('Failed to fetch hypothesis:', error);
+  const currentHypothesis = hypotheses?.find((h) => h.id === hypothesisId);
+  const {
+    id: currentHypothesisId,
+    title,
+    description,
+    status,
+    dateModified,
+    likelihood,
+    supportingFindingParagraphIds = [],
+    irrelevantFindingParagraphIds = [],
+    userSelectedFindingParagraphIds = [],
+    newAddedFindingIds,
+  } = currentHypothesis || {};
+
+  const handleToggleStatus = async () => {
+    if (!currentHypothesis) return;
+
+    const isRuledOut = status === 'RULED_OUT';
+    const updatedStatus = isRuledOut ? undefined : 'RULED_OUT';
+
+    const updatedHypotheses = hypotheses?.map((h) =>
+      h.id === currentHypothesis.id ? { ...h, status: updatedStatus } : h
+    );
+
+    notebookContext.state.updateValue({ hypotheses: updatedHypotheses });
+
+    setIsSaving(true);
+    try {
+      const body: any = {};
+      if (updatedStatus) {
+        body.status = updatedStatus;
       }
-    };
-    fetchHypothesis();
-  }, [http, hypothesisId, notebookId]);
+      await http.put(
+        `${NOTEBOOKS_API_PREFIX}/savedNotebook/${notebookId}/hypothesis/${currentHypothesisId}`,
+        { body: JSON.stringify(body) }
+      );
+      notifications.toasts.addSuccess(
+        isRuledOut ? 'Hypothesis reactivated' : 'Hypothesis ruled out'
+      );
+    } catch (error) {
+      notifications.toasts.addError(error, {
+        title: `Failed to ${isRuledOut ? 'reactivate' : 'rule out'} hypothesis`,
+      });
+      notebookContext.state.updateValue({ hypotheses });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // TODO: once we have more tab than just "Evidence and reasoning"
   // const toggleButtons = [
@@ -118,7 +148,7 @@ export const HypothesisDetail: React.FC = () => {
               <BackButton />
               <EuiTitle size="m">
                 <span>
-                  <strong>Hypothesis: {currentHypothesis.title}</strong>
+                  <strong>Hypothesis: {title}</strong>
                   {/* TODO: display the following information once requirements are clarified */}
                   {/* <span style={{ letterSpacing: 'normal', marginInlineStart: 12 }}>
                     <HypothesisBadge label="Active" color="hollow" />
@@ -140,16 +170,18 @@ export const HypothesisDetail: React.FC = () => {
                 </span>
               </EuiTitle>
             </EuiPageHeaderSection>
-            {/*
-              The following code block is a hypothesis confirmation function, temporarily commented out
-              TODO: Wait for the requirements to be clarified.
-            */}
-            {/* <EuiPageHeaderSection style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <EuiSmallButton style={{ borderRadius: '9999px' }}>Rule out</EuiSmallButton>
-              <EuiSmallButton fill style={{ borderRadius: '9999px' }}>
-                Confirm hypothesis
+            <EuiPageHeaderSection style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <EuiSmallButton
+                style={{ borderRadius: '9999px' }}
+                onClick={handleToggleStatus}
+                disabled={isSaving}
+              >
+                {status === 'RULED_OUT' ? 'Reactivate' : 'Rule out'}
               </EuiSmallButton>
-            </EuiPageHeaderSection> */}
+              {/* <EuiSmallButton fill style={{ borderRadius: '9999px' }}>
+                Confirm hypothesis
+              </EuiSmallButton> */}
+            </EuiPageHeaderSection>
           </EuiPageHeader>
           <EuiSpacer size="m" />
           <EuiPageContent
@@ -164,15 +196,23 @@ export const HypothesisDetail: React.FC = () => {
                 <EuiText color="subdued" size="s">
                   Created By: AI Agent
                 </EuiText>
-                {currentHypothesis?.dateModified && (
+                {dateModified && (
                   <EuiText size="s" color="subdued">
-                    Updated {moment(currentHypothesis.dateModified).fromNow()}
+                    Updated {moment(dateModified).fromNow()}
                   </EuiText>
                 )}
-                <LikelihoodBadge likelihood={currentHypothesis.likelihood} />
+                <LikelihoodBadge likelihood={likelihood || 0} />
+                <HypothesisBadge
+                  label={status === 'RULED_OUT' ? 'Ruled Out' : 'Active'}
+                  color={status === 'RULED_OUT' ? 'danger' : 'hollow'}
+                />
               </EuiFlexGroup>
               <EuiSpacer size="s" />
-              <EuiText>{currentHypothesis.description}</EuiText>
+              <EuiTitle size="s">
+                <h5>Summary</h5>
+              </EuiTitle>
+              <EuiSpacer size="s" />
+              <EuiText>{description}</EuiText>
               <EuiSpacer size="m" />
               {/* TODO: once we have more tab than just "Evidence and reasoning" */}
               {/* <EuiButtonGroup
@@ -187,17 +227,52 @@ export const HypothesisDetail: React.FC = () => {
               <EuiFlexGroup direction="column" gutterSize="none" style={{ gap: 16 }}>
                 {toggleIdSelected === 'evidence' && (
                   <>
-                    {[
-                      ...currentHypothesis.supportingFindingParagraphIds,
-                      ...(currentHypothesis.newAddedFindingIds || []),
-                    ]
-                      .map((id) => paragraphsStates.findIndex((p) => p.value.id === id))
-                      .filter((index) => index !== -1)
-                      .map((index) => (
-                        <EuiPanel key={paragraphsStates[index].value.id}>
-                          <Paragraph index={index} />
-                        </EuiPanel>
-                      ))}
+                    {(supportingFindingParagraphIds.length > 0 ||
+                      (userSelectedFindingParagraphIds &&
+                        userSelectedFindingParagraphIds.length > 0) ||
+                      (newAddedFindingIds && newAddedFindingIds.length > 0)) && (
+                      <>
+                        <EuiTitle size="s">
+                          <h5>Supportive findings</h5>
+                        </EuiTitle>
+                        {[
+                          ...supportingFindingParagraphIds,
+                          ...(userSelectedFindingParagraphIds || []),
+                          ...(newAddedFindingIds || []),
+                        ]
+                          .map((id) => paragraphsStates.findIndex((p) => p.value.id === id))
+                          .filter((index) => index !== -1)
+                          .sort(
+                            (a, b) =>
+                              ((paragraphsStates[b].value.input
+                                .parameters as FindingParagraphParameters)?.finding?.importance ||
+                                0) -
+                              ((paragraphsStates[a].value.input
+                                .parameters as FindingParagraphParameters)?.finding?.importance ||
+                                0)
+                          )
+                          .map((index) => (
+                            <EuiPanel key={paragraphsStates[index].value.id}>
+                              <Paragraph index={index} />
+                            </EuiPanel>
+                          ))}
+                      </>
+                    )}
+                    {irrelevantFindingParagraphIds && irrelevantFindingParagraphIds.length > 0 && (
+                      <>
+                        <EuiTitle size="s">
+                          <h5>Irrelevant findings</h5>
+                        </EuiTitle>
+                        {irrelevantFindingParagraphIds
+                          .map((id) => paragraphsStates.findIndex((p) => p.value.id === id))
+                          .filter((index) => index !== -1)
+                          .map((index) => (
+                            <EuiPanel key={paragraphsStates[index].value.id}>
+                              <Paragraph index={index} />
+                            </EuiPanel>
+                          ))}
+                      </>
+                    )}
                   </>
                 )}
 

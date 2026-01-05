@@ -175,9 +175,12 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
               description: schema.string(),
               likelihood: schema.number(),
               supportingFindingParagraphIds: schema.arrayOf(schema.string()),
+              irrelevantFindingParagraphIds: schema.maybe(schema.arrayOf(schema.string())),
+              userSelectedFindingParagraphIds: schema.maybe(schema.arrayOf(schema.string())),
               newAddedFindingIds: schema.maybe(schema.arrayOf(schema.string())),
               dateCreated: schema.string(),
               dateModified: schema.string(),
+              status: schema.maybe(schema.string()),
             })
           ),
           runningMemory: schema.nullable(
