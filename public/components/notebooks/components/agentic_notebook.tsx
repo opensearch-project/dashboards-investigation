@@ -380,6 +380,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                         index={index}
                         deletePara={showDeleteParaModal}
                         scrollToPara={scrollToPara}
+                        key={paragraphState.value.id}
                       />
                     </EuiPanel>
                   </div>

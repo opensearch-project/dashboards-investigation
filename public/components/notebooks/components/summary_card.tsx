@@ -16,6 +16,8 @@ import {
   EuiButton,
   EuiLoadingSpinner,
   EuiCodeBlock,
+  EuiFlexGrid,
+  EuiHorizontalRule,
 } from '@elastic/eui';
 import React, { useContext, useEffect, useState } from 'react';
 import moment from 'moment';
@@ -89,10 +91,14 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
   return (
     <EuiSplitPanel.Outer borderRadius="l">
       <EuiSpacer size="m" />
-      <EuiFlexGroup gutterSize="none" justifyContent="spaceBetween">
-        <EuiTitle>
-          <h2 style={{ paddingLeft: '20px' }}>Issue summary and impact</h2>
-        </EuiTitle>
+      <EuiFlexGroup gutterSize="none" justifyContent="spaceBetween" alignItems="center">
+        <div style={{ paddingLeft: '16px' }}>
+          <EuiTitle>
+            <h2>Issue summary and impact</h2>
+          </EuiTitle>
+          <EuiText color="subdued">The most likely root cause based on current findings.</EuiText>
+        </div>
+
         {!isNotebookReadonly ? (
           <EuiButton
             style={{ marginRight: '20px' }}
@@ -110,20 +116,18 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
         ) : null}
       </EuiFlexGroup>
       <EuiSpacer size="s" />
-      <EuiSplitPanel.Inner
-        grow={false}
-        color="subdued"
-        style={{ paddingLeft: '50px', paddingRight: '50px' }}
-      >
-        <EuiFlexGroup alignItems="center" justifyContent="spaceBetween">
+      <EuiHorizontalRule margin="none" />
+      <EuiSplitPanel.Inner grow={false}>
+        <EuiFlexGrid columns={2} gutterSize="s" direction="column">
           <EuiFlexItem grow={false}>
-            <EuiText size="xs">
+            <EuiText size="s">
               <strong>
                 {i18n.translate('notebook.summary.card.dataSource', {
-                  defaultMessage: 'Data Source',
+                  defaultMessage: 'Data source',
                 })}
               </strong>
-              <div>
+              :{' '}
+              <span>
                 <EuiLink onClick={() => copyToClipboard(dataSourceTitle, 'Data Source')}>
                   {dataSourceTitle || 'Not specified'}
                   {dataSourceTitle && (
@@ -134,18 +138,19 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
                     />
                   )}
                 </EuiLink>
-              </div>
+              </span>
             </EuiText>
           </EuiFlexItem>
 
           <EuiFlexItem grow={false}>
-            <EuiText size="xs">
+            <EuiText size="s">
               <strong>
                 {i18n.translate('notebook.summary.card.index', {
                   defaultMessage: 'Index',
                 })}
               </strong>
-              <div>
+              :{' '}
+              <span>
                 <EuiLink onClick={() => copyToClipboard(index, 'Index')}>
                   {index || 'Not specified'}
                   {index && (
@@ -156,41 +161,31 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
                     />
                   )}
                 </EuiLink>
-              </div>
+              </span>
             </EuiText>
           </EuiFlexItem>
 
           <EuiFlexItem grow={false}>
-            <EuiText size="xs">
+            <EuiText size="s">
               <strong>
                 {i18n.translate('notebook.summary.card.source', {
                   defaultMessage: 'Source',
                 })}
               </strong>
-              <p>{source}</p>
-            </EuiText>
-          </EuiFlexItem>
-
-          <EuiFlexItem grow={false}>
-            <EuiText size="xs">
-              <strong>
-                {i18n.translate('notebook.summary.card.timeField', {
-                  defaultMessage: 'Time Field',
-                })}
-              </strong>
-              <p>{timeField || 'Not specified'}</p>
+              : <span>{source}</span>
             </EuiText>
           </EuiFlexItem>
 
           <EuiFlexItem grow={false}>
             {initialGoal && (
-              <EuiText size="xs">
+              <EuiText size="s">
                 <strong>
                   {i18n.translate('notebook.summary.card.initialGoal', {
-                    defaultMessage: 'Initial Goal',
+                    defaultMessage: 'Initial goal',
                   })}
                 </strong>
-                <div>
+                :{' '}
+                <span>
                   <EuiLink onClick={() => copyToClipboard(initialGoal, 'Initial Goal')}>
                     <EuiCode language="plaintext">{initialGoal}</EuiCode>
                     <EuiIcon
@@ -199,24 +194,55 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
                       style={{ marginLeft: '4px', verticalAlign: 'middle' }}
                     />
                   </EuiLink>
-                </div>
+                </span>
               </EuiText>
             )}
           </EuiFlexItem>
-        </EuiFlexGroup>
-      </EuiSplitPanel.Inner>
 
-      <EuiSplitPanel.Inner grow={false} style={{ paddingLeft: '50px', paddingRight: '50px' }}>
-        <EuiFlexGroup alignItems="center" justifyContent="spaceBetween">
+          <EuiFlexItem grow={false}>
+            <EuiText size="s">
+              <strong>
+                {i18n.translate('notebook.summary.card.timeField', {
+                  defaultMessage: 'Time field',
+                })}
+              </strong>
+              : <span>{timeField || 'Not specified'}</span>
+            </EuiText>
+          </EuiFlexItem>
+
+          <EuiFlexItem grow={false}>
+            {timeRange && (
+              <EuiText size="s">
+                <strong>
+                  {i18n.translate('notebook.global.panel.investigation.subtitle', {
+                    defaultMessage: 'Time range',
+                  })}
+                </strong>
+                :{' '}
+                <span>
+                  <EuiIcon type="clock" />{' '}
+                  {timeRange.selectionFrom
+                    ? moment(timeRange.selectionFrom).format(dateFormat)
+                    : 'Not specified'}{' '}
+                  to{' '}
+                  {timeRange.selectionTo
+                    ? moment(timeRange.selectionTo).format(dateFormat)
+                    : 'Not specified'}
+                </span>
+              </EuiText>
+            )}
+          </EuiFlexItem>
+
           <EuiFlexItem grow={false}>
             {variables?.pplQuery && (
-              <EuiText size="xs">
+              <EuiText size="s">
                 <strong>
                   {i18n.translate('notebook.summary.card.query', {
                     defaultMessage: 'Query',
                   })}
                 </strong>
-                <div>
+                :{' '}
+                <span>
                   <EuiLink onClick={() => copyToClipboard(variables.pplQuery || '', 'Query')}>
                     <EuiCode language="sql">{variables.pplQuery || 'Not specified'}</EuiCode>
                     {variables.pplQuery && (
@@ -227,42 +253,18 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
                       />
                     )}
                   </EuiLink>
-                </div>
+                </span>
               </EuiText>
             )}
           </EuiFlexItem>
-
-          <EuiFlexItem grow={false}>
-            {timeRange && (
-              <>
-                <EuiText size="xs">
-                  <strong>
-                    {i18n.translate('notebook.global.panel.investigation.subtitle', {
-                      defaultMessage: 'Time Range',
-                    })}
-                  </strong>
-                </EuiText>
-                <EuiText size="xs">
-                  <EuiIcon type="clock" />{' '}
-                  {timeRange.selectionFrom
-                    ? moment(timeRange.selectionFrom).format(dateFormat)
-                    : 'Not specified'}{' '}
-                  to{' '}
-                  {timeRange.selectionTo
-                    ? moment(timeRange.selectionTo).format(dateFormat)
-                    : 'Not specified'}
-                </EuiText>
-              </>
-            )}
-          </EuiFlexItem>
-        </EuiFlexGroup>
-
+        </EuiFlexGrid>
         {log && (
           <>
-            <EuiText size="xs">
+            <EuiSpacer size="s" />
+            <EuiText size="s">
               <strong>Selected log</strong>
             </EuiText>
-            <EuiSpacer size="xs" />
+            <EuiSpacer size="s" />
             <EuiCodeBlock language="json" isCopyable={true} overflowHeight={160}>
               {JSON.stringify(log, null, 2)}
             </EuiCodeBlock>

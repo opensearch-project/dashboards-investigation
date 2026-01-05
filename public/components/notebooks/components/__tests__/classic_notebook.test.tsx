@@ -31,6 +31,8 @@ import { navigationPluginMock } from '../../../../../../../src/plugins/navigatio
 import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
 import { OpenSearchDashboardsContextProvider } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
+const mockUseParams = jest.fn();
+
 jest.mock('../../../../../../../src/plugins/embeddable/public', () => ({
   ViewMode: {
     EDIT: 'edit',
@@ -50,6 +52,7 @@ jest.mock('react-router-dom', () => ({
     replace: jest.fn(),
     push: jest.fn(),
   }),
+  useParams: () => mockUseParams(),
 }));
 
 jest.mock('../data_distribution/data_distribution_container', () => ({
@@ -197,6 +200,10 @@ describe('<Notebook /> spec', () => {
     openedNoteId: '458e1320-3f05-11ef-bd29-e58626f102c0',
     showPageHeader: true,
   };
+
+  beforeEach(() => {
+    mockUseParams.mockReturnValue({ id: '458e1320-3f05-11ef-bd29-e58626f102c0' });
+  });
 
   it('Renders the empty component', async () => {
     httpClient.get = jest.fn(() => Promise.resolve((emptyNotebook as unknown) as HttpResponse));
@@ -421,6 +428,8 @@ describe('<Notebook /> spec', () => {
   });
 
   it('Renders a old notebook and migrates it', async () => {
+    mockUseParams.mockReturnValue({ id: 'mock-id' });
+
     httpClient.get = jest.fn(() => Promise.resolve((codeBlockNotebook as unknown) as HttpResponse));
     httpClient.put = jest.fn(() =>
       Promise.resolve((clearOutputNotebook as unknown) as HttpResponse)
@@ -455,6 +464,8 @@ describe('<Notebook /> spec', () => {
   });
 
   it('Checks old notebook delete action', async () => {
+    mockUseParams.mockReturnValue({ id: 'mock-id' });
+
     httpClient.get = jest.fn(() => Promise.resolve((codeBlockNotebook as unknown) as HttpResponse));
 
     httpClient.put = jest.fn(() => {
