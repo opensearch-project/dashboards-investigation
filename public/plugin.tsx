@@ -56,6 +56,7 @@ import { ContextService } from './services/context_service';
 import { NoteBookAssistantContext } from '../common/types/assistant_context';
 import { createInvestigateLogActionComponent } from './components/notebooks/components/discover_explorer';
 import { StartInvestigateButton } from './components/notebooks/components/discover_explorer/start_investigate_button';
+import { createInvestigationAction } from './actions/create_investigation_action';
 
 export class InvestigationPlugin
   implements
@@ -63,6 +64,7 @@ export class InvestigationPlugin
   private paragraphService: ParagraphService;
   private contextService: ContextService;
   private startDeps: AppPluginStartDependencies | undefined;
+  private unregisterInvestigateCommand?: () => void;
 
   private appUpdater$ = new BehaviorSubject<AppUpdater>(() => ({}));
 
@@ -179,7 +181,7 @@ export class InvestigationPlugin
           id: 'finding',
           priority: 1,
           isEnabled: () => true,
-          getSuggestions: async (context) => {
+          getSuggestions: async (context: any) => {
             const [coreStart] = await core.getStartServices();
             const currentAppId = await coreStart.application.currentAppId$
               .pipe(first())
@@ -200,7 +202,7 @@ export class InvestigationPlugin
                 message: 'Add current result to investigation as a finding',
                 action: async () => {
                   const input = context.messageHistory.findLast(
-                    (message) => message.role === 'user'
+                    (message: any) => message.role === 'user'
                   )?.content;
                   const output = context.currentMessage?.content;
 
@@ -223,6 +225,29 @@ export class InvestigationPlugin
         });
       }
     })();
+
+    // Register /investigate command if chat plugin is available
+    if (setupDeps.chat) {
+      this.unregisterInvestigateCommand = setupDeps.chat.commandRegistry.registerCommand({
+        command: 'investigate',
+        description: 'Ask investigation agent to find root cause',
+        usage: '/investigate <description of what to investigate>',
+        hint: 'based on conversation, or enter a different goal.',
+        handler: async (args: string): Promise<string> => {
+          // If args provided, user has specified the goal
+          if (args.trim()) {
+            return `I want to create a NEW investigation for: ${args}
+
+This should be a completely new investigation, separate from any previous investigations in our conversation. Use the available page context and our conversation history to gather any additional information needed, then create the new investigation.`;
+          }
+
+          // No args - LLM needs to infer everything from conversation and context
+          return `I want to create a NEW investigation based on our conversation and the current page context.
+
+This should be a completely new investigation, separate from any previous investigations in our conversation. Review our discussion to understand what needs to be investigated, gather the necessary information, then create the new investigation.`;
+        },
+      });
+    }
 
     // Return methods that should be available to other plugins
     return {
@@ -261,6 +286,11 @@ export class InvestigationPlugin
           );
         },
       });
+
+      // create investigation action
+      this.startDeps?.contextProvider?.actions.registerAssistantAction(
+        createInvestigationAction(core)
+      );
     }
 
     if (!core.application.capabilities.investigation?.enabled) {
@@ -282,5 +312,10 @@ export class InvestigationPlugin
     }
   };
 
-  public stop() {}
+  public stop() {
+    // Unregister the /investigate command
+    if (this.unregisterInvestigateCommand) {
+      this.unregisterInvestigateCommand();
+    }
+  }
 }
