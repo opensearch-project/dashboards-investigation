@@ -57,6 +57,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     historyMemory,
     investigationError,
     isNotebookReadonly,
+    currentUser,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const history = useHistory();
   const [showSteps, setShowSteps] = useState(false);
@@ -140,6 +141,16 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
       );
     }
 
+    if (runningMemory?.owner && runningMemory.owner !== currentUser) {
+      return (
+        <HypothesisBadge
+          label="Other user is doing investigation, show previous Investigation"
+          color={euiThemeVars.euiColorWarning}
+          icon="check"
+        />
+      );
+    }
+
     if (isInvestigating || !historyMemory) {
       return (
         <HypothesisBadge
@@ -157,7 +168,14 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
         icon="check"
       />
     );
-  }, [investigationError, isInvestigating, historyMemory, hypotheses]);
+  }, [
+    investigationError,
+    isInvestigating,
+    historyMemory,
+    hypotheses,
+    currentUser,
+    runningMemory?.owner,
+  ]);
 
   const handleClickHypothesis = (hypothesisId: string) => {
     history.push(`/agentic/${notebookId}/hypothesis/${hypothesisId}`);
@@ -167,7 +185,10 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     return null;
   }
 
-  const investigationSteps = PERAgentServices && !isNotebookReadonly && (
+  // Only show investigation steps if current user is the owner of the active memory (investigation trigger user)
+  const isOwner = !!currentUser && currentUser === activeMemory?.owner;
+
+  const investigationSteps = PERAgentServices && !isNotebookReadonly && isOwner && (
     <EuiAccordion
       id="investigation-steps"
       buttonContent="Investigation Steps"
