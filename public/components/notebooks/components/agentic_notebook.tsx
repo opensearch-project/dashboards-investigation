@@ -69,6 +69,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       uiSettings,
       contextProvider,
       workspaces,
+      application,
     },
   } = useOpenSearchDashboards<NoteBookServices>();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -195,7 +196,9 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         const hasOngoingInvestigation = res.runningMemory?.parentInteractionId;
 
         if (hasOngoingInvestigation) {
-          const isOwner = !!res.currentUser && res.currentUser === res.runningMemory?.owner;
+          const isOwner = application.capabilities.investigation.supportedOwner
+            ? !!res.currentUser && res.currentUser === res.runningMemory?.owner
+            : true;
           if (isOwner) {
             await continueInvestigation();
           } else {
@@ -229,6 +232,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     start,
     doInvestigate,
     continueInvestigation,
+    application.capabilities.investigation.supportedOwner,
   ]);
 
   useEffectOnce(() => {

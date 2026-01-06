@@ -54,7 +54,7 @@ const convertParagraphsToFindings = (paragraphs: Array<ParagraphStateValue<unkno
 export const useInvestigation = () => {
   const context = useContext(NotebookReactContext);
   const {
-    services: { http, paragraphService, notifications },
+    services: { http, paragraphService, notifications, application },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { addError } = useToast();
   const { updateHypotheses, updateNotebookContext } = useNotebook();
@@ -96,8 +96,11 @@ export const useInvestigation = () => {
         const investigationOwner = runningMemory.owner;
         notifications.toasts.addWarning({
           title: 'Investigation in progress',
-          text: `User (${investigationOwner}) is currently running an investigation. Please wait for it to complete before starting a new one.`,
+          text: application.capabilities.investigation.supportedOwner
+            ? `User (${investigationOwner}) is currently running an investigation. Please wait for it to complete before starting a new one.`
+            : `Another user is currently running an investigation. Please wait for it to complete before starting a new one.`,
         });
+
         return true;
       }
 
@@ -109,7 +112,13 @@ export const useInvestigation = () => {
       });
       return true;
     }
-  }, [context.state, http, notifications.toasts, addError]);
+  }, [
+    context.state,
+    http,
+    notifications.toasts,
+    addError,
+    application.capabilities.investigation.supportedOwner,
+  ]);
 
   const storeInvestigationResponse = useCallback(
     async ({ payload }: { payload: PERAgentInvestigationResponse }) => {
