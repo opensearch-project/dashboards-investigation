@@ -313,7 +313,7 @@ export const MessageTraceFlyout = ({
   };
 
   return (
-    <EuiFlyout onClose={onClose} style={{ marginRight: paddingRight }}>
+    <EuiFlyout onClose={onClose} style={{ marginRight: paddingRight }} ownFocus={false}>
       <EuiFlyoutHeader hasBorder>
         <EuiTitle size="m">
           <h2>Step trace</h2>
