@@ -186,7 +186,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   }
 
   // Only show investigation steps if current user is the owner of the active memory (investigation trigger user)
-  const isOwner = application.capabilities.investigation.supportedOwner
+  const isOwner = application.capabilities.investigation?.ownerSupported
     ? !!currentUser && currentUser === activeMemory?.owner
     : true;
 
@@ -209,8 +209,9 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
 
   const renderHypothesesContent = () => {
     if (isInvestigating) {
-      const hasSteps = executorMessages.length > 0;
-      const displayText = hasSteps
+      const hasStepsOrMessage =
+        executorMessages.length > 0 || PERAgentServices?.message.getMessageValue();
+      const displayText = hasStepsOrMessage
         ? 'Gathering data in progress...'
         : 'Planning for your investigation...';
 

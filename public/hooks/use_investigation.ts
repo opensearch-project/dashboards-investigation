@@ -96,7 +96,7 @@ export const useInvestigation = () => {
         const investigationOwner = runningMemory.owner;
         notifications.toasts.addWarning({
           title: 'Investigation in progress',
-          text: application.capabilities.investigation.supportedOwner
+          text: application.capabilities.investigation?.ownerSupported
             ? `User (${investigationOwner}) is currently running an investigation. Please wait for it to complete before starting a new one.`
             : `Another user is currently running an investigation. Please wait for it to complete before starting a new one.`,
         });
@@ -117,7 +117,7 @@ export const useInvestigation = () => {
     http,
     notifications.toasts,
     addError,
-    application.capabilities.investigation.supportedOwner,
+    application.capabilities.investigation?.ownerSupported,
   ]);
 
   const storeInvestigationResponse = useCallback(

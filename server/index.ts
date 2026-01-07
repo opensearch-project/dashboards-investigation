@@ -9,7 +9,9 @@ import { InvestigationPlugin } from './plugin';
 
 declare module '../../../src/core/types/capabilities' {
   interface Capabilities {
-    investigation: InvestigationConfig;
+    investigation: InvestigationConfig & {
+      ownerSupported?: boolean;
+    };
   }
 }
 
@@ -23,7 +25,6 @@ const investigationConfig = {
   schema: schema.object({
     enabled: schema.boolean({ defaultValue: false }),
     agenticFeaturesEnabled: schema.boolean({ defaultValue: false }),
-    supportedOwner: schema.boolean({ defaultValue: false }),
   }),
 };
 

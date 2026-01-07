@@ -196,7 +196,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         const hasOngoingInvestigation = res.runningMemory?.parentInteractionId;
 
         if (hasOngoingInvestigation) {
-          const isOwner = application.capabilities.investigation.supportedOwner
+          const isOwner = application.capabilities.investigation?.ownerSupported
             ? !!res.currentUser && res.currentUser === res.runningMemory?.owner
             : true;
           if (isOwner) {
@@ -232,7 +232,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     start,
     doInvestigate,
     continueInvestigation,
-    application.capabilities.investigation.supportedOwner,
+    application.capabilities.investigation?.ownerSupported,
   ]);
 
   useEffectOnce(() => {

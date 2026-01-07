@@ -42,7 +42,7 @@ export class BaseService {
     );
 
     const authState = this.core.http.auth.get(request);
-    const supportedOwner = !!(authState?.state as any)?.authInfo?.user_name;
+    const ownerSupported = !!(authState?.state as any)?.authInfo?.user_name;
 
     try {
       const dynamicConfig = await client.getConfig(
@@ -56,7 +56,7 @@ export class BaseService {
           enabled: dynamicConfig.enabled,
           agenticFeaturesEnabled:
             dynamicConfig.agenticFeaturesEnabled && isAgenticFeatureEnabledBySetting,
-          supportedOwner,
+          ownerSupported,
         },
       };
     } catch (e) {
