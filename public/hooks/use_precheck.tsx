@@ -30,7 +30,7 @@ import { NotebookReactContext } from '../components/notebooks/context_provider/c
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { isDateAppenddablePPL } from '../utils/query';
 
-const waitForPrecheckContexts = ({
+export const waitForPrecheckContexts = ({
   paragraphStates,
   onReady,
 }: {
@@ -55,7 +55,7 @@ const waitForPrecheckContexts = ({
             const output = ParagraphState.getOutput(value);
             const fieldComparison = (output?.result as AnomalyVisualizationAnalysisOutputResult)
               ?.fieldComparison;
-            return !!hasError || (fieldComparison && fieldComparison.length > 0);
+            return !!hasError || fieldComparison;
           }
 
           if (inputType === LOG_PATTERN_PARAGRAPH_TYPE) {
