@@ -20,6 +20,10 @@ export const DataDistributionParagraphItem: ParagraphRegistryItem<AnomalyVisuali
     const allFieldComparison = paragraph?.output?.[0]?.result?.fieldComparison || [];
     const selectedFieldComparison = allFieldComparison.filter((item) => !item.excludeFromContext);
 
+    if (selectedFieldComparison.length === 0) {
+      return '';
+    }
+
     const hasBaseline = selectedFieldComparison.some((f) =>
       f.topChanges.some((c) => c.baselinePercentage !== undefined)
     );
@@ -57,18 +61,16 @@ export const DataDistributionParagraphItem: ParagraphRegistryItem<AnomalyVisuali
 4. Cross-reference field values with log patterns to identify root causes`;
 
     const formatFieldData = () => {
-      if (selectedFieldComparison.length === 0) return 'No field data available.';
-
       return selectedFieldComparison
         .map((field, i) => {
           const changes = field.topChanges
             .map((c) => {
               if (c.baselinePercentage !== undefined) {
-                return `  - "${c.value}": ${c.baselinePercentage.toFixed(
-                  1
-                )}% → ${c.selectionPercentage.toFixed(1)}%`;
+                return `  - "${c.value}": ${(c.baselinePercentage * 100).toFixed(1)}% → ${(
+                  c.selectionPercentage * 100
+                ).toFixed(1)}%`;
               }
-              return `  - "${c.value}": ${c.selectionPercentage.toFixed(1)}%`;
+              return `  - "${c.value}": ${(c.selectionPercentage * 100).toFixed(1)}%`;
             })
             .join('\n');
 
