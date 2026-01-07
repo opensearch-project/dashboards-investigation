@@ -30,7 +30,7 @@ import { NotebookReactContext } from '../components/notebooks/context_provider/c
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { isDateAppenddablePPL } from '../utils/query';
 
-const waitForPrecheckContexts = ({
+export const waitForPrecheckContexts = ({
   paragraphStates,
   onReady,
 }: {
