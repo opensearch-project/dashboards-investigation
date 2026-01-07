@@ -64,11 +64,11 @@ export const DataDistributionParagraphItem: ParagraphRegistryItem<AnomalyVisuali
           const changes = field.topChanges
             .map((c) => {
               if (c.baselinePercentage !== undefined) {
-                return `  - "${c.value}": ${c.baselinePercentage.toFixed(
-                  1
-                )}% → ${c.selectionPercentage.toFixed(1)}%`;
+                return `  - "${c.value}": ${(c.baselinePercentage * 100).toFixed(1)}% → ${(
+                  c.selectionPercentage * 100
+                ).toFixed(1)}%`;
               }
-              return `  - "${c.value}": ${c.selectionPercentage.toFixed(1)}%`;
+              return `  - "${c.value}": ${(c.selectionPercentage * 100).toFixed(1)}%`;
             })
             .join('\n');
 
