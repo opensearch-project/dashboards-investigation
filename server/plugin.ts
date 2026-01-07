@@ -39,7 +39,10 @@ export class InvestigationPlugin
     const baseService = new BaseService(core, this.logger);
     core.capabilities.registerProvider(() => {
       return {
-        investigation: config,
+        investigation: {
+          ...config,
+          ownerSupported: false,
+        },
       };
     });
 

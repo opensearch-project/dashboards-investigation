@@ -41,6 +41,9 @@ export class BaseService {
       await uiSettingsClient.get(ENABLE_AI_FEATURES).catch(() => false)
     );
 
+    const authState = this.core.http.auth.get(request);
+    const ownerSupported = !!(authState?.state as any)?.authInfo?.user_name;
+
     try {
       const dynamicConfig = await client.getConfig(
         { pluginConfigPath: 'investigation' },
@@ -53,6 +56,7 @@ export class BaseService {
           enabled: dynamicConfig.enabled,
           agenticFeaturesEnabled:
             dynamicConfig.agenticFeaturesEnabled && isAgenticFeatureEnabledBySetting,
+          ownerSupported,
         },
       };
     } catch (e) {

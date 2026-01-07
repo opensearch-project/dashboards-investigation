@@ -46,7 +46,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   openReinvestigateModal,
 }) => {
   const {
-    services: { appName, usageCollection, http },
+    services: { appName, usageCollection, http, application },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const notebookContext = useContext(NotebookReactContext);
@@ -186,7 +186,9 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   }
 
   // Only show investigation steps if current user is the owner of the active memory (investigation trigger user)
-  const isOwner = !!currentUser && currentUser === activeMemory?.owner;
+  const isOwner = application.capabilities.investigation?.ownerSupported
+    ? !!currentUser && currentUser === activeMemory?.owner
+    : true;
 
   const investigationSteps = PERAgentServices && !isNotebookReadonly && isOwner && (
     <EuiAccordion
@@ -207,8 +209,9 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
 
   const renderHypothesesContent = () => {
     if (isInvestigating) {
-      const hasSteps = executorMessages.length > 0;
-      const displayText = hasSteps
+      const hasStepsOrMessage =
+        executorMessages.length > 0 || PERAgentServices?.message.getMessageValue();
+      const displayText = hasStepsOrMessage
         ? 'Gathering data in progress...'
         : 'Planning for your investigation...';
 

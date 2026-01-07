@@ -9,7 +9,9 @@ import { InvestigationPlugin } from './plugin';
 
 declare module '../../../src/core/types/capabilities' {
   interface Capabilities {
-    investigation: InvestigationConfig;
+    investigation: InvestigationConfig & {
+      ownerSupported?: boolean;
+    };
   }
 }
 
