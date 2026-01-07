@@ -55,7 +55,7 @@ const waitForPrecheckContexts = ({
             const output = ParagraphState.getOutput(value);
             const fieldComparison = (output?.result as AnomalyVisualizationAnalysisOutputResult)
               ?.fieldComparison;
-            return !!hasError || (fieldComparison && fieldComparison.length > 0);
+            return !!hasError || fieldComparison;
           }
 
           if (inputType === LOG_PATTERN_PARAGRAPH_TYPE) {
