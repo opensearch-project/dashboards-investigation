@@ -256,7 +256,13 @@ export const useInvestigation = () => {
     async (message: string, runningMemory: AgenticMemeory) => {
       try {
         const responseJson = await withErrorTitle('Failed to parse response', async () => {
-          const parsed = JSON.parse(message);
+          let parsed;
+          try {
+            parsed = JSON.parse(message);
+          } catch (error) {
+            error.cause = message;
+            throw error;
+          }
           if (!isValidPERAgentInvestigationResponse(parsed)) {
             const error = new Error('Invalid per agent response');
             error.cause = parsed;
