@@ -41,7 +41,6 @@ export const useNotebookFindingIntegration = (props: UseNotebookFindingIntegrati
         }
 
         await addNewFinding({
-          hypothesisIndex: 0,
           text: `%md\n${finding.markdown}`,
         });
 

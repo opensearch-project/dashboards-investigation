@@ -5,6 +5,10 @@
 .hypothesisDetail {
     height: 100%;
 
+    &__body {
+        background-color: $ouiColorEmptyShade !important;
+    }
+
     &__findingsButtonGroup {
         background: $ouiColorLightShade;
         border-radius: $ouiSizeM;

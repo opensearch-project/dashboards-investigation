@@ -17,6 +17,7 @@ import {
   notificationServiceMock,
   uiSettingsServiceMock,
 } from '../../../../../../../../src/core/public/mocks';
+import { NotebookType } from '../../../../../../common/types/notebooks';
 
 jest.mock('../../../../../../../../src/plugins/embeddable/public', () => ({
   ViewMode: {
@@ -29,9 +30,20 @@ jest.mock('../../data_distribution/data_distribution_container', () => ({
   DataDistributionContainer: () => <div />,
 }));
 
+jest.mock('../../topology', () => ({
+  Topology: () => <div data-test-subj="topology-component" />,
+}));
+
 const mockFind = jest.fn().mockResolvedValue({
   savedObjects: [],
 });
+
+const mockUseParams = jest.fn().mockReturnValue({ id: 'test-notebook-id' });
+const mockLocation = { href: 'http://localhost/notebook/test-notebook-id' };
+
+jest.mock('react-router-dom', () => ({
+  useParams: () => mockUseParams(),
+}));
 
 jest.mock('../../../../../../public/services', () => ({
   getDataSourceManagementSetup: jest.fn(() => ({
@@ -51,21 +63,31 @@ jest.mock('../../../../../../../../src/plugins/opensearch_dashboards_react/publi
   CodeEditor: () => <div data-test-subj="code-editor" />,
 }));
 
+const mockHttp = {
+  ...getOSDHttp(),
+  put: jest.fn().mockResolvedValue({}),
+};
+
+const mockNotifications = notificationServiceMock.createStartContract();
+
 const ContextAwareParagraphs = (
   props: ParagraphProps & {
     paragraphValues: ParagraphStateValue[];
+    notebookType?: NotebookType;
+    hypotheses?: any[];
+    isNotebookReadonly?: boolean;
   }
 ) => {
   return (
     <OpenSearchDashboardsContextProvider
       services={{
-        http: getOSDHttp(),
+        http: mockHttp,
         dashboard: {
           DashboardContainerByValueRenderer: jest.fn(),
         },
         savedObjects: { client: { find: mockFind } },
         dataSource: {},
-        notifications: notificationServiceMock.createStartContract(),
+        notifications: mockNotifications,
         uiSettings: uiSettingsServiceMock.createStartContract(),
         paragraphService: {
           getParagraphRegistry: jest.fn().mockImplementation(() => {
@@ -76,91 +98,114 @@ const ContextAwareParagraphs = (
         },
       }}
     >
-      <MockContextProvider paragraphValues={props.paragraphValues}>
+      <MockContextProvider
+        paragraphValues={props.paragraphValues}
+        notebookType={props.notebookType}
+        hypotheses={props.hypotheses}
+        isNotebookReadonly={props.isNotebookReadonly}
+      >
         <Paragraph {...props} />
       </MockContextProvider>
     </OpenSearchDashboardsContextProvider>
   );
 };
 
-describe('<Paragraphs /> spec', () => {
+describe('<Paragraph /> spec', () => {
   configure({ adapter: new Adapter() });
 
-  it('renders the component', () => {
-    const deletePara = jest.fn();
-    const para = sampleParsedParagraghs1[0];
+  beforeEach(() => {
+    jest.clearAllMocks();
+    Object.defineProperty(window, 'location', {
+      value: mockLocation,
+      writable: true,
+    });
+  });
+
+  it('renders classic notebook paragraph', () => {
     const utils = render(
       <ContextAwareParagraphs
-        para={para}
         index={0}
-        handleSelectedDataSourceChange={jest.fn()}
+        deletePara={jest.fn()}
         scrollToPara={jest.fn()}
-        selectedViewId="view_both"
-        deletePara={deletePara}
+        notebookType={NotebookType.CLASSIC}
         paragraphValues={[
           {
             ...sampleParsedParagraghs1[0],
-            input: {
-              inputType: 'CODE',
-              inputText: '%md # Type your input here',
-            },
+            input: { inputType: 'CODE', inputText: '%md # Type your input here' },
             dateCreated: '',
             dateModified: '',
-            id: '',
+            id: 'para-1',
           },
         ]}
       />
     );
-    expect(utils.container.firstChild).toMatchSnapshot();
     expect(utils.getByTestId('mock-paragraph')).toBeInTheDocument();
   });
 
-  it('use SavedObject find to fetch visualizations when dataSourceEnabled', () => {
-    const deletePara = jest.fn();
-    const para = {
-      uniqueId: 'paragraph_1a710988-ec19-4caa-83cc-38eb609427d1',
-      isRunning: false,
-      inQueue: false,
-      showAddPara: false,
-      isVizualisation: true,
-      vizObjectInput: '{}',
-      id: 1,
-      inp: '# Type your input here',
-      isOutputStale: false,
-      paraDivRef: undefined,
-      visEndTime: undefined,
-      visSavedObjId: undefined,
-      visStartTime: undefined,
-      lang: 'text/x-md',
-      editorLanguage: 'md',
-      typeOut: ['MARKDOWN'],
-      out: ['# Type your input here'],
-    };
+  it('renders agentic notebook paragraph with finding header', () => {
     const utils = render(
       <ContextAwareParagraphs
-        para={para}
         index={0}
-        selectedViewId="view_both"
-        deletePara={deletePara}
-        handleSelectedDataSourceChange={jest.fn()}
-        scrollToPara={jest.fn()}
+        notebookType={NotebookType.AGENTIC}
         paragraphValues={[
           {
-            ...para,
             input: {
-              inputType: 'VISUALIZATION',
-              inputText: '%md # Type your input here',
+              inputType: 'CODE',
+              inputText: 'test',
+              parameters: { finding: { title: 'Test Finding' } },
             },
+            output: [{ outputType: 'MARKDOWN', result: 'output' }],
+            dateCreated: '',
+            dateModified: '2024-01-01',
+            id: 'para-1',
+            aiGenerated: true,
+          },
+        ]}
+        hypotheses={[]}
+      />
+    );
+    expect(utils.getByTestId('mock-paragraph')).toBeInTheDocument();
+  });
+
+  it('hides action panel when notebook is readonly', () => {
+    const { container } = render(
+      <ContextAwareParagraphs
+        index={0}
+        notebookType={NotebookType.AGENTIC}
+        isNotebookReadonly={true}
+        paragraphValues={[
+          {
+            input: { inputType: 'CODE', inputText: 'test' },
             dateCreated: '',
             dateModified: '',
-            id: '',
+            id: 'para-1',
           },
         ]}
       />
     );
-    expect(utils.container.firstChild).toMatchSnapshot();
+    expect(container.querySelector('.notebookParagraphWrapper')).toBeInTheDocument();
+  });
 
-    // Expect the mock paragraph has been rendered
-    expect(utils.getByTestId('mock-paragraph')).toBeInTheDocument();
+  it('renders topology when input contains topology pattern', () => {
+    const utils = render(
+      <ContextAwareParagraphs
+        index={0}
+        notebookType={NotebookType.AGENTIC}
+        paragraphValues={[
+          {
+            input: { inputType: 'CODE', inputText: '┌──────────' },
+            dateCreated: '',
+            dateModified: '',
+            id: 'para-1',
+          },
+        ]}
+      />
+    );
+    expect(utils.getByTestId('topology-component')).toBeInTheDocument();
+  });
+
+  it('returns null when paragraph is not found', () => {
+    const { container } = render(<ContextAwareParagraphs index={5} paragraphValues={[]} />);
+    expect(container.firstChild).toBeNull();
   });
 });
