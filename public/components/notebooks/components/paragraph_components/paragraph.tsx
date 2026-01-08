@@ -25,6 +25,7 @@ import { ParagraphState } from '../../../../../common/state/paragraph_state';
 
 export interface ParagraphProps {
   index: number;
+  isParagraphReadonly?: boolean;
   deletePara?: (index: number) => void;
   scrollToPara?: (idx: number) => void;
 }
@@ -77,7 +78,7 @@ export const Paragraph = (props: ParagraphProps) => {
   const isFindingParagraph = !!(paragraphValue.input.parameters as FindingParagraphParameters)
     ?.finding;
   const isAIGenerated = paragraphValue.aiGenerated === true;
-  const isActionVisible = !context.state.value.isNotebookReadonly;
+  const isActionVisible = !context.state.value.isNotebookReadonly && !props.isParagraphReadonly;
   const output = ParagraphState.getOutput(paragraphValue);
 
   const supportingHypothesesCount =
@@ -235,17 +236,20 @@ export const Paragraph = (props: ParagraphProps) => {
             />
           )}
           <ParagraphComponent paragraphState={paragraph} actionDisabled={true} />
-          {isActionVisible && isAIGenerated && output && isFindingParagraph && (
-            <FindingFooter
-              feedback={feedback}
-              isMarkedIrrelevant={isMarkedIrrelevant}
-              isMarkedSelected={isMarkedSelected}
-              showHypothesisActions={showHypothesisActions}
-              isSaving={isSaving}
-              onFeedback={handleFeedback}
-              onMarkFinding={handleMarkFinding}
-            />
-          )}
+          {isActionVisible &&
+            isAIGenerated &&
+            output &&
+            isFindingParagraph &&
+            showHypothesisActions && (
+              <FindingFooter
+                feedback={feedback}
+                isMarkedIrrelevant={isMarkedIrrelevant}
+                isMarkedSelected={isMarkedSelected}
+                isSaving={isSaving}
+                onFeedback={handleFeedback}
+                onMarkFinding={handleMarkFinding}
+              />
+            )}
         </div>
       )}
     </div>

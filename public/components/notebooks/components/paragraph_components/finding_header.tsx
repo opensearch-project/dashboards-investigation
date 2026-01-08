@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { i18n } from '@osd/i18n';
 import moment from 'moment';
 import { EuiBadge, EuiFlexGroup, EuiFlexItem, EuiSpacer, EuiText, EuiTitle } from '@elastic/eui';
 import { FindingParagraphParameters } from '../../../../../common/types/notebooks';
@@ -32,10 +33,25 @@ export const FindingHeader: React.FC<FindingHeaderProps> = ({
           <EuiTitle size="xs">
             <span>
               {isAIGenerated
-                ? `Finding: ${description || 'AI generated finding'} ${
-                    importance ? `| Importance: ${importance}` : ''
-                  } `
-                : 'User Finding'}
+                ? i18n.translate('notebook.finding.header.aiGeneratedFinding', {
+                    defaultMessage: '{description} {importance}',
+                    values: {
+                      description:
+                        description ||
+                        i18n.translate('notebook.finding.header.aiGeneratedFindingDefault', {
+                          defaultMessage: 'AI generated finding',
+                        }),
+                      importance: importance
+                        ? i18n.translate('notebook.finding.header.importance', {
+                            defaultMessage: '| Importance: {value}',
+                            values: { value: importance },
+                          })
+                        : '',
+                    },
+                  })
+                : i18n.translate('notebook.finding.header.userFinding', {
+                    defaultMessage: 'User Finding',
+                  })}
             </span>
           </EuiTitle>
         </EuiFlexItem>
@@ -45,7 +61,14 @@ export const FindingHeader: React.FC<FindingHeaderProps> = ({
             color="subdued"
             style={{ whiteSpace: 'nowrap', ...(!isAIGenerated && { marginInlineEnd: 32 }) }}
           >
-            {isAIGenerated ? 'Updated' : 'Created'}&nbsp;
+            {isAIGenerated
+              ? i18n.translate('notebook.finding.header.updated', {
+                  defaultMessage: 'Updated',
+                })
+              : i18n.translate('notebook.finding.header.created', {
+                  defaultMessage: 'Created',
+                })}
+            &nbsp;
             {moment(dateModified).fromNow()}
           </EuiText>
         </EuiFlexItem>
@@ -53,14 +76,37 @@ export const FindingHeader: React.FC<FindingHeaderProps> = ({
       <EuiSpacer size="s" />
       {isAIGenerated && (
         <EuiFlexGroup gutterSize="none" justifyContent="spaceBetween">
-          <EuiBadge>AI Generated</EuiBadge>
+          <EuiBadge>
+            {i18n.translate('notebook.finding.header.aiGenerated', {
+              defaultMessage: 'AI Generated',
+            })}
+          </EuiBadge>
           <span>
-            {feedback === 'CONFIRMED' && <EuiBadge color="warning">Confirmed</EuiBadge>}
-            {feedback === 'REJECTED' && <EuiBadge color="warning">Rejected</EuiBadge>}
+            {feedback === 'CONFIRMED' && (
+              <EuiBadge color="warning">
+                {i18n.translate('notebook.finding.header.confirmed', {
+                  defaultMessage: 'Confirmed',
+                })}
+              </EuiBadge>
+            )}
+            {feedback === 'REJECTED' && (
+              <EuiBadge color="warning">
+                {i18n.translate('notebook.finding.header.rejected', {
+                  defaultMessage: 'Rejected',
+                })}
+              </EuiBadge>
+            )}
             {supportingHypothesesCount > 0 && (
               <EuiBadge color="primary">
-                Supports {supportingHypothesesCount}{' '}
-                {supportingHypothesesCount === 1 ? 'Hypothesis' : 'Hypotheses'}
+                {supportingHypothesesCount === 1
+                  ? i18n.translate('notebook.finding.header.supportsHypothesis', {
+                      defaultMessage: 'Supports {count} Hypothesis',
+                      values: { count: supportingHypothesesCount },
+                    })
+                  : i18n.translate('notebook.finding.header.supportsHypotheses', {
+                      defaultMessage: 'Supports {count} Hypotheses',
+                      values: { count: supportingHypothesesCount },
+                    })}
               </EuiBadge>
             )}
           </span>
