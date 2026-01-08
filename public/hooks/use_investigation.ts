@@ -36,6 +36,21 @@ import { SharedMessagePollingService } from '../components/notebooks/components/
 import { INTERVAL_TIME } from '../../common/constants/investigation';
 import { NotebookBackendType } from '../../common/types/notebooks';
 
+/**
+ * Wraps an async operation with a custom error title for display purposes.
+ */
+const withErrorTitle = async <T>(title: string, operation: () => Promise<T>): Promise<T> => {
+  try {
+    return await operation();
+  } catch (error: any) {
+    error.errorTitle = title;
+    throw error;
+  }
+};
+
+const getErrorTitle = (error: any, defaultTitle: string): string =>
+  error?.errorTitle || defaultTitle;
+
 const getFindingFromParagraph = (paragraph: ParagraphStateValue<unknown>) => {
   return `
 ### Finding (ID: ${paragraph.id})
@@ -74,7 +89,6 @@ export const useInvestigation = () => {
 
   const [isInvestigating, setIsInvestigating] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const errorTitleRef = useRef('');
 
   /**
    * Check if there's an ongoing investigation by another user
@@ -127,7 +141,7 @@ export const useInvestigation = () => {
       const startParagraphIndex = paragraphLengthRef.current;
       const sortedFindings = payload.findings.slice().sort((a, b) => b.importance - a.importance);
 
-      // Successful investigation, deleted all old finding paragraphs
+      // Delete old finding paragraphs
       const findingParagraphIds = context.state
         .getParagraphsValue()
         .filter(
@@ -136,15 +150,12 @@ export const useInvestigation = () => {
         .map((paragraph) => paragraph.id);
 
       if (findingParagraphIds.length > 0) {
-        try {
-          // Delete all existing finding paragraphs
-          await batchDeleteParagraphs(findingParagraphIds);
-        } catch (error) {
-          errorTitleRef.current = 'Failed to clean up old findings';
-          throw error;
-        }
+        await withErrorTitle('Failed to clean up old findings', () =>
+          batchDeleteParagraphs(findingParagraphIds)
+        );
       }
 
+      // Create new finding paragraphs
       const paragraphsToCreate = sortedFindings.map(
         ({ importance, description, evidence, type }) => ({
           input: {
@@ -162,26 +173,25 @@ export const useInvestigation = () => {
         })
       );
 
-      try {
-        const batchResult = await batchCreateParagraphs({
+      const batchResult = await withErrorTitle('Failed to batch create new findings', () =>
+        batchCreateParagraphs({
           startIndex: startParagraphIndex,
           paragraphs: paragraphsToCreate,
+        })
+      );
+
+      if (batchResult?.paragraphs) {
+        batchResult.paragraphs.forEach((paragraph: any, index: number) => {
+          findingId2ParagraphId[sortedFindings[index].id] = paragraph.id;
         });
 
-        if (batchResult?.paragraphs) {
-          batchResult.paragraphs.forEach((paragraph: any, index: number) => {
-            findingId2ParagraphId[sortedFindings[index].id] = paragraph.id;
-          });
-
-          // Run the created paragraphs
-          const paragraphIds = batchResult.paragraphs.map((p: any) => p.id);
-          await batchRunParagraphs({ paragraphIds });
-        }
-      } catch (error) {
-        errorTitleRef.current = 'Failed to batch create new findings';
-        throw error;
+        const paragraphIds = batchResult.paragraphs.map((p: any) => p.id);
+        await withErrorTitle('Failed to load the new findings', () =>
+          batchRunParagraphs({ paragraphIds })
+        );
       }
 
+      // Update hypotheses
       const newHypotheses = payload.hypotheses
         .map((hypothesis) => ({
           id: hypothesis.id,
@@ -197,12 +207,10 @@ export const useInvestigation = () => {
           dateModified: new Date().toISOString(),
         }))
         .sort((a, b) => b.likelihood - a.likelihood);
-      try {
-        await updateHypotheses([...newHypotheses], payload.topologies || [], true);
-      } catch (error) {
-        errorTitleRef.current = 'Failed to update investigation hypotheses';
-        throw error;
-      }
+
+      await withErrorTitle('Failed to update investigation hypotheses', () =>
+        updateHypotheses([...newHypotheses], payload.topologies || [], true)
+      );
     },
     [
       updateHypotheses,
@@ -247,23 +255,15 @@ export const useInvestigation = () => {
   const handlePollingSuccess = useCallback(
     async (message: string, runningMemory: AgenticMemeory) => {
       try {
-        let responseJson;
-
-        try {
-          responseJson = JSON.parse(message);
-        } catch {
-          errorTitleRef.current = 'Failed to parse response';
-          const throwedError = new Error('Invalid per agent response');
-          throwedError.cause = message;
-          throw throwedError;
-        }
-
-        if (!isValidPERAgentInvestigationResponse(responseJson)) {
-          errorTitleRef.current = 'Failed to parse response';
-          const throwedError = new Error('Invalid per agent response');
-          throwedError.cause = responseJson;
-          throw throwedError;
-        }
+        const responseJson = await withErrorTitle('Failed to parse response', async () => {
+          const parsed = JSON.parse(message);
+          if (!isValidPERAgentInvestigationResponse(parsed)) {
+            const error = new Error('Invalid per agent response');
+            error.cause = parsed;
+            throw error;
+          }
+          return parsed;
+        });
 
         await storeInvestigationResponse({ payload: responseJson });
 
@@ -275,16 +275,17 @@ export const useInvestigation = () => {
           historyMemory: runningMemory,
           investigationError: undefined,
         });
-      } catch (error) {
-        const errorMessage = error.message;
-        context.state.updateValue({ investigationError: errorMessage, runningMemory: undefined });
+      } catch (error: any) {
+        context.state.updateValue({
+          investigationError: error.message,
+          runningMemory: undefined,
+        });
         await updateHypotheses(hypothesesRef.current || []);
         addError({
           error,
-          title: errorTitleRef.current || 'Failed to complete investigation',
+          title: getErrorTitle(error, 'Failed to complete investigation'),
         });
       } finally {
-        errorTitleRef.current = '';
         context.state.updateValue({ runningMemory: undefined });
         setIsInvestigating(false);
       }

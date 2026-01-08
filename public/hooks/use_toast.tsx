@@ -18,7 +18,7 @@ import {
   EuiSmallButton,
   EuiSpacer,
 } from '@elastic/eui';
-import { FormattedMessage } from 'react-intl';
+import { i18n } from '@osd/i18n';
 import { mountReactNode } from '../../../../src/core/public/utils';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { OverlayStart } from '../../../../src/core/public';
@@ -54,10 +54,9 @@ export const useToast = () => {
                     })
                   }
                 >
-                  <FormattedMessage
-                    id="core.toasts.errorToast.seeFullError"
-                    defaultMessage="See the full error"
-                  />
+                  {i18n.translate('core.toasts.errorToast.seeFullError', {
+                    defaultMessage: 'See the full error',
+                  })}
                 </EuiButton>
               </div>
             </React.Fragment>
@@ -98,10 +97,9 @@ function showErrorDialog({
         </EuiModalBody>
         <EuiModalFooter>
           <EuiSmallButton onClick={() => modal.close()} fill>
-            <FormattedMessage
-              id="core.notifications.errorToast.closeModal"
-              defaultMessage="Close"
-            />
+            {i18n.translate('core.notifications.errorToast.closeModal', {
+              defaultMessage: 'Close',
+            })}
           </EuiSmallButton>
         </EuiModalFooter>
       </React.Fragment>
