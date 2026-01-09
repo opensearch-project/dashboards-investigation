@@ -74,13 +74,13 @@ describe('useToast', () => {
 
       expect(mockAddDanger).toHaveBeenCalledTimes(1);
       expect(mockAddDanger).toHaveBeenCalledWith({
-        toastLifeTimeMs: 10000,
+        toastLifeTimeMs: 30 * 60 * 1000, // 30 minutes
         title: 'Test Error Title',
         text: expect.any(Object),
       });
     });
 
-    it('should use uiSettings to get toast lifetime', () => {
+    it('should use fixed toast lifetime of 30 minutes', () => {
       const { result } = renderHook(() => useToast());
 
       const error = new Error('Test error');
@@ -89,10 +89,9 @@ describe('useToast', () => {
         error,
       });
 
-      expect(mockUiSettings.get).toHaveBeenCalledWith('notifications:lifetime:error');
       expect(mockAddDanger).toHaveBeenCalledWith(
         expect.objectContaining({
-          toastLifeTimeMs: 10000,
+          toastLifeTimeMs: 30 * 60 * 1000,
         })
       );
     });
@@ -376,7 +375,7 @@ describe('useToast', () => {
       // Overlays service is available in the context
     });
 
-    it('should use uiSettings service from OpenSearchDashboards context', () => {
+    it('should use notifications and overlays services from OpenSearchDashboards context', () => {
       const { result } = renderHook(() => useToast());
 
       const error = new Error('Test');
@@ -386,7 +385,7 @@ describe('useToast', () => {
       });
 
       expect(useOpenSearchDashboards).toHaveBeenCalled();
-      expect(mockUiSettings.get).toHaveBeenCalledWith('notifications:lifetime:error');
+      expect(mockNotifications.toasts.addDanger).toHaveBeenCalled();
     });
   });
 
@@ -471,7 +470,7 @@ describe('useToast', () => {
       );
     });
 
-    it('should handle custom toast lifetime from uiSettings', () => {
+    it('should always use fixed toast lifetime of 30 minutes regardless of uiSettings', () => {
       mockUiSettings.get.mockReturnValue(5000);
 
       const { result } = renderHook(() => useToast());
@@ -484,25 +483,7 @@ describe('useToast', () => {
 
       expect(mockAddDanger).toHaveBeenCalledWith(
         expect.objectContaining({
-          toastLifeTimeMs: 5000,
-        })
-      );
-    });
-
-    it('should handle undefined toast lifetime from uiSettings', () => {
-      mockUiSettings.get.mockReturnValue(undefined);
-
-      const { result } = renderHook(() => useToast());
-
-      const error = new Error('Test');
-      result.current.addError({
-        title: 'Test',
-        error,
-      });
-
-      expect(mockAddDanger).toHaveBeenCalledWith(
-        expect.objectContaining({
-          toastLifeTimeMs: undefined,
+          toastLifeTimeMs: 30 * 60 * 1000,
         })
       );
     });
