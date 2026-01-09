@@ -296,6 +296,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
           dataSourceId={context.value.dataSourceId}
           currentExecutorMemoryId={activeMemory?.executorMemoryId}
           memoryContainerId={activeMemory?.memoryContainerId as string}
+          isInvestigating={isInvestigating}
         />
       )}
     </>
