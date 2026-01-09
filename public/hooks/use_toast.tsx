@@ -30,14 +30,14 @@ interface IShowErrorNotification {
 
 export const useToast = () => {
   const {
-    services: { notifications, overlays, uiSettings },
+    services: { notifications, overlays },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   return {
     addError: useCallback(
       (props: IShowErrorNotification) => {
         notifications.toasts.addDanger({
-          toastLifeTimeMs: uiSettings.get('notifications:lifetime:error'),
+          toastLifeTimeMs: 30 * 60 * 1000,
           title: props.title,
           text: mountReactNode(
             <React.Fragment>
@@ -63,7 +63,7 @@ export const useToast = () => {
           ),
         });
       },
-      [uiSettings, notifications, overlays]
+      [notifications, overlays]
     ),
   };
 };

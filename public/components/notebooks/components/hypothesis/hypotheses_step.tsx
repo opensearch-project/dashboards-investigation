@@ -25,6 +25,7 @@ import { PERAgentMessageService } from './investigation/services/per_agent_messa
 import { PERAgentMemoryService } from './investigation/services/per_agent_memory_service';
 
 interface Props {
+  isInvestigating: boolean;
   messageService: PERAgentMessageService;
   executorMemoryService: PERAgentMemoryService;
   onExplainThisStep: (messageId: string) => void;
@@ -34,6 +35,7 @@ export const HypothesesStep = ({
   messageService,
   executorMemoryService,
   onExplainThisStep,
+  isInvestigating,
 }: Props) => {
   const observables = useMemo(
     () => ({
@@ -70,7 +72,7 @@ export const HypothesesStep = ({
     return (
       <>
         <EuiSpacer size="s" />
-        {!!message &&
+        {(isInvestigating ? !!message : true) &&
           !loadingExecutorMessage &&
           (!executorMessages || executorMessages.length === 0) && (
             <EuiText>No steps performed</EuiText>
@@ -78,7 +80,9 @@ export const HypothesesStep = ({
         {!!executorMessages &&
           executorMessages.map((executorMessage, index) => {
             const isLastMessageLoading =
-              index === executorMessages.length - 1 && !executorMessage.response && !message;
+              index === executorMessages.length - 1 &&
+              !executorMessage.response &&
+              (isInvestigating ? !message : false);
             return (
               <React.Fragment key={executorMessage.message_id}>
                 <EuiPanel paddingSize="s" borderRadius="l" hasBorder>
@@ -149,7 +153,9 @@ export const HypothesesStep = ({
   return (
     <>
       {renderTraces()}
-      {(loadingExecutorMessage || !message) && !executorError && <EuiLoadingContent />}
+      {(loadingExecutorMessage || (isInvestigating && !message)) && !executorError && (
+        <EuiLoadingContent />
+      )}
     </>
   );
 };
