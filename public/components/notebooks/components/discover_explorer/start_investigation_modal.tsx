@@ -5,7 +5,6 @@
 
 import { i18n } from '@osd/i18n';
 import {
-  EuiCodeBlock,
   EuiFlexGroup,
   EuiFlexItem,
   EuiFormRow,
@@ -14,19 +13,19 @@ import {
   EuiModalFooter,
   EuiModalHeader,
   EuiModalHeaderTitle,
-  EuiPanel,
   EuiSmallButton,
   EuiSpacer,
   EuiText,
   EuiTextArea,
 } from '@elastic/eui';
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import type { NoteBookServices } from '../../../../types';
 import {
   DEFAULT_INVESTIGATION_NAME,
   NOTEBOOKS_API_PREFIX,
 } from '../../../../../common/constants/notebooks';
+import type { NotebookContext } from '../../../../../common/types/notebooks';
 
 const suggestedActions = [
   {
@@ -51,9 +50,17 @@ const suggestedActions = [
   },
 ];
 
+export interface NotebookCreationPayload {
+  name: string;
+  context: NotebookContext;
+}
+
 export interface StartInvestigationModalProps {
-  log?: Record<string, any>;
   closeModal?: () => void;
+  onProvideNotebookParameters: (
+    defaultParameters: NotebookCreationPayload
+  ) => Promise<NotebookCreationPayload>;
+  additionalContent?: React.ReactNode;
 }
 
 export type StartInvestigateModalDedentServices = Pick<
@@ -61,51 +68,39 @@ export type StartInvestigateModalDedentServices = Pick<
   'data' | 'http' | 'application' | 'notifications'
 >;
 
-export const StartInvestigationModal = ({ log, closeModal }: StartInvestigationModalProps) => {
+export const StartInvestigationModal = ({
+  closeModal,
+  onProvideNotebookParameters,
+  additionalContent,
+}: StartInvestigationModalProps) => {
   const [value, setValue] = useState('');
   const {
-    services: { data, http, application, notifications },
+    services: { http, application, notifications },
   } = useOpenSearchDashboards<StartInvestigateModalDedentServices>();
   const [disabled, setDisabled] = useState(false);
 
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setValue(e.target.value);
   };
 
-  const currentTime = useMemo(() => {
-    return new Date().getTime();
-  }, []);
-
   const createNotebook = async (name: string) => {
-    const query = data.query.queryString.getQuery();
-    const bounds = data.query.timefilter.timefilter.getBounds();
-    const selectionFrom = (bounds.min?.unix() ?? 0) * 1000;
-    const selectionTo = (bounds.max?.unix() ?? 0) * 1000;
+    // Build minimal default parameters
+    const defaultParameters: NotebookCreationPayload = {
+      name,
+      context: {
+        initialGoal: value,
+      },
+    };
+
+    // Require external provider to supply complete parameters
+    if (!onProvideNotebookParameters) {
+      throw new Error('onProvideNotebookParameters is required');
+    }
+
+    const finalParameters = await onProvideNotebookParameters(defaultParameters);
+
     const id = await http.post<string>(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook`, {
-      body: JSON.stringify({
-        name,
-        context: {
-          dataSourceId: query.dataset?.dataSource?.id ?? '',
-          source: 'Discover',
-          index: query.dataset?.title ?? '',
-          notebookType: 'Agentic',
-          initialGoal: value,
-          timeField: query.dataset?.timeFieldName ?? '',
-          ...(log
-            ? { log }
-            : {
-                currentTime,
-                timeRange: {
-                  selectionFrom,
-                  selectionTo,
-                },
-                variables: {
-                  pplQuery: query.query.trim() || data.query.queryString.getInitialQuery().query,
-                  pplFilters: data.query.filterManager.getFilters(),
-                },
-              }),
-        },
-      }),
+      body: JSON.stringify(finalParameters),
     });
     if (!id) {
       throw new Error('create notebook error');
@@ -140,7 +135,7 @@ export const StartInvestigationModal = ({ log, closeModal }: StartInvestigationM
     }
   };
 
-  const handleInputKeyUp = (e) => {
+  const handleInputKeyUp = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
       handleInvestigation();
     }
@@ -158,16 +153,12 @@ export const StartInvestigationModal = ({ log, closeModal }: StartInvestigationM
         </EuiModalHeaderTitle>
       </EuiModalHeader>
       <EuiModalBody>
-        {log && (
-          <EuiPanel>
-            <EuiText>You selected:</EuiText>
-            <EuiSpacer size="xs" />
-            <EuiCodeBlock language="json" isCopyable={true} overflowHeight={160}>
-              {JSON.stringify(log, null, 2)}
-            </EuiCodeBlock>
-          </EuiPanel>
+        {additionalContent && (
+          <>
+            {additionalContent}
+            <EuiSpacer size="s" />
+          </>
         )}
-        <EuiSpacer size="s" />
         <EuiFormRow fullWidth label="What's the goal of your investigation?">
           <EuiTextArea
             placeholder={i18n.translate(
