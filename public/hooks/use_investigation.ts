@@ -413,13 +413,14 @@ export const useInvestigation = () => {
           })
         )?.memory?.memory_container_id;
 
-        const executorMemoryId = (
-          await createAgenticExecutionMemory({
-            http,
-            dataSourceId,
-            memoryContainerId,
-          })
-        )?.session_id;
+        // If `executorMemoryId` starts with `-` or `_`, it will be regenerated and retry up to 3 times.
+        let executorMemoryId: string | undefined;
+        for (let i = 0; i < 3; i++) {
+          executorMemoryId = (
+            await createAgenticExecutionMemory({ http, dataSourceId, memoryContainerId })
+          )?.session_id;
+          if (executorMemoryId && !/^[-_]/.test(executorMemoryId)) break;
+        }
 
         if (!executorMemoryId) {
           throw new Error('executorMemoryId is null');
