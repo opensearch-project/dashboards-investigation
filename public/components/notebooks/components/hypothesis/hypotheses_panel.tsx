@@ -200,6 +200,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
       }}
     >
       <HypothesesStep
+        isInvestigating={isInvestigating}
         messageService={PERAgentServices.message}
         executorMemoryService={PERAgentServices.executorMemory}
         onExplainThisStep={setTraceMessageId}
@@ -295,6 +296,7 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
           dataSourceId={context.value.dataSourceId}
           currentExecutorMemoryId={activeMemory?.executorMemoryId}
           memoryContainerId={activeMemory?.memoryContainerId as string}
+          isInvestigating={isInvestigating}
         />
       )}
     </>

@@ -64,6 +64,7 @@ export const MessageTraceFlyout = ({
   executorMemoryService,
   currentExecutorMemoryId,
   memoryContainerId,
+  isInvestigating,
 }: {
   messageId: string;
   dataSourceId?: string;
@@ -72,6 +73,7 @@ export const MessageTraceFlyout = ({
   executorMemoryService: PERAgentMemoryService;
   currentExecutorMemoryId: string;
   memoryContainerId: string;
+  isInvestigating?: boolean;
 }) => {
   const {
     services: { http, overlays, notifications },
@@ -113,8 +115,9 @@ export const MessageTraceFlyout = ({
     if (!traceMessage?.response) {
       return true;
     }
-    return !message;
-  }, [isLastMessage, traceMessage?.response, message, traces]);
+    // When not investigating, don't depend on message result
+    return isInvestigating ? !message : false;
+  }, [isLastMessage, traceMessage?.response, message, traces, isInvestigating]);
 
   const shouldStartPolling = useMemo(() => shouldLoad || retryKey > 0, [shouldLoad, retryKey]);
 
