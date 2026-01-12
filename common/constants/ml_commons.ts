@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-const OPENSEARCH_ML_COMMONS_API_PREFIX = '/_plugins/_ml';
+export const OPENSEARCH_ML_COMMONS_API_PREFIX = '/_plugins/_ml';
 
 export const OPENSEARCH_ML_COMMONS_API = {
   singleTask: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/tasks/{taskId}`,
