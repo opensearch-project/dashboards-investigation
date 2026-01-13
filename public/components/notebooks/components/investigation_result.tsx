@@ -22,6 +22,9 @@ import {
   EuiBeacon,
   EuiPanel,
   EuiButtonEmpty,
+  EuiSmallButton,
+  EuiEmptyPrompt,
+  EuiSplitPanel,
 } from '@elastic/eui';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import moment from 'moment';
@@ -75,7 +78,10 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     historyMemory,
     investigationError,
     currentUser,
+    path,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
+
+  const isDarkMode = uiSettings.get('theme:darkMode');
 
   const {
     dataSourceId = '',
@@ -297,7 +303,30 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     );
   };
 
-  const renderPrimaryHypothesis = () => {
+  const renderRetryButtonGroup = (justifyContent: 'center' | 'flexStart' = 'center') => {
+    return (
+      <EuiFlexGroup gutterSize="none" justifyContent={justifyContent} style={{ gap: 8 }}>
+        <EuiButton color="primary" iconType="refresh" fill onClick={openReinvestigateModal}>
+          {i18n.translate('notebook.summary.card.reinvestigateWithFeedback', {
+            defaultMessage: 'Reinvestigate with feedback',
+          })}
+        </EuiButton>
+        <EuiButton
+          color="text"
+          iconType="generate"
+          style={{
+            backgroundColor: isDarkMode ? 'unset' : euiThemeVars.euiColorGhost,
+          }}
+        >
+          {i18n.translate('notebook.summary.card.askAIForGuidance', {
+            defaultMessage: 'Ask AI for guidance',
+          })}
+        </EuiButton>
+      </EuiFlexGroup>
+    );
+  };
+
+  const renderPrimaryHypothesis = (hasError: boolean = false) => {
     if (isInvestigating) {
       const hasStepsOrMessage =
         executorMessages.length > 0 || PERAgentServices?.message.getMessageValue();
@@ -334,6 +363,60 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
         </EuiText>
       );
     }
+    if (hypotheses[0].status === 'RULED_OUT') {
+      // First hypothese is ruled out means all hypotheses are ruled out
+      return (
+        <EuiPanel style={{ borderStyle: 'dashed', boxShadow: 'unset' }}>
+          <EuiEmptyPrompt
+            iconType="alert"
+            iconColor="warning"
+            title={
+              <h2>
+                {i18n.translate('notebook.summary.card.allHypothesesRuledOut', {
+                  defaultMessage: 'All hypotheses have been ruled out',
+                })}
+              </h2>
+            }
+            style={{ maxWidth: '40em' }}
+            body={
+              <React.Fragment>
+                <p>
+                  {i18n.translate('notebook.summary.card.allHypothesesRuledOutDescription', {
+                    defaultMessage:
+                      "You've ruled out all available hypotheses. This could mean the root cause hasn't been identified yet, or additional data is needed to generate new hypotheses.",
+                  })}
+                </p>
+              </React.Fragment>
+            }
+            actions={
+              <>
+                {investigationError === undefined && (
+                  <>
+                    {renderRetryButtonGroup()}
+                    <EuiSpacer />
+                  </>
+                )}
+
+                <EuiText
+                  size="xs"
+                  color="subdued"
+                  style={{
+                    borderRadius: 4,
+                    backgroundColor: euiThemeVars.ouiColorLightestShade,
+                    padding: 12,
+                  }}
+                >
+                  {i18n.translate('notebook.summary.card.feedbackTip', {
+                    defaultMessage:
+                      'Tip: Your feedback on ruled-out hypotheses will help guide the next investigation round',
+                  })}
+                </EuiText>
+              </>
+            }
+          />
+        </EuiPanel>
+      );
+    }
 
     return (
       <EuiFlexGroup key={`hypothesis-${hypotheses[0].id}`} alignItems="center" gutterSize="none">
@@ -341,8 +424,51 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
           index={0}
           hypothesis={hypotheses[0]}
           onClickHypothesis={handleClickHypothesis}
+          hasError={hasError}
         />
       </EuiFlexGroup>
+    );
+  };
+
+  const renderInvestigationError = () => {
+    return (
+      <EuiSplitPanel.Outer>
+        <EuiSplitPanel.Inner style={{ backgroundColor: isDarkMode ? '#4a2526' : '#fee0e1' }}>
+          <EuiFlexGroup gutterSize="none" direction="row" alignItems="center" style={{ gap: 16 }}>
+            <EuiIcon type="alert" size="xl" color="danger" />
+            <div>
+              <EuiTitle size="s">
+                <h5 style={{ color: euiThemeVars.ouiColorDanger }}>
+                  {i18n.translate('notebook.summary.card.investigationFailed', {
+                    defaultMessage: 'Investigation failed',
+                  })}
+                </h5>
+              </EuiTitle>
+              <EuiText color="danger">
+                {i18n.translate('notebook.summary.card.investigationFailedDescription', {
+                  defaultMessage: 'Unable to generate new hypotheses. Showing previous results.',
+                })}
+              </EuiText>
+            </div>
+          </EuiFlexGroup>
+        </EuiSplitPanel.Inner>
+        <EuiHorizontalRule margin="none" />
+        <EuiSplitPanel.Inner color="danger">
+          <EuiText color="subdued">
+            <h5>
+              {i18n.translate('notebook.summary.card.previousHypotheses', {
+                defaultMessage: 'PREVIOUS HYPOTHESES',
+              })}
+            </h5>
+          </EuiText>
+          <EuiSpacer size="m" />
+          {renderPrimaryHypothesis(true)}
+        </EuiSplitPanel.Inner>
+        <EuiHorizontalRule margin="none" />
+        <EuiSplitPanel.Inner color="danger">
+          {renderRetryButtonGroup('flexStart')}
+        </EuiSplitPanel.Inner>
+      </EuiSplitPanel.Outer>
     );
   };
 
@@ -386,38 +512,17 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     <>
       <EuiPanel borderRadius="l" data-test-subj="investigation-results-panel">
         {/* Header Section */}
-        <EuiFlexGroup gutterSize="none" justifyContent="spaceBetween" alignItems="center">
-          <div>
-            <EuiTitle>
-              <h2>
-                {i18n.translate('notebook.summary.card.investigationResults', {
-                  defaultMessage: 'Investigation Results',
-                })}
-              </h2>
-            </EuiTitle>
-            <EuiFlexGroup gutterSize="s" alignItems="center" wrap={false}>
-              <EuiFlexItem grow={false}>
-                <EuiText color="subdued">
-                  {i18n.translate('notebook.summary.card.rootCauseDescription', {
-                    defaultMessage: 'The most likely root cause based on current findings.',
-                  })}
-                </EuiText>
-              </EuiFlexItem>
-              {hypotheses?.length && !isInvestigating && !isNotebookReadonly ? (
-                <EuiFlexItem grow={false}>
-                  <HypothesesFeedback
-                    appName={appName}
-                    usageCollection={usageCollection}
-                    openReinvestigateModal={openReinvestigateModal}
-                  />
-                </EuiFlexItem>
-              ) : null}
-              <EuiFlexItem grow={false}>{statusBadge}</EuiFlexItem>
-            </EuiFlexGroup>
-          </div>
-
+        <EuiFlexGroup gutterSize="none" justifyContent="spaceBetween" alignItems="flexStart">
+          <EuiTitle>
+            <h1>{path}</h1>
+          </EuiTitle>
           {!isNotebookReadonly ? (
-            <EuiButton onClick={() => openReinvestigateModal()} disabled={isInvestigating}>
+            <EuiSmallButton
+              fill
+              onClick={() => openReinvestigateModal()}
+              disabled={isInvestigating}
+              iconType={isInvestigating ? undefined : 'refresh'}
+            >
               {isInvestigating ? (
                 <>
                   <EuiLoadingSpinner />{' '}
@@ -430,13 +535,33 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
                   defaultMessage: 'Reinvestigate',
                 })
               )}
-            </EuiButton>
+            </EuiSmallButton>
           ) : null}
         </EuiFlexGroup>
+        <EuiFlexGroup gutterSize="s" alignItems="center" wrap={false}>
+          <EuiFlexItem grow={false}>
+            <EuiText color="subdued">
+              {i18n.translate('notebook.summary.card.rootCauseDescription', {
+                defaultMessage: 'The most likely root cause based on current findings.',
+              })}
+            </EuiText>
+          </EuiFlexItem>
+          {hypotheses?.length && !isInvestigating && !isNotebookReadonly ? (
+            <EuiFlexItem grow={false}>
+              <HypothesesFeedback
+                appName={appName}
+                usageCollection={usageCollection}
+                openReinvestigateModal={openReinvestigateModal}
+              />
+            </EuiFlexItem>
+          ) : null}
+          <EuiFlexItem grow={false}>{statusBadge}</EuiFlexItem>
+        </EuiFlexGroup>
+
         <EuiSpacer size="s" />
 
         {/* Hypotheses Content Section */}
-        {renderPrimaryHypothesis()}
+        {investigationError ? renderInvestigationError() : renderPrimaryHypothesis()}
         <EuiHorizontalRule margin="s" />
 
         {/* Metadata Section */}

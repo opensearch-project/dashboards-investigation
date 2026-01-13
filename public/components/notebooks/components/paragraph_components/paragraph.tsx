@@ -101,18 +101,17 @@ export const Paragraph = (props: ParagraphProps) => {
     const currentFeedback = parameters?.finding?.feedback;
     const newFeedback = currentFeedback === feedbackType ? undefined : feedbackType;
 
-    paragraph.updateInput({
-      parameters: {
-        ...parameters,
-        finding: {
-          ...parameters.finding,
-          feedback: newFeedback,
-        },
-      },
-    });
-
     setIsSaving(true);
     try {
+      paragraph.updateInput({
+        parameters: {
+          ...parameters,
+          finding: {
+            ...parameters.finding,
+            feedback: newFeedback,
+          },
+        },
+      });
       await saveParagraph({ paragraphStateValue: paragraph.value, showLoading: false });
     } catch (error) {
       notifications.toasts.addError(error, { title: 'Updating finding failed.' });
@@ -170,8 +169,6 @@ export const Paragraph = (props: ParagraphProps) => {
         : h
     );
 
-    context.state.updateValue({ hypotheses: updatedHypotheses });
-
     setIsSaving(true);
     try {
       await http.put(`/api/investigation/savedNotebook/${notebookId}/hypothesis/${hypothesis.id}`, {
@@ -181,6 +178,8 @@ export const Paragraph = (props: ParagraphProps) => {
           userSelectedFindingParagraphIds: updatedSelectedIds,
         }),
       });
+
+      context.state.updateValue({ hypotheses: updatedHypotheses });
 
       const message =
         listType === 'irrelevant'
@@ -195,7 +194,6 @@ export const Paragraph = (props: ParagraphProps) => {
       notifications.toasts.addError(error, {
         title: 'Failed to update finding',
       });
-      context.state.updateValue({ hypotheses });
     } finally {
       setIsSaving(false);
     }

@@ -11,12 +11,17 @@ export const HypothesisBadge: React.FC<{
   label: string;
   color: string;
   icon?: string;
-}> = ({ label, color, icon }) => {
+  textColor?: string;
+}> = ({ label, color, icon, textColor }) => {
   return (
     <EuiBadge
       color={color}
       iconType={icon}
-      style={{ alignContent: 'center', borderRadius: '9999px' }}
+      style={{
+        alignContent: 'center',
+        borderRadius: '9999px',
+        ...(textColor && { color: textColor }),
+      }}
     >
       {label}
     </EuiBadge>

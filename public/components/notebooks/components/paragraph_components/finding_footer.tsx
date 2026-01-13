@@ -36,24 +36,49 @@ export const FindingFooter: React.FC<FindingFooterProps> = ({
       <EuiSpacer size="s" />
       <EuiFlexGroup gutterSize="none" justifyContent="spaceBetween">
         <EuiFlexGroup gutterSize="none" alignItems="center" style={{ gap: 8 }}>
-          <EuiSmallButton
-            fill={feedback === 'CONFIRMED'}
-            onClick={() => onFeedback('CONFIRMED')}
-            disabled={isSaving}
-          >
-            {i18n.translate('notebook.finding.footer.confirm', {
-              defaultMessage: 'Confirm',
-            })}
-          </EuiSmallButton>
-          <EuiSmallButton
-            fill={feedback === 'REJECTED'}
-            onClick={() => onFeedback('REJECTED')}
-            disabled={isSaving}
-          >
-            {i18n.translate('notebook.finding.footer.reject', {
-              defaultMessage: 'Reject',
-            })}
-          </EuiSmallButton>
+          {feedback !== 'REJECTED' && (
+            <EuiSmallButton
+              fill
+              onClick={() => onFeedback('CONFIRMED')}
+              disabled={isSaving}
+              color={feedback === 'CONFIRMED' ? 'success' : 'primary'}
+            >
+              {feedback === 'CONFIRMED'
+                ? i18n.translate('notebook.finding.footer.confirmed', {
+                    defaultMessage: 'Confirmed',
+                  })
+                : i18n.translate('notebook.finding.footer.confirm', {
+                    defaultMessage: 'Confirm',
+                  })}
+            </EuiSmallButton>
+          )}
+          {feedback !== 'CONFIRMED' && (
+            <EuiSmallButton
+              fill={feedback === 'REJECTED'}
+              onClick={() => onFeedback('REJECTED')}
+              disabled={isSaving}
+              color={feedback === 'REJECTED' ? 'danger' : 'primary'}
+            >
+              {feedback === 'REJECTED'
+                ? i18n.translate('notebook.finding.footer.rejected', {
+                    defaultMessage: 'Rejected',
+                  })
+                : i18n.translate('notebook.finding.footer.reject', {
+                    defaultMessage: 'Reject',
+                  })}
+            </EuiSmallButton>
+          )}
+          {(feedback === 'CONFIRMED' || feedback === 'REJECTED') && (
+            <EuiButtonEmpty
+              onClick={() => onFeedback(feedback)}
+              disabled={isSaving}
+              style={{ textDecoration: 'underline' }}
+            >
+              {i18n.translate('notebook.finding.footer.undo', {
+                defaultMessage: 'Undo',
+              })}
+            </EuiButtonEmpty>
+          )}
         </EuiFlexGroup>
 
         <EuiFlexGroup
@@ -107,7 +132,7 @@ export const FindingFooter: React.FC<FindingFooterProps> = ({
                     })}
               </EuiText>
               <EuiButtonEmpty
-                style={{ marginInline: -8 }}
+                style={{ marginInline: -8, textDecoration: 'underline' }}
                 onClick={() => onMarkFinding(isMarkedSelected ? 'selected' : 'irrelevant')}
                 disabled={isSaving}
                 size="xs"

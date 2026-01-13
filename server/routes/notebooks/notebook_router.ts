@@ -232,7 +232,9 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
       try {
         const noteObject = {
           hypotheses: request.body.hypotheses,
-          topologies: request.body.topologies,
+          ...(request.body.topologies !== null && request.body.topologies !== undefined
+            ? { topologies: request.body.topologies }
+            : {}),
           dateModified: new Date().toISOString(),
           ...(request.body.runningMemory
             ? { runningMemory: request.body.runningMemory }

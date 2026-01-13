@@ -19,9 +19,7 @@ import { useHistory } from 'react-router-dom';
 
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { HypothesisItem } from './hypothesis_item';
-import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
-import { NoteBookServices } from '../../../../types';
-import { useNotebook } from '../../../../hooks/use_notebook';
+import { useReplaceAsPrimary } from '../../../../hooks/use_replace_primary_hypothesis';
 
 interface AlternativeHypothesesPanelProps {
   notebookId: string;
@@ -32,45 +30,16 @@ export const AlternativeHypothesesPanel: React.FC<AlternativeHypothesesPanelProp
   notebookId,
   isInvestigating,
 }) => {
-  const {
-    services: { notifications },
-  } = useOpenSearchDashboards<NoteBookServices>();
   const notebookContext = useContext(NotebookReactContext);
   const { hypotheses } = useObservable(
     notebookContext.state.getValue$(),
     notebookContext.state.value
   );
   const history = useHistory();
-  const { updateHypotheses } = useNotebook();
+  const { replaceAsPrimary } = useReplaceAsPrimary();
 
   const handleClickHypothesis = (hypothesisId: string) => {
     history.push(`/agentic/${notebookId}/hypothesis/${hypothesisId}`);
-  };
-
-  const handleReplaceAsPrimary = async (hypothesisId: string) => {
-    try {
-      const currentHypotheses = hypotheses || [];
-      const targetIndex = currentHypotheses.findIndex((h) => h.id === hypothesisId);
-      if (targetIndex === -1) return;
-
-      const reorderedHypotheses = [...currentHypotheses];
-      const [targetHypothesis] = reorderedHypotheses.splice(targetIndex, 1);
-      reorderedHypotheses.unshift(targetHypothesis);
-
-      await updateHypotheses(reorderedHypotheses);
-      notifications.toasts.addSuccess(
-        i18n.translate('notebook.hypotheses.panel.primaryHypothesisUpdated', {
-          defaultMessage: 'Primary hypothesis updated successfully',
-        })
-      );
-    } catch (error) {
-      notifications.toasts.addDanger(
-        i18n.translate('notebook.hypotheses.panel.failedToUpdatePrimaryHypothesis', {
-          defaultMessage: 'Failed to update primary hypothesis',
-        })
-      );
-      console.error(error);
-    }
   };
 
   if (isInvestigating || (hypotheses || []).length <= 1) {
@@ -88,9 +57,16 @@ export const AlternativeHypothesesPanel: React.FC<AlternativeHypothesesPanelProp
       );
     }
 
-    return hypotheses
-      .slice(1)
-      .sort((a, b) => b.likelihood - a.likelihood)
+    const allRuledOut = hypotheses.every((h) => h.status === 'RULED_OUT');
+    const alternativehypotheses = allRuledOut ? hypotheses : hypotheses.slice(1);
+
+    return alternativehypotheses
+      .sort((a, b) => {
+        const aRuledOut = a.status === 'RULED_OUT';
+        const bRuledOut = b.status === 'RULED_OUT';
+        if (aRuledOut !== bRuledOut) return aRuledOut ? 1 : -1;
+        return b.likelihood - a.likelihood;
+      })
       .map((hypothesis, index) => (
         <React.Fragment key={`hypothesis-${hypothesis.id}`}>
           <EuiPanel>
@@ -99,12 +75,16 @@ export const AlternativeHypothesesPanel: React.FC<AlternativeHypothesesPanelProp
                 index={index + 1}
                 hypothesis={hypothesis}
                 onClickHypothesis={handleClickHypothesis}
-                additionalButton={{
-                  label: i18n.translate('notebook.hypotheses.panel.replaceAsPrimary', {
-                    defaultMessage: 'Replace as Primary',
-                  }),
-                  onClick: () => handleReplaceAsPrimary(hypothesis.id),
-                }}
+                additionalButton={
+                  hypothesis.status !== 'RULED_OUT'
+                    ? {
+                        label: i18n.translate('notebook.hypotheses.panel.replaceAsPrimary', {
+                          defaultMessage: 'Replace as primary',
+                        }),
+                        onClick: () => replaceAsPrimary(hypothesis.id),
+                      }
+                    : undefined
+                }
               />
             </EuiFlexGroup>
           </EuiPanel>

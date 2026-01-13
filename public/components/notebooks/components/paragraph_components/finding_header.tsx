@@ -90,7 +90,7 @@ export const FindingHeader: React.FC<FindingHeaderProps> = ({
               </EuiBadge>
             )}
             {feedback === 'REJECTED' && (
-              <EuiBadge color="warning">
+              <EuiBadge color="danger">
                 {i18n.translate('notebook.finding.header.rejected', {
                   defaultMessage: 'Rejected',
                 })}

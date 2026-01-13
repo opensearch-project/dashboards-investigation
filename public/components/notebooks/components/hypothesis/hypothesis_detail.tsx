@@ -12,7 +12,6 @@ import {
   EuiPageContentBody,
   EuiPageHeader,
   EuiPageHeaderSection,
-  EuiSmallButton,
   EuiText,
   EuiTitle,
   EuiSpacer,
@@ -23,32 +22,29 @@ import {
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import React, { useContext, useState } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { i18n } from '@osd/i18n';
-import { NoteBookServices } from 'public/types';
 import moment from 'moment';
 import { FindingParagraphParameters } from 'common/types/notebooks';
-import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { EuiSmallButton } from '@elastic/eui';
 import { HypothesisBadge, LikelihoodBadge } from './hypothesis_badge';
-import { NOTEBOOKS_API_PREFIX } from '../../../../../common/constants/notebooks';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { Paragraph } from '../paragraph_components/paragraph';
 import './hypothesis_detail.scss';
+import { HypothesisStatusButton } from './hypthesis_status_button';
+import { Topology } from '../topology';
+import { useReplaceAsPrimary } from '../../../../hooks/use_replace_primary_hypothesis';
 
 export const HypothesisDetail: React.FC = () => {
-  const {
-    services: { http, notifications },
-  } = useOpenSearchDashboards<NoteBookServices>();
-  const [isSaving, setIsSaving] = useState(false);
   // const history = useHistory();
   const location = useLocation();
-  const { id: notebookId } = useParams<{ id: string }>();
 
   const notebookContext = useContext(NotebookReactContext);
-  const { paragraphs: paragraphsStates, hypotheses } = useObservable(
+  const { paragraphs: paragraphsStates, hypotheses, topologies } = useObservable(
     notebookContext.state.getValue$(),
     notebookContext.state.value
   );
+  const { replaceAsPrimary } = useReplaceAsPrimary();
 
   const [toggleIdSelected] = useState('evidence');
 
@@ -58,7 +54,6 @@ export const HypothesisDetail: React.FC = () => {
 
   const currentHypothesis = hypotheses?.find((h) => h.id === hypothesisId);
   const {
-    id: currentHypothesisId,
     title,
     description,
     status,
@@ -70,52 +65,7 @@ export const HypothesisDetail: React.FC = () => {
     newAddedFindingIds,
   } = currentHypothesis || {};
 
-  const handleToggleStatus = async () => {
-    if (!currentHypothesis) return;
-
-    const isRuledOut = status === 'RULED_OUT';
-    const updatedStatus = isRuledOut ? undefined : 'RULED_OUT';
-
-    const updatedHypotheses = hypotheses?.map((h) =>
-      h.id === currentHypothesis.id ? { ...h, status: updatedStatus } : h
-    );
-
-    notebookContext.state.updateValue({ hypotheses: updatedHypotheses });
-
-    setIsSaving(true);
-    try {
-      const body: any = {};
-      if (updatedStatus) {
-        body.status = updatedStatus;
-      }
-      await http.put(
-        `${NOTEBOOKS_API_PREFIX}/savedNotebook/${notebookId}/hypothesis/${currentHypothesisId}`,
-        { body: JSON.stringify(body) }
-      );
-      notifications.toasts.addSuccess(
-        isRuledOut
-          ? i18n.translate('notebook.hypothesis.detail.hypothesisReactivated', {
-              defaultMessage: 'Hypothesis reactivated',
-            })
-          : i18n.translate('notebook.hypothesis.detail.hypothesisRuledOut', {
-              defaultMessage: 'Hypothesis ruled out',
-            })
-      );
-    } catch (error) {
-      notifications.toasts.addError(error, {
-        title: isRuledOut
-          ? i18n.translate('notebook.hypothesis.detail.failedToReactivate', {
-              defaultMessage: 'Failed to reactivate hypothesis',
-            })
-          : i18n.translate('notebook.hypothesis.detail.failedToRuleOut', {
-              defaultMessage: 'Failed to rule out hypothesis',
-            }),
-      });
-      notebookContext.state.updateValue({ hypotheses });
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const isRuledOut = status === 'RULED_OUT';
 
   // TODO: once we have more tab than just "Evidence and reasoning"
   // const toggleButtons = [
@@ -217,7 +167,7 @@ export const HypothesisDetail: React.FC = () => {
 
                   <HypothesisBadge
                     label={
-                      status === 'RULED_OUT'
+                      isRuledOut
                         ? i18n.translate('notebook.hypothesis.detail.ruledOut', {
                             defaultMessage: 'Ruled Out',
                           })
@@ -225,19 +175,29 @@ export const HypothesisDetail: React.FC = () => {
                             defaultMessage: 'Active',
                           })
                     }
-                    color={status === 'RULED_OUT' ? 'danger' : 'hollow'}
+                    color={isRuledOut ? 'danger' : 'hollow'}
                   />
+                  {hypotheses?.[0]?.id === hypothesisId && !isRuledOut && (
+                    <HypothesisBadge
+                      label="Primary hypothesis"
+                      color="#FAF5FF"
+                      textColor="#7300E5"
+                    />
+                  )}
                 </EuiFlexGroup>
                 <EuiFlexGroup gutterSize="none" justifyContent="flexEnd" style={{ gap: 8 }}>
-                  <EuiSmallButton onClick={handleToggleStatus} disabled={isSaving}>
-                    {status === 'RULED_OUT'
-                      ? i18n.translate('notebook.hypothesis.detail.reactivate', {
-                          defaultMessage: 'Reactivate',
-                        })
-                      : i18n.translate('notebook.hypothesis.detail.ruleOut', {
-                          defaultMessage: 'Rule out',
-                        })}
-                  </EuiSmallButton>
+                  {hypotheses?.[0]?.id !== hypothesisId && !isRuledOut && (
+                    <EuiSmallButton onClick={() => replaceAsPrimary(hypothesisId!)}>
+                      {i18n.translate('notebook.hypothesis.detail.replaceAsPrimary', {
+                        defaultMessage: 'Replace as primary',
+                      })}
+                    </EuiSmallButton>
+                  )}
+                  <HypothesisStatusButton
+                    hypothesisId={currentHypothesis.id}
+                    hypothesisStatus={status}
+                    fill
+                  />
                   {/* <EuiSmallButton fill>Confirm hypothesis</EuiSmallButton> */}
                 </EuiFlexGroup>
               </EuiFlexGroup>
@@ -357,6 +317,31 @@ export const HypothesisDetail: React.FC = () => {
                           ))}
                       </>
                     )}
+                    {topologies &&
+                      topologies.filter((topology) =>
+                        topology.hypothesisIds?.includes(currentHypothesis.id)
+                      ).length > 0 && (
+                        <div>
+                          <EuiTitle size="s">
+                            <h5>
+                              {i18n.translate('notebook.hypothesis.detail.relatedTopology', {
+                                defaultMessage: 'Related topology',
+                              })}
+                            </h5>
+                          </EuiTitle>
+                          {topologies
+                            .filter((topology) =>
+                              topology.hypothesisIds?.includes(currentHypothesis.id)
+                            )
+                            .map((topolopy, index) => {
+                              return (
+                                <React.Fragment key={`typology-${index}`}>
+                                  <Topology topologyItem={topolopy} />
+                                </React.Fragment>
+                              );
+                            })}
+                        </div>
+                      )}
                   </>
                 )}
 

@@ -57,7 +57,6 @@ import { HypothesisDetail, AlternativeHypothesesPanel, ReinvestigateModal } from
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
 import { InvestigationPageContext } from './investigation_page_context';
 import { migrateFindingParagraphs } from '../../../utils/finding_migration';
-import { Topology } from './topology';
 import { useSidecarPadding } from '../../../hooks/use_sidecar_padding';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
@@ -97,7 +96,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     paragraphs: paragraphsStates,
     isLoading,
     isNotebookReadonly,
-    topologies,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
@@ -427,15 +425,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                 );
               })
             : null}
-          {isLoading || isInvestigating || !topologies
-            ? null
-            : topologies.map((topolopy, index) => {
-                return (
-                  <React.Fragment key={`typology-${index}`}>
-                    <Topology topologyItem={topolopy} />
-                  </React.Fragment>
-                );
-              })}
           {!isLoading && !isInvestigating && !isNotebookReadonly && (
             <>
               <EuiSpacer size="s" />
