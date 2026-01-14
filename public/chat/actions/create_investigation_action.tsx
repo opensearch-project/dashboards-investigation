@@ -3,24 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiIcon,
-  EuiLink,
-  EuiPanel,
-  EuiSpacer,
-  EuiText,
-} from '@elastic/eui';
 import React from 'react';
 import dateMath from '@elastic/datemath';
-import { first } from 'rxjs/operators';
-import { NOTEBOOKS_API_PREFIX } from '../../common/constants/notebooks';
-import { NotebookContext, NoteBookSource, NotebookType } from '../../common/types/notebooks';
-import { CoreStart, UiSettingScope } from '../../../../src/core/public';
-import { AssistantAction } from '../../../../src/plugins/context_provider/public';
+import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
+import { NotebookContext, NoteBookSource, NotebookType } from '../../../common/types/notebooks';
+import { CoreStart, UiSettingScope } from '../../../../../src/core/public';
+import { AssistantAction } from '../../../../../src/plugins/context_provider/public';
+import { CreateInvestigatioToolResult } from './components/CreateInvestigatioToolResult';
 
-interface CreateInvestigationArgs {
+export interface CreateInvestigationRequest {
   name: string;
   initialGoal: string;
   symptom: string;
@@ -37,9 +28,10 @@ interface CreateInvestigationArgs {
     to: string;
   };
   dataSourceId?: string;
+  confirmed?: boolean; // whether user confirmed the action
 }
 
-interface CreateInvestigationResult {
+export interface CreateInvestigationResponse {
   success: boolean;
   notebookId?: string;
   name?: string;
@@ -57,7 +49,7 @@ interface CreateInvestigationResult {
 
 export const createInvestigationAction = (
   services: CoreStart
-): AssistantAction<CreateInvestigationArgs> => {
+): AssistantAction<CreateInvestigationRequest> => {
   return {
     name: 'create_investigation',
     description:
@@ -131,9 +123,7 @@ export const createInvestigationAction = (
       required: ['name', 'initialGoal', 'symptom', 'index'],
     },
     requiresConfirmation: true,
-    confirmationDescription:
-      'This will create a new investigation notebook with the specified parameters.',
-    handler: async (args: CreateInvestigationArgs): Promise<CreateInvestigationResult> => {
+    handler: async (args: CreateInvestigationRequest): Promise<CreateInvestigationResponse> => {
       try {
         // log args
         console.log('create investigation args', args);
@@ -174,7 +164,7 @@ export const createInvestigationAction = (
           dataSourceId: dataSourceId || '',
         };
 
-        const dateFormat = uiSettings?.get('dateFormat') || 'MMM D, YYYY @ HH:mm:ss.SSS';
+        const dateFormat = uiSettings?.get('dateFormat');
 
         // Add time range if provided (parse ISO-8601 UTC timestamps or relative time expressions)
         if (args.timeRange) {
@@ -250,8 +240,6 @@ export const createInvestigationAction = (
           };
         }
 
-        // TODO wait for 1 second to allow the context to be updated
-        await new Promise((resolve) => setTimeout(resolve, 1000));
         // Create the notebook via API
         const notebookId = await http.post<string>(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook`, {
           body: JSON.stringify({
@@ -264,15 +252,7 @@ export const createInvestigationAction = (
           throw new Error('Failed to create investigation notebook');
         }
 
-        // Auto-navigate to the investigation page after a brief delay
         const path = `#/agentic/${notebookId}`;
-        setTimeout(() => {
-          if (services.application) {
-            services.application.navigateToApp('investigation-notebooks', {
-              path,
-            });
-          }
-        }, 500);
 
         return {
           success: true,
@@ -282,7 +262,7 @@ export const createInvestigationAction = (
           symptom: args.symptom,
           index: args.index,
           timeRange: args.timeRange,
-          message: `Investigation created successfully`,
+          message: `Investigation created successfully. You just reply the message exactly like 'A new Investigation <Name> is created. Click the above link to open and start to run it.'`,
           path,
         };
       } catch (error) {
@@ -296,116 +276,14 @@ export const createInvestigationAction = (
         };
       }
     },
-    render: ({
-      status,
-      args,
-      result,
-    }: {
+    render: (props: {
       status: 'pending' | 'executing' | 'complete' | 'failed';
-      args?: CreateInvestigationArgs;
-      result?: CreateInvestigationResult;
+      args?: CreateInvestigationRequest;
+      result?: CreateInvestigationResponse;
+      onApprove?: () => void;
+      onReject?: () => void;
     }) => {
-      // logger args and result
-      console.log('Render create_investigation action', { status, args, result });
-      // Return null if we have neither args nor result
-      if (!args && !result) {
-        return null;
-      }
-
-      const getStatusColor = () => {
-        if (status === 'failed' || (result && !result.success)) return 'danger';
-        if (status === 'complete' && result?.success) return 'success';
-        return 'subdued';
-      };
-
-      const getStatusIcon = () => {
-        if (status === 'failed' || (result && !result.success)) return 'cross';
-        if (status === 'executing') return 'clock';
-        return 'check';
-      };
-
-      const getStatusIconColor = () => {
-        if (status === 'failed' || (result && !result.success)) return 'danger';
-        if (status === 'executing') return 'primary';
-        return 'success';
-      };
-
-      return (
-        <EuiPanel paddingSize="s" color={getStatusColor()}>
-          <EuiFlexGroup alignItems="center" gutterSize="s">
-            <EuiFlexItem grow={false}>
-              <EuiIcon type={getStatusIcon()} color={getStatusIconColor()} />
-            </EuiFlexItem>
-            <EuiFlexItem>
-              <EuiText size="s">
-                <strong>
-                  {status === 'executing' && 'Creating investigation...'}
-                  {status === 'complete' && result?.success && 'Create investigation'}
-                  {status === 'failed' && 'Failed to create investigation'}
-                </strong>
-              </EuiText>
-              {status === 'complete' && result?.success && result?.name && (
-                <EuiText size="xs" color="subdued">
-                  {result.name}
-                </EuiText>
-              )}
-              {status === 'failed' && result?.error && (
-                <EuiText size="xs" color="danger">
-                  {result.error}
-                </EuiText>
-              )}
-            </EuiFlexItem>
-          </EuiFlexGroup>
-
-          {status === 'complete' && result?.success && (
-            <>
-              <EuiSpacer size="s" />
-              <EuiFlexGroup alignItems="center" gutterSize="s">
-                <EuiFlexItem grow={false}>
-                  <EuiIcon type="check" color="success" />
-                </EuiFlexItem>
-                <EuiFlexItem>
-                  <EuiText size="s">
-                    <strong>Navigate to investigation page</strong>
-                  </EuiText>
-                  <EuiText size="xs" color="subdued">
-                    Navigated to page:{' '}
-                    <EuiLink
-                      onClick={async () => {
-                        if (result?.notebookId) {
-                          // Check if we're already in the investigation-notebooks app
-                          const currentApp = await services.application?.currentAppId$
-                            .pipe(first())
-                            .toPromise();
-
-                          if (currentApp === 'investigation-notebooks') {
-                            // Phase 1: Navigate to the investigation-notebooks app first
-                            await services.application?.navigateToApp('investigation-notebooks');
-
-                            // Phase 2: Navigate to the specific notebook after a short delay
-                            setTimeout(() => {
-                              services.application?.navigateToApp('investigation-notebooks', {
-                                path: `#/agentic/${result.notebookId}`,
-                              });
-                            }, 100);
-                          } else {
-                            // If we're in a different app, navigate directly with the path
-                            services.application?.navigateToApp('investigation-notebooks', {
-                              path: `#/agentic/${result.notebookId}`,
-                            });
-                          }
-                        }
-                      }}
-                    >
-                      {result?.name}
-                    </EuiLink>
-                  </EuiText>
-                </EuiFlexItem>
-              </EuiFlexGroup>
-            </>
-          )}
-        </EuiPanel>
-      );
+      return <CreateInvestigatioToolResult {...props} services={services} />;
     },
     enabled: true,
     useCustomRenderer: true,
