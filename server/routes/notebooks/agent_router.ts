@@ -222,6 +222,16 @@ You are now investigating this new question. Update the hypotheses based on this
 
 ${commonInstructions}
 
+## User Feedback Handling Instructions
+**CRITICAL: Follow these rules when processing user feedback:**
+1. DO NOT reuse findings marked as REJECTED - the user has determined these are incorrect
+2. PRIORITIZE findings marked as CONFIRMED - the user has validated these as accurate
+3. PAY SPECIAL ATTENTION to manually added findings - these represent critical user insights
+4. DO NOT pursue hypotheses marked as RULED_OUT - the user has eliminated these possibilities
+5. For findings marked as "irrelevant" to a hypothesis, do not associate them with that hypothesis again
+6. For findings marked as "user selected" for a hypothesis, these are findings the user explicitly chose as highly relevant - give them extra weight
+7. Findings with no user feedback are implicitly accepted - the user has not rejected them, so they can be used with moderate confidence
+
 ## Findings Handling
 - **CRITICAL:** During rerun, ALL old findings will be DELETED. You MUST return a COMPLETE list of findings in the "findings" array
 - Return ALL findings (both existing and new) that should exist after the rerun

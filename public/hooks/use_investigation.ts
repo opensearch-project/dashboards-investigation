@@ -607,15 +607,6 @@ The user has reviewed your previous investigation and provided the following fee
 - Ruled Out Hypotheses: ${ruledOutHypotheses.length}
 - Active Hypotheses: ${activeHypotheses.length}
 
-IMPORTANT INSTRUCTIONS:
-1. DO NOT reuse findings marked as REJECTED - the user has determined these are incorrect
-2. PRIORITIZE findings marked as CONFIRMED - the user has validated these as accurate
-3. PAY SPECIAL ATTENTION to manually added findings - these represent critical user insights
-4. DO NOT pursue hypotheses marked as RULED_OUT - the user has eliminated these possibilities
-5. For findings marked as "irrelevant" to a hypothesis, do not associate them with that hypothesis again
-6. For findings marked as "user selected" for a hypothesis, these are findings the user explicitly chose as highly relevant - give them extra weight
-7. Findings with no user feedback are implicitly accepted - the user has not rejected them, so they can be used with moderate confidence
-
 # Current Hypotheses State
 ${
   activeHypotheses.length
