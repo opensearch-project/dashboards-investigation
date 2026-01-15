@@ -7,6 +7,7 @@ import { EuiLink, EuiPanel, EuiSpacer, EuiText } from '@elastic/eui';
 import React from 'react';
 import { CoreStart } from '../../../../../../src/core/public';
 import { CreateInvestigationResponse } from '../create_investigation_action';
+import { investigationNotebookID } from '../../../../common/constants/shared';
 
 // Investigation Link Panel Component
 interface Props {
@@ -18,7 +19,7 @@ export const InvestigationLinkPanel: React.FC<Props> = ({ result, services }) =>
   // Generate the current host URL for the investigation
   const currentHost = window.location.origin;
   const investigationUrl = result?.notebookId
-    ? `${currentHost}/app/investigation-notebooks#/agentic/${result.notebookId}`
+    ? `${currentHost}/app/${investigationNotebookID}#/agentic/${result.notebookId}`
     : '';
   const truncatedUrl =
     investigationUrl.length > 50 ? `${investigationUrl.substring(0, 47)}...` : investigationUrl;
@@ -33,7 +34,7 @@ export const InvestigationLinkPanel: React.FC<Props> = ({ result, services }) =>
         <EuiLink
           onClick={async () => {
             if (result?.notebookId) {
-              services.application?.navigateToApp('investigation-notebooks', {
+              services.application?.navigateToApp(investigationNotebookID, {
                 path: `#/agentic/${result.notebookId}`,
               });
             }

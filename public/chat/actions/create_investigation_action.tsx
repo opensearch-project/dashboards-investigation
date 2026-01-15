@@ -262,7 +262,10 @@ export const createInvestigationAction = (
           symptom: args.symptom,
           index: args.index,
           timeRange: args.timeRange,
-          message: `Investigation created successfully. You just reply the message exactly like 'A new Investigation <Name> is created. Click the above link to open and start to run it.'`,
+          message: `Investigation created successfully. Reply the message exactly like
+          'A new Investigation <Name> has been created. \n\n
+          <summary of this investigation> \n\n
+          Click the above link to open and start run it.'`,
           path,
         };
       } catch (error) {

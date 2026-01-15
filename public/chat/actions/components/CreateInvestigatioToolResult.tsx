@@ -93,12 +93,6 @@ export const CreateInvestigatioToolResult: React.FC<Props> = ({
           </>
         )}
 
-        {/* Final result description */}
-        <EuiText size="s">
-          A new Investigation is created based on our conversation history. Click the link below to
-          view it.
-        </EuiText>
-
         <EuiSpacer size="xs" />
 
         {/* Investigation Link Panel */}
@@ -110,10 +104,10 @@ export const CreateInvestigatioToolResult: React.FC<Props> = ({
   // Error state
   if (status === 'failed') {
     return (
-      <EuiPanel paddingSize="m">
+      <EuiPanel paddingSize="s">
         <EuiFlexGroup alignItems="center" gutterSize="s" responsive={false}>
           <EuiFlexItem grow={false}>
-            <EuiIcon type="cross" color="danger" />
+            <EuiIcon type="crossInCircleEmpty" color="danger" />
           </EuiFlexItem>
           <EuiFlexItem>
             <EuiText size="s">
