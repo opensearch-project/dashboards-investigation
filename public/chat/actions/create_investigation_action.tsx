@@ -125,8 +125,6 @@ export const createInvestigationAction = (
     requiresConfirmation: true,
     handler: async (args: CreateInvestigationRequest): Promise<CreateInvestigationResponse> => {
       try {
-        // log args
-        console.log('create investigation args', args);
         // Validate initial goal
         if (!args.initialGoal || args.initialGoal.trim().length === 0) {
           throw new Error('Investigation goal cannot be empty');

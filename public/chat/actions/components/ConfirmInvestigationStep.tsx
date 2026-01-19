@@ -73,10 +73,8 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
         </EuiFlexItem>
       </EuiFlexGroup>
 
-      <EuiSpacer size="m" />
-
       {/* Investigation Details Panel */}
-      <EuiSplitPanel.Outer hasBorder hasShadow={false}>
+      <EuiSplitPanel.Outer hasBorder={false} hasShadow={false}>
         <EuiSplitPanel.Inner paddingSize="s">
           <EuiFlexGroup direction="column" gutterSize="m">
             <EuiFlexItem>
@@ -123,49 +121,51 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
           </EuiFlexGroup>
         </EuiSplitPanel.Inner>
 
-        <EuiSplitPanel.Inner color="subdued" paddingSize="s">
-          <EuiFlexGroup justifyContent="spaceBetween" alignItems="center" gutterSize="s">
-            <EuiFlexItem>
-              <EuiText size="s">
-                <strong>Investigation details</strong>
-              </EuiText>
-            </EuiFlexItem>
-            <EuiFlexItem grow={false}>
-              <EuiFlexGroup gutterSize="s" responsive={false}>
-                {onEdit && (
-                  <EuiFlexItem grow={false}>
-                    <EuiButtonIcon
-                      iconType="pencil"
-                      aria-label="Edit investigation details"
-                      onClick={onEdit}
-                      color="text"
-                    />
-                  </EuiFlexItem>
-                )}
-                {onCancel && (
-                  <EuiFlexItem grow={false}>
-                    <EuiButtonIcon
-                      iconType="crossInCircleEmpty"
-                      aria-label="Cancel investigation"
-                      onClick={onCancel}
-                      color="danger"
-                    />
-                  </EuiFlexItem>
-                )}
-                {onConfirm && (
-                  <EuiFlexItem grow={false}>
-                    <EuiButtonIcon
-                      iconType="checkInCircleEmpty"
-                      aria-label="Confirm investigation"
-                      onClick={onConfirm}
-                      color="success"
-                    />
-                  </EuiFlexItem>
-                )}
-              </EuiFlexGroup>
-            </EuiFlexItem>
-          </EuiFlexGroup>
-        </EuiSplitPanel.Inner>
+        {!isComplete && (
+          <EuiSplitPanel.Inner color="subdued" paddingSize="s">
+            <EuiFlexGroup justifyContent="spaceBetween" alignItems="center" gutterSize="s">
+              <EuiFlexItem>
+                <EuiText size="s">
+                  <strong>Investigation details</strong>
+                </EuiText>
+              </EuiFlexItem>
+              <EuiFlexItem grow={false}>
+                <EuiFlexGroup gutterSize="s" responsive={false}>
+                  {onEdit && (
+                    <EuiFlexItem grow={false}>
+                      <EuiButtonIcon
+                        iconType="pencil"
+                        aria-label="Edit investigation details"
+                        onClick={onEdit}
+                        color="text"
+                      />
+                    </EuiFlexItem>
+                  )}
+                  {onCancel && (
+                    <EuiFlexItem grow={false}>
+                      <EuiButtonIcon
+                        iconType="crossInCircleEmpty"
+                        aria-label="Cancel investigation"
+                        onClick={onCancel}
+                        color="danger"
+                      />
+                    </EuiFlexItem>
+                  )}
+                  {onConfirm && (
+                    <EuiFlexItem grow={false}>
+                      <EuiButtonIcon
+                        iconType="checkInCircleEmpty"
+                        aria-label="Confirm investigation"
+                        onClick={onConfirm}
+                        color="success"
+                      />
+                    </EuiFlexItem>
+                  )}
+                </EuiFlexGroup>
+              </EuiFlexItem>
+            </EuiFlexGroup>
+          </EuiSplitPanel.Inner>
+        )}
       </EuiSplitPanel.Outer>
     </>
   );

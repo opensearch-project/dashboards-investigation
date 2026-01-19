@@ -8,7 +8,6 @@ import {
   EuiFlexItem,
   EuiIcon,
   EuiText,
-  EuiSpacer,
   EuiLoadingSpinner,
   EuiLoadingContent,
 } from '@elastic/eui';
@@ -47,9 +46,7 @@ export const CreatingInvestigationStep: React.FC<CreateInvestigationStepProps> =
 
       {/* Investigation Creation Details (shown when requested) */}
       {isComplete && result && <InvestigationLinkPanel result={result} services={services} />}
-      {!isComplete && <EuiLoadingContent lines={1} />}
-
-      <EuiSpacer size="l" />
+      {!isComplete && <EuiLoadingContent lines={2} />}
     </>
   );
 };

@@ -35,11 +35,6 @@ export const CreateInvestigatioToolResult: React.FC<Props> = ({
   // State must be declared at the top level
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // log args and result
-  console.log('CreateInvestigationRenderer - status:', status);
-  console.log('CreateInvestigationRenderer - args:', args);
-  console.log('CreateInvestigationRenderer - result:', result);
-
   // Return null if we have neither args nor result
   if (!args && !result) {
     return null;
@@ -48,7 +43,7 @@ export const CreateInvestigatioToolResult: React.FC<Props> = ({
   if (args && status === 'executing') {
     const confirmed = !!args.confirmed;
     return (
-      <EuiPanel paddingSize="m">
+      <>
         <ConfirmInvestigationStep
           onConfirm={onApprove}
           onCancel={onReject}
@@ -58,13 +53,13 @@ export const CreateInvestigatioToolResult: React.FC<Props> = ({
         />
         <EuiSpacer size="s" />
         {confirmed && <CreatingInvestigationStep services={services} />}
-      </EuiPanel>
+      </>
     );
   }
 
   if (status === 'complete' && result?.success) {
     return (
-      <EuiPanel paddingSize="m">
+      <EuiPanel paddingSize="s">
         <EuiFlexGroup alignItems="center" gutterSize="s" responsive={false}>
           <EuiFlexItem grow={false}>
             <EuiIcon type="checkInCircleEmpty" color="success" />
@@ -93,10 +88,14 @@ export const CreateInvestigatioToolResult: React.FC<Props> = ({
           </>
         )}
 
-        <EuiSpacer size="xs" />
+        {!isExpanded && (
+          <>
+            <EuiSpacer size="xs" />
 
-        {/* Investigation Link Panel */}
-        <InvestigationLinkPanel result={result} services={services} />
+            {/* Investigation Link Panel */}
+            <InvestigationLinkPanel result={result} services={services} />
+          </>
+        )}
       </EuiPanel>
     );
   }

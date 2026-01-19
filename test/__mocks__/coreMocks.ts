@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { of } from 'rxjs';
 import { CoreStart } from '../../../../src/core/public';
 import { coreMock } from '../../../../src/core/public/mocks';
 import httpClientMock from './httpClientMock';

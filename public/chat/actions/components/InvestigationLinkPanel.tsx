@@ -25,7 +25,7 @@ export const InvestigationLinkPanel: React.FC<Props> = ({ result, services }) =>
     investigationUrl.length > 50 ? `${investigationUrl.substring(0, 47)}...` : investigationUrl;
 
   return (
-    <EuiPanel paddingSize="s" hasShadow={false} hasBorder>
+    <EuiPanel paddingSize="s" hasShadow={false} hasBorder={false}>
       <EuiText size="s">
         <strong>{result.name}</strong>
       </EuiText>

@@ -228,7 +228,7 @@ export class InvestigationPlugin
     })();
 
     // Register /investigate command if chat plugin is available
-    this.unregisterInvestigateCommand = registerInvestigateCommand(setupDeps);
+    this.unregisterInvestigateCommand = registerInvestigateCommand(setupDeps.chat);
 
     // Return methods that should be available to other plugins
     return {
