@@ -584,14 +584,27 @@ export const useInvestigation = () => {
         }
       );
 
-      const confirmedFindings = supportingFindingParagraphs.filter(
-        (p) => (p.input.parameters as FindingParagraphParameters)?.finding?.feedback === 'CONFIRMED'
-      );
-      const rejectedFindings = supportingFindingParagraphs.filter(
-        (p) => (p.input.parameters as FindingParagraphParameters)?.finding?.feedback === 'REJECTED'
-      );
-      const noFeedbackFindings = supportingFindingParagraphs.filter(
-        (p) => !(p.input.parameters as FindingParagraphParameters)?.finding?.feedback
+      const {
+        confirmedFindings,
+        rejectedFindings,
+        noFeedbackFindings,
+      } = supportingFindingParagraphs.reduce(
+        (acc, p) => {
+          const feedback = (p.input.parameters as FindingParagraphParameters)?.finding?.feedback;
+          if (feedback === 'CONFIRMED') {
+            acc.confirmedFindings.push(p);
+          } else if (feedback === 'REJECTED') {
+            acc.rejectedFindings.push(p);
+          } else {
+            acc.noFeedbackFindings.push(p);
+          }
+          return acc;
+        },
+        {
+          confirmedFindings: [] as typeof allParagraphs,
+          rejectedFindings: [] as typeof allParagraphs,
+          noFeedbackFindings: [] as typeof allParagraphs,
+        }
       );
 
       const activeHypotheses = originalHypotheses.filter((h) => h.status !== 'RULED_OUT');

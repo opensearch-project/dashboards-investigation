@@ -67,6 +67,21 @@ export const HypothesisDetail: React.FC = () => {
 
   const isRuledOut = status === 'RULED_OUT';
 
+  const supportiveFindingIndices = [
+    ...supportingFindingParagraphIds,
+    ...(userSelectedFindingParagraphIds || []),
+    ...(newAddedFindingIds || []),
+  ]
+    .map((id) => paragraphsStates.findIndex((p) => p.value.id === id))
+    .filter((index) => index !== -1)
+    .sort(
+      (a, b) =>
+        ((paragraphsStates[b].value.input.parameters as FindingParagraphParameters)?.finding
+          ?.importance || 0) -
+        ((paragraphsStates[a].value.input.parameters as FindingParagraphParameters)?.finding
+          ?.importance || 0)
+    );
+
   // TODO: once we have more tab than just "Evidence and reasoning"
   // const toggleButtons = [
   //   {
@@ -226,8 +241,7 @@ export const HypothesisDetail: React.FC = () => {
                       <EuiText size="s">
                         <b>
                           {i18n.translate('notebook.hypothesis.detail.updated', {
-                            defaultMessage: 'Updated {time}',
-                            values: { time: '' },
+                            defaultMessage: 'Updated',
                           })}
                         </b>
                       </EuiText>
@@ -263,10 +277,7 @@ export const HypothesisDetail: React.FC = () => {
               <EuiFlexGroup direction="column" gutterSize="none" style={{ gap: 16 }}>
                 {toggleIdSelected === 'evidence' && (
                   <>
-                    {(supportingFindingParagraphIds.length > 0 ||
-                      (userSelectedFindingParagraphIds &&
-                        userSelectedFindingParagraphIds.length > 0) ||
-                      (newAddedFindingIds && newAddedFindingIds.length > 0)) && (
+                    {supportiveFindingIndices.length > 0 && (
                       <>
                         <EuiTitle size="s">
                           <h5>
@@ -275,27 +286,11 @@ export const HypothesisDetail: React.FC = () => {
                             })}
                           </h5>
                         </EuiTitle>
-                        {[
-                          ...supportingFindingParagraphIds,
-                          ...(userSelectedFindingParagraphIds || []),
-                          ...(newAddedFindingIds || []),
-                        ]
-                          .map((id) => paragraphsStates.findIndex((p) => p.value.id === id))
-                          .filter((index) => index !== -1)
-                          .sort(
-                            (a, b) =>
-                              ((paragraphsStates[b].value.input
-                                .parameters as FindingParagraphParameters)?.finding?.importance ||
-                                0) -
-                              ((paragraphsStates[a].value.input
-                                .parameters as FindingParagraphParameters)?.finding?.importance ||
-                                0)
-                          )
-                          .map((index) => (
-                            <EuiPanel key={paragraphsStates[index].value.id}>
-                              <Paragraph index={index} />
-                            </EuiPanel>
-                          ))}
+                        {supportiveFindingIndices.map((index) => (
+                          <EuiPanel key={paragraphsStates[index].value.id}>
+                            <Paragraph index={index} />
+                          </EuiPanel>
+                        ))}
                       </>
                     )}
                     {irrelevantFindingParagraphIds && irrelevantFindingParagraphIds.length > 0 && (

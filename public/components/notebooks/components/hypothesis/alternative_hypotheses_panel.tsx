@@ -21,10 +21,17 @@ import { NotebookReactContext } from '../../context_provider/context_provider';
 import { HypothesisItem } from './hypothesis_item';
 import { useReplaceAsPrimary } from '../../../../hooks/use_replace_primary_hypothesis';
 
+const RULED_OUT_PENALTY = 1000000;
+
 interface AlternativeHypothesesPanelProps {
   notebookId: string;
   isInvestigating: boolean;
 }
+
+const getHypothesisSortScore = (hypothesis: { likelihood: number; status?: string }) =>
+  hypothesis.status === 'RULED_OUT'
+    ? hypothesis.likelihood - RULED_OUT_PENALTY
+    : hypothesis.likelihood;
 
 export const AlternativeHypothesesPanel: React.FC<AlternativeHypothesesPanelProps> = ({
   notebookId,
@@ -61,12 +68,7 @@ export const AlternativeHypothesesPanel: React.FC<AlternativeHypothesesPanelProp
     const alternativehypotheses = allRuledOut ? hypotheses : hypotheses.slice(1);
 
     return alternativehypotheses
-      .sort((a, b) => {
-        const aRuledOut = a.status === 'RULED_OUT';
-        const bRuledOut = b.status === 'RULED_OUT';
-        if (aRuledOut !== bRuledOut) return aRuledOut ? 1 : -1;
-        return b.likelihood - a.likelihood;
-      })
+      .sort((a, b) => getHypothesisSortScore(b) - getHypothesisSortScore(a))
       .map((hypothesis, index) => (
         <React.Fragment key={`hypothesis-${hypothesis.id}`}>
           <EuiPanel>
