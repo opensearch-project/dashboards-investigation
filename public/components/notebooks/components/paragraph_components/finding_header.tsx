@@ -34,19 +34,13 @@ export const FindingHeader: React.FC<FindingHeaderProps> = ({
             <span>
               {isAIGenerated
                 ? i18n.translate('notebook.finding.header.aiGeneratedFinding', {
-                    defaultMessage: '{description} {importance}',
+                    defaultMessage: '{description}',
                     values: {
                       description:
                         description ||
                         i18n.translate('notebook.finding.header.aiGeneratedFindingDefault', {
                           defaultMessage: 'AI generated finding',
                         }),
-                      importance: importance
-                        ? i18n.translate('notebook.finding.header.importance', {
-                            defaultMessage: '| Importance: {value}',
-                            values: { value: importance },
-                          })
-                        : '',
                     },
                   })
                 : i18n.translate('notebook.finding.header.userFinding', {
@@ -76,11 +70,19 @@ export const FindingHeader: React.FC<FindingHeaderProps> = ({
       <EuiSpacer size="s" />
       {isAIGenerated && (
         <EuiFlexGroup gutterSize="none" justifyContent="spaceBetween">
-          <EuiBadge>
-            {i18n.translate('notebook.finding.header.aiGenerated', {
-              defaultMessage: 'AI Generated',
-            })}
-          </EuiBadge>
+          <span>
+            <EuiBadge>
+              {i18n.translate('notebook.finding.header.aiGenerated', {
+                defaultMessage: 'AI Generated',
+              })}
+            </EuiBadge>
+            <EuiBadge color="secondary">
+              {i18n.translate('notebook.finding.header.importance', {
+                defaultMessage: '{value}% Importance',
+                values: { value: importance },
+              })}
+            </EuiBadge>
+          </span>
           <span>
             {feedback === 'CONFIRMED' && (
               <EuiBadge color="warning">

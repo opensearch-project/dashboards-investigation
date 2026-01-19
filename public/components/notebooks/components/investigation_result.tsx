@@ -25,6 +25,7 @@ import {
   EuiSmallButton,
   EuiEmptyPrompt,
   EuiSplitPanel,
+  EuiButtonIcon,
 } from '@elastic/eui';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import moment from 'moment';
@@ -37,7 +38,7 @@ import { useHistory } from 'react-router-dom';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { getDataSourceById } from '../../../utils/data_source_utils';
-import { HypothesesFeedback, HypothesisBadge, HypothesisItem } from './hypothesis';
+import { HypothesesFeedback, HypothesisItem } from './hypothesis';
 import { HypothesesStep } from './hypothesis/hypotheses_step';
 import { PERAgentMessageService } from './hypothesis/investigation/services/per_agent_message_service';
 import { PERAgentMemoryService } from './hypothesis/investigation/services/per_agent_memory_service';
@@ -101,6 +102,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   const [showSteps, setShowSteps] = useState(false);
   const [traceMessageId, setTraceMessageId] = useState<string>();
   const [showAllFindings, setShowAllFindings] = useState(false);
+  const [showStatusBadge, setShowStatusBadge] = useState(true);
 
   const dateFormat = uiSettings.get('dateFormat');
   const activeMemory = useMemo(() => {
@@ -203,56 +205,62 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   };
 
   const statusBadge = useMemo(() => {
+    let badgeLabel;
+    let badgeColor;
+    let badgeIcon;
     if (investigationError) {
-      return (
-        <HypothesisBadge
-          label={i18n.translate('notebook.summary.card.investigationFailed', {
-            defaultMessage: 'Investigation failed and showing previous hypotheses',
-          })}
-          color={euiThemeVars.euiColorDanger}
-          icon="cross"
-        />
-      );
-    }
-
-    if (runningMemory?.owner && runningMemory.owner !== currentUser) {
-      return (
-        <HypothesisBadge
-          label={i18n.translate('notebook.summary.card.otherUserInvestigating', {
-            defaultMessage: 'Other user is doing investigation, show previous Investigation',
-          })}
-          color={euiThemeVars.euiColorWarning}
-          icon="check"
-        />
-      );
-    }
-
-    if (isInvestigating || !historyMemory) {
-      return (
-        <HypothesisBadge
-          label={i18n.translate('notebook.summary.card.underInvestigation', {
-            defaultMessage: 'Under investigation',
-          })}
-          color={euiThemeVars.euiColorPrimary}
-          icon="pulse"
-        />
-      );
+      badgeLabel = i18n.translate('notebook.summary.card.investigationFailedBadge', {
+        defaultMessage: 'Investigation failed and showing previous hypotheses',
+      });
+      badgeColor = euiThemeVars.euiColorDanger;
+      badgeIcon = 'crossInCircleEmpty';
+    } else if (runningMemory?.owner && runningMemory.owner !== currentUser) {
+      badgeLabel = i18n.translate('notebook.summary.card.otherUserInvestigating', {
+        defaultMessage: 'Other user is doing investigation, show previous Investigation',
+      });
+      badgeColor = euiThemeVars.euiColorWarning;
+      badgeIcon = 'navInfo';
+    } else if (isInvestigating || !historyMemory) {
+      badgeLabel = i18n.translate('notebook.summary.card.underInvestigation', {
+        defaultMessage: 'Under investigation',
+      });
+      badgeColor = euiThemeVars.euiColorPrimary;
+      badgeIcon = 'pulse';
+    } else {
+      badgeLabel =
+        hypotheses && hypotheses.length > 0
+          ? i18n.translate('notebook.summary.card.investigationCompleted', {
+              defaultMessage: 'Investigation completed',
+            })
+          : i18n.translate('notebook.summary.card.noHypotheses', {
+              defaultMessage: 'No hypotheses',
+            });
+      badgeColor = euiThemeVars.euiColorSuccess;
+      badgeIcon = 'checkInCircleEmpty';
     }
 
     return (
-      <HypothesisBadge
-        label={
-          hypotheses && hypotheses.length > 0
-            ? i18n.translate('notebook.summary.card.investigationCompleted', {
-                defaultMessage: 'Investigation completed',
-              })
-            : i18n.translate('notebook.summary.card.noHypotheses', {
-                defaultMessage: 'No hypotheses',
-              })
-        }
-        color={euiThemeVars.euiColorSuccess}
-        icon="check"
-      />
+      <>
+        <EuiFlexGroup
+          gutterSize="none"
+          direction="row"
+          alignItems="center"
+          style={{
+            backgroundColor: badgeColor,
+            borderRadius: 12,
+            padding: '4px 16px',
+            gap: 8,
+          }}
+        >
+          <EuiIcon type={badgeIcon} color="ghost" />
+          <EuiFlexItem grow>
+            <EuiText color="ghost">{badgeLabel}</EuiText>
+          </EuiFlexItem>
+
+          <EuiButtonIcon iconType="cross" color="ghost" onClick={() => setShowStatusBadge(false)} />
+        </EuiFlexGroup>
+        <EuiSpacer size="s" />
+      </>
     );
   }, [
     investigationError,
@@ -510,6 +518,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
 
   return (
     <>
+      {showStatusBadge && statusBadge}
       <EuiPanel borderRadius="l" data-test-subj="investigation-results-panel">
         {/* Header Section */}
         <EuiFlexGroup gutterSize="none" justifyContent="spaceBetween" alignItems="flexStart">
@@ -555,7 +564,6 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
               />
             </EuiFlexItem>
           ) : null}
-          <EuiFlexItem grow={false}>{statusBadge}</EuiFlexItem>
         </EuiFlexGroup>
 
         <EuiSpacer size="s" />
