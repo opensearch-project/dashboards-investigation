@@ -94,6 +94,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     initialGoal,
     variables,
     log,
+    symptom,
   } = useObservable(
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
@@ -600,6 +601,12 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
                 defaultMessage: 'Unknown',
               })
           )}
+
+          {symptom &&
+            renderMetadataField(
+              i18n.translate('notebook.summary.card.symptom', { defaultMessage: 'Symptom' }),
+              symptom
+            )}
 
           {initialGoal && (
             <EuiFlexItem grow={false}>
