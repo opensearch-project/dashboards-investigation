@@ -156,7 +156,7 @@ export const useNotebook = () => {
           body: JSON.stringify({
             notebookId: openedNoteId,
             hypotheses,
-            topologies,
+            ...(topologies !== undefined && { topologies }),
             ...(isNewHypotheses
               ? { historyMemory: runningMemory }
               : { historyMemory: historyMemory || null }),
@@ -168,7 +168,7 @@ export const useNotebook = () => {
 
         context.state.updateValue({
           hypotheses,
-          topologies,
+          ...(topologies !== undefined && { topologies }),
           dateModified:
             response?.attributes?.savedNotebook?.dateModified || new Date().toISOString(),
         });

@@ -26,6 +26,7 @@ import {
   InvestigationTimeRange,
   FindingParagraphParameters,
   PERAgentInvestigationResponse,
+  HypothesisStatus,
 } from '../../common/types/notebooks';
 import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_agent';
 import { useNotebook } from './use_notebook';
@@ -52,8 +53,19 @@ const getErrorTitle = (error: any, defaultTitle: string): string =>
   error?.errorTitle || defaultTitle;
 
 const getFindingFromParagraph = (paragraph: ParagraphStateValue<unknown>) => {
+  const feedback = (paragraph.input.parameters as FindingParagraphParameters)?.finding?.feedback;
+  let feedbackText = '';
+
+  if (feedback === 'CONFIRMED') {
+    feedbackText = ' **[USER CONFIRMED]**';
+  } else if (feedback === 'REJECTED') {
+    feedbackText = ' **[USER REJECTED]**';
+  } else {
+    feedbackText = ' **[NO USER FEEDBACK YET]**';
+  }
+
   return `
-### Finding (ID: ${paragraph.id})
+### Finding (ID: ${paragraph.id})${feedbackText}
 ${paragraph.input.inputText}
     `;
 };
@@ -573,16 +585,58 @@ export const useInvestigation = () => {
         }
       );
 
+      const {
+        confirmedFindings,
+        rejectedFindings,
+        noFeedbackFindings,
+      } = supportingFindingParagraphs.reduce(
+        (acc, p) => {
+          const feedback = (p.input.parameters as FindingParagraphParameters)?.finding?.feedback;
+          if (feedback === 'CONFIRMED') {
+            acc.confirmedFindings.push(p);
+          } else if (feedback === 'REJECTED') {
+            acc.rejectedFindings.push(p);
+          } else {
+            acc.noFeedbackFindings.push(p);
+          }
+          return acc;
+        },
+        {
+          confirmedFindings: [] as typeof allParagraphs,
+          rejectedFindings: [] as typeof allParagraphs,
+          noFeedbackFindings: [] as typeof allParagraphs,
+        }
+      );
+
+      const activeHypotheses = originalHypotheses.filter(
+        (h) => h.status !== HypothesisStatus.RULED_OUT
+      );
+      const ruledOutHypotheses = originalHypotheses.filter(
+        (h) => h.status === HypothesisStatus.RULED_OUT
+      );
+
       const currentStatePrompt = `${notebookContextPrompt}
 
+# User Feedback Summary
+The user has reviewed your previous investigation and provided the following feedback:
+- Confirmed Findings: ${confirmedFindings.length}
+- Rejected Findings: ${rejectedFindings.length}
+- User Added Findings: ${newAddedFindingParagraphs.length}
+- Ruled Out Hypotheses: ${ruledOutHypotheses.length}
+- Active Hypotheses: ${activeHypotheses.length}
+
 # Current Hypotheses State
-${originalHypotheses.reduce((acc, hypothesis, index) => {
-  const currentHypothesisFindingParagraphIds = [
-    ...hypothesis.supportingFindingParagraphIds,
-    ...(hypothesis.newAddedFindingIds ?? []),
-  ].join(', ');
-  return `${acc}
-## Hypothesis ${index + 1}
+${
+  activeHypotheses.length
+    ? activeHypotheses.reduce((acc, hypothesis, index) => {
+        const supportingFindingIds = [
+          ...hypothesis.supportingFindingParagraphIds,
+          ...(hypothesis.newAddedFindingIds ?? []),
+        ].join(', ');
+        const selectedFindingIds = (hypothesis.userSelectedFindingParagraphIds ?? []).join(', ');
+        const irrelevantFindingIds = (hypothesis.irrelevantFindingParagraphIds ?? []).join(', ');
+        return `${acc}
+## Active Hypothesis ${index + 1}
 
 Title: ${hypothesis.title}
 
@@ -590,20 +644,63 @@ Description: ${hypothesis.description}
 
 Likelihood: ${hypothesis.likelihood}
 
-### Supporting Finding Paragraph Ids
-${currentHypothesisFindingParagraphIds}
+Supporting Finding IDs: ${supportingFindingIds || 'None'}
+
+User Selected Finding IDs (High Priority): ${selectedFindingIds || 'None'}
+
+Irrelevant Finding IDs (User Marked): ${irrelevantFindingIds || 'None'}
 
     `;
-}, '')}
+      }, '')
+    : 'No active hypotheses.'
+}
+${
+  ruledOutHypotheses.length
+    ? `## Ruled Out Hypotheses (DO NOT PURSUE)
+
+${ruledOutHypotheses
+  .map(
+    (h, i) => `
+### Ruled Out Hypothesis ${i + 1}
+
+Title: ${h.title}
+
+Description: ${h.description}
+
+Reason: User determined this hypothesis is not viable
+
+`
+  )
+  .join('')}`
+    : ''
+}
 
 # Current Finding Paragraphs
-
-## Supporting Findings
-${convertParagraphsToFindings(supportingFindingParagraphs)}
-
+${
+  confirmedFindings.length
+    ? `
+## User Confirmed Findings (HIGH CONFIDENCE - Use These)
+${convertParagraphsToFindings(confirmedFindings)}`
+    : ''
+}
+${
+  rejectedFindings.length
+    ? `
+## User Rejected Findings (DO NOT USE - Incorrect/Unreliable)
+${convertParagraphsToFindings(rejectedFindings)}`
+    : ''
+}
+${
+  noFeedbackFindings.length
+    ? `
+## Findings Without User Feedback (ACCEPTABLE - Not Rejected by User)
+${convertParagraphsToFindings(noFeedbackFindings)}`
+    : ''
+}
 ${
   newAddedFindingParagraphs.length
-    ? `## Additional Supporting Findings (Manually Added - Pay Special Attention)
+    ? `
+## User Added Findings (CRITICAL - User Provided Evidence)
 ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
     : ''
 }

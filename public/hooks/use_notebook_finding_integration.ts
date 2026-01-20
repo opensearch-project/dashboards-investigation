@@ -26,6 +26,11 @@ export const useNotebookFindingIntegration = (props: UseNotebookFindingIntegrati
   const unsubscribeRef = useRef<CallbackUnsubscribe | null>(null);
   const isIntegratedRef = useRef<boolean>(false);
   const context = useContext(NotebookReactContext);
+  const contextStateRef = useRef(context.state);
+  const addNewFindingRef = useRef(addNewFinding);
+
+  contextStateRef.current = context.state;
+  addNewFindingRef.current = addNewFinding;
 
   /**
    * Callback function that handles finding additions by creating new paragraphs
@@ -40,12 +45,11 @@ export const useNotebookFindingIntegration = (props: UseNotebookFindingIntegrati
           return;
         }
 
-        await addNewFinding({
-          hypothesisIndex: 0,
+        await addNewFindingRef.current({
           text: `%md\n${finding.markdown}`,
         });
 
-        context.state.updateValue({
+        contextStateRef.current.updateValue({
           dateModified: new Date().toISOString(),
         });
       } catch (error) {
@@ -56,7 +60,7 @@ export const useNotebookFindingIntegration = (props: UseNotebookFindingIntegrati
         // Don't throw error to prevent blocking other callbacks
       }
     },
-    [notebookId, addNewFinding, context.state]
+    [notebookId]
   );
 
   /**
