@@ -25,16 +25,13 @@ import { i18n } from '@osd/i18n';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { getDataSourceById } from '../../../utils/data_source_utils';
+import { isInvestigationActive } from '../../../../common/state/notebook_state';
 
 interface SummaryCardProps {
-  isInvestigating: boolean;
   openReinvestigateModal: () => void;
 }
 
-export const SummaryCard: React.FC<SummaryCardProps> = ({
-  isInvestigating,
-  openReinvestigateModal,
-}) => {
+export const SummaryCard: React.FC<SummaryCardProps> = ({ openReinvestigateModal }) => {
   const notebookContext = useContext(NotebookReactContext);
   const {
     services: { uiSettings, notifications, savedObjects },
@@ -46,10 +43,11 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
     });
   };
 
-  const { isNotebookReadonly } = useObservable(
+  const { isNotebookReadonly, investigationPhase } = useObservable(
     notebookContext.state.getValue$(),
     notebookContext.state.value
   );
+  const isInvestigating = isInvestigationActive(investigationPhase);
 
   const {
     dataSourceId = '',

@@ -48,6 +48,7 @@ describe('registerVisualizationSummaryRoute', () => {
     mockRequest = {
       body: {
         visualization: 'base64-encoded-image',
+        localTimeZoneOffset: 480,
       },
       query: {},
     };
@@ -65,10 +66,10 @@ describe('registerVisualizationSummaryRoute', () => {
     routeHandler = mockRouter.post.mock.calls[0][1];
   });
 
-  it('should register POST route at /api/visualizations/summary', () => {
+  it('should register POST route at /api/investigation/visualization/summary', () => {
     expect(mockRouter.post).toHaveBeenCalledWith(
       expect.objectContaining({
-        path: '/api/visualizations/summary',
+        path: '/api/investigation/visualization/summary',
       }),
       expect.any(Function)
     );
@@ -173,6 +174,7 @@ describe('registerVisualizationSummaryRoute', () => {
         body: {
           parameters: {
             image_base64: 'base64-encoded-image',
+            local_time_offset: 480,
           },
         },
       })
@@ -316,5 +318,193 @@ describe('registerVisualizationSummaryRoute', () => {
     expect(mockContextWithDataSource.dataSource.opensearch.getClient).toHaveBeenCalledWith(
       'ds-123'
     );
+  });
+
+  describe('localTimeZoneOffset parameter', () => {
+    it('should include localTimeZoneOffset in ML agent parameters', async () => {
+      const mockConfigResponse = {
+        body: {
+          configuration: {
+            agent_id: 'agent-123',
+          },
+        },
+      };
+
+      const mockPredictResponse = {
+        body: {
+          inference_results: [
+            {
+              output: [
+                {
+                  result: JSON.stringify({
+                    output: {
+                      message: {
+                        content: [{ text: 'Test summary' }],
+                      },
+                    },
+                  }),
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      const requestWithOffset = {
+        body: {
+          visualization: 'base64-encoded-image',
+          localTimeZoneOffset: 480,
+        },
+        query: {},
+      };
+
+      mockContext.core.opensearch.client.asCurrentUser.transport.request
+        .mockResolvedValueOnce(mockConfigResponse)
+        .mockResolvedValueOnce(mockPredictResponse);
+
+      await routeHandler(mockContext, requestWithOffset, mockResponse);
+
+      expect(
+        mockContext.core.opensearch.client.asCurrentUser.transport.request
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          method: 'POST',
+          path: '/_plugins/_ml/agents/agent-123/_execute',
+          body: {
+            parameters: {
+              image_base64: 'base64-encoded-image',
+              local_time_offset: 480,
+            },
+          },
+        })
+      );
+    });
+
+    it('should handle negative timezone offsets', async () => {
+      const mockConfigResponse = {
+        body: {
+          configuration: {
+            agent_id: 'agent-123',
+          },
+        },
+      };
+
+      const mockPredictResponse = {
+        body: {
+          inference_results: [
+            {
+              output: [
+                {
+                  result: JSON.stringify({
+                    output: {
+                      message: {
+                        content: [{ text: 'Test summary' }],
+                      },
+                    },
+                  }),
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      const requestWithNegativeOffset = {
+        body: {
+          visualization: 'base64-encoded-image',
+          localTimeZoneOffset: -480,
+        },
+        query: {},
+      };
+
+      mockContext.core.opensearch.client.asCurrentUser.transport.request
+        .mockResolvedValueOnce(mockConfigResponse)
+        .mockResolvedValueOnce(mockPredictResponse);
+
+      await routeHandler(mockContext, requestWithNegativeOffset, mockResponse);
+
+      expect(
+        mockContext.core.opensearch.client.asCurrentUser.transport.request
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: {
+            parameters: {
+              image_base64: 'base64-encoded-image',
+              local_time_offset: -480,
+            },
+          },
+        })
+      );
+    });
+
+    it('should handle zero timezone offset (UTC)', async () => {
+      const mockConfigResponse = {
+        body: {
+          configuration: {
+            agent_id: 'agent-123',
+          },
+        },
+      };
+
+      const mockPredictResponse = {
+        body: {
+          inference_results: [
+            {
+              output: [
+                {
+                  result: JSON.stringify({
+                    output: {
+                      message: {
+                        content: [{ text: 'Test summary' }],
+                      },
+                    },
+                  }),
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      const requestWithZeroOffset = {
+        body: {
+          visualization: 'base64-encoded-image',
+          localTimeZoneOffset: 0,
+        },
+        query: {},
+      };
+
+      mockContext.core.opensearch.client.asCurrentUser.transport.request
+        .mockResolvedValueOnce(mockConfigResponse)
+        .mockResolvedValueOnce(mockPredictResponse);
+
+      await routeHandler(mockContext, requestWithZeroOffset, mockResponse);
+
+      expect(
+        mockContext.core.opensearch.client.asCurrentUser.transport.request
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: {
+            parameters: {
+              image_base64: 'base64-encoded-image',
+              local_time_offset: 0,
+            },
+          },
+        })
+      );
+    });
+
+    it('should validate localTimeZoneOffset is a number', () => {
+      // This test verifies the schema validation accepts numbers
+      const routeConfig = mockRouter.post.mock.calls[0][0];
+      const bodySchema = routeConfig.validate.body;
+
+      // Valid number should pass validation without error
+      const validResult = bodySchema.validate({
+        visualization: 'test',
+        localTimeZoneOffset: 480,
+      });
+      expect(validResult.error).toBeUndefined();
+    });
   });
 });

@@ -103,6 +103,7 @@ export const VisualizationParagraphItem: ParagraphRegistryItem = {
         path: `${NOTEBOOKS_API_PREFIX}/visualization/summary`,
         body: JSON.stringify({
           visualization: base64Image,
+          localTimeZoneOffset: -new Date().getTimezoneOffset(),
         }),
         query: dataSourceMDSId ? { dataSourceId: dataSourceMDSId } : undefined,
       });

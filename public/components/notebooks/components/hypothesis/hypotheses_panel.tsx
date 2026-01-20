@@ -22,6 +22,7 @@ import { useHistory } from 'react-router-dom';
 import { NoteBookServices } from 'public/types';
 import { BehaviorSubject } from 'rxjs';
 import { euiThemeVars } from '@osd/ui-shared-deps/theme';
+import { i18n } from '@osd/i18n';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { HypothesisItem } from './hypothesis_item';
 import { HypothesesFeedback } from './hypotheses_feedback';
@@ -31,18 +32,20 @@ import { PERAgentMemoryService } from './investigation/services/per_agent_memory
 import { HypothesesStep } from './hypotheses_step';
 import { MessageTraceFlyout } from './investigation/message_trace_flyout';
 import { HypothesisBadge } from './hypothesis_badge';
+import {
+  InvestigationPhase,
+  isInvestigationActive,
+} from '../../../../../common/state/notebook_state';
 
 interface HypothesesPanelProps {
   notebookId: string;
   question?: string;
-  isInvestigating: boolean;
   openReinvestigateModal: () => void;
 }
 
 export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   notebookId,
   question,
-  isInvestigating,
   openReinvestigateModal,
 }) => {
   const {
@@ -58,10 +61,12 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
     investigationError,
     isNotebookReadonly,
     currentUser,
+    investigationPhase,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const history = useHistory();
   const [showSteps, setShowSteps] = useState(false);
   const [traceMessageId, setTraceMessageId] = useState<string>();
+  const isInvestigating = isInvestigationActive(investigationPhase);
   const activeMemory = useMemo(() => {
     return isInvestigating ? runningMemory : historyMemory;
   }, [isInvestigating, runningMemory, historyMemory]);
@@ -102,6 +107,24 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
   useEffect(() => {
     setShowSteps(isInvestigating);
   }, [isInvestigating]);
+
+  useEffect(() => {
+    if (isInvestigating) {
+      const hasStepsOrMessage =
+        executorMessages.length > 0 || PERAgentServices?.message.getMessageValue();
+      if (hasStepsOrMessage && investigationPhase !== InvestigationPhase.GATHERING_DATA) {
+        notebookContext.state.updateValue({
+          investigationPhase: InvestigationPhase.GATHERING_DATA,
+        });
+      }
+    }
+  }, [
+    executorMessages,
+    investigationPhase,
+    isInvestigating,
+    PERAgentServices?.message,
+    notebookContext.state,
+  ]);
 
   useEffect(() => {
     if (PERAgentServices) {
@@ -209,11 +232,31 @@ export const HypothesesPanel: React.FC<HypothesesPanelProps> = ({
 
   const renderHypothesesContent = () => {
     if (isInvestigating) {
-      const hasStepsOrMessage =
-        executorMessages.length > 0 || PERAgentServices?.message.getMessageValue();
-      const displayText = hasStepsOrMessage
-        ? 'Gathering data in progress...'
-        : 'Planning for your investigation...';
+      let displayText: string;
+
+      switch (investigationPhase) {
+        case InvestigationPhase.RETRIEVING_CONTEXT:
+          displayText = i18n.translate(
+            'investigate.hypothesesPanel.investigationPhase.retrievingContext',
+            {
+              defaultMessage: 'Retrieving context...',
+            }
+          );
+          break;
+        case InvestigationPhase.GATHERING_DATA:
+          displayText = i18n.translate(
+            'investigate.hypothesesPanel.investigationPhase.gatheringData',
+            {
+              defaultMessage: 'Gathering data in progress...',
+            }
+          );
+          break;
+        case InvestigationPhase.PLANNING:
+        default:
+          displayText = i18n.translate('investigate.hypothesesPanel.investigationPhase.planning', {
+            defaultMessage: 'Planning for your investigation...',
+          });
+      }
 
       return (
         <>

@@ -41,6 +41,7 @@ export function registerVisualizationSummaryRoute(router: IRouter) {
           visualization: schema.string({
             minLength: 1,
           }),
+          localTimeZoneOffset: schema.number(),
         }),
         query: schema.object({
           dataSourceId: schema.maybe(schema.string()),
@@ -49,7 +50,7 @@ export function registerVisualizationSummaryRoute(router: IRouter) {
     },
     async (context, request, response): Promise<IOpenSearchDashboardsResponse> => {
       try {
-        const { visualization } = request.body;
+        const { visualization, localTimeZoneOffset } = request.body;
         const { dataSourceId } = request.query;
 
         // Get transport client with data source support
@@ -95,6 +96,7 @@ export function registerVisualizationSummaryRoute(router: IRouter) {
             body: {
               parameters: {
                 image_base64: visualization,
+                local_time_offset: localTimeZoneOffset,
               },
             },
           });

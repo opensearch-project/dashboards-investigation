@@ -54,6 +54,7 @@ import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
 import { InvestigationPageContext } from './investigation_page_context';
 import { migrateFindingParagraphs } from '../../../utils/finding_migration';
 import { Topology } from './topology';
+import { InvestigationPhase } from '../../../../common/state/notebook_state';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
   openedNoteId: string;
@@ -98,7 +99,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
   const {
     isInvestigating,
-    setIsInvestigating,
     doInvestigate,
     addNewFinding,
     rerunInvestigation,
@@ -265,7 +265,9 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       }
 
       setIsReinvestigateModalVisible(false);
-      setIsInvestigating(true);
+      notebookContext.state.updateValue({
+        investigationPhase: InvestigationPhase.RETRIEVING_CONTEXT,
+      });
 
       const updates: { initialGoal?: string; timeRange?: InvestigationTimeRange } = {};
 
@@ -307,7 +309,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     [
       initialGoal,
       paragraphsStates,
-      setIsInvestigating,
       updateNotebookContext,
       timeRange,
       rerunInvestigation,
@@ -315,6 +316,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       setIsReinvestigateModalVisible,
       rerunPrecheck,
       checkOngoingInvestigation,
+      notebookContext.state,
     ]
   );
 
@@ -346,17 +348,13 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           )}
           {(source === NoteBookSource.DISCOVER || source === NoteBookSource.VISUALIZATION) && (
             <>
-              <SummaryCard
-                isInvestigating={isInvestigating}
-                openReinvestigateModal={() => setIsReinvestigateModalVisible(true)}
-              />
+              <SummaryCard openReinvestigateModal={() => setIsReinvestigateModalVisible(true)} />
               <EuiSpacer />
             </>
           )}
           <HypothesesPanel
             notebookId={openedNoteId}
             question={initialGoal}
-            isInvestigating={isInvestigating}
             openReinvestigateModal={() => setIsReinvestigateModalVisible(true)}
           />
           <EuiSpacer />

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useContext, useState, useCallback, useRef, useEffect } from 'react';
+import { useContext, useCallback, useRef, useEffect } from 'react';
 import { useObservable } from 'react-use';
 
 import type { NoteBookServices } from 'public/types';
@@ -13,6 +13,7 @@ import { concatMap, filter } from 'rxjs/operators';
 import { EMPTY, fromEvent, race, throwError } from 'rxjs';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
+import { InvestigationPhase, isInvestigationActive } from '../../common/state/notebook_state';
 
 import {
   createAgenticExecutionMemory,
@@ -76,7 +77,8 @@ export const useInvestigation = () => {
   const hypothesesRef = useRef(contextStateValue?.hypotheses);
   hypothesesRef.current = contextStateValue?.hypotheses;
 
-  const [isInvestigating, setIsInvestigating] = useState(false);
+  // Derive isInvestigating from investigationPhase
+  const isInvestigating = isInvestigationActive(contextStateValue?.investigationPhase);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   /**
@@ -271,18 +273,23 @@ export const useInvestigation = () => {
         context.state.updateValue({
           historyMemory: runningMemory,
           investigationError: undefined,
+          investigationPhase: InvestigationPhase.COMPLETED,
         });
       } catch (error) {
         const errorMessage = error.message;
-        context.state.updateValue({ investigationError: errorMessage, runningMemory: undefined });
+        context.state.updateValue({
+          investigationError: errorMessage,
+        });
         await updateHypotheses(hypothesesRef.current || []);
         addError({
           error,
           title: errorTitle,
         });
       } finally {
-        context.state.updateValue({ runningMemory: undefined });
-        setIsInvestigating(false);
+        context.state.updateValue({
+          runningMemory: undefined,
+          investigationPhase: InvestigationPhase.COMPLETED,
+        });
       }
     },
     [
@@ -308,8 +315,8 @@ export const useInvestigation = () => {
       context.state.updateValue({
         runningMemory: undefined,
         investigationError: errorMessage,
+        investigationPhase: InvestigationPhase.COMPLETED,
       });
-      setIsInvestigating(false);
       await updateHypotheses(hypothesesRef.current || []);
     },
     [context.state, updateHypotheses, addError]
@@ -365,8 +372,10 @@ export const useInvestigation = () => {
       initialGoal?: string;
       prevContent?: boolean;
     }) => {
-      setIsInvestigating(true);
-      context.state.updateValue({ investigationError: undefined });
+      context.state.updateValue({
+        investigationError: undefined,
+        investigationPhase: InvestigationPhase.PLANNING,
+      });
 
       // Create new AbortController for this investigation
       if (abortControllerRef.current) {
@@ -449,7 +458,9 @@ export const useInvestigation = () => {
           owner: context.state.value.currentUser || undefined,
         };
 
-        context.state.updateValue({ runningMemory });
+        context.state.updateValue({
+          runningMemory,
+        });
 
         // Immediately save these IDs to backend so they persist across page refreshes
         await updateHypotheses(contextStateValue?.hypotheses || []);
@@ -459,13 +470,16 @@ export const useInvestigation = () => {
         });
       } catch (e) {
         const errorMessage = 'Failed to execute per agent';
-        context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
+        context.state.updateValue({
+          runningMemory: undefined,
+          investigationError: errorMessage,
+          investigationPhase: InvestigationPhase.COMPLETED,
+        });
         await updateHypotheses(hypothesesRef.current || []);
         addError({
           title: errorMessage,
           error: e,
         });
-        setIsInvestigating(false);
       }
     },
     [
@@ -498,6 +512,7 @@ export const useInvestigation = () => {
       investigationQuestion: string;
       timeRange?: InvestigationTimeRange;
     }) => {
+      context.state.updateValue({ investigationPhase: InvestigationPhase.RETRIEVING_CONTEXT });
       const notebookContextPrompt = await retrieveInvestigationContextPrompt();
 
       return executeInvestigation({
@@ -506,7 +521,7 @@ export const useInvestigation = () => {
         timeRange,
       });
     },
-    [executeInvestigation, retrieveInvestigationContextPrompt]
+    [context.state, executeInvestigation, retrieveInvestigationContextPrompt]
   );
 
   const doInvestigateRef = useRef(doInvestigate);
@@ -544,7 +559,10 @@ export const useInvestigation = () => {
       timeRange?: InvestigationTimeRange;
     }) => {
       // Clear old memory IDs before starting new investigation
-      context.state.updateValue({ runningMemory: undefined });
+      context.state.updateValue({
+        runningMemory: undefined,
+        investigationPhase: InvestigationPhase.RETRIEVING_CONTEXT,
+      });
       const allParagraphs = context.state.getParagraphsValue();
       const notebookContextPrompt = await retrieveInvestigationContextPrompt();
 
@@ -621,8 +639,10 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
   );
 
   const continueInvestigation = useCallback(async () => {
-    setIsInvestigating(true);
     const { runningMemory } = context.state.value;
+    context.state.updateValue({
+      investigationPhase: InvestigationPhase.PLANNING,
+    });
 
     // Create AbortController if not exists
     if (!abortControllerRef.current) {
@@ -637,16 +657,21 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
       return pollInvestigationCompletion({
         runningMemory,
       }).finally(() => {
-        setIsInvestigating(false);
+        context.state.updateValue({
+          investigationPhase: InvestigationPhase.COMPLETED,
+        });
       });
     } catch (error) {
       const errorMessage = 'Failed to continue investigation';
-      context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
+      context.state.updateValue({
+        runningMemory: undefined,
+        investigationError: errorMessage,
+        investigationPhase: InvestigationPhase.COMPLETED,
+      });
       addError({
         error,
         title: errorMessage,
       });
-      setIsInvestigating(false);
     }
   }, [context.state, pollInvestigationCompletion, addError]);
 
@@ -662,7 +687,6 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
 
   return {
     isInvestigating,
-    setIsInvestigating,
     doInvestigate,
     addNewFinding,
     rerunInvestigation,
