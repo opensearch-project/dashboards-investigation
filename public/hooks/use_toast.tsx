@@ -18,7 +18,7 @@ import {
   EuiSmallButton,
   EuiSpacer,
 } from '@elastic/eui';
-import { FormattedMessage } from 'react-intl';
+import { i18n } from '@osd/i18n';
 import { mountReactNode } from '../../../../src/core/public/utils';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { OverlayStart } from '../../../../src/core/public';
@@ -30,14 +30,14 @@ interface IShowErrorNotification {
 
 export const useToast = () => {
   const {
-    services: { notifications, overlays, uiSettings },
+    services: { notifications, overlays },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   return {
     addError: useCallback(
       (props: IShowErrorNotification) => {
         notifications.toasts.addDanger({
-          toastLifeTimeMs: uiSettings.get('notifications:lifetime:error'),
+          toastLifeTimeMs: 30 * 60 * 1000,
           title: props.title,
           text: mountReactNode(
             <React.Fragment>
@@ -54,17 +54,16 @@ export const useToast = () => {
                     })
                   }
                 >
-                  <FormattedMessage
-                    id="core.toasts.errorToast.seeFullError"
-                    defaultMessage="See the full error"
-                  />
+                  {i18n.translate('core.toasts.errorToast.seeFullError', {
+                    defaultMessage: 'See the full error',
+                  })}
                 </EuiButton>
               </div>
             </React.Fragment>
           ),
         });
       },
-      [uiSettings, notifications, overlays]
+      [notifications, overlays]
     ),
   };
 };
@@ -98,10 +97,9 @@ function showErrorDialog({
         </EuiModalBody>
         <EuiModalFooter>
           <EuiSmallButton onClick={() => modal.close()} fill>
-            <FormattedMessage
-              id="core.notifications.errorToast.closeModal"
-              defaultMessage="Close"
-            />
+            {i18n.translate('core.notifications.errorToast.closeModal', {
+              defaultMessage: 'Close',
+            })}
           </EuiSmallButton>
         </EuiModalFooter>
       </React.Fragment>

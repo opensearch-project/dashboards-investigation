@@ -25,6 +25,7 @@ import { concatMap, delay, retryWhen, scan, timeout } from 'rxjs/operators';
 import type { NoteBookServices } from 'public/types';
 
 import { getTimeGapFromDates } from '../../../../../utils/time';
+import { useSidecarPadding } from '../../../../../hooks/use_sidecar_padding';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 import { getAllTracesMessages, isMarkdownText } from './utils';
@@ -64,6 +65,7 @@ export const MessageTraceFlyout = ({
   executorMemoryService,
   currentExecutorMemoryId,
   memoryContainerId,
+  isInvestigating,
 }: {
   messageId: string;
   dataSourceId?: string;
@@ -72,6 +74,7 @@ export const MessageTraceFlyout = ({
   executorMemoryService: PERAgentMemoryService;
   currentExecutorMemoryId: string;
   memoryContainerId: string;
+  isInvestigating?: boolean;
 }) => {
   const {
     services: { http, overlays, notifications },
@@ -80,18 +83,7 @@ export const MessageTraceFlyout = ({
   const [traces, setTraces] = useState<any[]>([]);
   const [traceError, setTraceError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
-  const [paddingRight, setPaddingRight] = useState('0px');
-
-  useEffect(() => {
-    const subscription = overlays.sidecar.getSidecarConfig$().subscribe((config) => {
-      if (config?.dockedMode === 'right') {
-        setPaddingRight(`${config.paddingSize}px`);
-      } else {
-        setPaddingRight('0px');
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [overlays]);
+  const paddingRight = useSidecarPadding(overlays);
 
   const message = messageService.getMessageValue();
   const messages = useObservable(executorMemoryService.getMessages$());
@@ -113,8 +105,9 @@ export const MessageTraceFlyout = ({
     if (!traceMessage?.response) {
       return true;
     }
-    return !message;
-  }, [isLastMessage, traceMessage?.response, message, traces]);
+    // When not investigating, don't depend on message result
+    return isInvestigating ? !message : false;
+  }, [isLastMessage, traceMessage?.response, message, traces, isInvestigating]);
 
   const shouldStartPolling = useMemo(() => shouldLoad || retryKey > 0, [shouldLoad, retryKey]);
 

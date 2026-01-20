@@ -49,6 +49,7 @@ export interface NotebookStateValue {
   isNotebookReadonly: boolean;
   topologies: PERAgentTopology[];
   investigationPhase?: InvestigationPhase;
+  isPromoted?: boolean;
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {

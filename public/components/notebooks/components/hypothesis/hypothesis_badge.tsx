@@ -4,18 +4,24 @@
  */
 
 import React from 'react';
-import { EuiBadge } from '@elastic/eui';
+import { EuiBadge, EuiFlexGroup, EuiIcon } from '@elastic/eui';
+import { euiThemeVars } from '@osd/ui-shared-deps/theme';
 
 export const HypothesisBadge: React.FC<{
   label: string;
   color: string;
   icon?: string;
-}> = ({ label, color, icon }) => {
+  textColor?: string;
+}> = ({ label, color, icon, textColor }) => {
   return (
     <EuiBadge
       color={color}
       iconType={icon}
-      style={{ alignContent: 'center', borderRadius: '9999px' }}
+      style={{
+        alignContent: 'center',
+        borderRadius: '9999px',
+        ...(textColor && { color: textColor }),
+      }}
     >
       {label}
     </EuiBadge>
@@ -27,15 +33,20 @@ export const LikelihoodBadge: React.FC<{
 }> = ({ likelihood }) => {
   const getLikelihoodConfig = (value: number) => {
     if (value >= 70) {
-      return { label: 'Strong evidence', color: '#DCFCE7' };
+      return { label: 'Strong evidence', color: euiThemeVars.ouiColorVis13 };
     } else if (value >= 40) {
-      return { label: 'Moderate evidence', color: '#FEF3C7' };
+      return { label: 'Moderate evidence', color: euiThemeVars.ouiColorVis15 };
     } else {
-      return { label: 'Weak evidence', color: '#FEE2E2' };
+      return { label: 'Weak evidence', color: euiThemeVars.ouiColorVis2 };
     }
   };
 
   const { label, color } = getLikelihoodConfig(likelihood);
 
-  return <HypothesisBadge label={`${label} ${likelihood}%`} color={color} />;
+  return (
+    <EuiFlexGroup gutterSize="none" style={{ color, gap: 4 }} direction="row" alignItems="center">
+      <EuiIcon size="s" type="checkInCircleFilled" />
+      {`${label} · ${likelihood}%`}
+    </EuiFlexGroup>
+  );
 };

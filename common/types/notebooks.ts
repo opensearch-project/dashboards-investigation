@@ -81,15 +81,23 @@ export interface ParagraphBackendType<TOutputResult, TInputParameters = unknown>
   aiGenerated?: boolean;
 }
 
+export enum HypothesisStatus {
+  RULED_OUT = 'RULED_OUT',
+  RULED_IN = '',
+}
+
 export interface HypothesisItem {
   id: string;
   title: string;
   description: string;
   likelihood: number;
   supportingFindingParagraphIds: string[];
+  irrelevantFindingParagraphIds?: string[];
+  userSelectedFindingParagraphIds?: string[];
   newAddedFindingIds?: string[];
   dateCreated: string;
   dateModified: string;
+  status?: HypothesisStatus;
 }
 
 export interface AgenticMemeory {
@@ -161,7 +169,7 @@ export interface PERAgentHypothesisFinding {
 }
 
 export interface FindingParagraphParameters {
-  finding?: Omit<PERAgentHypothesisFinding, 'id'> & { feedback?: string };
+  finding?: Omit<PERAgentHypothesisFinding, 'id'> & { feedback?: 'CONFIRMED' | 'REJECTED' };
 }
 
 export interface PERAgentHypothesisItem {

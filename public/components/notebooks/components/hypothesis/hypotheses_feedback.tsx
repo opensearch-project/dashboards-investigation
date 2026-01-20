@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { i18n } from '@osd/i18n';
 import { EuiButtonIcon, EuiFlexGroup, EuiFlexItem, EuiText } from '@elastic/eui';
 import React, { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
@@ -37,7 +38,9 @@ export const HypothesesFeedback: React.FC<{
   return (
     <EuiFlexGroup gutterSize="none" justifyContent="flexEnd" alignItems="center">
       <EuiText color="subdued" size="s">
-        How helpful were these hypotheses?
+        {i18n.translate('investigate.hypothesis.feedback.question', {
+          defaultMessage: 'How helpful were these hypotheses?',
+        })}
       </EuiText>
       {(!feedback || feedback === 'thumbup') && (
         <EuiFlexItem grow={false}>

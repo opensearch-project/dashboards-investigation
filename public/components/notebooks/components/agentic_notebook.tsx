@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { i18n } from '@osd/i18n';
 import {
   EuiEmptyPrompt,
   EuiFlexGroup,
@@ -22,9 +23,12 @@ import {
   EuiButtonEmpty,
   EuiButton,
   EuiTextArea,
+  EuiFlyout,
+  EuiFlyoutBody,
 } from '@elastic/eui';
 import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
 import { useEffectOnce, useObservable } from 'react-use';
+import { useHistory } from 'react-router-dom';
 
 import { NoteBookServices } from 'public/types';
 import { ParagraphState } from '../../../../common/state/paragraph_state';
@@ -46,14 +50,14 @@ import { useNotebookFindingIntegration } from '../../../hooks/use_notebook_findi
 import { useInvestigation } from '../../../hooks/use_investigation';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NotebookHeader } from './notebook_header';
-import { SummaryCard } from './summary_card';
+import { InvestigationResult } from './investigation_result';
 import { useChatContextProvider } from '../../../hooks/use_chat_context';
-import { HypothesisDetail, HypothesesPanel, ReinvestigateModal } from './hypothesis';
+import { HypothesisDetail, AlternativeHypothesesPanel, ReinvestigateModal } from './hypothesis';
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
 import { InvestigationPageContext } from './investigation_page_context';
 import { migrateFindingParagraphs } from '../../../utils/finding_migration';
-import { Topology } from './topology';
 import { InvestigationPhase } from '../../../../common/state/notebook_state';
+import { useSidecarPadding } from '../../../hooks/use_sidecar_padding';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
   openedNoteId: string;
@@ -92,7 +96,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     paragraphs: paragraphsStates,
     isLoading,
     isNotebookReadonly,
-    topologies,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
@@ -143,8 +146,13 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           deleteParagraph(index);
           setIsModalVisible(false);
         },
-        'Delete paragraph',
-        'Are you sure you want to delete the paragraph? The action cannot be undone.'
+        i18n.translate('notebook.agentic.deleteParagraph', {
+          defaultMessage: 'Delete paragraph',
+        }),
+        i18n.translate('notebook.agentic.deleteParagraphConfirm', {
+          defaultMessage:
+            'Are you sure you want to delete the paragraph? The action cannot be undone.',
+        })
       )
     );
     setIsModalVisible(true);
@@ -185,7 +193,11 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         });
 
         if (migratedIds.length > 0) {
-          notifications.toasts.addInfo('Finding paragraphs migrated.');
+          notifications.toasts.addInfo(
+            i18n.translate('notebook.agentic.findingParagraphsMigrated', {
+              defaultMessage: 'Finding paragraphs migrated.',
+            })
+          );
           await notebookContext.paragraphHooks.batchRunParagraphs({
             paragraphIds: migratedIds,
           });
@@ -202,8 +214,14 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
             await continueInvestigation();
           } else {
             notifications.toasts.addWarning({
-              title: 'Investigation in progress',
-              text: `User (${res.runningMemory?.owner}) is currently running an investigation. Please wait for it to complete and refresh the page.`,
+              title: i18n.translate('notebook.agentic.investigationInProgress', {
+                defaultMessage: 'Investigation in progress',
+              }),
+              text: i18n.translate('notebook.agentic.investigationInProgressText', {
+                defaultMessage:
+                  'User ({owner}) is currently running an investigation. Please wait for it to complete and refresh the page.',
+                values: { owner: res.runningMemory?.owner },
+              }),
             });
           }
           return;
@@ -219,7 +237,10 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       })
       .catch((err) => {
         notifications.toasts.addDanger(
-          'Error fetching notebooks, please make sure you have the correct permission.'
+          i18n.translate('notebook.agentic.errorFetchingNotebooks', {
+            defaultMessage:
+              'Error fetching notebooks, please make sure you have the correct permission.',
+          })
         );
         console.error(err);
       });
@@ -326,8 +347,20 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           <EuiEmptyPrompt
             iconType="alert"
             iconColor="danger"
-            title={<h2>Error loading Notebook</h2>}
-            body={<p>Incorrect notebook type</p>}
+            title={
+              <h2>
+                {i18n.translate('notebook.agentic.errorLoadingNotebook', {
+                  defaultMessage: 'Error loading Notebook',
+                })}
+              </h2>
+            }
+            body={
+              <p>
+                {i18n.translate('notebook.agentic.incorrectNotebookType', {
+                  defaultMessage: 'Incorrect notebook type',
+                })}
+              </p>
+            }
           />
         </EuiPageBody>
       </EuiPage>
@@ -345,27 +378,35 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               showUpgradeModal={() => {}}
             />
           )}
-          <SummaryCard openReinvestigateModal={() => setIsReinvestigateModalVisible(true)} />
-          <EuiSpacer />
-          <HypothesesPanel
+          <InvestigationResult
             notebookId={openedNoteId}
-            question={initialGoal}
             openReinvestigateModal={() => setIsReinvestigateModalVisible(true)}
           />
-          <EuiSpacer />
+          <EuiSpacer size="s" />
+          <AlternativeHypothesesPanel notebookId={openedNoteId} isInvestigating={isInvestigating} />
           {isLoading ? (
-            <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
+            <EuiEmptyPrompt
+              icon={<EuiLoadingContent />}
+              title={
+                <h2>
+                  {i18n.translate('notebook.agentic.loadingNotebook', {
+                    defaultMessage: 'Loading Notebook',
+                  })}
+                </h2>
+              }
+            />
           ) : null}
           {isLoading
             ? null
             : paragraphsStates.length > 0
             ? paragraphsStates.map((paragraphState, index: number) => {
+                if (paragraphState.value.aiGenerated) {
+                  return null;
+                }
                 return (
                   <div
                     ref={(ref) => (paraDivRefs.current[index] = ref)}
                     key={`para_div_${paragraphState.value.id}`}
-                    // Hidden the agent generated findings during reinvestigation
-                    hidden={paragraphState.value.aiGenerated && isInvestigating}
                   >
                     {index > 0 && <EuiSpacer size="s" />}
                     <EuiPanel>
@@ -373,17 +414,13 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                         index={index}
                         deletePara={showDeleteParaModal}
                         scrollToPara={scrollToPara}
+                        key={paragraphState.value.id}
                       />
                     </EuiPanel>
                   </div>
                 );
               })
             : null}
-          {isLoading || isInvestigating || !topologies
-            ? null
-            : topologies.map((topolopy) => {
-                return <Topology topologyItem={topolopy} />;
-              })}
           {!isLoading && !isInvestigating && !isNotebookReadonly && (
             <>
               <EuiSpacer size="s" />
@@ -396,7 +433,9 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                         setIsModalVisibleAddFinding(true);
                       }}
                     >
-                      Add Finding
+                      {i18n.translate('notebook.agentic.addFinding', {
+                        defaultMessage: 'Add Finding',
+                      })}
                     </EuiSmallButton>
                   </EuiFlexItem>
                 </EuiFlexGroup>
@@ -406,24 +445,38 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           {isModalVisibleAddFinding && (
             <EuiModal onClose={closeModal}>
               <EuiModalHeader>
-                <EuiModalHeaderTitle>Add Finding</EuiModalHeaderTitle>
+                <EuiModalHeaderTitle>
+                  {i18n.translate('notebook.agentic.addFinding', {
+                    defaultMessage: 'Add Finding',
+                  })}
+                </EuiModalHeaderTitle>
               </EuiModalHeader>
 
               <EuiModalBody>
                 <EuiTextArea
                   fullWidth
-                  placeholder="Please add your finding here"
+                  placeholder={i18n.translate('notebook.agentic.addFindingPlaceholder', {
+                    defaultMessage: 'Please add your finding here',
+                  })}
                   value={findingText}
                   onChange={(e) => setFindingText(e.target.value)}
                   rows={5}
-                  aria-label="Add finding text area"
+                  aria-label={i18n.translate('notebook.agentic.addFindingAriaLabel', {
+                    defaultMessage: 'Add finding text area',
+                  })}
                 />
               </EuiModalBody>
 
               <EuiModalFooter>
-                <EuiButtonEmpty onClick={closeModal}>Cancel</EuiButtonEmpty>
+                <EuiButtonEmpty onClick={closeModal}>
+                  {i18n.translate('notebook.agentic.cancel', {
+                    defaultMessage: 'Cancel',
+                  })}
+                </EuiButtonEmpty>
                 <EuiButton fill onClick={handleAddFinding}>
-                  Add
+                  {i18n.translate('notebook.agentic.add', {
+                    defaultMessage: 'Add',
+                  })}
                 </EuiButton>
               </EuiModalFooter>
             </EuiModal>
@@ -452,7 +505,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
 export const AgenticNotebook = ({ openedNoteId, ...rest }: AgenticNotebookProps) => {
   const {
-    services: { dataSource, application },
+    services: { dataSource, application, overlays },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { page } = useSubRouter();
   const stateRef = useRef(
@@ -461,6 +514,8 @@ export const AgenticNotebook = ({ openedNoteId, ...rest }: AgenticNotebookProps)
       dataSourceEnabled: !!dataSource,
     })
   );
+  const history = useHistory();
+  const paddingRight = useSidecarPadding(overlays);
 
   if (!application.capabilities.investigation.agenticFeaturesEnabled) {
     return (
@@ -469,8 +524,20 @@ export const AgenticNotebook = ({ openedNoteId, ...rest }: AgenticNotebookProps)
           <EuiEmptyPrompt
             iconType="alert"
             iconColor="danger"
-            title={<h2>Error loading Notebook</h2>}
-            body={<p>Agentic feature is disabled</p>}
+            title={
+              <h2>
+                {i18n.translate('notebook.agentic.errorLoadingNotebook', {
+                  defaultMessage: 'Error loading Notebook',
+                })}
+              </h2>
+            }
+            body={
+              <p>
+                {i18n.translate('notebook.agentic.agenticFeatureDisabled', {
+                  defaultMessage: 'Agentic feature is disabled',
+                })}
+              </p>
+            }
           />
         </EuiPageBody>
       </EuiPage>
@@ -480,10 +547,24 @@ export const AgenticNotebook = ({ openedNoteId, ...rest }: AgenticNotebookProps)
   return (
     <NotebookContextProvider state={stateRef.current}>
       <>
-        {page === SubRouter.Hypothesis && <HypothesisDetail />}
-        <div style={{ display: page === SubRouter.Hypothesis ? 'none' : 'block' }}>
-          <NotebookComponent {...rest} />
-        </div>
+        <NotebookComponent {...rest} />
+        {page === SubRouter.Hypothesis && (
+          <EuiFlyout
+            onClose={() => {
+              const { id: notebookId } = stateRef.current.value;
+              history.push(`/agentic/${notebookId}`);
+            }}
+            style={{ marginRight: paddingRight }}
+            size="l"
+            paddingSize="none"
+            ownFocus={false}
+            maxWidth={980}
+          >
+            <EuiFlyoutBody>
+              <HypothesisDetail />
+            </EuiFlyoutBody>
+          </EuiFlyout>
+        )}
       </>
     </NotebookContextProvider>
   );
