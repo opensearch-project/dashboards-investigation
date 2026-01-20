@@ -49,6 +49,7 @@ export interface NotebookStateValue {
   isNotebookReadonly: boolean;
   topologies: PERAgentTopology[];
   investigationPhase?: InvestigationPhase;
+  feedbackSummary?: string[];
   isPromoted?: boolean;
   failedInvestigation?: FailedInvestigationInfo;
   runningMemoryPermission?: boolean;

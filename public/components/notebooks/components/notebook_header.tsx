@@ -45,6 +45,7 @@ import {
 import { TopNavMenuIconData } from '../../../../../../src/plugins/navigation/public';
 import { NotebookDataSourceSelector } from './data_source_selector/notebook_data_source_selector';
 import { NotebookType } from '../../../../common/types/notebooks';
+import { UserFeedbackButton } from './user_feedback_button';
 
 export const NotebookHeader = ({
   loadNotebook,
@@ -77,9 +78,11 @@ export const NotebookHeader = ({
     dateModified,
     context,
     isLoading,
+    feedbackSummary,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const contextValue = useObservable(context.getValue$());
   const { dataSourceId, notebookType } = contextValue || {};
+  const userFeedbackSummary = feedbackSummary?.[0];
 
   const [isReportingPluginInstalled, setIsReportingPluginInstalled] = useState(false);
   const [isReportingActionsPopoverOpen, setIsReportingActionsPopoverOpen] = useState(false);
@@ -582,13 +585,27 @@ export const NotebookHeader = ({
               />
               <HeaderControl
                 controls={[
-                  ...(notebookType === NotebookType.AGENTIC
+                  ...(notebookType === NotebookType.AGENTIC && userFeedbackSummary
                     ? [
+                        ...(notebookType === NotebookType.AGENTIC
+                          ? [
+                              {
+                                renderComponent: (
+                                  <NotebookDataSourceSelector
+                                    dataSourceId={dataSourceId}
+                                    isNotebookLoading={isLoading}
+                                  />
+                                ),
+                              },
+                            ]
+                          : []),
                         {
                           renderComponent: (
-                            <NotebookDataSourceSelector
-                              dataSourceId={dataSourceId}
-                              isNotebookLoading={isLoading}
+                            <UserFeedbackButton
+                              feedbackSummary={userFeedbackSummary}
+                              onSave={(feedback) =>
+                                notebookContext.state.updateValue({ feedbackSummary: [feedback] })
+                              }
                             />
                           ),
                         },
@@ -645,6 +662,8 @@ export const NotebookHeader = ({
       showReportingContextMenu,
       reportingTopButton,
       notebookType,
+      userFeedbackSummary,
+      notebookContext.state,
     ]
   );
 

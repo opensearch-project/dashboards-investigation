@@ -237,6 +237,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
               })
             )
           ),
+          feedbackSummary: schema.nullable(schema.arrayOf(schema.string())),
         }),
       },
     },
@@ -252,6 +253,9 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
           hypotheses: request.body.hypotheses,
           ...(request.body.topologies !== null && request.body.topologies !== undefined
             ? { topologies: request.body.topologies }
+            : {}),
+          ...(request.body.feedbackSummary !== null && request.body.feedbackSummary !== undefined
+            ? { feedbackSummary: request.body.feedbackSummary }
             : {}),
           dateModified: new Date().toISOString(),
           ...(request.body.runningMemory
