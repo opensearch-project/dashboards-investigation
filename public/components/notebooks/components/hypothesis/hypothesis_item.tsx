@@ -17,11 +17,15 @@ import {
   EuiBadge,
 } from '@elastic/eui';
 import { euiThemeVars } from '@osd/ui-shared-deps/theme';
-import { HypothesisItem as HypothesisItemProps } from 'common/types/notebooks';
+
 import { NoteBookServices } from 'public/types';
 import moment from 'moment';
-import { useEffect, useRef } from 'react';
 import { useObservable } from 'react-use';
+
+import {
+  HypothesisItem as HypothesisItemProps,
+  HypothesisStatus,
+} from '../../../../../common/types/notebooks';
 import { LikelihoodBadge } from './hypothesis_badge';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { HypothesisStatusButton } from './hypthesis_status_button';
@@ -43,18 +47,10 @@ export const HypothesisItem: React.FC<{
     notebookContext.state.value
   );
 
-  const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
   const isDarkMode = uiSettings.get('theme:darkMode');
 
   const { title, description, likelihood, id, dateModified, status } = hypothesis;
-  const isRuledOut = status === 'RULED_OUT';
+  const isRuledOut = status === HypothesisStatus.RULED_OUT;
 
   return (
     <div

@@ -75,6 +75,11 @@ export interface ParagraphBackendType<TOutputResult, TInputParameters = unknown>
   aiGenerated?: boolean;
 }
 
+export enum HypothesisStatus {
+  RULED_OUT = 'RULED_OUT',
+  RULED_IN = '',
+}
+
 export interface HypothesisItem {
   id: string;
   title: string;
@@ -86,7 +91,7 @@ export interface HypothesisItem {
   newAddedFindingIds?: string[];
   dateCreated: string;
   dateModified: string;
-  status?: string;
+  status?: HypothesisStatus;
 }
 
 export interface AgenticMemeory {

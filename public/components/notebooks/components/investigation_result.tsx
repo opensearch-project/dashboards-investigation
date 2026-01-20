@@ -31,10 +31,11 @@ import React, { useContext, useEffect, useMemo, useState } from 'react';
 import moment from 'moment';
 import { useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
-import { FindingParagraphParameters } from 'common/types/notebooks';
 import { euiThemeVars } from '@osd/ui-shared-deps/theme';
 import { BehaviorSubject } from 'rxjs';
 import { useHistory } from 'react-router-dom';
+
+import { FindingParagraphParameters, HypothesisStatus } from '../../../../common/types/notebooks';
 import { NotebookReactContext } from '../context_provider/context_provider';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { getDataSourceById } from '../../../utils/data_source_utils';
@@ -257,7 +258,12 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
             <EuiText color="ghost">{badgeLabel}</EuiText>
           </EuiFlexItem>
 
-          <EuiButtonIcon iconType="cross" color="ghost" onClick={() => setShowStatusBadge(false)} />
+          <EuiButtonIcon
+            aria-label="close badge"
+            iconType="cross"
+            color="ghost"
+            onClick={() => setShowStatusBadge(false)}
+          />
         </EuiFlexGroup>
         <EuiSpacer size="s" />
       </>
@@ -371,7 +377,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
         </EuiText>
       );
     }
-    if (hypotheses[0].status === 'RULED_OUT') {
+    if (hypotheses[0].status === HypothesisStatus.RULED_OUT) {
       // First hypothese is ruled out means all hypotheses are ruled out
       return (
         <EuiPanel style={{ borderStyle: 'dashed', boxShadow: 'unset' }}>

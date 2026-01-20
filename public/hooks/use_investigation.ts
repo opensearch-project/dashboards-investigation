@@ -26,6 +26,7 @@ import {
   InvestigationTimeRange,
   FindingParagraphParameters,
   PERAgentInvestigationResponse,
+  HypothesisStatus,
 } from '../../common/types/notebooks';
 import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_agent';
 import { useNotebook } from './use_notebook';
@@ -607,8 +608,12 @@ export const useInvestigation = () => {
         }
       );
 
-      const activeHypotheses = originalHypotheses.filter((h) => h.status !== 'RULED_OUT');
-      const ruledOutHypotheses = originalHypotheses.filter((h) => h.status === 'RULED_OUT');
+      const activeHypotheses = originalHypotheses.filter(
+        (h) => h.status !== HypothesisStatus.RULED_OUT
+      );
+      const ruledOutHypotheses = originalHypotheses.filter(
+        (h) => h.status === HypothesisStatus.RULED_OUT
+      );
 
       const currentStatePrompt = `${notebookContextPrompt}
 

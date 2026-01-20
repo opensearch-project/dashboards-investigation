@@ -13,6 +13,7 @@ import { euiThemeVars } from '@osd/ui-shared-deps/theme';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { useNotebook } from '../../../../hooks/use_notebook';
+import { HypothesisStatus } from '../../../../../common/types/notebooks';
 
 export const HypothesisStatusButton: React.FC<{
   hypothesisId: string;
@@ -43,8 +44,8 @@ export const HypothesisStatusButton: React.FC<{
   const handleToggleStatus = async () => {
     if (!hypothesisId) return;
 
-    const isRuledOut = hypothesisStatus === 'RULED_OUT';
-    const updatedStatus = isRuledOut ? '' : 'RULED_OUT';
+    const isRuledOut = hypothesisStatus === HypothesisStatus.RULED_OUT;
+    const updatedStatus = isRuledOut ? HypothesisStatus.RULED_IN : HypothesisStatus.RULED_OUT;
 
     const updatedHypotheses =
       hypotheses?.map((h) => (h.id === hypothesisId ? { ...h, status: updatedStatus } : h)) || [];
@@ -57,11 +58,11 @@ export const HypothesisStatusButton: React.FC<{
 
       // Ruling out: move to end and promote highest likelihood active hypothesis to first
       const activeHypotheses = updatedHypotheses.filter(
-        (h) => h.id !== hypothesisId && h.status !== 'RULED_OUT'
+        (h) => h.id !== hypothesisId && h.status !== HypothesisStatus.RULED_OUT
       );
       const ruledOutHypothesis = updatedHypotheses.find((h) => h.id === hypothesisId);
       const otherRuledOut = updatedHypotheses.filter(
-        (h) => h.id !== hypothesisId && h.status === 'RULED_OUT'
+        (h) => h.id !== hypothesisId && h.status === HypothesisStatus.RULED_OUT
       );
 
       if (activeHypotheses.length > 0) {
@@ -79,7 +80,9 @@ export const HypothesisStatusButton: React.FC<{
       }
     } else {
       // Ruling in: check if this is the only active hypothesis
-      const activeHypotheses = updatedHypotheses.filter((h) => h.status !== 'RULED_OUT');
+      const activeHypotheses = updatedHypotheses.filter(
+        (h) => h.status !== HypothesisStatus.RULED_OUT
+      );
       if (activeHypotheses.length === 1) {
         // Move the ruled-in hypothesis to first place
         const ruledInHypothesis = updatedHypotheses.find((h) => h.id === hypothesisId);
@@ -123,7 +126,7 @@ export const HypothesisStatusButton: React.FC<{
     }
   };
 
-  const isRuledOut = hypothesisStatus === 'RULED_OUT';
+  const isRuledOut = hypothesisStatus === HypothesisStatus.RULED_OUT;
 
   return (
     <EuiSmallButton

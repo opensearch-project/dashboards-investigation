@@ -25,18 +25,22 @@ import React, { useContext, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { i18n } from '@osd/i18n';
 import moment from 'moment';
-import { FindingParagraphParameters } from 'common/types/notebooks';
 import { EuiSmallButton } from '@elastic/eui';
+
+import {
+  FindingParagraphParameters,
+  HypothesisStatus,
+} from '../../../../../common/types/notebooks';
 import { HypothesisBadge, LikelihoodBadge } from './hypothesis_badge';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { Paragraph } from '../paragraph_components/paragraph';
-import './hypothesis_detail.scss';
 import { HypothesisStatusButton } from './hypthesis_status_button';
 import { Topology } from '../topology';
 import { useReplaceAsPrimary } from '../../../../hooks/use_replace_primary_hypothesis';
 
+import './hypothesis_detail.scss';
+
 export const HypothesisDetail: React.FC = () => {
-  // const history = useHistory();
   const location = useLocation();
 
   const notebookContext = useContext(NotebookReactContext);
@@ -65,7 +69,8 @@ export const HypothesisDetail: React.FC = () => {
     newAddedFindingIds,
   } = currentHypothesis || {};
 
-  const isRuledOut = status === 'RULED_OUT';
+  const isRuledOut = status === HypothesisStatus.RULED_OUT;
+  const isPrimaryHypothesis = hypotheses?.[0]?.id === hypothesisId;
 
   const supportiveFindingIndices = [
     ...supportingFindingParagraphIds,
@@ -81,28 +86,6 @@ export const HypothesisDetail: React.FC = () => {
         ((paragraphsStates[a].value.input.parameters as FindingParagraphParameters)?.finding
           ?.importance || 0)
     );
-
-  // TODO: once we have more tab than just "Evidence and reasoning"
-  // const toggleButtons = [
-  //   {
-  //     id: 'evidence',
-  //     label: 'Evidence and reasoning',
-  //   },
-  // ];
-
-  // const BackButton = () => (
-  //   <EuiSmallButton
-  //     iconType="sortLeft"
-  //     style={{ borderRadius: '9999px' }}
-  //     onClick={() => {
-  //       history.push(`/agentic/${notebookId}`);
-  //     }}
-  //   >
-  //     {i18n.translate('notebook.hypothesis.detail.back', {
-  //       defaultMessage: 'Back',
-  //     })}
-  //   </EuiSmallButton>
-  // );
 
   if (!currentHypothesis) {
     return (
@@ -138,24 +121,6 @@ export const HypothesisDetail: React.FC = () => {
                       values: { title },
                     })}
                   </strong>
-                  {/* TODO: display the following information once requirements are clarified */}
-                  {/* <span style={{ letterSpacing: 'normal', marginInlineStart: 12 }}>
-                    <HypothesisBadge label="Active" color="hollow" />
-                  </span>
-                  <span style={{ letterSpacing: 'normal', marginInlineStart: 12 }}>
-                    <HypothesisBadge label="P0: Critical" color="danger" />
-                  </span>
-                  <EuiText
-                    size="s"
-                    color="subdued"
-                    style={{
-                      display: 'inline-block',
-                      letterSpacing: 'normal',
-                      marginInlineStart: 12,
-                    }}
-                  >
-                    Duration: 15 minutes
-                  </EuiText> */}
                 </span>
               </EuiTitle>
             </EuiPageHeaderSection>
@@ -192,7 +157,7 @@ export const HypothesisDetail: React.FC = () => {
                     }
                     color={isRuledOut ? 'danger' : 'hollow'}
                   />
-                  {hypotheses?.[0]?.id === hypothesisId && !isRuledOut && (
+                  {isPrimaryHypothesis && !isRuledOut && (
                     <HypothesisBadge
                       label="Primary hypothesis"
                       color="#FAF5FF"
@@ -201,7 +166,7 @@ export const HypothesisDetail: React.FC = () => {
                   )}
                 </EuiFlexGroup>
                 <EuiFlexGroup gutterSize="none" justifyContent="flexEnd" style={{ gap: 8 }}>
-                  {hypotheses?.[0]?.id !== hypothesisId && !isRuledOut && (
+                  {!isPrimaryHypothesis && !isRuledOut && (
                     <EuiSmallButton onClick={() => replaceAsPrimary(hypothesisId!)}>
                       {i18n.translate('notebook.hypothesis.detail.replaceAsPrimary', {
                         defaultMessage: 'Replace as primary',
@@ -213,7 +178,6 @@ export const HypothesisDetail: React.FC = () => {
                     hypothesisStatus={status}
                     fill
                   />
-                  {/* <EuiSmallButton fill>Confirm hypothesis</EuiSmallButton> */}
                 </EuiFlexGroup>
               </EuiFlexGroup>
               <EuiSpacer size="s" />
@@ -264,15 +228,6 @@ export const HypothesisDetail: React.FC = () => {
               <EuiSpacer size="s" />
               <EuiText>{description}</EuiText>
               <EuiSpacer size="m" />
-              {/* TODO: once we have more tab than just "Evidence and reasoning" */}
-              {/* <EuiButtonGroup
-                className="hypothesisDetail__findingsButtonGroup"
-                legend="This is a basic group"
-                options={toggleButtons}
-                idSelected={toggleIdSelected}
-                onChange={(id: any) => setToggleIdSelected(id)}
-              />
-              <EuiSpacer size="m" /> */}
 
               <EuiFlexGroup direction="column" gutterSize="none" style={{ gap: 16 }}>
                 {toggleIdSelected === 'evidence' && (
@@ -339,17 +294,6 @@ export const HypothesisDetail: React.FC = () => {
                       )}
                   </>
                 )}
-
-                {/* {toggleIdSelected === 'next' && (
-                  <>
-                    <EuiPanel color="plain">
-                      <EuiText className="markdown-output-text">Section 1</EuiText>
-                    </EuiPanel>
-                    <EuiPanel color="plain">
-                      <EuiText className="markdown-output-text">Section 2</EuiText>
-                    </EuiPanel>
-                  </>
-                )} */}
               </EuiFlexGroup>
             </EuiPageContentBody>
           </EuiPageContent>

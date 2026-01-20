@@ -20,6 +20,7 @@ import { useHistory } from 'react-router-dom';
 import { NotebookReactContext } from '../../context_provider/context_provider';
 import { HypothesisItem } from './hypothesis_item';
 import { useReplaceAsPrimary } from '../../../../hooks/use_replace_primary_hypothesis';
+import { HypothesisStatus } from '../../../../../common/types/notebooks';
 
 const RULED_OUT_PENALTY = 1000000;
 
@@ -29,7 +30,7 @@ interface AlternativeHypothesesPanelProps {
 }
 
 const getHypothesisSortScore = (hypothesis: { likelihood: number; status?: string }) =>
-  hypothesis.status === 'RULED_OUT'
+  hypothesis.status === HypothesisStatus.RULED_OUT
     ? hypothesis.likelihood - RULED_OUT_PENALTY
     : hypothesis.likelihood;
 
@@ -64,7 +65,7 @@ export const AlternativeHypothesesPanel: React.FC<AlternativeHypothesesPanelProp
       );
     }
 
-    const allRuledOut = hypotheses.every((h) => h.status === 'RULED_OUT');
+    const allRuledOut = hypotheses.every((h) => h.status === HypothesisStatus.RULED_OUT);
     const alternativehypotheses = allRuledOut ? hypotheses : hypotheses.slice(1);
 
     return alternativehypotheses
@@ -78,7 +79,7 @@ export const AlternativeHypothesesPanel: React.FC<AlternativeHypothesesPanelProp
                 hypothesis={hypothesis}
                 onClickHypothesis={handleClickHypothesis}
                 additionalButton={
-                  hypothesis.status !== 'RULED_OUT'
+                  hypothesis.status !== HypothesisStatus.RULED_OUT
                     ? {
                         label: i18n.translate('notebook.hypotheses.panel.replaceAsPrimary', {
                           defaultMessage: 'Replace as primary',
