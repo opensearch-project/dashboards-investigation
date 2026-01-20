@@ -191,6 +191,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           runningMemory: res.runningMemory,
           historyMemory: res.historyMemory,
           topologies: res.topologies,
+          feedbackSummary: res.feedbackSummary,
         });
 
         if (migratedIds.length > 0) {

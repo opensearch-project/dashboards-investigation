@@ -32,7 +32,8 @@ export interface NotebookStateValue {
   historyMemory?: AgenticMemeory;
   investigationError?: string;
   isNotebookReadonly: boolean;
-  topologies: PERAgentTopology[];
+  topologies?: PERAgentTopology[];
+  feedbackSummary?: string[];
   isPromoted?: boolean;
 }
 
