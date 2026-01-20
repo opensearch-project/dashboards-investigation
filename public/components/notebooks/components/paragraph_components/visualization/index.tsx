@@ -95,11 +95,16 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
   // update discover visualization to make it accept input from embeddable
   useEffect(() => {
     const { type, startTime, endTime } = visualizationValue || {};
-    if (type === EXPLORE_VISUALIZATION_TYPE) {
-      data.query.timefilter.timefilter.setTime({
-        from: moment(startTime),
-        to: moment(endTime),
-      });
+    if (type === EXPLORE_VISUALIZATION_TYPE && startTime && endTime) {
+      const fromMoment = moment(startTime);
+      const toMoment = moment(endTime);
+
+      if (fromMoment.isValid() && toMoment.isValid()) {
+        data.query.timefilter.timefilter.setTime({
+          from: fromMoment,
+          to: toMoment,
+        });
+      }
     }
   }, [visualizationValue, data]);
 

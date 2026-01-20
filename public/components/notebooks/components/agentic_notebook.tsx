@@ -31,7 +31,6 @@ import { ParagraphState } from '../../../../common/state/paragraph_state';
 import {
   InvestigationTimeRange,
   NotebookComponentProps,
-  NoteBookSource,
   NotebookType,
 } from '../../../../common/types/notebooks';
 import { getDeleteModal } from './helpers/modal_containers';
@@ -84,7 +83,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   useChatContextProvider();
 
   const notebookContext = useContext(NotebookReactContext);
-  const { initialGoal, source, notebookType, timeRange, dataSourceId } = useObservable(
+  const { initialGoal, notebookType, timeRange, dataSourceId } = useObservable(
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
   );
@@ -346,12 +345,8 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               showUpgradeModal={() => {}}
             />
           )}
-          {(source === NoteBookSource.DISCOVER || source === NoteBookSource.VISUALIZATION) && (
-            <>
-              <SummaryCard openReinvestigateModal={() => setIsReinvestigateModalVisible(true)} />
-              <EuiSpacer />
-            </>
-          )}
+          <SummaryCard openReinvestigateModal={() => setIsReinvestigateModalVisible(true)} />
+          <EuiSpacer />
           <HypothesesPanel
             notebookId={openedNoteId}
             question={initialGoal}

@@ -112,7 +112,7 @@ describe('HypothesesPanel - Component Rendering', () => {
 
   it('should not render when question is not provided', () => {
     const mockContext = createMockNotebookContext();
-    mockUseObservable.mockReturnValue(mockContext.state.value);
+    (useObservable as jest.Mock).mockReturnValue(mockContext.state.value);
 
     const { container } = render(
       <OpenSearchDashboardsContextProvider services={mockServices}>
@@ -286,7 +286,7 @@ describe('HypothesesPanel - Component Rendering', () => {
       const mockContext1 = createMockNotebookContext({
         investigationPhase: InvestigationPhase.RETRIEVING_CONTEXT,
       });
-      mockUseObservable.mockReturnValue(mockContext1.state.value);
+      (useObservable as jest.Mock).mockReturnValue(mockContext1.state.value);
 
       rerender(
         <OpenSearchDashboardsContextProvider services={mockServices}>
@@ -307,7 +307,7 @@ describe('HypothesesPanel - Component Rendering', () => {
       const mockContext2 = createMockNotebookContext({
         investigationPhase: InvestigationPhase.GATHERING_DATA,
       });
-      mockUseObservable.mockReturnValue(mockContext2.state.value);
+      (useObservable as jest.Mock).mockReturnValue(mockContext2.state.value);
 
       rerender(
         <OpenSearchDashboardsContextProvider services={mockServices}>
