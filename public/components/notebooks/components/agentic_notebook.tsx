@@ -192,6 +192,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           hypotheses: res.hypotheses,
           topologies: res.topologies,
           failedInvestigation: res.failedInvestigation,
+          feedbackSummary: res.feedbackSummary,
         });
 
         if (migratedIds.length > 0) {

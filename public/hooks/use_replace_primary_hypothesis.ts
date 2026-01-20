@@ -29,7 +29,7 @@ export const useReplaceAsPrimary = () => {
         const [targetHypothesis] = reorderedHypotheses.splice(targetIndex, 1);
         reorderedHypotheses.unshift(targetHypothesis);
 
-        await updateHypotheses(reorderedHypotheses);
+        await updateHypotheses({ hypotheses: reorderedHypotheses });
         notebookContext.state.updateValue({ isPromoted: true });
         notifications.toasts.addSuccess(
           i18n.translate('notebook.hypotheses.primaryHypothesisUpdated', {
