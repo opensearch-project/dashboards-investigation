@@ -161,6 +161,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
 
   useEffect(() => {
     setShowSteps(isInvestigating);
+    setShowStatusBadge(true);
   }, [isInvestigating]);
 
   useEffect(() => {
