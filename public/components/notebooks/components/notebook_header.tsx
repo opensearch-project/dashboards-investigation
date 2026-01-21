@@ -601,12 +601,7 @@ export const NotebookHeader = ({
                           : []),
                         {
                           renderComponent: (
-                            <UserFeedbackButton
-                              feedbackSummary={userFeedbackSummary}
-                              onSave={(feedback) =>
-                                notebookContext.state.updateValue({ feedbackSummary: [feedback] })
-                              }
-                            />
+                            <UserFeedbackButton feedbackSummary={userFeedbackSummary} />
                           ),
                         },
                       ]
@@ -663,7 +658,6 @@ export const NotebookHeader = ({
       reportingTopButton,
       notebookType,
       userFeedbackSummary,
-      notebookContext.state,
     ]
   );
 

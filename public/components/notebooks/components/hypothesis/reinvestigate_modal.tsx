@@ -17,6 +17,7 @@ import {
   EuiButton,
   EuiSuperDatePicker,
   EuiTextArea,
+  EuiSplitPanel,
 } from '@elastic/eui';
 import moment from 'moment';
 import dateMath from '@elastic/datemath';
@@ -27,6 +28,7 @@ type DatePickerTimeRange = Omit<InvestigationTimeRange, 'baselineFrom' | 'baseli
 
 interface ReinvestigateModalProps {
   initialGoal: string;
+  initialFeedbackSummary: string;
   timeRange: DatePickerTimeRange | undefined;
   dateFormat: string;
   defaultToggleOn?: boolean;
@@ -34,12 +36,14 @@ interface ReinvestigateModalProps {
     question: string;
     updatedTimeRange: DatePickerTimeRange;
     isReinvestigate: boolean;
+    updatedfeedbackSummary: string;
   }) => void;
   closeModal: () => void;
 }
 
 export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
   initialGoal,
+  initialFeedbackSummary,
   timeRange,
   dateFormat,
   defaultToggleOn = false,
@@ -49,6 +53,7 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
   const [value, setValue] = useState(initialGoal);
   const [checked, setChecked] = useState(defaultToggleOn);
   const [selectedTimeRange, setSelectedTimeRange] = useState(timeRange);
+  const [feedbackSummary, setFeedbackSummary] = useState(initialFeedbackSummary);
 
   const { startFormatted, endFormatted } = useMemo(
     () => ({
@@ -78,31 +83,60 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
             <h1>Reinvestigate the issue</h1>
           </EuiModalHeaderTitle>
         </EuiModalHeader>
-        <EuiModalBody>
-          <EuiFormRow label="Edit initial goal">
-            <EuiTextArea value={value} onChange={(e) => setValue(e.target.value)} required />
-          </EuiFormRow>
-          {!!timeRange && (
-            <>
-              <EuiSpacer size="s" />
-              <EuiFormRow label="Edit time range">
-                <EuiSuperDatePicker
-                  compressed
-                  start={startFormatted}
-                  end={endFormatted}
-                  showUpdateButton={false}
-                  dateFormat={dateFormat}
-                  onTimeChange={handleTimeChange}
+        <EuiModalBody style={{ padding: 0 }}>
+          <EuiSplitPanel.Outer
+            hasShadow={false}
+            hasBorder={false}
+            direction="row"
+            style={{ gap: 16 }}
+          >
+            <EuiSplitPanel.Inner paddingSize="none">
+              <div>
+                <EuiFormRow label="Edit initial goal">
+                  <EuiTextArea
+                    rows={5}
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    required
+                  />
+                </EuiFormRow>
+                {!!timeRange && (
+                  <>
+                    <EuiSpacer size="s" />
+                    <EuiFormRow label="Edit time range">
+                      <EuiSuperDatePicker
+                        compressed
+                        start={startFormatted}
+                        end={endFormatted}
+                        showUpdateButton={false}
+                        dateFormat={dateFormat}
+                        onTimeChange={handleTimeChange}
+                      />
+                    </EuiFormRow>
+                  </>
+                )}
+                <EuiSpacer />
+                <EuiSwitch
+                  label="Bring the existing hypotheses and findings"
+                  checked={checked}
+                  onChange={(e) => setChecked(e.target.checked)}
                 />
-              </EuiFormRow>
-            </>
-          )}
-          <EuiSpacer />
-          <EuiSwitch
-            label="Bring the existing hypotheses and findings"
-            checked={checked}
-            onChange={(e) => setChecked(e.target.checked)}
-          />
+              </div>
+            </EuiSplitPanel.Inner>
+            {initialFeedbackSummary && checked && (
+              <EuiSplitPanel.Inner paddingSize="none">
+                <EuiFormRow label="Previous feedback summary">
+                  <EuiTextArea
+                    rows={10}
+                    value={feedbackSummary}
+                    style={{ width: 300 }}
+                    onChange={(e) => setFeedbackSummary(e.target.value)}
+                    placeholder="Enter feedback summary..."
+                  />
+                </EuiFormRow>
+              </EuiSplitPanel.Inner>
+            )}
+          </EuiSplitPanel.Outer>
         </EuiModalBody>
         <EuiModalFooter>
           <EuiButton
@@ -111,6 +145,7 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
                 question: value,
                 updatedTimeRange: selectedTimeRange,
                 isReinvestigate: checked,
+                updatedfeedbackSummary: feedbackSummary,
               });
             }}
             fill

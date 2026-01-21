@@ -99,6 +99,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     paragraphs: paragraphsStates,
     isLoading,
     isNotebookReadonly,
+    feedbackSummary,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
@@ -299,10 +300,12 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       question,
       isReinvestigate,
       updatedTimeRange,
+      updatedfeedbackSummary,
     }: {
       question: string;
       isReinvestigate: boolean;
       updatedTimeRange?: Omit<InvestigationTimeRange, 'baselineFrom' | 'baselineTo'>;
+      updatedfeedbackSummary: string;
     }) => {
       // Check for ongoing investigation by another user before starting
       const hasOngoingInvestigation = await checkOngoingInvestigation();
@@ -315,10 +318,18 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         investigationPhase: InvestigationPhase.RETRIEVING_CONTEXT,
       });
 
-      const updates: { initialGoal?: string; timeRange?: InvestigationTimeRange } = {};
+      const updates: {
+        initialGoal?: string;
+        timeRange?: InvestigationTimeRange;
+        feedbackSummary?: string;
+      } = {};
 
       if (initialGoal !== question) {
         updates.initialGoal = question;
+      }
+
+      if (updatedfeedbackSummary) {
+        updates.feedbackSummary = updatedfeedbackSummary;
       }
 
       const newTimeRange = updatedTimeRange
@@ -516,6 +527,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       {isReinvestigateModalVisible && (
         <ReinvestigateModal
           initialGoal={initialGoal || ''}
+          initialFeedbackSummary={feedbackSummary?.[0] || ''}
           timeRange={timeRange}
           dateFormat={uiSettings.get('dateFormat')}
           defaultToggleOn={reinvestigateWithFeedback}

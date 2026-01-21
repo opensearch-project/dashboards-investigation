@@ -3,38 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
-import {
-  EuiButton,
-  EuiButtonIcon,
-  EuiFlexGroup,
-  EuiFlexItem,
-  EuiPopover,
-  EuiPopoverFooter,
-  EuiPopoverTitle,
-  EuiSmallButton,
-  EuiText,
-  EuiTextArea,
-} from '@elastic/eui';
+import React, { useState } from 'react';
+import { EuiButton, EuiPopover, EuiPopoverTitle, EuiText } from '@elastic/eui';
 import { i18n } from '@osd/i18n';
 import { euiThemeVars } from '@osd/ui-shared-deps/theme';
 
 interface UserFeedbackButtonProps {
   feedbackSummary: string;
-  onSave: (feedback: string) => void;
 }
 
-export const UserFeedbackButton: React.FC<UserFeedbackButtonProps> = ({
-  feedbackSummary,
-  onSave,
-}) => {
+export const UserFeedbackButton: React.FC<UserFeedbackButtonProps> = ({ feedbackSummary }) => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedFeedback, setEditedFeedback] = useState(feedbackSummary);
-
-  useEffect(() => {
-    setEditedFeedback(feedbackSummary);
-  }, [feedbackSummary]);
 
   return (
     <EuiPopover
@@ -58,54 +37,15 @@ export const UserFeedbackButton: React.FC<UserFeedbackButtonProps> = ({
         </EuiButton>
       }
       isOpen={isPopoverOpen}
-      closePopover={() => {
-        setIsPopoverOpen(false);
-        setIsEditing(false);
-      }}
+      closePopover={() => setIsPopoverOpen(false)}
       anchorPosition="downCenter"
     >
       <EuiPopoverTitle>
-        <EuiFlexGroup justifyContent="spaceBetween" alignItems="center" gutterSize="s">
-          <EuiFlexItem>
-            {i18n.translate('agentic.notebook.userfeedbackButton', {
-              defaultMessage: 'User feedback',
-            })}
-          </EuiFlexItem>
-          {!isEditing && (
-            <EuiFlexItem grow={false}>
-              <EuiButtonIcon
-                iconType="pencil"
-                aria-label="Edit"
-                onClick={() => setIsEditing(true)}
-              />
-            </EuiFlexItem>
-          )}
-        </EuiFlexGroup>
+        {i18n.translate('agentic.notebook.userfeedbackButton', {
+          defaultMessage: 'User feedback',
+        })}
       </EuiPopoverTitle>
-      {isEditing ? (
-        <>
-          <EuiTextArea
-            style={{ width: 400 }}
-            value={editedFeedback}
-            onChange={(e) => setEditedFeedback(e.target.value)}
-          />
-          <EuiPopoverFooter>
-            <EuiSmallButton
-              fill
-              onClick={() => {
-                onSave(editedFeedback);
-                setIsEditing(false);
-              }}
-            >
-              {i18n.translate('agentic.notebook.saveFeedback', {
-                defaultMessage: 'Save',
-              })}
-            </EuiSmallButton>
-          </EuiPopoverFooter>
-        </>
-      ) : (
-        <EuiText style={{ width: 400 }}>{feedbackSummary}</EuiText>
-      )}
+      <EuiText style={{ width: 400 }}>{feedbackSummary}</EuiText>
     </EuiPopover>
   );
 };

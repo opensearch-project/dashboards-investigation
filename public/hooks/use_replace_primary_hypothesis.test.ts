@@ -65,11 +65,13 @@ describe('useReplaceAsPrimary', () => {
       await result.current.replaceAsPrimary('hyp2');
     });
 
-    expect(mockUpdateHypotheses).toHaveBeenCalledWith([
-      { id: 'hyp2', title: 'Hypothesis 2', likelihood: 0.7 },
-      { id: 'hyp1', title: 'Hypothesis 1', likelihood: 0.9 },
-      { id: 'hyp3', title: 'Hypothesis 3', likelihood: 0.5 },
-    ]);
+    expect(mockUpdateHypotheses).toHaveBeenCalledWith({
+      hypotheses: [
+        { id: 'hyp2', title: 'Hypothesis 2', likelihood: 0.7 },
+        { id: 'hyp1', title: 'Hypothesis 1', likelihood: 0.9 },
+        { id: 'hyp3', title: 'Hypothesis 3', likelihood: 0.5 },
+      ],
+    });
     expect(mockUpdateValue).toHaveBeenCalledWith({ isPromoted: true });
     expect(mockAddSuccess).toHaveBeenCalled();
   });
