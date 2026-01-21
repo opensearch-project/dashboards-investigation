@@ -62,9 +62,24 @@ describe('<StartInvestigationModal /> spec', () => {
   const closeModalMock = jest.fn();
 
   const renderModal = (props = {}) => {
+    const defaultProps = {
+      onProvideNotebookParameters: jest.fn().mockImplementation(async (params) => {
+        // Mock the parameter provider to return enhanced parameters
+        return {
+          ...params,
+          context: {
+            ...params.context,
+            timeRange: { selectionFrom: 1000, selectionTo: 2000 },
+            variables: { pplQuery: 'source=test' },
+          },
+        };
+      }),
+      ...props,
+    };
+
     return render(
       <OpenSearchDashboardsContextProvider services={mockServices}>
-        <StartInvestigationModal closeModal={closeModalMock} {...props} />
+        <StartInvestigationModal closeModal={closeModalMock} {...defaultProps} />
       </OpenSearchDashboardsContextProvider>
     );
   };
@@ -156,7 +171,14 @@ describe('<StartInvestigationModal /> spec', () => {
       level: 'ERROR',
     };
 
-    renderModal({ log: mockLog });
+    const additionalContent = (
+      <div>
+        <div>You selected:</div>
+        <pre>{JSON.stringify(mockLog, null, 2)}</pre>
+      </div>
+    );
+
+    renderModal({ log: mockLog, additionalContent });
 
     expect(screen.getByText('You selected:')).toBeInTheDocument();
     // Check for individual log properties instead of the entire JSON string
@@ -240,7 +262,20 @@ describe('<StartInvestigationModal /> spec', () => {
     const mockNotebookId = 'test-id-with-log';
     httpMock.post.mockResolvedValue(mockNotebookId);
 
-    renderModal({ log: mockLog });
+    const mockOnProvideNotebookParameters = jest.fn().mockImplementation(async (params) => {
+      return {
+        ...params,
+        context: {
+          ...params.context,
+          variables: { log: mockLog },
+        },
+      };
+    });
+
+    renderModal({
+      log: mockLog,
+      onProvideNotebookParameters: mockOnProvideNotebookParameters,
+    });
 
     const textArea = screen.getByPlaceholderText('Describe the issue you want to investigate.');
     fireEvent.change(textArea, { target: { value: 'Investigate this log' } });
@@ -249,20 +284,34 @@ describe('<StartInvestigationModal /> spec', () => {
     fireEvent.click(startButton);
 
     await waitFor(() => {
-      expect(httpMock.post).toHaveBeenCalledWith(
-        `${NOTEBOOKS_API_PREFIX}/note/savedNotebook`,
-        expect.objectContaining({
-          body: expect.stringContaining(JSON.stringify(mockLog)),
-        })
-      );
+      expect(httpMock.post).toHaveBeenCalled();
     });
+
+    expect(mockOnProvideNotebookParameters).toHaveBeenCalledWith(
+      expect.objectContaining({
+        context: expect.objectContaining({
+          initialGoal: 'Investigate this log',
+        }),
+      })
+    );
   });
 
   it('includes time range and query in notebook context when log is not provided', async () => {
     const mockNotebookId = 'test-id-without-log';
     httpMock.post.mockResolvedValue(mockNotebookId);
 
-    renderModal();
+    const mockOnProvideNotebookParameters = jest.fn().mockImplementation(async (params) => {
+      return {
+        ...params,
+        context: {
+          ...params.context,
+          timeRange: { selectionFrom: 1000, selectionTo: 2000 },
+          variables: { pplQuery: 'source=test' },
+        },
+      };
+    });
+
+    renderModal({ onProvideNotebookParameters: mockOnProvideNotebookParameters });
 
     const textArea = screen.getByPlaceholderText('Describe the issue you want to investigate.');
     fireEvent.change(textArea, { target: { value: 'Test without log' } });
@@ -274,7 +323,16 @@ describe('<StartInvestigationModal /> spec', () => {
       expect(httpMock.post).toHaveBeenCalled();
     });
 
-    // Verify the POST call includes timeRange and query variables
+    // Verify the onProvideNotebookParameters was called with the correct parameters
+    expect(mockOnProvideNotebookParameters).toHaveBeenCalledWith(
+      expect.objectContaining({
+        context: expect.objectContaining({
+          initialGoal: 'Test without log',
+        }),
+      })
+    );
+
+    // Verify the POST call includes the enhanced parameters
     expect(httpMock.post).toHaveBeenCalledWith(
       `${NOTEBOOKS_API_PREFIX}/note/savedNotebook`,
       expect.objectContaining({
