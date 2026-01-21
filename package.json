@@ -1,5 +1,5 @@
 {
-  "name": "notebook-dashboards",
+  "name": "dashboards-investigation",
   "version": "3.5.0.0",
   "main": "index.ts",
   "license": "Apache-2.0",
