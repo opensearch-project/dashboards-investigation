@@ -97,6 +97,7 @@ exports[`modal_containers spec render get custom modal 1`] = `
           hasChildLabel={true}
           hasEmptyLabelSpace={false}
           helpText="help text"
+          isInvalid={false}
           label="label"
           labelType="label"
         >
