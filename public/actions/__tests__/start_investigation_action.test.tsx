@@ -10,6 +10,7 @@ import {
 import { IEmbeddable } from '../../../../../src/plugins/embeddable/public';
 import { OverlayStart } from '../../../../../src/core/public';
 import { StartInvestigateModalDedentServices } from '../../components/notebooks/components/discover_explorer/start_investigation_modal';
+import { BehaviorSubject } from 'rxjs';
 
 // Mock dependencies
 jest.mock('../../../../../src/plugins/opensearch_dashboards_react/public', () => ({
@@ -40,7 +41,9 @@ describe('StartInvestigationAction', () => {
     mockServices = {
       data: {} as any,
       http: {} as any,
-      application: {} as any,
+      application: {
+        currentAppId$: new BehaviorSubject<string | undefined>('discover'),
+      } as any,
       notifications: {} as any,
     };
 
