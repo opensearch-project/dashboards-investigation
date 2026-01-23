@@ -46,9 +46,55 @@ export const waitForDomElement = (
   });
 };
 
+/**
+ * Waits for visualization to be completely rendered for a given paragraph
+ * @param paragraphId - The ID of the paragraph containing the visualization
+ * @param timeout - Maximum time to wait in milliseconds (default: 15000ms)
+ * @returns Promise that resolves when visualization is rendered, or rejects on timeout
+ */
+const waitForVisualizationRendered = async (
+  paragraphId: string,
+  timeout: number = 15000
+): Promise<Element> => {
+  // Find the visualization paragraph DOM element using data-paragraph-id attribute
+  const paragraphElement = document.querySelector(`[data-paragraph-id="${paragraphId}"]`);
+
+  if (!paragraphElement) {
+    throw new Error(`Visualization paragraph element not found for ID: ${paragraphId}`);
+  }
+
+  // We can not get the embeddable from a dashboard renderer
+  // so we have to poll for visualization to be completely rendered.
+  // TODO: add onMount: (embeddable) => {} callback to DashboardsRenderer component
+  await waitForDomElement(
+    `[data-paragraph-id="${paragraphId}"] [data-test-subj="osdExploreContainer"] canvas, [data-paragraph-id="${paragraphId}"] [data-test-subj="osdExploreContainer"] table`,
+    timeout,
+    1000
+  );
+
+  // Find the dashboard viewport within the paragraph
+  const visualizationContainer = paragraphElement.querySelector('.dshDashboardViewport');
+
+  if (!visualizationContainer) {
+    throw new Error('Visualization container (.dshDashboardViewport) not found within paragraph');
+  }
+
+  return visualizationContainer;
+};
+
 export const VisualizationParagraphItem: ParagraphRegistryItem = {
   ParagraphComponent: VisualizationParagraph,
-  runParagraph: async () => {
+  runParagraph: async ({ paragraphState }) => {
+    const paragraphStateValue = paragraphState.value;
+    const { id, input } = paragraphStateValue;
+
+    if (input.parameters.type !== EXPLORE_VISUALIZATION_TYPE) {
+      return;
+    }
+
+    // Wait for visualization to be rendered with new time range
+    await waitForVisualizationRendered(id);
+
     return;
   },
   async getContext(paragraphStateValue) {
@@ -60,31 +106,8 @@ export const VisualizationParagraphItem: ParagraphRegistryItem = {
     }
 
     try {
-      // Find the visualization paragraph DOM element using data-paragraph-id attribute
-      const paragraphElement = document.querySelector(`[data-paragraph-id="${id}"]`);
-
-      if (!paragraphElement) {
-        console.error(`Visualization paragraph element not found for ID: ${id}`);
-        return '';
-      }
-
-      // We can not get the embeddable from a dashboard renderer
-      // so we have to poll for visualization to be completely rendered.
-      // TODO: add onMount: (embeddable) => {} callback to DashboardsRenderer component
-      await waitForDomElement(
-        `[data-paragraph-id="${id}"] [data-test-subj="osdExploreContainer"] canvas, [data-paragraph-id="${id}"] [data-test-subj="osdExploreContainer"] table`,
-        10000,
-        1000
-      );
-
-      // Find the dashboard viewport within the paragraph
-      // This is where the actual visualization is rendered
-      const visualizationContainer = paragraphElement.querySelector('.dshDashboardViewport');
-
-      if (!visualizationContainer) {
-        console.error('Visualization container (.dshDashboardViewport) not found within paragraph');
-        return '';
-      }
+      // Wait for visualization to be completely rendered and get the container
+      const visualizationContainer = await waitForVisualizationRendered(id);
 
       // Use html2canvas to capture the visualization as an image
       const canvas = await html2canvas(visualizationContainer as HTMLElement, {

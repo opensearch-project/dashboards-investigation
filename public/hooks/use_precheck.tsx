@@ -18,6 +18,7 @@ import {
   NoteBookSource,
   ParagraphBackendType,
 } from '../../common/types/notebooks';
+import { VisualizationInputValue } from '../components/notebooks/components/input/visualization_input';
 import { ParagraphState, ParagraphStateValue } from '../../common/state/paragraph_state';
 import {
   DASHBOARDS_VISUALIZATION_TYPE,
@@ -327,6 +328,51 @@ export const usePrecheck = () => {
             },
           });
           await runParagraph({ id: pplParagraph.value.id });
+        }
+
+        // Handle visualization paragraph time range updates
+        const visualizationParagraph = paragraphStates.find(
+          (paragraphState) => paragraphState.value.input.inputType === DASHBOARDS_VISUALIZATION_TYPE
+        );
+        if (visualizationParagraph && timeRange) {
+          const formatToLocalTime = (timestamp: number) => moment(timestamp).format(dateFormat);
+          const newStartTime = formatToLocalTime(timeRange.selectionFrom);
+          const newEndTime = formatToLocalTime(timeRange.selectionTo);
+
+          // Get current parameters as VisualizationInputValue
+          const currentParams = visualizationParagraph.value.input
+            .parameters as VisualizationInputValue;
+
+          // Update the visualization paragraph with new time range
+          const updatedParams: VisualizationInputValue = {
+            ...currentParams,
+            startTime: newStartTime,
+            endTime: newEndTime,
+          };
+
+          // Update the dashboard viz object in inputText with new time range
+          try {
+            const dashboardVizObject = JSON.parse(visualizationParagraph.value.input.inputText);
+            if (dashboardVizObject.timeRange) {
+              dashboardVizObject.timeRange.from = newStartTime;
+              dashboardVizObject.timeRange.to = newEndTime;
+            }
+            visualizationParagraph.updateInput({
+              ...visualizationParagraph.value.input,
+              parameters: updatedParams,
+              inputText: JSON.stringify(dashboardVizObject),
+            });
+          } catch (error) {
+            console.warn('Failed to update dashboard viz object time range:', error);
+          }
+
+          // Run the visualization paragraph to trigger re-rendering and context regeneration
+          await paragraphService.getParagraphRegistry(DASHBOARDS_VISUALIZATION_TYPE)?.runParagraph({
+            paragraphState: visualizationParagraph,
+            notebookStateValue: state.value,
+          });
+
+          paragraphIdsToSave.push(visualizationParagraph.value.id);
         }
 
         // TODO: when support baseline time for log pattern and log sequence

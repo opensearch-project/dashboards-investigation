@@ -2,6 +2,125 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+import { ParagraphState } from '../../common/state/paragraph_state';
+import { VisualizationParagraphItem, waitForDomElement } from './visualization';
+import {
+  DASHBOARDS_VISUALIZATION_TYPE,
+  EXPLORE_VISUALIZATION_TYPE,
+} from '../../common/constants/notebooks';
+import { TopContextState } from '../../common/state/top_context_state';
+import { NotebookStateValue } from '../../common/state/notebook_state';
+
+const defaultMockNotebookStateValue: NotebookStateValue = {
+  id: 'test-notebook-id',
+  title: 'Test Notebook',
+  paragraphs: [],
+  context: new TopContextState({}),
+  dataSourceEnabled: true,
+  dateCreated: '0',
+  dateModified: '0',
+  isLoading: false,
+  path: '',
+  vizPrefix: '',
+  isNotebookReadonly: true,
+  topologies: [],
+};
+
+describe('VisualizationParagraph - Time Range Updates', () => {
+  describe('runParagraph with time range changes', () => {
+    it('should handle time range updates correctly', async () => {
+      const mockParagraphState = new ParagraphState({
+        id: 'test-paragraph-id',
+        input: {
+          inputText: '',
+          inputType: DASHBOARDS_VISUALIZATION_TYPE,
+          parameters: {
+            type: EXPLORE_VISUALIZATION_TYPE,
+            startTime: '2024-01-01T00:00:00Z',
+            endTime: '2024-01-02T00:00:00Z',
+          },
+        },
+        dateCreated: '2024-01-01T00:00:00Z',
+        dateModified: '2024-01-01T00:00:00Z',
+      });
+
+      // Mock DOM elements
+      const mockParagraphElement = document.createElement('div');
+      mockParagraphElement.setAttribute('data-paragraph-id', 'test-paragraph-id');
+
+      const mockVisualizationContainer = document.createElement('div');
+      mockVisualizationContainer.className = 'dshDashboardViewport';
+      mockParagraphElement.appendChild(mockVisualizationContainer);
+
+      const mockCanvas = document.createElement('canvas');
+      mockParagraphElement.appendChild(mockCanvas);
+
+      // Mock querySelector
+      const originalQuerySelector = document.querySelector;
+      document.querySelector = jest.fn((selector: string) => {
+        if (selector.includes('data-paragraph-id="test-paragraph-id"')) {
+          return mockParagraphElement;
+        }
+        if (selector.includes('canvas') || selector.includes('table')) {
+          return mockCanvas;
+        }
+        if (selector.includes('.dshDashboardViewport')) {
+          return mockVisualizationContainer;
+        }
+        return null;
+      }) as typeof document.querySelector;
+
+      // Test runParagraph
+      await expect(
+        VisualizationParagraphItem.runParagraph({
+          paragraphState: mockParagraphState,
+          notebookStateValue: defaultMockNotebookStateValue,
+        })
+      ).resolves.toBeUndefined();
+
+      // Restore original querySelector
+      document.querySelector = originalQuerySelector;
+    });
+
+    it('should skip execution for non-visualization types', async () => {
+      const mockParagraphState = new ParagraphState({
+        id: 'test-paragraph-id',
+        input: {
+          inputText: '',
+          inputType: 'OTHER_TYPE',
+          parameters: {
+            type: 'OTHER_TYPE',
+          },
+        },
+        dateCreated: '2024-01-01T00:00:00Z',
+        dateModified: '2024-01-01T00:00:00Z',
+      });
+
+      // Should return immediately without error
+      await expect(
+        VisualizationParagraphItem.runParagraph({
+          paragraphState: mockParagraphState,
+          notebookStateValue: defaultMockNotebookStateValue,
+        })
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('waitForVisualizationRendered helper', () => {
+    it('should wait for visualization elements to appear', async () => {
+      // Create a test element and add it to the DOM
+      const testElement = document.createElement('div');
+      testElement.id = 'test-element';
+      document.body.appendChild(testElement);
+
+      // Test that waitForDomElement resolves when element exists
+      await expect(waitForDomElement('#test-element')).resolves.toBe(testElement);
+
+      // Clean up
+      document.body.removeChild(testElement);
+    });
+  });
+});
 
 describe('VisualizationParagraph - Timezone Offset Logic', () => {
   describe('Timezone offset calculation', () => {
