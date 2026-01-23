@@ -221,7 +221,12 @@ export const useInvestigation = () => {
         .sort((a, b) => b.likelihood - a.likelihood);
 
       await withErrorTitle('Failed to update investigation hypotheses', () =>
-        updateHypotheses([...newHypotheses], payload.topologies || [], true)
+        updateHypotheses({
+          hypotheses: [...newHypotheses],
+          topologies: payload.topologies,
+          feedbackSummary: payload.feedbackSummary ? [payload.feedbackSummary] : [],
+          isNewHypotheses: true,
+        })
       );
     },
     [
@@ -298,7 +303,7 @@ export const useInvestigation = () => {
           investigationError: error.message,
           runningMemory: undefined,
         });
-        await updateHypotheses(hypothesesRef.current || []);
+        await updateHypotheses({ hypotheses: hypothesesRef.current || [] });
         addError({
           error,
           title: getErrorTitle(error, 'Failed to complete investigation'),
@@ -326,7 +331,7 @@ export const useInvestigation = () => {
         investigationError: errorMessage,
       });
       setIsInvestigating(false);
-      await updateHypotheses(hypothesesRef.current || []);
+      await updateHypotheses({ hypotheses: hypothesesRef.current || [] });
     },
     [context.state, updateHypotheses, addError]
   );
@@ -469,7 +474,7 @@ export const useInvestigation = () => {
         context.state.updateValue({ runningMemory });
 
         // Immediately save these IDs to backend so they persist across page refreshes
-        await updateHypotheses(contextStateValue?.hypotheses || []);
+        await updateHypotheses({ hypotheses: contextStateValue?.hypotheses || [] });
 
         return pollInvestigationCompletion({
           runningMemory,
@@ -477,7 +482,7 @@ export const useInvestigation = () => {
       } catch (e) {
         const errorMessage = 'Failed to execute per agent';
         context.state.updateValue({ runningMemory: undefined, investigationError: errorMessage });
-        await updateHypotheses(hypothesesRef.current || []);
+        await updateHypotheses({ hypotheses: hypothesesRef.current || [] });
         addError({
           title: errorMessage,
           error: e,
@@ -566,6 +571,7 @@ export const useInvestigation = () => {
       const notebookContextPrompt = await retrieveInvestigationContextPrompt();
 
       const originalHypotheses = contextStateValue?.hypotheses || [];
+      const originalFeedbackSummary = (contextStateValue?.feedbackSummary || [])[0];
 
       const { supportingFindingParagraphs, newAddedFindingParagraphs } = allParagraphs.reduce(
         (acc, paragraph) => {
@@ -624,6 +630,13 @@ The user has reviewed your previous investigation and provided the following fee
 - User Added Findings: ${newAddedFindingParagraphs.length}
 - Ruled Out Hypotheses: ${ruledOutHypotheses.length}
 - Active Hypotheses: ${activeHypotheses.length}
+${
+  originalFeedbackSummary
+    ? `
+## Previous Feedback Summary
+${originalFeedbackSummary}`
+    : ''
+}
 
 # Current Hypotheses State
 ${
@@ -719,6 +732,7 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
       retrieveInvestigationContextPrompt,
       contextStateValue?.hypotheses,
       executeInvestigation,
+      contextStateValue?.feedbackSummary,
     ]
   );
 

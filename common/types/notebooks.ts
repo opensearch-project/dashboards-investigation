@@ -116,7 +116,8 @@ export interface NotebookBackendType {
   hypotheses?: HypothesisItem[];
   runningMemory?: AgenticMemeory;
   historyMemory?: AgenticMemeory;
-  topologies: PERAgentTopology[];
+  topologies?: PERAgentTopology[];
+  feedbackSummary?: string[];
 }
 
 export interface SummaryDataItem {
@@ -196,6 +197,7 @@ export interface PERAgentInvestigationResponse {
   hypotheses: PERAgentHypothesisItem[];
   topologies: PERAgentTopology[];
   investigationName?: string;
+  feedbackSummary?: string;
 }
 
 export interface NotebookComponentProps {

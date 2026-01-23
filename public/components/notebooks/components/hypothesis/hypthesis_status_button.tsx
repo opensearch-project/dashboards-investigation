@@ -95,7 +95,7 @@ export const HypothesisStatusButton: React.FC<{
 
     setIsSaving(true);
     try {
-      await updateHypotheses(reorderedHypotheses);
+      await updateHypotheses({ hypotheses: reorderedHypotheses });
       notebookContext.state.updateValue({
         hypotheses: reorderedHypotheses,
         isPromoted: shouldPromote,
