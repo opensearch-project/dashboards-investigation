@@ -114,7 +114,10 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
         input={{
           inputText: '',
           inputType: 'VISUALIZATION',
-          parameters: visualizationValue,
+          parameters: {
+            ...(paragraphValue.input.parameters as VisualizationInputValue),
+            ...visualizationValue,
+          },
         }}
         onSubmit={handleSubmitParagraph}
       />

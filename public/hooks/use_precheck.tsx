@@ -246,7 +246,11 @@ export const usePrecheck = () => {
             input: {
               inputText: JSON.stringify(dashboardVizObject),
               inputType: DASHBOARDS_VISUALIZATION_TYPE,
-              parameters: vizInputValue,
+              parameters: {
+                ...vizInputValue,
+                noDatePicker: true, // Flag to hide the date picker for precheck visualizations
+                hideReloadButton: true, // Flag to hide the reload button for precheck visualizations
+              },
             },
             dataSourceMDSId: res.context.dataSourceId || '',
           });

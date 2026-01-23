@@ -15,6 +15,7 @@ import {
   StartInvestigationFromDiscoverVisualizationComponent,
 } from './start_investigation_from_discover_visualization_component';
 import { StartInvestigateModalDedentServices } from '../components/notebooks/components/discover_explorer/start_investigation_modal';
+import { investigationNotebookID } from '../../common/constants/shared';
 
 export const ACTION_START_INVESTIGATION = 'startInvestigationAction';
 
@@ -26,11 +27,16 @@ export class StartInvestigationAction implements Action<ActionContext> {
   public readonly type = ACTION_START_INVESTIGATION;
   public readonly id = ACTION_START_INVESTIGATION;
   public order = 25; // Position in the menu
+  private currentAppId: string | undefined = '';
 
   constructor(
     private readonly overlay: OverlayStart,
     private readonly services: StartInvestigateModalDedentServices
-  ) {}
+  ) {
+    this.services.application.currentAppId$.subscribe((appId) => {
+      this.currentAppId = appId;
+    });
+  }
 
   public getDisplayName() {
     return i18n.translate('investigation.panel.startInvestigation.displayName', {
@@ -44,7 +50,8 @@ export class StartInvestigationAction implements Action<ActionContext> {
 
   public async isCompatible({ embeddable }: ActionContext) {
     // Show for new discover visualizations
-    return embeddable.type === 'explore';
+    // and not show the `start investigation` action in notebook.
+    return embeddable.type === 'explore' && this.currentAppId !== investigationNotebookID;
   }
 
   public async execute({ embeddable }: ActionContext) {

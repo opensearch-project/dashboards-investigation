@@ -38,6 +38,8 @@ export interface VisualizationInputValue {
   id: string;
   startTime: string;
   endTime: string;
+  noDatePicker?: boolean; // Flag to hide the date picker
+  hideReloadButton?: boolean; // Flag to hide the reload button
 }
 
 export const VisualizationInput: React.FC<{
@@ -45,6 +47,7 @@ export const VisualizationInput: React.FC<{
   isDisabled?: boolean;
 }> = ({ prependWidget, isDisabled }) => {
   const { paragraphInput, handleSubmit, isInputMountedInParagraph } = useInputContext();
+
   const visualizationValue = useMemo(
     () =>
       paragraphInput?.parameters
@@ -104,27 +107,29 @@ export const VisualizationInput: React.FC<{
         justifyContent="spaceBetween"
       >
         {prependWidget}
-        {!isDisabled && (
+        {!isDisabled && !visualizationValue?.hideReloadButton && (
           <EuiSmallButtonIcon
             aria-label="input type icon button"
             iconType="refresh"
             onClick={openModal}
           />
         )}
-        <EuiFlexItem grow={false} style={{ marginInlineStart: 'auto' }}>
-          <EuiSuperDatePicker
-            compressed
-            start={visualizationValue?.startTime}
-            end={visualizationValue?.endTime}
-            showUpdateButton={false}
-            dateFormat={uiSettings.get('dateFormat')}
-            onTimeChange={(e) => {
-              const updatedValue = { ...visualizationValue, startTime: e.start, endTime: e.end };
-              handleSubmit(' ', updatedValue);
-            }}
-            isDisabled={isDisabled}
-          />
-        </EuiFlexItem>
+        {!visualizationValue?.noDatePicker && (
+          <EuiFlexItem grow={false} style={{ marginInlineStart: 'auto' }}>
+            <EuiSuperDatePicker
+              compressed
+              start={visualizationValue?.startTime}
+              end={visualizationValue?.endTime}
+              showUpdateButton={false}
+              dateFormat={uiSettings.get('dateFormat')}
+              onTimeChange={(e) => {
+                const updatedValue = { ...visualizationValue, startTime: e.start, endTime: e.end };
+                handleSubmit(' ', updatedValue);
+              }}
+              isDisabled={isDisabled}
+            />
+          </EuiFlexItem>
+        )}
         <EuiSmallButtonIcon
           aria-label="Open input menu"
           iconType="boxesHorizontal"
