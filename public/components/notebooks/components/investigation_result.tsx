@@ -162,6 +162,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
 
   useEffect(() => {
     setShowSteps(isInvestigating);
+    setShowStatusBadge(true);
   }, [isInvestigating]);
 
   useEffect(() => {
@@ -344,7 +345,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
             defaultMessage: 'Reinvestigate with feedback',
           })}
         </EuiButton>
-        <EuiButton
+        {/* <EuiButton
           color="text"
           iconType="generate"
           style={{
@@ -354,7 +355,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
           {i18n.translate('notebook.summary.card.askAIForGuidance', {
             defaultMessage: 'Ask AI for guidance',
           })}
-        </EuiButton>
+        </EuiButton> */}
       </EuiFlexGroup>
     );
   };
