@@ -681,8 +681,8 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
             <EuiFlexItem grow={false}>
               <EuiText size="s">
                 <strong>
-                  {i18n.translate('notebook.summary.card.query', {
-                    defaultMessage: 'Query',
+                  {i18n.translate('notebook.summary.card.pplQuery', {
+                    defaultMessage: 'PPL Query',
                   })}
                 </strong>
                 :{' '}
@@ -691,8 +691,8 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
                     onClick={() =>
                       copyToClipboard(
                         variables.pplQuery || '',
-                        i18n.translate('notebook.summary.card.query', {
-                          defaultMessage: 'Query',
+                        i18n.translate('notebook.summary.card.pplQuery', {
+                          defaultMessage: 'PPL Query',
                         })
                       )
                     }
@@ -704,6 +704,46 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
                         })}
                     </EuiCode>
                     {variables.pplQuery && (
+                      <EuiIcon
+                        type="copy"
+                        size="s"
+                        style={{ marginLeft: '4px', verticalAlign: 'middle' }}
+                      />
+                    )}
+                  </EuiLink>
+                </span>
+              </EuiText>
+            </EuiFlexItem>
+          )}
+
+          {variables?.dslQuery && (
+            <EuiFlexItem grow={false}>
+              <EuiText size="s">
+                <strong>
+                  {i18n.translate('notebook.summary.card.dslQuery', {
+                    defaultMessage: 'DSL Query',
+                  })}
+                </strong>
+                :{' '}
+                <span>
+                  <EuiLink
+                    onClick={() =>
+                      copyToClipboard(
+                        typeof variables.dslQuery === 'string'
+                          ? variables.dslQuery
+                          : JSON.stringify(variables.dslQuery, null, 2),
+                        i18n.translate('notebook.summary.card.dslQuery', {
+                          defaultMessage: 'DSL Query',
+                        })
+                      )
+                    }
+                  >
+                    <EuiCode language="json">
+                      {typeof variables.dslQuery === 'string'
+                        ? variables.dslQuery
+                        : JSON.stringify(variables.dslQuery, null, 2)}
+                    </EuiCode>
+                    {variables.dslQuery && (
                       <EuiIcon
                         type="copy"
                         size="s"

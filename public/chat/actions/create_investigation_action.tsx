@@ -263,7 +263,7 @@ export const createInvestigationAction = (
           message: `Investigation created successfully. Reply the message exactly like
           'A new Investigation <Name> has been created. \n\n
           <summary of this investigation> \n\n
-          Click the above link to open and start run it.'`,
+          Click the above link to open and start to run it.'`,
           path,
         };
       } catch (error) {
