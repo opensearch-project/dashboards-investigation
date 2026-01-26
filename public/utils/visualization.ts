@@ -72,6 +72,8 @@ export const DEFAULT_VIZ_INPUT_VALUE = {
   id: '',
   startTime: 'now-15m',
   endTime: 'now',
+  noDatePicker: false,
+  hideReloadButton: false,
 };
 
 export const renderTopologyGraph = (topology: PERAgentTopology): string => {

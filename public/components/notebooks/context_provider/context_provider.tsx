@@ -25,6 +25,8 @@ export const getDefaultState = (props?: Partial<NotebookStateValue>) => {
     isLoading: false,
     path: '',
     vizPrefix: '',
+    isNotebookReadonly: false,
+    topologies: [],
     ...props,
   });
 };

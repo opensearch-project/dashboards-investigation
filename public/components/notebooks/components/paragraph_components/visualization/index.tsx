@@ -19,12 +19,14 @@ import {
 } from '../../../../../../public/utils/visualization';
 import { useVisualizationValue } from './use_visualization_value';
 import { NotebookReactContext } from '../../../context_provider/context_provider';
+import { EXPLORE_VISUALIZATION_TYPE } from '../../../../../../common/constants/notebooks';
 
 export const VisualizationParagraph = ({ paragraphState }: { paragraphState: ParagraphState }) => {
   const {
     services: {
       uiSettings,
       dashboard: { DashboardContainerByValueRenderer },
+      data,
     },
   } = useOpenSearchDashboards<NoteBookServices>();
   const paragraphValue = useObservable(paragraphState.getValue$(), paragraphState.value);
@@ -89,13 +91,33 @@ export const VisualizationParagraph = ({ paragraphState }: { paragraphState: Par
     [paragraphState, paragraphValue.id, runParagraph]
   );
 
+  // FIXME: discover visualization only accept time filter from query service: https://github.com/opensearch-project/OpenSearch-Dashboards/blob/dda6ee62011b8605bc97fbb88123da903611a94d/src/plugins/query_enhancements/public/search/ppl_search_interceptor.ts#L143
+  // update discover visualization to make it accept input from embeddable
+  useEffect(() => {
+    const { type, startTime, endTime } = visualizationValue || {};
+    if (type === EXPLORE_VISUALIZATION_TYPE && startTime && endTime) {
+      const fromMoment = moment(startTime);
+      const toMoment = moment(endTime);
+
+      if (fromMoment.isValid() && toMoment.isValid()) {
+        data.query.timefilter.timefilter.setTime({
+          from: fromMoment,
+          to: toMoment,
+        });
+      }
+    }
+  }, [visualizationValue, data]);
+
   return (
     <>
       <MultiVariantInput
         input={{
           inputText: '',
           inputType: 'VISUALIZATION',
-          parameters: visualizationValue,
+          parameters: {
+            ...(paragraphValue.input.parameters as VisualizationInputValue),
+            ...visualizationValue,
+          },
         }}
         onSubmit={handleSubmitParagraph}
       />

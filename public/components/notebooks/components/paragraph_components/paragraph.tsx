@@ -224,7 +224,7 @@ export const Paragraph = (props: ParagraphProps) => {
         <ParagraphActionPanel idx={index} scrollToPara={scrollToPara} deletePara={deletePara} />
       )}
       {ParagraphComponent && (
-        <div key={paragraph.value.id} className={paraClass}>
+        <div data-paragraph-id={paragraph.value.id} key={paragraph.value.id} className={paraClass}>
           {isFindingParagraph && !!output && (
             <FindingHeader
               parameters={paragraphValue.input.parameters as FindingParagraphParameters}

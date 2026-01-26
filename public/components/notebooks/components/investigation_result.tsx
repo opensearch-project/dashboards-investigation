@@ -45,16 +45,15 @@ import { PERAgentMessageService } from './hypothesis/investigation/services/per_
 import { PERAgentMemoryService } from './hypothesis/investigation/services/per_agent_memory_service';
 import { MessageTraceFlyout } from './hypothesis/investigation/message_trace_flyout';
 import { Paragraph } from './paragraph_components/paragraph';
+import { InvestigationPhase, isInvestigationActive } from '../../../../common/state/notebook_state';
 
 interface InvestigationResultProps {
   notebookId: string;
-  isInvestigating: boolean;
   openReinvestigateModal: () => void;
 }
 
 export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   notebookId,
-  isInvestigating,
   openReinvestigateModal,
 }) => {
   const notebookContext = useContext(NotebookReactContext);
@@ -81,7 +80,9 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     investigationError,
     currentUser,
     path,
+    investigationPhase,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
+  const isInvestigating = isInvestigationActive(investigationPhase);
 
   const isDarkMode = uiSettings.get('theme:darkMode');
 
@@ -189,6 +190,24 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     context.value.dataSourceId,
     activeMemory?.executorMemoryId,
     activeMemory?.parentInteractionId,
+  ]);
+
+  useEffect(() => {
+    if (isInvestigating) {
+      const hasStepsOrMessage =
+        executorMessages.length > 0 || PERAgentServices?.message.getMessageValue();
+      if (hasStepsOrMessage && investigationPhase !== InvestigationPhase.GATHERING_DATA) {
+        notebookContext.state.updateValue({
+          investigationPhase: InvestigationPhase.GATHERING_DATA,
+        });
+      }
+    }
+  }, [
+    executorMessages,
+    investigationPhase,
+    isInvestigating,
+    PERAgentServices?.message,
+    notebookContext.state,
   ]);
 
   const copyToClipboard = (text: string, label: string) => {
@@ -343,15 +362,31 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
 
   const renderPrimaryHypothesis = (hasError: boolean = false) => {
     if (isInvestigating) {
-      const hasStepsOrMessage =
-        executorMessages.length > 0 || PERAgentServices?.message.getMessageValue();
-      const displayText = hasStepsOrMessage
-        ? i18n.translate('notebook.summary.card.gatheringData', {
-            defaultMessage: 'Gathering data in progress...',
-          })
-        : i18n.translate('notebook.summary.card.planningInvestigation', {
+      let displayText: string;
+
+      switch (investigationPhase) {
+        case InvestigationPhase.RETRIEVING_CONTEXT:
+          displayText = i18n.translate(
+            'investigate.hypothesesPanel.investigationPhase.retrievingContext',
+            {
+              defaultMessage: 'Retrieving context...',
+            }
+          );
+          break;
+        case InvestigationPhase.GATHERING_DATA:
+          displayText = i18n.translate(
+            'investigate.hypothesesPanel.investigationPhase.gatheringData',
+            {
+              defaultMessage: 'Gathering data in progress...',
+            }
+          );
+          break;
+        case InvestigationPhase.PLANNING:
+        default:
+          displayText = i18n.translate('investigate.hypothesesPanel.investigationPhase.planning', {
             defaultMessage: 'Planning for your investigation...',
           });
+      }
 
       return (
         <>
