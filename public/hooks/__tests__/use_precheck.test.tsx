@@ -21,10 +21,19 @@ import React from 'react';
 
 // Mock dependencies
 jest.mock('../../../../../src/plugins/opensearch_dashboards_react/public');
+jest.mock('../../../../../src/plugins/embeddable/public', () => ({
+  ViewMode: {
+    VIEW: 'view',
+    EDIT: 'edit',
+  },
+}));
 jest.mock('../../utils/query', () => ({
   isDateAppenddablePPL: jest.fn((query: string) => {
     return !query.includes('stats') && !query.includes('dedup');
   }),
+}));
+jest.mock('../../utils/visualization', () => ({
+  createDashboardVizObject: jest.fn(() => ({})),
 }));
 
 describe('usePrecheck', () => {
@@ -111,6 +120,8 @@ describe('usePrecheck', () => {
       isLoading: false,
       path: '',
       vizPrefix: '',
+      isNotebookReadonly: false,
+      topologies: [],
     });
 
     // Setup mock paragraph hooks
@@ -884,7 +895,7 @@ describe('usePrecheck', () => {
       const { result } = renderHook(() => usePrecheck(), { wrapper });
 
       const dataDistParagraph = createMockParagraphState(DATA_DISTRIBUTION_PARAGRAPH_TYPE, '');
-      dataDistParagraph.getBackendValue = jest.fn(() => null);
+      dataDistParagraph.getBackendValue = jest.fn().mockReturnValue(null);
 
       await act(async () => {
         await result.current.rerun([dataDistParagraph]);

@@ -45,6 +45,8 @@ import {
   setVisualizations,
   FindingService,
 } from './services';
+import { StartInvestigationAction } from './actions/start_investigation_action';
+import { CONTEXT_MENU_TRIGGER } from '../../../src/plugins/embeddable/public';
 import {
   ClassicNotebook,
   ClassicNotebookProps,
@@ -272,6 +274,15 @@ export class InvestigationPlugin
       this.startDeps?.contextProvider?.actions.registerAssistantAction(
         createInvestigationAction(core)
       );
+      // Register "Start investigation" action for discover visualizations
+      const startInvestigationAction = new StartInvestigationAction(core.overlays, {
+        data: startDeps.data,
+        http: core.http,
+        application: core.application,
+        notifications: core.notifications,
+      });
+      startDeps.uiActions.registerAction(startInvestigationAction);
+      startDeps.uiActions.attachAction(CONTEXT_MENU_TRIGGER, startInvestigationAction.id);
     }
 
     if (!core.application.capabilities.investigation?.enabled) {

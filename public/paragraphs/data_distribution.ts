@@ -135,7 +135,7 @@ ${guidelinesText}
       dataDistributionService.setConfig(dataSourceId, index, timeField, source);
       let dataDistribution: SummaryDataItem[];
 
-      if (source === NoteBookSource.DISCOVER || source === NoteBookSource.CHAT) {
+      if ([NoteBookSource.DISCOVER, NoteBookSource.VISUALIZATION, NoteBookSource.CHAT].includes(source!)) {
         const pplQuery = variables?.['pplQuery'] as string;
         if (!pplQuery) {
           throw new Error('Missing PPL query in discover source');

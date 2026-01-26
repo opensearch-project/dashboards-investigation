@@ -35,7 +35,6 @@ import { ParagraphState } from '../../../../common/state/paragraph_state';
 import {
   InvestigationTimeRange,
   NotebookComponentProps,
-  NoteBookSource,
   NotebookType,
 } from '../../../../common/types/notebooks';
 import { getDeleteModal } from './helpers/modal_containers';
@@ -57,6 +56,7 @@ import { HypothesisDetail, AlternativeHypothesesPanel, ReinvestigateModal } from
 import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
 import { InvestigationPageContext } from './investigation_page_context';
 import { migrateFindingParagraphs } from '../../../utils/finding_migration';
+import { InvestigationPhase } from '../../../../common/state/notebook_state';
 import { useSidecarPadding } from '../../../hooks/use_sidecar_padding';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
@@ -87,7 +87,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   useChatContextProvider();
 
   const notebookContext = useContext(NotebookReactContext);
-  const { initialGoal, source, notebookType, timeRange, dataSourceId } = useObservable(
+  const { initialGoal, notebookType, timeRange, dataSourceId } = useObservable(
     notebookContext.state.value.context.getValue$(),
     notebookContext.state.value.context.value
   );
@@ -101,7 +101,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
   const {
     isInvestigating,
-    setIsInvestigating,
     doInvestigate,
     addNewFinding,
     rerunInvestigation,
@@ -286,7 +285,9 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       }
 
       setIsReinvestigateModalVisible(false);
-      setIsInvestigating(true);
+      notebookContext.state.updateValue({
+        investigationPhase: InvestigationPhase.RETRIEVING_CONTEXT,
+      });
 
       const updates: { initialGoal?: string; timeRange?: InvestigationTimeRange } = {};
 
@@ -328,7 +329,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     [
       initialGoal,
       paragraphsStates,
-      setIsInvestigating,
       updateNotebookContext,
       timeRange,
       rerunInvestigation,
@@ -336,6 +336,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       setIsReinvestigateModalVisible,
       rerunPrecheck,
       checkOngoingInvestigation,
+      notebookContext.state,
     ]
   );
 
@@ -377,16 +378,11 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               showUpgradeModal={() => {}}
             />
           )}
-          {(source === NoteBookSource.DISCOVER || source === NoteBookSource.CHAT) && (
-            <>
-              <InvestigationResult
-                notebookId={openedNoteId}
-                isInvestigating={isInvestigating}
-                openReinvestigateModal={() => setIsReinvestigateModalVisible(true)}
-              />
-              <EuiSpacer size="s" />
-            </>
-          )}
+          <InvestigationResult
+            notebookId={openedNoteId}
+            openReinvestigateModal={() => setIsReinvestigateModalVisible(true)}
+          />
+          <EuiSpacer size="s" />
           <AlternativeHypothesesPanel notebookId={openedNoteId} isInvestigating={isInvestigating} />
           {isLoading ? (
             <EuiEmptyPrompt

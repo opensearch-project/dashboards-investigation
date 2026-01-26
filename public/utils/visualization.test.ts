@@ -276,6 +276,8 @@ describe('visualization utils', () => {
         id: '',
         startTime: 'now-15m',
         endTime: 'now',
+        noDatePicker: false,
+        hideReloadButton: false,
       });
     });
 
@@ -293,6 +295,7 @@ describe('renderTopologyGraph', () => {
       id: 'T1',
       description: 'Product Addition Flow - User adding OLJCESPC7Z to cart resulting in 500 error',
       traceId: 'dfde0cdceffee06b1794943cb7ea4ae3',
+      hypothesisIds: [],
       nodes: [
         {
           id: 'load-generator',

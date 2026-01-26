@@ -85,7 +85,9 @@ function showErrorDialog({
           <EuiModalHeaderTitle>{title}</EuiModalHeaderTitle>
         </EuiModalHeader>
         <EuiModalBody>
-          <EuiCallOut size="s" color="danger" iconType="alert" title={error.message} />
+          {error.message ? (
+            <EuiCallOut size="s" color="danger" iconType="alert" title={error.message} />
+          ) : null}
           {error.cause && (
             <React.Fragment>
               <EuiSpacer size="s" />

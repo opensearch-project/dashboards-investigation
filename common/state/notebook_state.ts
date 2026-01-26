@@ -14,6 +14,21 @@ import { ObservableState } from './observable_state';
 import { ParagraphState } from './paragraph_state';
 import { TopContextState } from './top_context_state';
 
+export enum InvestigationPhase {
+  PLANNING = 'planning',
+  RETRIEVING_CONTEXT = 'retrieving_context',
+  GATHERING_DATA = 'gathering_data',
+  COMPLETED = 'completed',
+}
+
+export const isInvestigationActive = (phase?: InvestigationPhase): boolean => {
+  return (
+    phase === InvestigationPhase.PLANNING ||
+    phase === InvestigationPhase.RETRIEVING_CONTEXT ||
+    phase === InvestigationPhase.GATHERING_DATA
+  );
+};
+
 export interface NotebookStateValue {
   paragraphs: Array<ParagraphState<unknown>>;
   id: string;
@@ -33,6 +48,7 @@ export interface NotebookStateValue {
   investigationError?: string;
   isNotebookReadonly: boolean;
   topologies: PERAgentTopology[];
+  investigationPhase?: InvestigationPhase;
   isPromoted?: boolean;
 }
 

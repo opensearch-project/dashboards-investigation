@@ -19,6 +19,7 @@ import {
 } from '../../../src/plugins/visualizations/public';
 import { ExpressionsStart } from '../../../src/plugins/expressions/public';
 import { AppMountParameters, CoreStart, OverlayStart } from '../../../src/core/public';
+import { UiActionsStart } from '../../../src/plugins/ui_actions/public';
 import PPLService from './services/requests/ppl';
 import { ParagraphServiceSetup } from './services/paragraph_service';
 import { ContextServiceSetup } from './services/context_service';
@@ -41,6 +42,7 @@ export interface AppPluginStartDependencies {
   dataSource: DataSourcePluginStart;
   expressions: ExpressionsStart;
   visualizations: VisualizationsStart;
+  uiActions: UiActionsStart;
   contextProvider?: ContextProviderStart;
   explore?: ExplorePluginStart;
   usageCollection?: UsageCollectionStart;
@@ -78,3 +80,12 @@ export interface InvestigationSetup {
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface InvestigationStart {}
+
+// Declare action context for StartInvestigationAction
+declare module '../../../src/plugins/ui_actions/public' {
+  export interface ActionContextMapping {
+    startInvestigationAction: {
+      embeddable: import('../../../src/plugins/embeddable/public').IEmbeddable;
+    };
+  }
+}
