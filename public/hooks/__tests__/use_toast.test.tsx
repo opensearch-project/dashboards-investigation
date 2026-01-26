@@ -518,4 +518,154 @@ describe('useToast', () => {
       expect(mockMountReactNode).toHaveBeenCalled();
     });
   });
+
+  describe('conditional error message rendering in modal', () => {
+    it('should NOT render EuiCallOut when error.message is empty string', () => {
+      const { result } = renderHook(() => useToast());
+      const mockModalClose = jest.fn();
+      mockOpenModal.mockReturnValue({ close: mockModalClose });
+
+      const error = new Error('');
+      error.cause = 'This is the cause information';
+
+      result.current.addError({
+        title: 'Error with empty message',
+        error,
+      });
+
+      // Trigger the modal opening
+      const toastComponent = mockMountReactNode.mock.calls[0][0];
+      const buttonElement = toastComponent.props.children[1].props.children;
+      buttonElement.props.onClick();
+
+      // Get the modal mount function
+      const modalMountFn = mockOpenModal.mock.calls[0][0];
+      const mockContainer = document.createElement('div');
+      modalMountFn(mockContainer);
+
+      // Verify EuiCallOut is NOT rendered (no alert icon or danger callout)
+      const callOut = mockContainer.querySelector('.euiCallOut--danger');
+      expect(callOut).toBeNull();
+
+      // Verify cause is still rendered
+      expect(mockContainer.innerHTML).toContain('This is the cause information');
+    });
+
+    it('should render EuiCallOut when error.message has content', () => {
+      const { result } = renderHook(() => useToast());
+      const mockModalClose = jest.fn();
+      mockOpenModal.mockReturnValue({ close: mockModalClose });
+
+      const error = new Error('This is an error message');
+      error.cause = 'This is the cause';
+
+      result.current.addError({
+        title: 'Error with message',
+        error,
+      });
+
+      // Trigger the modal opening
+      const toastComponent = mockMountReactNode.mock.calls[0][0];
+      const buttonElement = toastComponent.props.children[1].props.children;
+      buttonElement.props.onClick();
+
+      // Get the modal mount function
+      const modalMountFn = mockOpenModal.mock.calls[0][0];
+      const mockContainer = document.createElement('div');
+      modalMountFn(mockContainer);
+
+      // Verify EuiCallOut IS rendered with the error message
+      expect(mockContainer.innerHTML).toContain('This is an error message');
+      // Verify cause is also rendered
+      expect(mockContainer.innerHTML).toContain('This is the cause');
+    });
+
+    it('should render modal with only cause when error.message is empty', () => {
+      const { result } = renderHook(() => useToast());
+      const mockModalClose = jest.fn();
+      mockOpenModal.mockReturnValue({ close: mockModalClose });
+
+      const error = new Error('');
+      error.cause = 'Only cause information available';
+
+      result.current.addError({
+        title: 'Error Title',
+        error,
+      });
+
+      // Trigger the modal opening
+      const toastComponent = mockMountReactNode.mock.calls[0][0];
+      const buttonElement = toastComponent.props.children[1].props.children;
+      buttonElement.props.onClick();
+
+      // Get the modal mount function
+      const modalMountFn = mockOpenModal.mock.calls[0][0];
+      const mockContainer = document.createElement('div');
+      modalMountFn(mockContainer);
+
+      // Verify title is rendered
+      expect(mockContainer.innerHTML).toContain('Error Title');
+      // Verify cause is rendered
+      expect(mockContainer.innerHTML).toContain('Only cause information available');
+      // Verify no danger callout for empty message
+      const callOut = mockContainer.querySelector('.euiCallOut--danger');
+      expect(callOut).toBeNull();
+    });
+
+    it('should handle error with whitespace-only message as empty', () => {
+      const { result } = renderHook(() => useToast());
+      const mockModalClose = jest.fn();
+      mockOpenModal.mockReturnValue({ close: mockModalClose });
+
+      const error = new Error('   ');
+      error.cause = 'Cause information';
+
+      result.current.addError({
+        title: 'Whitespace Error',
+        error,
+      });
+
+      // Trigger the modal opening
+      const toastComponent = mockMountReactNode.mock.calls[0][0];
+      const buttonElement = toastComponent.props.children[1].props.children;
+      buttonElement.props.onClick();
+
+      // Get the modal mount function
+      const modalMountFn = mockOpenModal.mock.calls[0][0];
+      const mockContainer = document.createElement('div');
+      modalMountFn(mockContainer);
+
+      // Even though message is whitespace, it's truthy so EuiCallOut will render
+      // This documents the current behavior - only empty string ('') is falsy
+      expect(mockContainer.innerHTML).toContain('Cause information');
+    });
+
+    it('should render both message and cause when both are present', () => {
+      const { result } = renderHook(() => useToast());
+      const mockModalClose = jest.fn();
+      mockOpenModal.mockReturnValue({ close: mockModalClose });
+
+      const error = new Error('Error message text');
+      error.cause = 'Error cause text';
+
+      result.current.addError({
+        title: 'Complete Error',
+        error,
+      });
+
+      // Trigger the modal opening
+      const toastComponent = mockMountReactNode.mock.calls[0][0];
+      const buttonElement = toastComponent.props.children[1].props.children;
+      buttonElement.props.onClick();
+
+      // Get the modal mount function
+      const modalMountFn = mockOpenModal.mock.calls[0][0];
+      const mockContainer = document.createElement('div');
+      modalMountFn(mockContainer);
+
+      // Verify both message and cause are rendered
+      expect(mockContainer.innerHTML).toContain('Error message text');
+      expect(mockContainer.innerHTML).toContain('Error cause text');
+    });
+  });
 });

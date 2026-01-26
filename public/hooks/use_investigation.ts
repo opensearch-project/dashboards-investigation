@@ -11,6 +11,7 @@ import type { ParagraphStateValue } from 'common/state/paragraph_state';
 import { firstValueFrom } from '@osd/std';
 import { concatMap, filter } from 'rxjs/operators';
 import { EMPTY, fromEvent, race, throwError } from 'rxjs';
+import { i18n } from '@osd/i18n';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 
@@ -271,13 +272,22 @@ export const useInvestigation = () => {
           let parsed;
           try {
             parsed = JSON.parse(message);
-          } catch (error) {
+          } catch (error: any) {
             error.cause = message;
+            // Clean up "Max Steps Limit [xx] Reached" to "Max Steps Limit Reached"
+            if (/Max Steps Limit \[\d+\] Reached/i.test(message)) {
+              error.message = 'Max Steps Limit Reached';
+            } else {
+              error.message = '';
+            }
             throw error;
           }
           if (!isValidPERAgentInvestigationResponse(parsed)) {
             const error = new Error('Invalid per agent response');
-            error.cause = parsed;
+            error.cause = i18n.translate('investigation.response.invalidFormat', {
+              defaultMessage:
+                'The investigation response format is invalid. Please try running the investigation again.',
+            });
             throw error;
           }
           return parsed;
