@@ -58,6 +58,8 @@ import { ContextService } from './services/context_service';
 import { NoteBookAssistantContext } from '../common/types/assistant_context';
 import { createInvestigateLogActionComponent } from './components/notebooks/components/discover_explorer';
 import { StartInvestigateButton } from './components/notebooks/components/discover_explorer/start_investigate_button';
+import { createInvestigationAction } from './chat/actions/create_investigation_action';
+import { registerInvestigateCommand } from './chat/command/investigate_command';
 
 export class InvestigationPlugin
   implements
@@ -65,6 +67,7 @@ export class InvestigationPlugin
   private paragraphService: ParagraphService;
   private contextService: ContextService;
   private startDeps: AppPluginStartDependencies | undefined;
+  private unregisterInvestigateCommand?: () => void;
 
   private appUpdater$ = new BehaviorSubject<AppUpdater>(() => ({}));
 
@@ -181,7 +184,7 @@ export class InvestigationPlugin
           id: 'finding',
           priority: 1,
           isEnabled: () => true,
-          getSuggestions: async (context) => {
+          getSuggestions: async (context: any) => {
             const [coreStart] = await core.getStartServices();
             const currentAppId = await coreStart.application.currentAppId$
               .pipe(first())
@@ -202,7 +205,7 @@ export class InvestigationPlugin
                 message: 'Add current result to investigation as a finding',
                 action: async () => {
                   const input = context.messageHistory.findLast(
-                    (message) => message.role === 'user'
+                    (message: any) => message.role === 'user'
                   )?.content;
                   const output = context.currentMessage?.content;
 
@@ -225,6 +228,9 @@ export class InvestigationPlugin
         });
       }
     })();
+
+    // Register /investigate command if chat plugin is available
+    this.unregisterInvestigateCommand = registerInvestigateCommand(setupDeps.chat);
 
     // Return methods that should be available to other plugins
     return {
@@ -264,6 +270,10 @@ export class InvestigationPlugin
         },
       });
 
+      // create investigation action
+      this.startDeps?.contextProvider?.actions.registerAssistantAction(
+        createInvestigationAction(core)
+      );
       // Register "Start investigation" action for discover visualizations
       const startInvestigationAction = new StartInvestigationAction(core.overlays, {
         data: startDeps.data,
@@ -294,5 +304,10 @@ export class InvestigationPlugin
     }
   };
 
-  public stop() {}
+  public stop() {
+    // Unregister the /investigate command
+    if (this.unregisterInvestigateCommand) {
+      this.unregisterInvestigateCommand();
+    }
+  }
 }

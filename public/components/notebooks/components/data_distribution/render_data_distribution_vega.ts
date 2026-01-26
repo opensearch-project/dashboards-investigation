@@ -133,6 +133,6 @@ function generateChartSpec(fieldData: SummaryDataItem, isComparison = true) {
  * @returns {Array}
  */
 export function generateAllFieldCharts(comparisonData: SummaryDataItem[], source?: NoteBookSource) {
-  const isComparison = source !== NoteBookSource.DISCOVER;
+  const isComparison = source !== NoteBookSource.DISCOVER && source !== NoteBookSource.CHAT;
   return comparisonData.map((fieldData) => generateChartSpec(fieldData, isComparison));
 }

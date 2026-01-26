@@ -162,7 +162,9 @@ export const usePrecheck = () => {
         if (!anomalyAnalysisParaExists) {
           const resContext = res.context;
           const canAnalyticDis =
-            [NoteBookSource.DISCOVER, NoteBookSource.VISUALIZATION].includes(resContext?.source!) &&
+            [NoteBookSource.DISCOVER, NoteBookSource.VISUALIZATION, NoteBookSource.CHAT].includes(
+              resContext?.source!
+            ) &&
             resContext?.variables?.['pplQuery'] &&
             !resContext.variables?.log &&
             isDateAppenddablePPL(resContext.variables.pplQuery);
@@ -192,7 +194,8 @@ export const usePrecheck = () => {
 
         // Collect PPL paragraph
         if (
-          res.context?.source === NoteBookSource.DISCOVER &&
+          (res.context?.source === NoteBookSource.DISCOVER ||
+            res.context?.source === NoteBookSource.CHAT) &&
           !res.paragraphs.find((paragraph) => getInputType(paragraph) === PPL_PARAGRAPH_TYPE) &&
           res.context.variables?.['pplQuery'] &&
           res.context.timeField &&

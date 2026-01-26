@@ -21,7 +21,8 @@
     "dataSourceManagement",
     "contextProvider",
     "explore",
-    "usageCollection"
+    "usageCollection",
+    "chat"
   ],
   "configPath": [
     "investigation"
