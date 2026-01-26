@@ -5,7 +5,7 @@
 
 import { CoreStart } from '../../../../src/core/public';
 import { coreMock } from '../../../../src/core/public/mocks';
-import httpClientMock from './httpClientMock';
+import { httpClientMock } from './httpClientMock';
 import PPLService from '../../public/services/requests/ppl';
 
 const coreStart = coreMock.createStart();

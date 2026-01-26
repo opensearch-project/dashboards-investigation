@@ -29,6 +29,7 @@ const getFileFormatPrefix = (fileFormat: string) => {
   return fileFormatPrefix;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const readStreamToFile = async (stream: string, fileFormat: string, fileName: string) => {
   const link = document.createElement('a');
   if (fileName.includes('csv')) {

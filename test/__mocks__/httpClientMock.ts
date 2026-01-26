@@ -5,28 +5,28 @@
 
 import { HttpSetup } from '../../../../src/core/public';
 
-const httpClientMock = jest.fn() as any;
+const httpClientMockInstance = jest.fn() as any;
 
-httpClientMock.delete = jest.fn(() => ({
+httpClientMockInstance.delete = jest.fn(() => ({
   then: jest.fn(() => ({
     catch: jest.fn(),
   })),
 }));
-httpClientMock.get = jest.fn(() => ({
+httpClientMockInstance.get = jest.fn(() => ({
   then: jest.fn(() => ({
     catch: jest.fn(),
   })),
 }));
-httpClientMock.head = jest.fn();
-httpClientMock.post = jest.fn(() => ({
+httpClientMockInstance.head = jest.fn();
+httpClientMockInstance.post = jest.fn(() => ({
   then: jest.fn(() => ({
     catch: jest.fn(),
   })),
 }));
-httpClientMock.put = jest.fn(() => ({
+httpClientMockInstance.put = jest.fn(() => ({
   then: jest.fn(() => ({
     catch: jest.fn(),
   })),
 }));
 
-export default httpClientMock as HttpSetup;
+export const httpClientMock = httpClientMockInstance as HttpSetup;
