@@ -271,7 +271,7 @@ export class InvestigationPlugin
       });
 
       // create investigation action
-      this.startDeps?.contextProvider?.actions.registerAssistantAction(
+      this.startDeps?.contextProvider?.actions?.registerAssistantAction(
         createInvestigationAction(core)
       );
       // Register "Start investigation" action for discover visualizations
