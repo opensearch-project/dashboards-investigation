@@ -84,6 +84,32 @@ const convertParagraphsToFindings = (paragraphs: Array<ParagraphStateValue<unkno
   );
 };
 
+const isValidJSON = (message: string) => {
+  try {
+    return JSON.parse(message);
+  } catch (jsonError) {
+    jsonError.cause = message;
+    // Clean up "Max Steps Limit [xx] Reached" to "Max Steps Limit Reached"
+    if (/Max Steps Limit \[\d+\] Reached/i.test(message)) {
+      jsonError.message = 'Max Steps Limit Reached';
+    } else {
+      jsonError.message = '';
+    }
+    throw jsonError;
+  }
+};
+
+const isValidHypothesesResponse = (parsed: unknown) => {
+  if (!isValidPERAgentInvestigationResponse(parsed)) {
+    const validationError = new Error('Invalid per agent response');
+    validationError.cause = i18n.translate('investigation.response.invalidFormat', {
+      defaultMessage:
+        'The investigation response format is invalid. Please try running the investigation again.',
+    });
+    throw validationError;
+  }
+};
+
 export const useInvestigation = () => {
   const context = useContext(NotebookReactContext);
   const {
@@ -277,27 +303,9 @@ export const useInvestigation = () => {
     async (message: string, runningMemory: AgenticMemeory) => {
       try {
         const responseJson = await withErrorTitle('Failed to parse response', async () => {
-          let parsed;
-          try {
-            parsed = JSON.parse(message);
-          } catch (error: any) {
-            error.cause = message;
-            // Clean up "Max Steps Limit [xx] Reached" to "Max Steps Limit Reached"
-            if (/Max Steps Limit \[\d+\] Reached/i.test(message)) {
-              error.message = 'Max Steps Limit Reached';
-            } else {
-              error.message = '';
-            }
-            throw error;
-          }
-          if (!isValidPERAgentInvestigationResponse(parsed)) {
-            const error = new Error('Invalid per agent response');
-            error.cause = i18n.translate('investigation.response.invalidFormat', {
-              defaultMessage:
-                'The investigation response format is invalid. Please try running the investigation again.',
-            });
-            throw error;
-          }
+          const parsed = isValidJSON(message);
+
+          isValidHypothesesResponse(parsed);
           return parsed;
         });
 
