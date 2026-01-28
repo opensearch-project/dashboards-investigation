@@ -260,7 +260,8 @@ export const usePrecheck = () => {
           });
         }
 
-        const shouldInvestigate = res.context?.initialGoal && !res.hypotheses?.length;
+        const shouldInvestigate =
+          res.context?.initialGoal && !res.hypotheses?.length && !state.value?.failedInvestigation;
         if (paragraphsToCreate.length > 0 || shouldInvestigate) {
           if (paragraphsToCreate.length > 0) {
             try {

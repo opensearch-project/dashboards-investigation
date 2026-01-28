@@ -13,8 +13,6 @@ import {
   EuiCode,
   EuiTitle,
   EuiSpacer,
-  EuiButton,
-  EuiLoadingSpinner,
   EuiCodeBlock,
   EuiFlexGrid,
   EuiHorizontalRule,
@@ -41,11 +39,11 @@ import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearc
 import { getDataSourceById } from '../../../utils/data_source_utils';
 import { HypothesesFeedback, HypothesisItem } from './hypothesis';
 import { HypothesesStep } from './hypothesis/hypotheses_step';
-import { PERAgentMessageService } from './hypothesis/investigation/services/per_agent_message_service';
-import { PERAgentMemoryService } from './hypothesis/investigation/services/per_agent_memory_service';
 import { MessageTraceFlyout } from './hypothesis/investigation/message_trace_flyout';
 import { Paragraph } from './paragraph_components/paragraph';
 import { InvestigationPhase, isInvestigationActive } from '../../../../common/state/notebook_state';
+import { FailedInvestigationFlyout } from './hypothesis/failed_investigation_flyout';
+import { usePERAgentServices } from '../../../hooks/use_per_agent_services';
 
 interface InvestigationResultProps {
   notebookId: string;
@@ -77,10 +75,10 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     context,
     runningMemory,
     historyMemory,
-    investigationError,
     currentUser,
     path,
     investigationPhase,
+    failedInvestigation,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const isInvestigating = isInvestigationActive(investigationPhase);
 
@@ -106,37 +104,19 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   const [traceMessageId, setTraceMessageId] = useState<string>();
   const [showAllFindings, setShowAllFindings] = useState(false);
   const [showStatusBadge, setShowStatusBadge] = useState(true);
+  const [showFailedInvestigation, setShowFailedInvestigation] = useState(false);
 
   const dateFormat = uiSettings.get('dateFormat');
   const activeMemory = useMemo(() => {
     return isInvestigating ? runningMemory : historyMemory;
   }, [isInvestigating, runningMemory, historyMemory]);
 
-  const PERAgentServices = useMemo(() => {
-    if (!activeMemory?.executorMemoryId || !activeMemory?.memoryContainerId || isNotebookReadonly) {
-      return null;
-    }
-
-    const executorMemoryId$ = new BehaviorSubject(activeMemory.executorMemoryId);
-    const messageService = new PERAgentMessageService(http, activeMemory.memoryContainerId);
-
-    const executorMemoryService = new PERAgentMemoryService(
-      http,
-      executorMemoryId$,
-      () => {
-        if (!isInvestigating && activeMemory) {
-          return false;
-        }
-        return !messageService.getMessageValue();
-      },
-      activeMemory.memoryContainerId
-    );
-
-    return {
-      message: messageService,
-      executorMemory: executorMemoryService,
-    };
-  }, [http, activeMemory, isInvestigating, isNotebookReadonly]);
+  const PERAgentServices = usePERAgentServices({
+    http,
+    isInvestigating,
+    memory: activeMemory,
+    dataSourceId,
+  });
 
   const executorMessages$ = useMemo(
     () => PERAgentServices?.executorMemory.getMessages$() ?? new BehaviorSubject<any[]>([]),
@@ -165,33 +145,6 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     setShowSteps(isInvestigating);
     setShowStatusBadge(true);
   }, [isInvestigating]);
-
-  useEffect(() => {
-    if (PERAgentServices) {
-      if (!activeMemory?.executorMemoryId || !activeMemory?.parentInteractionId) {
-        return;
-      }
-
-      PERAgentServices.message.setup({
-        messageId: activeMemory.parentInteractionId,
-        dataSourceId: context.value.dataSourceId,
-      });
-
-      PERAgentServices.executorMemory.setup({
-        dataSourceId: context.value.dataSourceId,
-      });
-
-      return () => {
-        PERAgentServices.message.stop();
-        PERAgentServices.executorMemory.stop('Component unmount');
-      };
-    }
-  }, [
-    PERAgentServices,
-    context.value.dataSourceId,
-    activeMemory?.executorMemoryId,
-    activeMemory?.parentInteractionId,
-  ]);
 
   useEffect(() => {
     if (isInvestigating) {
@@ -230,7 +183,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     let badgeLabel;
     let badgeColor;
     let badgeIcon;
-    if (investigationError) {
+    if (!!failedInvestigation && !isInvestigating) {
       badgeLabel = i18n.translate('notebook.summary.card.investigationFailedBadge', {
         defaultMessage: 'Investigation failed and showing previous hypotheses',
       });
@@ -290,13 +243,27 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
       </>
     );
   }, [
-    investigationError,
+    failedInvestigation,
     isInvestigating,
     historyMemory,
     hypotheses,
     currentUser,
     runningMemory?.owner,
   ]);
+
+  const failedInvestigationDetailButton = (
+    <EuiSmallButton
+      fill
+      color="danger"
+      iconType="eye"
+      disabled={isInvestigating}
+      onClick={() => setShowFailedInvestigation(true)}
+    >
+      {i18n.translate('notebook.summary.card.failed', {
+        defaultMessage: 'Show failure detail',
+      })}
+    </EuiSmallButton>
+  );
 
   const renderInvestigationSteps = () => {
     // Only show investigation steps if current user is the owner of the active memory (investigation trigger user)
@@ -341,11 +308,12 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   const renderRetryButtonGroup = (justifyContent: 'center' | 'flexStart' = 'center') => {
     return (
       <EuiFlexGroup gutterSize="none" justifyContent={justifyContent} style={{ gap: 8 }}>
-        <EuiButton color="primary" iconType="refresh" fill onClick={openReinvestigateModal}>
+        <EuiSmallButton color="primary" iconType="refresh" fill onClick={openReinvestigateModal}>
           {i18n.translate('notebook.summary.card.reinvestigateWithFeedback', {
             defaultMessage: 'Reinvestigate with feedback',
           })}
-        </EuiButton>
+        </EuiSmallButton>
+        {failedInvestigationDetailButton}
         {/* <EuiButton
           color="text"
           iconType="generate"
@@ -441,7 +409,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
             }
             actions={
               <>
-                {investigationError === undefined && (
+                {!failedInvestigation && (
                   <>
                     {renderRetryButtonGroup()}
                     <EuiSpacer />
@@ -559,6 +527,23 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     </EuiFlexItem>
   );
 
+  const reinvestigationButton = (
+    <EuiSmallButton
+      fill
+      onClick={() => openReinvestigateModal()}
+      iconType="refresh"
+      isLoading={isInvestigating}
+    >
+      {isInvestigating
+        ? i18n.translate('notebook.summary.card.investigating', {
+            defaultMessage: 'Investigating',
+          })
+        : i18n.translate('notebook.summary.card.reinvestigate', {
+            defaultMessage: 'Reinvestigate',
+          })}
+    </EuiSmallButton>
+  );
+
   return (
     <>
       {showStatusBadge && statusBadge}
@@ -568,27 +553,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
           <EuiTitle>
             <h1>{path}</h1>
           </EuiTitle>
-          {!isNotebookReadonly ? (
-            <EuiSmallButton
-              fill
-              onClick={() => openReinvestigateModal()}
-              disabled={isInvestigating}
-              iconType={isInvestigating ? undefined : 'refresh'}
-            >
-              {isInvestigating ? (
-                <>
-                  <EuiLoadingSpinner />{' '}
-                  {i18n.translate('notebook.summary.card.investigating', {
-                    defaultMessage: 'Investigating',
-                  })}
-                </>
-              ) : (
-                i18n.translate('notebook.summary.card.reinvestigate', {
-                  defaultMessage: 'Reinvestigate',
-                })
-              )}
-            </EuiSmallButton>
-          ) : null}
+          {!isNotebookReadonly ? reinvestigationButton : null}
         </EuiFlexGroup>
         <EuiFlexGroup gutterSize="s" alignItems="center" wrap={false}>
           <EuiFlexItem grow={false}>
@@ -612,7 +577,9 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
         <EuiSpacer size="s" />
 
         {/* Hypotheses Content Section */}
-        {investigationError ? renderInvestigationError() : renderPrimaryHypothesis()}
+        {!!failedInvestigation && !isInvestigating
+          ? renderInvestigationError()
+          : renderPrimaryHypothesis()}
         <EuiHorizontalRule margin="s" />
 
         {/* Metadata Section */}
@@ -890,6 +857,13 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
             )}
           </EuiPanel>
         )}
+      {showFailedInvestigation && !!failedInvestigation && (
+        <FailedInvestigationFlyout
+          failedInvestigation={failedInvestigation}
+          dataSourceId={context.value.dataSourceId}
+          onClose={() => setShowFailedInvestigation(false)}
+        />
+      )}
     </>
   );
 };

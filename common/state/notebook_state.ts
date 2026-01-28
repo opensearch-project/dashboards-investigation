@@ -5,7 +5,8 @@
 
 import { distinctUntilChanged, map } from 'rxjs/operators';
 import {
-  AgenticMemeory,
+  AgenticMemory,
+  FailedInvestigationInfo,
   HypothesisItem,
   NotebookContext,
   PERAgentTopology,
@@ -43,13 +44,13 @@ export interface NotebookStateValue {
   owner?: string;
   currentUser?: string;
   hypotheses?: HypothesisItem[];
-  runningMemory?: AgenticMemeory;
-  historyMemory?: AgenticMemeory;
-  investigationError?: string;
+  runningMemory?: AgenticMemory;
+  historyMemory?: AgenticMemory;
   isNotebookReadonly: boolean;
   topologies: PERAgentTopology[];
   investigationPhase?: InvestigationPhase;
   isPromoted?: boolean;
+  failedInvestigation?: FailedInvestigationInfo;
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {
