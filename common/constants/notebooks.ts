@@ -8,6 +8,7 @@ export const NOTEBOOKS_FETCH_SIZE = 1000;
 export const CREATE_NOTE_MESSAGE = 'Enter a name to describe the purpose of this notebook.';
 export const NOTEBOOKS_DOCUMENTATION_URL =
   'https://opensearch.org/docs/latest/observability-plugin/notebooks/';
+export const NOTEBOOK_NAME_MAX_LENGTH = 50;
 
 const BASE_NOTEBOOKS_URI = '/_plugins/_notebooks';
 export const OPENSEARCH_NOTEBOOKS_API = {

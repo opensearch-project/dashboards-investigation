@@ -24,6 +24,7 @@ import {
   EuiEmptyPrompt,
   EuiSplitPanel,
   EuiButtonIcon,
+  EuiLoadingSpinner,
 } from '@elastic/eui';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import moment from 'moment';
@@ -531,16 +532,21 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     <EuiSmallButton
       fill
       onClick={() => openReinvestigateModal()}
-      iconType="refresh"
-      isLoading={isInvestigating}
+      disabled={isInvestigating}
+      iconType={isInvestigating ? undefined : 'refresh'}
     >
-      {isInvestigating
-        ? i18n.translate('notebook.summary.card.investigating', {
+      {isInvestigating ? (
+        <EuiFlexGroup gutterSize="none" alignItems="center" style={{ gap: 8 }}>
+          <EuiLoadingSpinner />
+          {i18n.translate('notebook.summary.card.investigating', {
             defaultMessage: 'Investigating',
-          })
-        : i18n.translate('notebook.summary.card.reinvestigate', {
-            defaultMessage: 'Reinvestigate',
           })}
+        </EuiFlexGroup>
+      ) : (
+        i18n.translate('notebook.summary.card.reinvestigate', {
+          defaultMessage: 'Reinvestigate',
+        })
+      )}
     </EuiSmallButton>
   );
 

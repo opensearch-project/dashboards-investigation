@@ -48,7 +48,9 @@ export const HypothesesFeedback: React.FC<{
             size="xs"
             color={feedback === 'thumbup' ? 'primary' : 'text'}
             iconType="thumbsUp"
-            aria-label="ThumbsUp"
+            aria-label={i18n.translate('investigate.hypothesis.feedback.thumbsUp', {
+              defaultMessage: 'thumbs up',
+            })}
             onClick={() => onFeedback('thumbup')}
           />
         </EuiFlexItem>
@@ -59,7 +61,9 @@ export const HypothesesFeedback: React.FC<{
             size="xs"
             color={feedback === 'thumbdown' ? 'primary' : 'text'}
             iconType="thumbsDown"
-            aria-label="ThumbsDown"
+            aria-label={i18n.translate('investigate.hypothesis.feedback.thumbsDown', {
+              defaultMessage: 'thumbs down',
+            })}
             onClick={() => onFeedback('thumbdown')}
           />
         </EuiFlexItem>

@@ -27,7 +27,11 @@ import { useObservable } from 'react-use';
 import { useCallback } from 'react';
 import { NoteBookServices } from 'public/types';
 import { ParagraphState } from '../../../../common/state/paragraph_state';
-import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
+import {
+  CREATE_NOTE_MESSAGE,
+  NOTEBOOK_NAME_MAX_LENGTH,
+  NOTEBOOKS_API_PREFIX,
+} from '../../../../common/constants/notebooks';
 import { NotebookComponentProps, NotebookType } from '../../../../common/types/notebooks';
 import { getCustomModal, getDeleteModal } from './helpers/modal_containers';
 import { Paragraph } from './paragraph_components/paragraph';
@@ -88,7 +92,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     migrateNoteName: string,
     migrateNoteID: string
   ): Promise<string> => {
-    if (migrateNoteName.length >= 50 || migrateNoteName.length === 0) {
+    if (migrateNoteName.length > NOTEBOOK_NAME_MAX_LENGTH || migrateNoteName.length === 0) {
       notifications.toasts.addDanger('Invalid notebook name');
       return Promise.reject();
     }

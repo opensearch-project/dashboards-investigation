@@ -25,7 +25,11 @@ import { i18n } from '@osd/i18n';
 
 import type { NoteBookServices } from 'public/types';
 
-import { CREATE_NOTE_MESSAGE, NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
+import {
+  CREATE_NOTE_MESSAGE,
+  NOTEBOOK_NAME_MAX_LENGTH,
+  NOTEBOOKS_API_PREFIX,
+} from '../../../../common/constants/notebooks';
 import { investigationNotebookID, UI_DATE_FORMAT } from '../../../../common/constants/shared';
 import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { NotebookReactContext } from '../context_provider/context_provider';
@@ -94,7 +98,7 @@ export const NotebookHeader = ({
   // Renames an existing notebook
   const renameNotebook = useCallback(
     async (editedNoteName: string, editedNoteID: string): Promise<any> => {
-      if (editedNoteName.length >= 50 || editedNoteName.length === 0) {
+      if (editedNoteName.length > NOTEBOOK_NAME_MAX_LENGTH || editedNoteName.length === 0) {
         notifications.toasts.addDanger('Invalid notebook name');
         return;
       }
@@ -147,7 +151,7 @@ export const NotebookHeader = ({
   // Clones an existing notebook, return new notebook's id
   const cloneNotebook = useCallback(
     async (clonedNoteName: string, clonedNoteID: string): Promise<string> => {
-      if (clonedNoteName.length >= 50 || clonedNoteName.length === 0) {
+      if (clonedNoteName.length > NOTEBOOK_NAME_MAX_LENGTH || clonedNoteName.length === 0) {
         notifications.toasts.addDanger('Invalid notebook name');
         return Promise.reject();
       }

@@ -3,66 +3,147 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { fireEvent, render } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { configure, shallow } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 import React from 'react';
 import { CustomInputModal } from '../custom_input_modal';
+import { NotebookType } from '../../../../../../../common/types/notebooks';
 
 describe('<CustomInputModal /> spec', () => {
   configure({ adapter: new Adapter() });
 
+  const defaultProps = {
+    runModal: jest.fn(),
+    closeModal: jest.fn(),
+    labelTxt: 'Name',
+    titletxt: 'Create notebook',
+    btn1txt: 'Cancel',
+    btn2txt: 'Create',
+    openNoteName: '',
+    helpText: 'Enter a name',
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('renders the component', () => {
-    const runModal = jest.fn();
-    const closeModal = jest.fn();
-    const wrapper = shallow(
-      <CustomInputModal
-        runModal={runModal}
-        closeModal={closeModal}
-        labelTxt="label"
-        titletxt="title"
-        btn1txt="Cancel"
-        btn2txt="Confirm"
-        openNoteName="mock-path"
-        helpText="help text"
-      />
-    );
+    const wrapper = shallow(<CustomInputModal {...defaultProps} openNoteName="mock-path" />);
     expect(wrapper).toMatchSnapshot();
 
-    const emptyNameWrapper = shallow(
-      <CustomInputModal
-        runModal={runModal}
-        closeModal={closeModal}
-        labelTxt="label"
-        titletxt="title"
-        btn1txt="Cancel"
-        btn2txt="Confirm"
-        openNoteName=""
-        helpText="help text"
-      />
-    );
+    const emptyNameWrapper = shallow(<CustomInputModal {...defaultProps} />);
     expect(emptyNameWrapper).toMatchSnapshot();
   });
 
-  it('clicks buttons', () => {
+  it('handles input changes', () => {
+    const { getByTestId } = render(<CustomInputModal {...defaultProps} />);
+    const input = getByTestId('custom-input-modal-input');
+
+    fireEvent.change(input, { target: { value: 'test-name' } });
+    expect(input).toHaveValue('test-name');
+  });
+
+  it('calls runModal with correct parameters on submit', () => {
     const runModal = jest.fn();
-    const closeModal = jest.fn();
-    const utils = render(
-      <CustomInputModal
-        runModal={runModal}
-        closeModal={closeModal}
-        labelTxt="label"
-        titletxt="title"
-        btn1txt="Cancel"
-        btn2txt="Confirm"
-        openNoteName="mock-path"
-        helpText="help text"
-      />
+    const { getByTestId } = render(
+      <CustomInputModal {...defaultProps} runModal={runModal} notebookType={NotebookType.CLASSIC} />
     );
-    fireEvent.change(utils.getByTestId('custom-input-modal-input'), {
+
+    fireEvent.change(getByTestId('custom-input-modal-input'), {
       target: { value: 'test-name' },
     });
-    utils.getByTestId('custom-input-modal-confirm-button').click();
-    expect(runModal).toBeCalledWith('test-name');
+    fireEvent.click(getByTestId('custom-input-modal-confirm-button'));
+
+    expect(runModal).toHaveBeenCalledWith('test-name', NotebookType.CLASSIC);
+  });
+
+  it('shows empty validation error', async () => {
+    const runModal = jest.fn();
+    const { getByTestId, getByText } = render(
+      <CustomInputModal {...defaultProps} runModal={runModal} />
+    );
+
+    // Try to submit with empty input
+    fireEvent.click(getByTestId('custom-input-modal-confirm-button'));
+
+    await waitFor(() => {
+      expect(getByText('Name is required')).toBeInTheDocument();
+    });
+    expect(runModal).not.toHaveBeenCalled();
+  });
+
+  it('shows length validation error', async () => {
+    const runModal = jest.fn();
+    const { getByTestId, getByText } = render(
+      <CustomInputModal {...defaultProps} runModal={runModal} maxLength={10} />
+    );
+
+    // Enter text longer than maxLength
+    fireEvent.change(getByTestId('custom-input-modal-input'), {
+      target: { value: 'this is too long' },
+    });
+
+    await waitFor(() => {
+      expect(getByText('Name must be 10 characters or less')).toBeInTheDocument();
+    });
+  });
+
+  it('clears empty error when user starts typing', async () => {
+    const { getByTestId, getByText, queryByText } = render(<CustomInputModal {...defaultProps} />);
+
+    // Trigger empty error
+    fireEvent.click(getByTestId('custom-input-modal-confirm-button'));
+    await waitFor(() => {
+      expect(getByText('Name is required')).toBeInTheDocument();
+    });
+
+    // Start typing
+    fireEvent.change(getByTestId('custom-input-modal-input'), {
+      target: { value: 'test' },
+    });
+
+    await waitFor(() => {
+      expect(queryByText('Name is required')).not.toBeInTheDocument();
+    });
+  });
+
+  it('calls closeModal when cancel button is clicked', () => {
+    const closeModal = jest.fn();
+    const { getByText } = render(<CustomInputModal {...defaultProps} closeModal={closeModal} />);
+
+    fireEvent.click(getByText('Cancel'));
+    expect(closeModal).toHaveBeenCalled();
+  });
+
+  it('uses default maxLength of 50', () => {
+    const { getByTestId, getByText } = render(<CustomInputModal {...defaultProps} />);
+
+    // Enter text longer than 50 characters
+    const longText = 'a'.repeat(51);
+    fireEvent.change(getByTestId('custom-input-modal-input'), {
+      target: { value: longText },
+    });
+
+    expect(getByText('Name must be 50 characters or less')).toBeInTheDocument();
+  });
+
+  it('handles whitespace-only input as empty', async () => {
+    const runModal = jest.fn();
+    const { getByTestId, getByText } = render(
+      <CustomInputModal {...defaultProps} runModal={runModal} />
+    );
+
+    // Enter only whitespace
+    fireEvent.change(getByTestId('custom-input-modal-input'), {
+      target: { value: '   ' },
+    });
+    fireEvent.click(getByTestId('custom-input-modal-confirm-button'));
+
+    await waitFor(() => {
+      expect(getByText('Name is required')).toBeInTheDocument();
+    });
+    expect(runModal).not.toHaveBeenCalled();
   });
 });

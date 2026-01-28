@@ -90,7 +90,7 @@ export const FindingFooter: React.FC<FindingFooterProps> = ({
           {!isMarkedIrrelevant && !isMarkedSelected && (
             <EuiText color="subdued">
               {i18n.translate('notebook.finding.footer.isFindingRelevant', {
-                defaultMessage: 'This is finding relevant?',
+                defaultMessage: 'Is this finding relevant?',
               })}
             </EuiText>
           )}
@@ -101,7 +101,7 @@ export const FindingFooter: React.FC<FindingFooterProps> = ({
               color={isMarkedSelected ? 'success' : 'text'}
               iconType="thumbsUp"
               aria-label={i18n.translate('notebook.finding.footer.thumbsUp', {
-                defaultMessage: 'thumbsUp',
+                defaultMessage: 'thumbs up',
               })}
               onClick={() => onMarkFinding('selected')}
               disabled={isSaving}
@@ -113,7 +113,7 @@ export const FindingFooter: React.FC<FindingFooterProps> = ({
               color={isMarkedIrrelevant ? 'danger' : 'text'}
               iconType="thumbsDown"
               aria-label={i18n.translate('notebook.finding.footer.thumbsDown', {
-                defaultMessage: 'ThumbsDown',
+                defaultMessage: 'thumbs down',
               })}
               onClick={() => onMarkFinding('irrelevant')}
               disabled={isSaving}
