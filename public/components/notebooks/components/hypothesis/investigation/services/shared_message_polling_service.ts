@@ -48,7 +48,7 @@ export class SharedMessagePollingService {
       return this.currentPolling.observable;
     }
 
-    const abortController = new AbortController();
+    let abortController = new AbortController();
     const startTime = Date.now();
     let errorCount = 0;
 
@@ -69,8 +69,11 @@ export class SharedMessagePollingService {
         ).pipe(
           timeout(REQUEST_TIMEOUT_MS),
           catchError((err) => {
+            console.log(err);
             if (err.name === 'TimeoutError') {
               abortController.abort();
+              // Create new AbortController for next request since the old one is aborted
+              abortController = new AbortController();
             }
             errorCount += 1;
 
