@@ -69,7 +69,6 @@ export class SharedMessagePollingService {
         ).pipe(
           timeout(REQUEST_TIMEOUT_MS),
           catchError((err) => {
-            console.log(err);
             if (err.name === 'TimeoutError') {
               abortController.abort();
               // Create new AbortController for next request since the old one is aborted
