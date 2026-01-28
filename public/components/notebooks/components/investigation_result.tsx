@@ -26,6 +26,7 @@ import {
   EuiEmptyPrompt,
   EuiSplitPanel,
   EuiButtonIcon,
+  EuiCopy,
 } from '@elastic/eui';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import moment from 'moment';
@@ -58,15 +59,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
 }) => {
   const notebookContext = useContext(NotebookReactContext);
   const {
-    services: {
-      uiSettings,
-      notifications,
-      savedObjects,
-      appName,
-      usageCollection,
-      http,
-      application,
-    },
+    services: { uiSettings, savedObjects, appName, usageCollection, http, application },
   } = useOpenSearchDashboards<NoteBookServices>();
   const history = useHistory();
 
@@ -210,17 +203,6 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     PERAgentServices?.message,
     notebookContext.state,
   ]);
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      notifications.toasts.addSuccess(
-        i18n.translate('notebook.summary.card.copiedToClipboard', {
-          defaultMessage: '{label} copied to clipboard',
-          values: { label },
-        })
-      );
-    });
-  };
 
   const handleClickHypothesis = (hypothesisId: string) => {
     history.push(`/agentic/${notebookId}/hypothesis/${hypothesisId}`);
@@ -541,19 +523,29 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
       <EuiText size="s">
         <strong>{i18n.translate(labelKey, { defaultMessage })}</strong>:{' '}
         <span>
-          <EuiLink onClick={() => copyToClipboard(value, label)}>
-            {value ||
-              i18n.translate('notebook.summary.card.notSpecified', {
-                defaultMessage: 'Not specified',
-              })}
-            {value && (
-              <EuiIcon
-                type="copy"
-                size="s"
-                style={{ marginLeft: '4px', verticalAlign: 'middle' }}
-              />
+          <EuiCopy
+            textToCopy={value || ''}
+            afterMessage={i18n.translate('notebook.summary.card.copiedToClipboard', {
+              defaultMessage: '{label} copied to clipboard',
+              values: { label },
+            })}
+          >
+            {(copy) => (
+              <EuiLink onClick={copy}>
+                {value ||
+                  i18n.translate('notebook.summary.card.notSpecified', {
+                    defaultMessage: 'Not specified',
+                  })}
+                {value && (
+                  <EuiIcon
+                    type="copy"
+                    size="s"
+                    style={{ marginLeft: '4px', verticalAlign: 'middle' }}
+                  />
+                )}
+              </EuiLink>
             )}
-          </EuiLink>
+          </EuiCopy>
         </span>
       </EuiText>
     </EuiFlexItem>
@@ -653,23 +645,28 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
                 </strong>
                 :{' '}
                 <span>
-                  <EuiLink
-                    onClick={() =>
-                      copyToClipboard(
-                        initialGoal,
-                        i18n.translate('notebook.summary.card.initialGoal', {
+                  <EuiCopy
+                    textToCopy={initialGoal}
+                    afterMessage={i18n.translate('notebook.summary.card.copiedToClipboard', {
+                      defaultMessage: '{label} copied to clipboard',
+                      values: {
+                        label: i18n.translate('notebook.summary.card.initialGoal', {
                           defaultMessage: 'Initial goal',
-                        })
-                      )
-                    }
+                        }),
+                      },
+                    })}
                   >
-                    <EuiCode language="plaintext">{initialGoal}</EuiCode>
-                    <EuiIcon
-                      size="s"
-                      type="copy"
-                      style={{ marginLeft: '4px', verticalAlign: 'middle' }}
-                    />
-                  </EuiLink>
+                    {(copy) => (
+                      <EuiLink onClick={copy}>
+                        <EuiCode language="plaintext">{initialGoal}</EuiCode>
+                        <EuiIcon
+                          size="s"
+                          type="copy"
+                          style={{ marginLeft: '4px', verticalAlign: 'middle' }}
+                        />
+                      </EuiLink>
+                    )}
+                  </EuiCopy>
                 </span>
               </EuiText>
             </EuiFlexItem>
@@ -722,30 +719,35 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
                 </strong>
                 :{' '}
                 <span>
-                  <EuiLink
-                    onClick={() =>
-                      copyToClipboard(
-                        variables.pplQuery || '',
-                        i18n.translate('notebook.summary.card.pplQuery', {
+                  <EuiCopy
+                    textToCopy={variables.pplQuery || ''}
+                    afterMessage={i18n.translate('notebook.summary.card.copiedToClipboard', {
+                      defaultMessage: '{label} copied to clipboard',
+                      values: {
+                        label: i18n.translate('notebook.summary.card.pplQuery', {
                           defaultMessage: 'PPL Query',
-                        })
-                      )
-                    }
+                        }),
+                      },
+                    })}
                   >
-                    <EuiCode language="sql">
-                      {variables.pplQuery ||
-                        i18n.translate('notebook.summary.card.notSpecified', {
-                          defaultMessage: 'Not specified',
-                        })}
-                    </EuiCode>
-                    {variables.pplQuery && (
-                      <EuiIcon
-                        type="copy"
-                        size="s"
-                        style={{ marginLeft: '4px', verticalAlign: 'middle' }}
-                      />
+                    {(copy) => (
+                      <EuiLink onClick={copy}>
+                        <EuiCode language="sql">
+                          {variables.pplQuery ||
+                            i18n.translate('notebook.summary.card.notSpecified', {
+                              defaultMessage: 'Not specified',
+                            })}
+                        </EuiCode>
+                        {variables.pplQuery && (
+                          <EuiIcon
+                            type="copy"
+                            size="s"
+                            style={{ marginLeft: '4px', verticalAlign: 'middle' }}
+                          />
+                        )}
+                      </EuiLink>
                     )}
-                  </EuiLink>
+                  </EuiCopy>
                 </span>
               </EuiText>
             </EuiFlexItem>
@@ -761,31 +763,38 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
                 </strong>
                 :{' '}
                 <span>
-                  <EuiLink
-                    onClick={() =>
-                      copyToClipboard(
-                        typeof variables.dslQuery === 'string'
-                          ? variables.dslQuery
-                          : JSON.stringify(variables.dslQuery, null, 2),
-                        i18n.translate('notebook.summary.card.dslQuery', {
-                          defaultMessage: 'DSL Query',
-                        })
-                      )
-                    }
-                  >
-                    <EuiCode language="json">
-                      {typeof variables.dslQuery === 'string'
+                  <EuiCopy
+                    textToCopy={
+                      typeof variables.dslQuery === 'string'
                         ? variables.dslQuery
-                        : JSON.stringify(variables.dslQuery, null, 2)}
-                    </EuiCode>
-                    {variables.dslQuery && (
-                      <EuiIcon
-                        type="copy"
-                        size="s"
-                        style={{ marginLeft: '4px', verticalAlign: 'middle' }}
-                      />
+                        : JSON.stringify(variables.dslQuery, null, 2)
+                    }
+                    afterMessage={i18n.translate('notebook.summary.card.copiedToClipboard', {
+                      defaultMessage: '{label} copied to clipboard',
+                      values: {
+                        label: i18n.translate('notebook.summary.card.dslQuery', {
+                          defaultMessage: 'DSL Query',
+                        }),
+                      },
+                    })}
+                  >
+                    {(copy) => (
+                      <EuiLink onClick={copy}>
+                        <EuiCode language="json">
+                          {typeof variables.dslQuery === 'string'
+                            ? variables.dslQuery
+                            : JSON.stringify(variables.dslQuery, null, 2)}
+                        </EuiCode>
+                        {variables.dslQuery && (
+                          <EuiIcon
+                            type="copy"
+                            size="s"
+                            style={{ marginLeft: '4px', verticalAlign: 'middle' }}
+                          />
+                        )}
+                      </EuiLink>
                     )}
-                  </EuiLink>
+                  </EuiCopy>
                 </span>
               </EuiText>
             </EuiFlexItem>
