@@ -90,8 +90,8 @@ const isValidJSON = (message: string) => {
     return JSON.parse(message);
   } catch (jsonError) {
     jsonError.cause = message;
-    // Clean up "Max Steps Limit [xx] Reached" to "Max Steps Limit Reached"
-    if (/Max Steps Limit \[\d+\] Reached/i.test(message)) {
+    // Clean up "Max Steps Limit (xx) Reached" to "Max Steps Limit Reached"
+    if (/Max Steps Limit \(\d+\) Reached/i.test(message)) {
       jsonError.message = 'Max Steps Limit Reached';
     } else {
       jsonError.message = '';
