@@ -26,7 +26,6 @@ import { dataSourceFilterFn } from '../../../../../common/utils/shared';
 import { CustomInputModal } from './custom_modals/custom_input_modal';
 import { getDataSourceManagementSetup } from '../../../../../public/services';
 import { DataSourceOption } from '../../../../../../../src/plugins/data_source_management/public';
-import { NotebookType } from '../../../../../common//types/notebooks';
 
 /* The file contains helper functions for modal layouts
  * getCustomModal - returns modal with input field
@@ -226,74 +225,6 @@ export const DeleteNotebookModal = ({
             disabled={value !== 'delete'}
           >
             Delete
-          </EuiSmallButton>
-        </EuiModalFooter>
-      </EuiModal>
-    </EuiOverlayMask>
-  );
-};
-
-interface CreateNotebookModalProps {
-  runModal: (name: string, notebookType: NotebookType) => void;
-  closeModal: (
-    event?: React.KeyboardEvent<HTMLDivElement> | React.MouseEvent<HTMLButtonElement, MouseEvent>
-  ) => void;
-  labelTxt: string;
-  titletxt: string;
-  btn1txt: string;
-  btn2txt: string;
-  openNoteName?: string;
-  helpText?: string;
-}
-
-export const CreateNotebookModal = ({
-  runModal,
-  closeModal,
-  labelTxt,
-  titletxt,
-  btn1txt,
-  btn2txt,
-  openNoteName,
-  helpText,
-}: CreateNotebookModalProps) => {
-  const [value, setValue] = useState(openNoteName || ''); // sets input value
-
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue(e.target.value);
-  };
-
-  return (
-    <EuiOverlayMask>
-      <EuiModal onClose={closeModal} initialFocus="[name=input]">
-        <EuiModalHeader>
-          <EuiModalHeaderTitle>
-            <EuiText size="s">
-              <h2>{titletxt}</h2>
-            </EuiText>
-          </EuiModalHeaderTitle>
-        </EuiModalHeader>
-
-        <EuiModalBody>
-          <EuiForm>
-            <EuiCompressedFormRow label={labelTxt} helpText={helpText}>
-              <EuiCompressedFieldText
-                data-test-subj="custom-input-modal-input"
-                name="input"
-                value={value}
-                onChange={(e) => onChange(e)}
-              />
-            </EuiCompressedFormRow>
-          </EuiForm>
-        </EuiModalBody>
-
-        <EuiModalFooter>
-          <EuiSmallButtonEmpty onClick={closeModal}>{btn1txt}</EuiSmallButtonEmpty>
-          <EuiSmallButton
-            data-test-subj="custom-input-modal-confirm-button"
-            onClick={() => runModal(value, NotebookType.CLASSIC)}
-            fill
-          >
-            {btn2txt}
           </EuiSmallButton>
         </EuiModalFooter>
       </EuiModal>

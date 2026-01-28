@@ -92,7 +92,11 @@ function showErrorDialog({
             <React.Fragment>
               <EuiSpacer size="s" />
               <EuiPanel color="subdued" borderRadius="none" hasShadow={false}>
-                <EuiMarkdownFormat>{error.cause as string}</EuiMarkdownFormat>
+                <EuiMarkdownFormat>
+                  {typeof error.cause === 'string'
+                    ? error.cause
+                    : JSON.stringify(error.cause, null, 2)}
+                </EuiMarkdownFormat>
               </EuiPanel>
             </React.Fragment>
           )}

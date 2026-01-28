@@ -219,6 +219,24 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
               })
             )
           ),
+          failedInvestigation: schema.maybe(
+            schema.nullable(
+              schema.object({
+                error: schema.object({
+                  message: schema.string(),
+                  name: schema.maybe(schema.string()),
+                  cause: schema.maybe(schema.any()),
+                }),
+                memory: schema.object({
+                  executorMemoryId: schema.maybe(schema.string()),
+                  parentInteractionId: schema.maybe(schema.string()),
+                  memoryContainerId: schema.maybe(schema.string()),
+                  owner: schema.maybe(schema.string()),
+                }),
+                timestamp: schema.string(),
+              })
+            )
+          ),
         }),
       },
     },
@@ -242,6 +260,9 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
           ...(request.body.historyMemory
             ? { historyMemory: request.body.historyMemory }
             : { historyMemory: null }),
+          ...(request.body.failedInvestigation !== undefined
+            ? { failedInvestigation: request.body.failedInvestigation }
+            : {}),
         };
         const noteBookInfo = await fetchNotebook(
           request.body.notebookId,

@@ -24,7 +24,8 @@ import {
 } from '../utils/ml_commons_apis';
 import { extractParentInteractionId } from '../../common/utils/task';
 import {
-  AgenticMemeory,
+  AgenticMemory,
+  FailedInvestigationInfo,
   InvestigationTimeRange,
   FindingParagraphParameters,
   PERAgentInvestigationResponse,
@@ -89,8 +90,8 @@ const isValidJSON = (message: string) => {
     return JSON.parse(message);
   } catch (jsonError) {
     jsonError.cause = message;
-    // Clean up "Max Steps Limit [xx] Reached" to "Max Steps Limit Reached"
-    if (/Max Steps Limit \[\d+\] Reached/i.test(message)) {
+    // Clean up "Max Steps Limit (xx) Reached" to "Max Steps Limit Reached"
+    if (/Max Steps Limit \(\d+\) Reached/i.test(message)) {
       jsonError.message = 'Max Steps Limit Reached';
     } else {
       jsonError.message = '';
@@ -299,8 +300,31 @@ export const useInvestigation = () => {
     [contextStateValue?.title, context.state, http, addError]
   );
 
+  const handleInvestigationFailure = useCallback(
+    async (error: Error, memory?: AgenticMemory) => {
+      const failedInfo: FailedInvestigationInfo = {
+        error,
+        memory,
+        timestamp: new Date().toISOString(),
+      };
+      context.state.updateValue({
+        failedInvestigation: failedInfo,
+        runningMemory: undefined,
+        investigationPhase: InvestigationPhase.COMPLETED,
+      });
+
+      // Persist the failed investigation info to backend
+      try {
+        await updateHypotheses(hypothesesRef.current || []);
+      } catch (saveError) {
+        console.error('Failed to save failed investigation info:', saveError);
+      }
+    },
+    [context.state, updateHypotheses]
+  );
+
   const handlePollingSuccess = useCallback(
-    async (message: string, runningMemory: AgenticMemeory) => {
+    async (message: string, runningMemory: AgenticMemory) => {
       try {
         const responseJson = await withErrorTitle('Failed to parse response', async () => {
           const parsed = isValidJSON(message);
@@ -317,19 +341,14 @@ export const useInvestigation = () => {
 
         context.state.updateValue({
           historyMemory: runningMemory,
-          investigationError: undefined,
-          investigationPhase: InvestigationPhase.COMPLETED,
+          failedInvestigation: undefined,
         });
       } catch (error: any) {
-        context.state.updateValue({
-          investigationError: error.message,
-          runningMemory: undefined,
-        });
-        await updateHypotheses(hypothesesRef.current || []);
         addError({
           error,
           title: getErrorTitle(error, 'Failed to complete investigation'),
         });
+        await handleInvestigationFailure(error, runningMemory);
       } finally {
         context.state.updateValue({
           runningMemory: undefined,
@@ -337,27 +356,13 @@ export const useInvestigation = () => {
         });
       }
     },
-    [context.state, storeInvestigationResponse, updateInvestigationName, updateHypotheses, addError]
-  );
-
-  const handlePollingFailure = useCallback(
-    async (error: any) => {
-      if (error.message === 'ABORTED') {
-        return;
-      }
-      const errorMessage = 'Failed to poll investigation message';
-      addError({
-        error,
-        title: errorMessage,
-      });
-      context.state.updateValue({
-        runningMemory: undefined,
-        investigationError: errorMessage,
-        investigationPhase: InvestigationPhase.COMPLETED,
-      });
-      await updateHypotheses(hypothesesRef.current || []);
-    },
-    [context.state, updateHypotheses, addError]
+    [
+      context.state,
+      storeInvestigationResponse,
+      updateInvestigationName,
+      addError,
+      handleInvestigationFailure,
+    ]
   );
 
   /**
@@ -365,7 +370,7 @@ export const useInvestigation = () => {
    * @returns Promise that resolves when investigation is complete or rejects on error
    */
   const pollInvestigationCompletion = useCallback(
-    async ({ runningMemory }: { runningMemory: AgenticMemeory }): Promise<void> => {
+    async ({ runningMemory }: { runningMemory: AgenticMemory }): Promise<void> => {
       const dataSourceId = context.state.value.context.value.dataSourceId;
       const sharedPollingService = SharedMessagePollingService.getInstance(http);
       const abortSignal = abortControllerRef.current?.signal;
@@ -390,10 +395,17 @@ export const useInvestigation = () => {
         );
         await handlePollingSuccess(message as string, runningMemory);
       } catch (error) {
-        await handlePollingFailure(error);
+        if (error.message === 'ABORTED') {
+          return;
+        }
+        addError({
+          error,
+          title: 'Failed to poll investigation message',
+        });
+        await handleInvestigationFailure(error, runningMemory);
       }
     },
-    [http, context.state, handlePollingSuccess, handlePollingFailure]
+    [http, context.state, handlePollingSuccess, handleInvestigationFailure, addError]
   );
 
   const executeInvestigation = useCallback(
@@ -411,7 +423,7 @@ export const useInvestigation = () => {
       prevContent?: boolean;
     }) => {
       context.state.updateValue({
-        investigationError: undefined,
+        failedInvestigation: undefined,
         investigationPhase: InvestigationPhase.PLANNING,
       });
 
@@ -490,7 +502,7 @@ export const useInvestigation = () => {
           throw new Error('parentInteractionId id is null');
         }
 
-        const runningMemory: AgenticMemeory = {
+        const runningMemory: AgenticMemory = {
           memoryContainerId,
           parentInteractionId,
           executorMemoryId,
@@ -508,17 +520,11 @@ export const useInvestigation = () => {
           runningMemory,
         });
       } catch (e) {
-        const errorMessage = 'Failed to execute per agent';
-        context.state.updateValue({
-          runningMemory: undefined,
-          investigationError: errorMessage,
-          investigationPhase: InvestigationPhase.COMPLETED,
-        });
-        await updateHypotheses(hypothesesRef.current || []);
         addError({
-          title: errorMessage,
+          title: 'Failed to execute per agent',
           error: e,
         });
+        await handleInvestigationFailure(e);
       }
     },
     [
@@ -529,6 +535,7 @@ export const useInvestigation = () => {
       contextStateValue?.hypotheses,
       pollInvestigationCompletion,
       addError,
+      handleInvestigationFailure,
     ]
   );
   const retrieveInvestigationContextPrompt = useCallback(async () => {
@@ -786,18 +793,14 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
         });
       });
     } catch (error) {
-      const errorMessage = 'Failed to continue investigation';
-      context.state.updateValue({
-        runningMemory: undefined,
-        investigationError: errorMessage,
-        investigationPhase: InvestigationPhase.COMPLETED,
-      });
       addError({
         error,
-        title: errorMessage,
+        title: 'Failed to continue investigation',
       });
+
+      await handleInvestigationFailure(error, runningMemory);
     }
-  }, [context.state, pollInvestigationCompletion, addError]);
+  }, [context.state, pollInvestigationCompletion, addError, handleInvestigationFailure]);
 
   // Cleanup on unmount
   useEffect(() => {

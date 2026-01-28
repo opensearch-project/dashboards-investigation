@@ -18,6 +18,8 @@ import {
   EuiSmallButton,
   EuiText,
 } from '@elastic/eui';
+import { i18n } from '@osd/i18n';
+import { NotebookType } from '../../../../../../common/types/notebooks';
 
 /*
  * "CustomInputModalProps" component is used to create a modal with an input filed
@@ -32,7 +34,7 @@ import {
  * openNoteName - Default input value for the field
  */
 interface CustomInputModalProps {
-  runModal: (value: string) => void;
+  runModal: (value: string, notebookType?: any) => void;
   closeModal: (
     event?: React.KeyboardEvent<HTMLDivElement> | React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => void;
@@ -42,6 +44,8 @@ interface CustomInputModalProps {
   btn2txt: string;
   openNoteName: string;
   helpText: string;
+  maxLength?: number;
+  notebookType?: NotebookType;
 }
 
 export const CustomInputModal = (props: CustomInputModalProps) => {
@@ -54,11 +58,25 @@ export const CustomInputModal = (props: CustomInputModalProps) => {
     btn2txt,
     openNoteName,
     helpText,
+    maxLength = 50,
+    notebookType,
   } = props;
   const [value, setValue] = useState(openNoteName || ''); // sets input value
+  const [showEmptyError, setShowEmptyError] = useState(false);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e.target.value);
+    if (showEmptyError && e.target.value.trim()) {
+      setShowEmptyError(false);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!value.trim()) {
+      setShowEmptyError(true);
+      return;
+    }
+    runModal(value, notebookType);
   };
 
   return (
@@ -74,7 +92,23 @@ export const CustomInputModal = (props: CustomInputModalProps) => {
 
         <EuiModalBody>
           <EuiForm>
-            <EuiCompressedFormRow label={labelTxt} helpText={helpText}>
+            <EuiCompressedFormRow
+              label={labelTxt}
+              helpText={helpText}
+              isInvalid={value.length > maxLength || showEmptyError}
+              error={
+                showEmptyError
+                  ? i18n.translate('investigate.customInputModal.nameRequired', {
+                      defaultMessage: 'Name is required',
+                    })
+                  : value.length > maxLength
+                  ? i18n.translate('investigate.customInputModal.nameTooLong', {
+                      defaultMessage: 'Name must be {maxLength} characters or less',
+                      values: { maxLength },
+                    })
+                  : undefined
+              }
+            >
               <EuiCompressedFieldText
                 data-test-subj="custom-input-modal-input"
                 name="input"
@@ -89,7 +123,7 @@ export const CustomInputModal = (props: CustomInputModalProps) => {
           <EuiSmallButtonEmpty onClick={closeModal}>{btn1txt}</EuiSmallButtonEmpty>
           <EuiSmallButton
             data-test-subj="custom-input-modal-confirm-button"
-            onClick={() => runModal(value)}
+            onClick={handleSubmit}
             fill
           >
             {btn2txt}

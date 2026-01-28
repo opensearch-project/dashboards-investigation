@@ -55,7 +55,7 @@ Final result must be a stringified JSON object:
     "findings": array[object],
     "hypotheses": array[object],
     "topologies": array[object],
-    "investigationName": "string object which will be the auto generated name for the whole investigation, max 50 characters"
+    "investigationName": "string object which will be the auto generated name for the whole investigation, max 30 characters"
 }
 \`\`\`
 

@@ -150,7 +150,12 @@ export const useNotebook = () => {
       topologies?: PERAgentTopology[],
       isNewHypotheses?: boolean
     ) => {
-      const { id: openedNoteId, runningMemory, historyMemory } = context.state.value;
+      const {
+        id: openedNoteId,
+        runningMemory,
+        historyMemory,
+        failedInvestigation,
+      } = context.state.value;
       try {
         const response = await http.put(`${NOTEBOOKS_API_PREFIX}/note/updateHypotheses`, {
           body: JSON.stringify({
@@ -163,6 +168,17 @@ export const useNotebook = () => {
             ...(isNewHypotheses
               ? { runningMemory: null }
               : { runningMemory: runningMemory || null }),
+            failedInvestigation: failedInvestigation
+              ? {
+                  error: {
+                    message: failedInvestigation.error.message,
+                    name: failedInvestigation.error.name,
+                    cause: (failedInvestigation.error as any).cause,
+                  },
+                  memory: failedInvestigation.memory,
+                  timestamp: failedInvestigation.timestamp,
+                }
+              : null,
           }),
         });
 

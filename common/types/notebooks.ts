@@ -102,11 +102,17 @@ export interface HypothesisItem {
   status?: HypothesisStatus;
 }
 
-export interface AgenticMemeory {
+export interface AgenticMemory {
   executorMemoryId?: string;
   parentInteractionId?: string;
   memoryContainerId?: string;
   owner?: string;
+}
+
+export interface FailedInvestigationInfo {
+  error: Error;
+  memory?: AgenticMemory;
+  timestamp: string;
 }
 
 export type ParagraphInputType<TParameters = unknown> = ParagraphBackendType<TParameters>['input'];
@@ -122,9 +128,10 @@ export interface NotebookBackendType {
   owner?: string;
   currentUser?: string;
   hypotheses?: HypothesisItem[];
-  runningMemory?: AgenticMemeory;
-  historyMemory?: AgenticMemeory;
+  runningMemory?: AgenticMemory;
+  historyMemory?: AgenticMemory;
   topologies: PERAgentTopology[];
+  failedInvestigation?: FailedInvestigationInfo;
 }
 
 export interface SummaryDataItem {
