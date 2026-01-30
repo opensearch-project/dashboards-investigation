@@ -51,6 +51,7 @@ export interface NotebookStateValue {
   investigationPhase?: InvestigationPhase;
   isPromoted?: boolean;
   failedInvestigation?: FailedInvestigationInfo;
+  runningMemoryPermission?: boolean;
 }
 
 export class NotebookState extends ObservableState<NotebookStateValue> {

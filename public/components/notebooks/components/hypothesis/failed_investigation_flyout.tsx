@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useContext, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   EuiFlyout,
   EuiFlyoutHeader,
@@ -21,15 +21,14 @@ import {
 } from '@elastic/eui';
 import { i18n } from '@osd/i18n';
 import { euiThemeVars } from '@osd/ui-shared-deps/theme';
-import { useObservable } from 'react-use';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import type { NoteBookServices } from '../../../../../public/types';
 import type { FailedInvestigationInfo } from '../../../../../common/types/notebooks';
 import { HypothesesStep } from './hypotheses_step';
 import { MessageTraceFlyout } from './investigation/message_trace_flyout';
-import { NotebookReactContext } from '../../context_provider/context_provider';
 import { useSidecarPadding } from '../../../../hooks/use_sidecar_padding';
 import { usePERAgentServices } from '../../../../hooks/use_per_agent_services';
+import { useMemoryPermission } from '../../../../hooks/use_memory_permission';
 
 interface FailedInvestigationFlyoutProps {
   failedInvestigation: FailedInvestigationInfo;
@@ -42,13 +41,8 @@ export const FailedInvestigationFlyout: React.FC<FailedInvestigationFlyoutProps>
   dataSourceId,
   onClose,
 }) => {
-  const notebookContext = useContext(NotebookReactContext);
-  const { currentUser } = useObservable(
-    notebookContext.state.getValue$(),
-    notebookContext.state.value
-  );
   const {
-    services: { http, overlays, uiSettings, application },
+    services: { http, overlays, uiSettings },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [traceMessageId, setTraceMessageId] = useState<string>();
@@ -56,9 +50,6 @@ export const FailedInvestigationFlyout: React.FC<FailedInvestigationFlyoutProps>
   const paddingRight = useSidecarPadding(overlays);
 
   const { memory, error, timestamp } = failedInvestigation;
-  const isOwner = application.capabilities.investigation?.ownerSupported
-    ? !!currentUser && !!memory?.owner && currentUser === memory?.owner
-    : true;
   const isDarkMode = uiSettings.get('theme:darkMode');
 
   const failedPERAgentServices = usePERAgentServices({
@@ -83,6 +74,13 @@ export const FailedInvestigationFlyout: React.FC<FailedInvestigationFlyoutProps>
     if (typeof error.cause === 'object') return Object.keys(error.cause as object).length > 0;
     return true;
   }, [error.cause]);
+
+  const hasMemoryPermission = useMemoryPermission({
+    http,
+    memoryContainerId: memory?.memoryContainerId,
+    messageId: memory?.parentInteractionId,
+    dataSourceId,
+  });
 
   return (
     <>
@@ -168,7 +166,7 @@ export const FailedInvestigationFlyout: React.FC<FailedInvestigationFlyoutProps>
 
           <EuiSpacer size="l" />
 
-          {failedPERAgentServices && isOwner ? (
+          {failedPERAgentServices && hasMemoryPermission ? (
             <EuiAccordion
               id="failed-investigation-steps"
               buttonContent={i18n.translate(
