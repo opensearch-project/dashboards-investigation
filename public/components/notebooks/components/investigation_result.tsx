@@ -49,7 +49,7 @@ import { usePERAgentServices } from '../../../hooks/use_per_agent_services';
 
 interface InvestigationResultProps {
   notebookId: string;
-  openReinvestigateModal: () => void;
+  openReinvestigateModal: (withFeedback?: boolean) => void;
 }
 
 export const InvestigationResult: React.FC<InvestigationResultProps> = ({
@@ -291,12 +291,17 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   const renderRetryButtonGroup = (justifyContent: 'center' | 'flexStart' = 'center') => {
     return (
       <EuiFlexGroup gutterSize="none" justifyContent={justifyContent} style={{ gap: 8 }}>
-        <EuiSmallButton color="primary" iconType="refresh" fill onClick={openReinvestigateModal}>
+        <EuiSmallButton
+          color="primary"
+          iconType="refresh"
+          fill
+          onClick={() => openReinvestigateModal(true)}
+        >
           {i18n.translate('notebook.summary.card.reinvestigateWithFeedback', {
             defaultMessage: 'Reinvestigate with feedback',
           })}
         </EuiSmallButton>
-        {failedInvestigationDetailButton}
+        {!!failedInvestigation && failedInvestigationDetailButton}
         {/* <EuiButton
           color="text"
           iconType="generate"
@@ -523,7 +528,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   const reinvestigationButton = (
     <EuiSmallButton
       fill
-      onClick={() => openReinvestigateModal()}
+      onClick={() => openReinvestigateModal(false)}
       disabled={isInvestigating}
       iconType={isInvestigating ? undefined : 'refresh'}
     >

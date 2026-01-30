@@ -29,6 +29,7 @@ interface ReinvestigateModalProps {
   initialGoal: string;
   timeRange: DatePickerTimeRange | undefined;
   dateFormat: string;
+  defaultToggleOn?: boolean;
   confirm: (params: {
     question: string;
     updatedTimeRange: DatePickerTimeRange;
@@ -41,11 +42,12 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
   initialGoal,
   timeRange,
   dateFormat,
+  defaultToggleOn = false,
   confirm,
   closeModal,
 }) => {
   const [value, setValue] = useState(initialGoal);
-  const [checked, setChecked] = useState(false);
+  const [checked, setChecked] = useState(defaultToggleOn);
   const [selectedTimeRange, setSelectedTimeRange] = useState(timeRange);
 
   const { startFormatted, endFormatted } = useMemo(
