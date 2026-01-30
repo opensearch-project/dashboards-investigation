@@ -187,7 +187,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
       });
       badgeColor = euiThemeVars.euiColorDanger;
       badgeIcon = 'crossInCircleEmpty';
-    } else if (runningMemory?.parentInteractionId && runningMemoryPermission === false) {
+    } else if (runningMemory?.parentInteractionId && !runningMemoryPermission) {
       badgeLabel = i18n.translate('notebook.summary.card.otherUserInvestigating', {
         defaultMessage: 'Other user is doing investigation, show previous Investigation',
       });
