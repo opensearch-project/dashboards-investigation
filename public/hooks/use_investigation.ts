@@ -771,9 +771,6 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
 
   const continueInvestigation = useCallback(async () => {
     const { runningMemory } = context.state.value;
-    context.state.updateValue({
-      investigationPhase: InvestigationPhase.PLANNING,
-    });
 
     // Create AbortController if not exists
     if (!abortControllerRef.current) {

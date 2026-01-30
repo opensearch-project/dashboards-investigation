@@ -115,3 +115,27 @@ export const getFinalMessage = async (
     }
   }
 };
+
+export const getMemoryPermission = async (
+  options: Parameters<typeof executeMLCommonsAgenticMessage>[0]
+): Promise<boolean> => {
+  const controller = new AbortController();
+
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, 5000);
+
+  try {
+    const response = await executeMLCommonsAgenticMessage({
+      ...options,
+      signal: controller.signal,
+    });
+
+    return response?.hits?.total?.value === 1;
+  } catch (error) {
+    console.error(error);
+    return false;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};

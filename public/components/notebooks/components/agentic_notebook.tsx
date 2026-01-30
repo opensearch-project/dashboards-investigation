@@ -58,6 +58,7 @@ import { InvestigationPageContext } from './investigation_page_context';
 import { migrateFindingParagraphs } from '../../../utils/finding_migration';
 import { InvestigationPhase } from '../../../../common/state/notebook_state';
 import { useSidecarPadding } from '../../../hooks/use_sidecar_padding';
+import { getMemoryPermission } from './hypothesis/investigation/utils';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
   openedNoteId: string;
@@ -73,7 +74,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       uiSettings,
       contextProvider,
       workspaces,
-      application,
+      http,
     },
   } = useOpenSearchDashboards<NoteBookServices>();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -188,8 +189,6 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           owner: res.owner,
           currentUser: res.currentUser,
           hypotheses: res.hypotheses,
-          runningMemory: res.runningMemory,
-          historyMemory: res.historyMemory,
           topologies: res.topologies,
           failedInvestigation: res.failedInvestigation,
         });
@@ -206,27 +205,45 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         }
 
         // Check if there's an ongoing investigation to continue
-        const hasOngoingInvestigation = res.runningMemory?.parentInteractionId;
+        if (res.runningMemory?.parentInteractionId && res.runningMemory?.memoryContainerId) {
+          const haveMemoryPermission = await getMemoryPermission({
+            memoryContainerId: res.runningMemory?.memoryContainerId,
+            messageId: res.runningMemory?.parentInteractionId,
+            http,
+            dataSourceId: res.context.dataSourceId,
+          });
 
-        if (hasOngoingInvestigation) {
-          const isOwner = application.capabilities.investigation?.ownerSupported
-            ? !!res.currentUser && res.currentUser === res.runningMemory?.owner
-            : true;
-          if (isOwner) {
+          if (haveMemoryPermission) {
+            notebookContext.state.updateValue({
+              runningMemory: res.runningMemory,
+              historyMemory: res.historyMemory,
+              investigationPhase: InvestigationPhase.PLANNING,
+              runningMemoryPermission: haveMemoryPermission,
+            });
             await continueInvestigation();
           } else {
+            notebookContext.state.updateValue({
+              runningMemory: res.runningMemory,
+              historyMemory: res.historyMemory,
+            });
             notifications.toasts.addWarning({
               title: i18n.translate('notebook.agentic.investigationInProgress', {
                 defaultMessage: 'Investigation in progress',
               }),
               text: i18n.translate('notebook.agentic.investigationInProgressText', {
                 defaultMessage:
-                  'User ({owner}) is currently running an investigation. Please wait for it to complete and refresh the page.',
-                values: { owner: res.runningMemory?.owner },
+                  '{owner} is currently running an investigation. Please wait for it to complete and refresh the page.',
+                values: {
+                  owner: res.runningMemory?.owner ? res.runningMemory?.owner : 'Other user',
+                },
               }),
             });
           }
           return;
+        } else {
+          notebookContext.state.updateValue({
+            historyMemory: res.historyMemory,
+          });
         }
 
         // Only call start() for new notebooks or completed investigations
@@ -254,7 +271,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     start,
     doInvestigate,
     continueInvestigation,
-    application.capabilities.investigation?.ownerSupported,
+    http,
   ]);
 
   useEffectOnce(() => {

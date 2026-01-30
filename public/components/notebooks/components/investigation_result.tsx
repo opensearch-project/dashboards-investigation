@@ -46,6 +46,7 @@ import { Paragraph } from './paragraph_components/paragraph';
 import { InvestigationPhase, isInvestigationActive } from '../../../../common/state/notebook_state';
 import { FailedInvestigationFlyout } from './hypothesis/failed_investigation_flyout';
 import { usePERAgentServices } from '../../../hooks/use_per_agent_services';
+import { useMemoryPermission } from '../../../hooks/use_memory_permission';
 
 interface InvestigationResultProps {
   notebookId: string;
@@ -58,7 +59,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
 }) => {
   const notebookContext = useContext(NotebookReactContext);
   const {
-    services: { uiSettings, savedObjects, appName, usageCollection, http, application },
+    services: { uiSettings, savedObjects, appName, usageCollection, http },
   } = useOpenSearchDashboards<NoteBookServices>();
   const history = useHistory();
 
@@ -69,10 +70,10 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     context,
     runningMemory,
     historyMemory,
-    currentUser,
     path,
     investigationPhase,
     failedInvestigation,
+    runningMemoryPermission,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const isInvestigating = isInvestigationActive(investigationPhase);
 
@@ -109,6 +110,13 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     http,
     isInvestigating,
     memory: activeMemory,
+    dataSourceId,
+  });
+
+  const hasActiveMemoryPermission = useMemoryPermission({
+    http,
+    memoryContainerId: activeMemory?.memoryContainerId,
+    messageId: activeMemory?.parentInteractionId,
     dataSourceId,
   });
 
@@ -166,19 +174,26 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     let badgeLabel;
     let badgeColor;
     let badgeIcon;
-    if (!!failedInvestigation && !isInvestigating) {
+
+    if (isInvestigating) {
+      badgeLabel = i18n.translate('notebook.summary.card.underInvestigation', {
+        defaultMessage: 'Under investigation',
+      });
+      badgeColor = euiThemeVars.euiColorPrimary;
+      badgeIcon = 'pulse';
+    } else if (!!failedInvestigation) {
       badgeLabel = i18n.translate('notebook.summary.card.investigationFailedBadge', {
         defaultMessage: 'Investigation failed and showing previous hypotheses',
       });
       badgeColor = euiThemeVars.euiColorDanger;
       badgeIcon = 'crossInCircleEmpty';
-    } else if (runningMemory?.owner && runningMemory.owner !== currentUser) {
+    } else if (runningMemory?.parentInteractionId && !runningMemoryPermission) {
       badgeLabel = i18n.translate('notebook.summary.card.otherUserInvestigating', {
         defaultMessage: 'Other user is doing investigation, show previous Investigation',
       });
       badgeColor = euiThemeVars.euiColorWarning;
       badgeIcon = 'navInfo';
-    } else if (isInvestigating || !historyMemory) {
+    } else if (!historyMemory) {
       badgeLabel = i18n.translate('notebook.summary.card.underInvestigation', {
         defaultMessage: 'Under investigation',
       });
@@ -230,8 +245,8 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     isInvestigating,
     historyMemory,
     hypotheses,
-    currentUser,
-    runningMemory?.owner,
+    runningMemoryPermission,
+    runningMemory,
   ]);
 
   const failedInvestigationDetailButton = (
@@ -249,12 +264,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   );
 
   const renderInvestigationSteps = () => {
-    // Only show investigation steps if current user is the owner of the active memory (investigation trigger user)
-    const isOwner = application.capabilities.investigation?.ownerSupported
-      ? !!currentUser && currentUser === activeMemory?.owner
-      : true;
-
-    if (!PERAgentServices || isNotebookReadonly || !isOwner) return null;
+    if (!PERAgentServices || isNotebookReadonly || !hasActiveMemoryPermission) return null;
 
     return (
       <EuiAccordion
