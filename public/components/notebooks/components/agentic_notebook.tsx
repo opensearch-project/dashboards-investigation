@@ -78,6 +78,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
   } = useOpenSearchDashboards<NoteBookServices>();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isReinvestigateModalVisible, setIsReinvestigateModalVisible] = useState(false);
+  const [reinvestigateWithFeedback, setReinvestigateWithFeedback] = useState(false);
   const [modalLayout, setModalLayout] = useState<React.ReactNode>(<EuiOverlayMask />);
   const { deleteParagraph } = useContext(NotebookReactContext).paragraphHooks;
   const { loadNotebook: loadNotebookHook, updateNotebookContext } = useNotebook();
@@ -381,7 +382,10 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           )}
           <InvestigationResult
             notebookId={openedNoteId}
-            openReinvestigateModal={() => setIsReinvestigateModalVisible(true)}
+            openReinvestigateModal={(withFeedback = false) => {
+              setReinvestigateWithFeedback(withFeedback);
+              setIsReinvestigateModalVisible(true);
+            }}
           />
           <EuiSpacer size="s" />
           <AlternativeHypothesesPanel notebookId={openedNoteId} isInvestigating={isInvestigating} />
@@ -490,6 +494,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           initialGoal={initialGoal || ''}
           timeRange={timeRange}
           dateFormat={uiSettings.get('dateFormat')}
+          defaultToggleOn={reinvestigateWithFeedback}
           confirm={handleReinvestigate}
           closeModal={() => setIsReinvestigateModalVisible(false)}
         />

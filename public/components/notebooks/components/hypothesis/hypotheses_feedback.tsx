@@ -13,7 +13,7 @@ import { UsageCollectionStart } from '../../../../../../../src/plugins/usage_col
 export const HypothesesFeedback: React.FC<{
   appName: string;
   usageCollection: UsageCollectionStart | undefined;
-  openReinvestigateModal: () => void;
+  openReinvestigateModal: (withFeedback?: boolean) => void;
 }> = ({ usageCollection, appName, openReinvestigateModal }) => {
   const [feedback, setFeedback] = useState<'thumbup' | 'thumbdown' | undefined>();
 
@@ -29,7 +29,7 @@ export const HypothesesFeedback: React.FC<{
       }
 
       if (eventName === 'thumbdown') {
-        openReinvestigateModal();
+        openReinvestigateModal(true);
       }
     },
     [usageCollection, feedback, appName, openReinvestigateModal]
