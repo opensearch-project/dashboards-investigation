@@ -34,7 +34,9 @@ describe('getMemoryPermission', () => {
   it('should return true when hits.total equals 1', async () => {
     mockExecuteMLCommonsAgenticMessage.mockResolvedValue({
       hits: {
-        total: 1,
+        total: {
+          value: 1,
+        },
         hits: [],
       },
     });
@@ -55,7 +57,9 @@ describe('getMemoryPermission', () => {
   it('should return false when hits.total does not equal 1', async () => {
     mockExecuteMLCommonsAgenticMessage.mockResolvedValue({
       hits: {
-        total: 0,
+        total: {
+          value: 0,
+        },
         hits: [],
       },
     });
@@ -130,7 +134,9 @@ describe('getMemoryPermission', () => {
     const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
     mockExecuteMLCommonsAgenticMessage.mockResolvedValue({
       hits: {
-        total: 1,
+        total: {
+          value: 1,
+        },
         hits: [],
       },
     });
@@ -160,7 +166,9 @@ describe('getMemoryPermission', () => {
   it('should pass through additional options to the API call', async () => {
     mockExecuteMLCommonsAgenticMessage.mockResolvedValue({
       hits: {
-        total: 1,
+        total: {
+          value: 1,
+        },
         hits: [],
       },
     });
