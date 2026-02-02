@@ -114,9 +114,9 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   });
 
   const hasActiveMemoryPermission = useMemoryPermission({
-    http,
     memoryContainerId: activeMemory?.memoryContainerId,
     messageId: activeMemory?.parentInteractionId,
+    owner: activeMemory?.owner,
     dataSourceId,
   });
 

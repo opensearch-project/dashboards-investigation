@@ -76,9 +76,9 @@ export const FailedInvestigationFlyout: React.FC<FailedInvestigationFlyoutProps>
   }, [error.cause]);
 
   const hasMemoryPermission = useMemoryPermission({
-    http,
     memoryContainerId: memory?.memoryContainerId,
     messageId: memory?.parentInteractionId,
+    owner: memory?.owner,
     dataSourceId,
   });
 
