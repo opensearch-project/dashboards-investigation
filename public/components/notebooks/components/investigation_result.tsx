@@ -59,7 +59,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
 }) => {
   const notebookContext = useContext(NotebookReactContext);
   const {
-    services: { uiSettings, savedObjects, appName, usageCollection, http, application },
+    services: { uiSettings, savedObjects, appName, usageCollection, http },
   } = useOpenSearchDashboards<NoteBookServices>();
   const history = useHistory();
 
@@ -70,7 +70,6 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     context,
     runningMemory,
     historyMemory,
-    currentUser,
     path,
     investigationPhase,
     failedInvestigation,
@@ -115,9 +114,9 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   });
 
   const hasActiveMemoryPermission = useMemoryPermission({
-    http,
     memoryContainerId: activeMemory?.memoryContainerId,
     messageId: activeMemory?.parentInteractionId,
+    owner: activeMemory?.owner,
     dataSourceId,
   });
 
@@ -265,12 +264,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   );
 
   const renderInvestigationSteps = () => {
-    const isOwner = application.capabilities.investigation?.ownerSupported
-      ? !!currentUser && currentUser === activeMemory?.owner
-      : true;
-
-    if (!PERAgentServices || isNotebookReadonly || (!hasActiveMemoryPermission && !isOwner))
-      return null;
+    if (!PERAgentServices || isNotebookReadonly || !hasActiveMemoryPermission) return null;
 
     return (
       <EuiAccordion
