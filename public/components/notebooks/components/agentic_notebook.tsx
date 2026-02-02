@@ -223,7 +223,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
               runningMemory: res.runningMemory,
               historyMemory: res.historyMemory,
               investigationPhase: InvestigationPhase.PLANNING,
-              runningMemoryPermission: haveMemoryPermission,
+              runningMemoryPermission: isOwner || haveMemoryPermission,
             });
             await continueInvestigation();
           } else {
