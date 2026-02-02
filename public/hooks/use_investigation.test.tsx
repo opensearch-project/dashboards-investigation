@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import { of } from 'rxjs';
 import { useInvestigation } from './use_investigation';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';

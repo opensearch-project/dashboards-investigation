@@ -37,7 +37,6 @@
   "devDependencies": {
     "@cypress/skip-test": "^2.6.1",
     "@types/autosize": "^4.0.3",
-    "@types/enzyme-adapter-react-16": "^1.0.6",
     "@types/mime": "^3.0.1",
     "@types/react-test-renderer": "^18.0.0",
     "@types/sanitize-filename": "^1.6.3",
