@@ -5,8 +5,6 @@
 
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, waitFor } from '@testing-library/react';
-import { configure } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
 import React from 'react';
 import { HttpResponse } from '../../../../../../../src/core/public';
 import { getOSDHttp } from '../../../../../common/utils';
@@ -189,7 +187,6 @@ const ContextAwareNotebook = (props: ClassicNotebookProps & { dataSourceEnabled?
 };
 
 describe('<Notebook /> spec', () => {
-  configure({ adapter: new Adapter() });
   const httpClient = getOSDHttp();
   const location = jest.fn() as any;
   location.search = '';
@@ -318,7 +315,7 @@ describe('<Notebook /> spec', () => {
         `${NOTEBOOKS_API_PREFIX}/note/savedNotebook/rename`,
         {
           body: JSON.stringify({
-            name: 'sample-notebook-1',
+            name: 'test-notebook-newname',
             noteId: '458e1320-3f05-11ef-bd29-e58626f102c0',
           }),
         }

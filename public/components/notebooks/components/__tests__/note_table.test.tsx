@@ -5,8 +5,6 @@
 
 import '@testing-library/jest-dom';
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
-import { configure } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
 import React from 'react';
 import { NoteTable } from '../note_table';
 import {
@@ -40,7 +38,6 @@ jest.mock('../../../../../public/services', () => ({
 }));
 
 describe('<NoteTable /> spec', () => {
-  configure({ adapter: new Adapter() });
   const applicationMock = applicationServiceMock.createStartContract();
 
   const props = {

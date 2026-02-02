@@ -5,15 +5,11 @@
 
 import '@testing-library/jest-dom';
 import { fireEvent, render, waitFor } from '@testing-library/react';
-import { configure, shallow } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
 import React from 'react';
 import { CustomInputModal } from '../custom_input_modal';
 import { NotebookType } from '../../../../../../../common/types/notebooks';
 
 describe('<CustomInputModal /> spec', () => {
-  configure({ adapter: new Adapter() });
-
   const defaultProps = {
     runModal: jest.fn(),
     closeModal: jest.fn(),
@@ -30,11 +26,11 @@ describe('<CustomInputModal /> spec', () => {
   });
 
   it('renders the component', () => {
-    const wrapper = shallow(<CustomInputModal {...defaultProps} openNoteName="mock-path" />);
-    expect(wrapper).toMatchSnapshot();
+    const { baseElement } = render(<CustomInputModal {...defaultProps} openNoteName="mock-path" />);
+    expect(baseElement).toMatchSnapshot();
 
-    const emptyNameWrapper = shallow(<CustomInputModal {...defaultProps} />);
-    expect(emptyNameWrapper).toMatchSnapshot();
+    const { baseElement: emptyNameBaseElement } = render(<CustomInputModal {...defaultProps} />);
+    expect(emptyNameBaseElement).toMatchSnapshot();
   });
 
   it('handles input changes', () => {

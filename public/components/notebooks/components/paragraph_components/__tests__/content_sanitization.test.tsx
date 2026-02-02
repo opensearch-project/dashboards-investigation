@@ -7,8 +7,6 @@
 
 import React from 'react';
 import { render } from '@testing-library/react';
-import { configure } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
 import { MarkdownParagraph } from '../markdown';
 import { OtherParagraph } from '../other';
 import { ParagraphState } from '../../../../../../common/state/paragraph_state';
@@ -58,8 +56,6 @@ const MockContextProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 describe('XSS Protection Verification', () => {
-  configure({ adapter: new Adapter() });
-
   let consoleSpy: jest.SpyInstance;
   let alertSpy: jest.SpyInstance;
   let evalSpy: jest.SpyInstance;

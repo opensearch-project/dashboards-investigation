@@ -4,8 +4,6 @@
  */
 
 import { render } from '@testing-library/react';
-import { configure } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
 import React from 'react';
 import { getOSDHttp } from '../../../../../../common/utils';
 import { sampleParsedParagraghs1 } from '../../../../../../test/notebooks_constants';
@@ -111,8 +109,6 @@ const ContextAwareParagraphs = (
 };
 
 describe('<Paragraph /> spec', () => {
-  configure({ adapter: new Adapter() });
-
   beforeEach(() => {
     jest.clearAllMocks();
     Object.defineProperty(window, 'location', {
