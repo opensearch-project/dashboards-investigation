@@ -395,7 +395,7 @@ export const useInvestigation = () => {
         );
         await handlePollingSuccess(message as string, runningMemory);
       } catch (error) {
-        if (error.message === 'ABORTED') {
+        if (error.message && (error.message === 'ABORTED' || error.message === 'EmptyError')) {
           return;
         }
         addError({

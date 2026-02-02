@@ -59,7 +59,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
 }) => {
   const notebookContext = useContext(NotebookReactContext);
   const {
-    services: { uiSettings, savedObjects, appName, usageCollection, http },
+    services: { uiSettings, savedObjects, appName, usageCollection, http, application },
   } = useOpenSearchDashboards<NoteBookServices>();
   const history = useHistory();
 
@@ -70,6 +70,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     context,
     runningMemory,
     historyMemory,
+    currentUser,
     path,
     investigationPhase,
     failedInvestigation,
@@ -187,7 +188,10 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
       });
       badgeColor = euiThemeVars.euiColorDanger;
       badgeIcon = 'crossInCircleEmpty';
-    } else if (runningMemory?.parentInteractionId && !runningMemoryPermission) {
+    } else if (
+      (runningMemory?.parentInteractionId && !runningMemoryPermission) ||
+      (runningMemory?.owner && runningMemory.owner !== currentUser)
+    ) {
       badgeLabel = i18n.translate('notebook.summary.card.otherUserInvestigating', {
         defaultMessage: 'Other user is doing investigation, show previous Investigation',
       });
@@ -247,6 +251,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
     hypotheses,
     runningMemoryPermission,
     runningMemory,
+    currentUser,
   ]);
 
   const failedInvestigationDetailButton = (
@@ -264,7 +269,12 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   );
 
   const renderInvestigationSteps = () => {
-    if (!PERAgentServices || isNotebookReadonly || !hasActiveMemoryPermission) return null;
+    const isOwner = application.capabilities.investigation?.ownerSupported
+      ? !!currentUser && currentUser === activeMemory?.owner
+      : true;
+
+    if (!PERAgentServices || isNotebookReadonly || (!hasActiveMemoryPermission && !isOwner))
+      return null;
 
     return (
       <EuiAccordion

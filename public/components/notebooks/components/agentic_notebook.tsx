@@ -75,6 +75,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       contextProvider,
       workspaces,
       http,
+      application,
     },
   } = useOpenSearchDashboards<NoteBookServices>();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -213,7 +214,11 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
             dataSourceId: res.context.dataSourceId,
           });
 
-          if (haveMemoryPermission) {
+          const isOwner = application.capabilities.investigation?.ownerSupported
+            ? !!res.currentUser && res.currentUser === res.runningMemory?.owner
+            : true;
+
+          if (isOwner || haveMemoryPermission) {
             notebookContext.state.updateValue({
               runningMemory: res.runningMemory,
               historyMemory: res.historyMemory,
@@ -272,6 +277,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     doInvestigate,
     continueInvestigation,
     http,
+    application,
   ]);
 
   useEffectOnce(() => {
