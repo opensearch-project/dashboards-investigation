@@ -21,6 +21,7 @@ import {
   EuiText,
 } from '@elastic/eui';
 import React, { useState, useEffect, useRef } from 'react';
+import { Redirect } from 'react-router-dom';
 
 import { useContext } from 'react';
 import { useObservable } from 'react-use';
@@ -190,16 +191,18 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     loadNotebook();
   }, [loadNotebook]);
 
-  if (!isLoading && notebookType === NotebookType.AGENTIC) {
+  // Redirect before rendering any content to prevent page jitter
+  if (notebookType === NotebookType.AGENTIC) {
+    return <Redirect to={`/agentic/${openedNoteId}`} />;
+  }
+
+  if (isLoading) {
     return (
       <EuiPage direction="column">
         <EuiPageBody>
-          <EuiEmptyPrompt
-            iconType="alert"
-            iconColor="danger"
-            title={<h2>Error loading Notebook</h2>}
-            body={<p>Incorrect notebook type</p>}
-          />
+          <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
+            <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
+          </EuiPageContent>
         </EuiPageBody>
       </EuiPage>
     );
@@ -231,10 +234,7 @@ export function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
             </EuiFlexItem>
           )}
           <EuiPageContent style={{ width: 900 }} horizontalPosition="center">
-            {isLoading ? (
-              <EuiEmptyPrompt icon={<EuiLoadingContent />} title={<h2>Loading Notebook</h2>} />
-            ) : null}
-            {isLoading ? null : paragraphsStates.length > 0 ? (
+            {paragraphsStates.length > 0 ? (
               paragraphsStates.map((paragraphState, index: number) => (
                 <div
                   ref={(ref) => (paraDivRefs.current[index] = ref)}

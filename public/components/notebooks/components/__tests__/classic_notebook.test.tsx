@@ -14,6 +14,7 @@ import {
   codeBlockNotebook,
   codePlaceholderText,
   emptyNotebook,
+  agenticNotebook,
   migrateBlockNotebook,
   notebookPutResponse,
   runCodeBlockResponse,
@@ -39,6 +40,7 @@ jest.mock('../../../../../../../src/plugins/embeddable/public', () => ({
 }));
 
 jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
   useLocation: jest.fn().mockReturnValue({
     pathname: '/notebooks',
     search: '',
@@ -51,6 +53,7 @@ jest.mock('react-router-dom', () => ({
     push: jest.fn(),
   }),
   useParams: () => mockUseParams(),
+  Redirect: ({ to }: { to: string }) => <div data-testid="redirect" data-to={to} />,
 }));
 
 jest.mock('../data_distribution/data_distribution_container', () => ({
@@ -505,5 +508,17 @@ describe('<Notebook /> spec', () => {
     const utils = render(<ContextAwareNotebook {...defaultProps} showPageHeader={false} />);
 
     expect(utils.queryByTestId('notebookTitle')).toBeNull();
+  });
+
+  it('should redirect to agentic notebook URL when notebook type is Agentic', async () => {
+    httpClient.get = jest.fn(() => Promise.resolve((agenticNotebook as unknown) as HttpResponse));
+
+    const utils = render(<ContextAwareNotebook {...defaultProps} />);
+
+    await waitFor(() => {
+      const redirect = utils.container.querySelector('[data-testid="redirect"]');
+      expect(redirect).toBeInTheDocument();
+      expect(redirect?.getAttribute('data-to')).toBe(`/agentic/${defaultProps.openedNoteId}`);
+    });
   });
 });
