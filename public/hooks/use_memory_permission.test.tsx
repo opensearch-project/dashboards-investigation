@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { waitFor } from '@testing-library/react';
 import { useMemoryPermission } from './use_memory_permission';
 import { getMemoryPermission } from '../components/notebooks/components/hypothesis/investigation/utils';
@@ -111,7 +111,7 @@ describe('useMemoryPermission', () => {
     it('should call getMemoryPermission and return the result', async () => {
       mockGetMemoryPermission.mockResolvedValue(true);
 
-      const { result, waitForNextUpdate } = renderHook(
+      const { result } = renderHook(
         () =>
           useMemoryPermission({
             memoryContainerId: 'memory-123',
@@ -125,9 +125,9 @@ describe('useMemoryPermission', () => {
       // Initially false (before async check completes)
       expect(result.current).toBe(false);
 
-      await waitForNextUpdate();
-
-      expect(result.current).toBe(true);
+      await waitFor(() => {
+        expect(result.current).toBe(true);
+      });
 
       expect(mockGetMemoryPermission).toHaveBeenCalledWith({
         http: mockHttp,

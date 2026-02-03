@@ -301,16 +301,18 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   const renderRetryButtonGroup = (justifyContent: 'center' | 'flexStart' = 'center') => {
     return (
       <EuiFlexGroup gutterSize="none" justifyContent={justifyContent} style={{ gap: 8 }}>
-        <EuiSmallButton
-          color="primary"
-          iconType="refresh"
-          fill
-          onClick={() => openReinvestigateModal(true)}
-        >
-          {i18n.translate('notebook.summary.card.reinvestigateWithFeedback', {
-            defaultMessage: 'Reinvestigate with feedback',
-          })}
-        </EuiSmallButton>
+        {!isNotebookReadonly && (
+          <EuiSmallButton
+            color="primary"
+            iconType="refresh"
+            fill
+            onClick={() => openReinvestigateModal(true)}
+          >
+            {i18n.translate('notebook.summary.card.reinvestigateWithFeedback', {
+              defaultMessage: 'Reinvestigate with feedback',
+            })}
+          </EuiSmallButton>
+        )}
         {!!failedInvestigation && failedInvestigationDetailButton}
         {/* <EuiButton
           color="text"
