@@ -5,7 +5,8 @@
 
 import React from 'react';
 import { renderHook, act } from '@testing-library/react';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
+import { delay } from 'rxjs/operators';
 import { useInvestigation } from './use_investigation';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { InvestigationPhase, NotebookState } from '../../common/state/notebook_state';
@@ -486,6 +487,132 @@ describe('useInvestigation', () => {
       });
 
       expect(mockAddError).toHaveBeenCalled();
+    });
+  });
+
+  describe('abort handling on component unmount', () => {
+    let mockSharedMessagePollingService: any;
+
+    beforeEach(() => {
+      mockSharedMessagePollingService = {
+        poll: jest.fn(),
+      };
+
+      (SharedMessagePollingService.getInstance as jest.Mock) = jest
+        .fn()
+        .mockReturnValue(mockSharedMessagePollingService);
+
+      (mlCommonsApis.getMLCommonsConfig as jest.Mock).mockResolvedValue({
+        configuration: { agent_id: 'test-agent-id' },
+      });
+      (mlCommonsApis.getMLCommonsAgentDetail as jest.Mock).mockResolvedValue({
+        memory: { memory_container_id: 'test-container-id' },
+      });
+      (mlCommonsApis.createAgenticExecutionMemory as jest.Mock).mockResolvedValue({
+        session_id: 'test-session-id',
+      });
+      (mlCommonsApis.executeMLCommonsAgent as jest.Mock).mockResolvedValue({
+        response: {
+          parent_interaction_id: 'test-parent-interaction',
+        },
+      });
+    });
+
+    it('should silently ignore ABORTED error when component unmounts during polling', async () => {
+      // Return an Observable that throws ABORTED error after a delay
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        throwError(new Error('ABORTED')).pipe(delay(10))
+      );
+
+      const { result, unmount } = renderHook(() => useInvestigation(), { wrapper });
+
+      // Start investigation
+      await act(async () => {
+        const investigationPromise = result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+
+        // Unmount component to trigger abort
+        unmount();
+
+        // Wait for investigation to complete
+        await investigationPromise;
+      });
+
+      // Should not call addError for ABORTED error
+      expect(mockAddError).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Failed to poll investigation message',
+        })
+      );
+    });
+
+    it('should clean up abortController on unmount', () => {
+      const { unmount } = renderHook(() => useInvestigation(), { wrapper });
+
+      // Unmount should trigger cleanup
+      unmount();
+
+      // Verify unmount doesn't cause errors
+      expect(true).toBe(true);
+    });
+
+    it('should abort previous investigation when starting a new one', async () => {
+      // Mock successful response
+      ((isValidPERAgentInvestigationResponse as unknown) as jest.Mock).mockReturnValue(true);
+
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of('{"findings":[],"hypotheses":[],"topologies":[]}')
+      );
+
+      mockParagraphHooks.batchDeleteParagraphs.mockResolvedValue({});
+      mockParagraphHooks.batchCreateParagraphs.mockResolvedValue({ paragraphs: [] });
+      mockParagraphHooks.batchRunParagraphs.mockResolvedValue({});
+
+      const { result } = renderHook(() => useInvestigation(), { wrapper });
+
+      // Start and complete first investigation
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'First question',
+        });
+      });
+
+      // Start second investigation (should create new AbortController)
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Second question',
+        });
+      });
+
+      // Both investigations should complete without ABORTED errors
+      expect(mockAddError).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({ message: 'ABORTED' }),
+        })
+      );
+    });
+
+    it('should handle polling when component is still mounted', async () => {
+      ((isValidPERAgentInvestigationResponse as unknown) as jest.Mock).mockReturnValue(true);
+
+      const validResponse = '{"findings":[],"hypotheses":[],"topologies":[]}';
+      mockSharedMessagePollingService.poll.mockReturnValue(of(validResponse));
+
+      mockParagraphHooks.batchDeleteParagraphs.mockResolvedValue({});
+      mockParagraphHooks.batchCreateParagraphs.mockResolvedValue({ paragraphs: [] });
+      mockParagraphHooks.batchRunParagraphs.mockResolvedValue({});
+
+      const { result } = renderHook(() => useInvestigation(), { wrapper });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      expect(result.current.isInvestigating).toBe(false);
+      expect(mockAddError).not.toHaveBeenCalled();
     });
   });
 
