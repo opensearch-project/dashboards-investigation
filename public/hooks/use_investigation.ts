@@ -10,7 +10,7 @@ import type { NoteBookServices } from 'public/types';
 import type { ParagraphStateValue } from 'common/state/paragraph_state';
 import { firstValueFrom } from '@osd/std';
 import { concatMap, filter } from 'rxjs/operators';
-import { EMPTY, fromEvent, race, throwError } from 'rxjs';
+import { fromEvent, race, throwError } from 'rxjs';
 import { i18n } from '@osd/i18n';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
@@ -371,9 +371,14 @@ export const useInvestigation = () => {
    */
   const pollInvestigationCompletion = useCallback(
     async ({ runningMemory }: { runningMemory: AgenticMemory }): Promise<void> => {
+      // Component unmounted, skipping polling
+      const abortSignal = abortControllerRef.current?.signal;
+      if (!abortSignal) {
+        return;
+      }
+
       const dataSourceId = context.state.value.context.value.dataSourceId;
       const sharedPollingService = SharedMessagePollingService.getInstance(http);
-      const abortSignal = abortControllerRef.current?.signal;
 
       try {
         const message = await firstValueFrom(
@@ -386,16 +391,12 @@ export const useInvestigation = () => {
                 pollInterval: INTERVAL_TIME,
               })
               .pipe(filter(Boolean)),
-            abortSignal
-              ? fromEvent(abortSignal, 'abort').pipe(
-                  concatMap(() => throwError(new Error('ABORTED')))
-                )
-              : EMPTY
+            fromEvent(abortSignal, 'abort').pipe(concatMap(() => throwError(new Error('ABORTED'))))
           )
         );
         await handlePollingSuccess(message as string, runningMemory);
       } catch (error) {
-        if (error.message && (error.message === 'ABORTED' || error.message === 'EmptyError')) {
+        if (error.message && error.message === 'ABORTED') {
           return;
         }
         addError({
@@ -433,7 +434,6 @@ export const useInvestigation = () => {
       }
       abortControllerRef.current = new AbortController();
 
-      const abortController = abortControllerRef.current;
       const dataSourceId = context.state.value.context.value.dataSourceId;
 
       try {
@@ -450,7 +450,6 @@ export const useInvestigation = () => {
         const agentId = (
           await getMLCommonsConfig({
             http,
-            signal: abortController?.signal,
             configName: 'os_deep_research',
             dataSourceId,
           })

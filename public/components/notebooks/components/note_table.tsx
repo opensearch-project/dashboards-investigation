@@ -63,10 +63,20 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
   const [selectedNotebooks, setSelectedNotebooks] = useState<NotebookInfo[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+    pageSizeOptions: [10, 20, 50],
+  });
   const location = useLocation();
 
   const dataSourceEnabled = !!dataSource;
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
+
+  // Reset pagination to first page when search query changes
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [searchQuery]);
 
   // Fetches path and id for all stored notebooks
   const fetchNotebooks = useCallback(() => {
@@ -605,10 +615,16 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
                   itemId="id"
                   columns={tableColumns}
                   tableLayout="auto"
-                  pagination={{
-                    initialPageSize: 10,
-                    pageSizeOptions: [10, 20, 50],
+                  onTableChange={({ page }) => {
+                    if (page) {
+                      setPagination((prev) => ({
+                        ...prev,
+                        pageIndex: page.index,
+                        pageSize: page.size,
+                      }));
+                    }
                   }}
+                  pagination={pagination}
                   sorting={{
                     sort: {
                       field: 'dateModified',

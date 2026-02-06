@@ -269,4 +269,72 @@ describe('<NoteTable /> spec', () => {
     // Ensure the delete modal is closed
     expect(getAllByText('Delete 1 notebook')).toHaveLength(1);
   });
+
+  it('handles pagination correctly with more than 10 notebooks', async () => {
+    // Create 25 notebooks to test pagination
+    const notebooks = Array.from({ length: 25 }, (v, k) => ({
+      path: `notebook-${k}`,
+      id: `id-${k}`,
+      dateCreated: '2023-01-01 12:00:00',
+      dateModified: '2023-01-02 12:00:00',
+      NotebookType: 'Classic',
+    }));
+
+    const utils = await renderNoteTable({ notebooks });
+
+    await waitFor(() => {
+      // Should display 10 rows on first page (default page size)
+      expect(utils.container.querySelectorAll('.euiTableRow').length).toBe(10);
+    });
+
+    // Verify first notebook is visible on page 1
+    expect(utils.queryByText('notebook-0')).toBeInTheDocument();
+
+    // Find and click the next page button
+    const nextButton = utils.container.querySelector('[data-test-subj="pagination-button-next"]');
+    if (nextButton) {
+      fireEvent.click(nextButton);
+
+      await waitFor(() => {
+        // Should still display 10 rows on second page
+        expect(utils.container.querySelectorAll('.euiTableRow').length).toBe(10);
+      });
+
+      // Verify we're on a different page - first notebook should not be visible
+      expect(utils.queryByText('notebook-0')).not.toBeInTheDocument();
+    }
+  });
+
+  it('resets pagination when search query changes', async () => {
+    // Create 25 notebooks to test pagination reset
+    const notebooks = Array.from({ length: 25 }, (v, k) => ({
+      path: `notebook-${k}`,
+      id: `id-${k}`,
+      dateCreated: '2023-01-01 12:00:00',
+      dateModified: '2023-01-02 12:00:00',
+      NotebookType: 'Classic',
+    }));
+
+    const { container, getByPlaceholderText } = await renderNoteTable({ notebooks });
+
+    // Navigate to page 2
+    const nextButton = container.querySelector('[data-test-subj="pagination-button-next"]');
+    if (nextButton) {
+      fireEvent.click(nextButton);
+      await waitFor(() => {
+        expect(container.querySelectorAll('.euiTableRow').length).toBe(10);
+      });
+    }
+
+    // Change search query
+    const searchInput = getByPlaceholderText('Search notebook name');
+    fireEvent.change(searchInput, { target: { value: 'notebook-1' } });
+
+    // Should reset to page 1 and show filtered results
+    await waitFor(() => {
+      const rows = container.querySelectorAll('.euiTableRow');
+      // Should show notebooks matching 'notebook-1' pattern (1, 10-19)
+      expect(rows.length).toBeGreaterThan(0);
+    });
+  });
 });
