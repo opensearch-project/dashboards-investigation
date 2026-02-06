@@ -12,6 +12,7 @@ import {
   StartInvestigateModalDedentServices,
   NotebookCreationPayload,
 } from './start_investigation_modal';
+import { NoteBookSource, NotebookType } from '../../../../../common/types/notebooks';
 
 export const createInvestigateLogActionComponent = ({
   services,
@@ -35,7 +36,9 @@ export const createInvestigateLogActionComponent = ({
         context: {
           ...defaultParameters.context,
           dataSourceId: query.dataset?.dataSource?.id ?? '',
+          source: NoteBookSource.DISCOVER,
           index: query.dataset?.title ?? '',
+          notebookType: NotebookType.AGENTIC,
           timeField: query.dataset?.timeFieldName ?? '',
           log: context.document,
         },
