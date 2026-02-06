@@ -255,7 +255,12 @@ export const useInvestigation = () => {
         .sort((a, b) => b.likelihood - a.likelihood);
 
       await withErrorTitle('Failed to update investigation hypotheses', () =>
-        updateHypotheses([...newHypotheses], payload.topologies || [], true)
+        updateHypotheses({
+          hypotheses: [...newHypotheses],
+          topologies: payload.topologies,
+          feedbackSummary: payload.feedbackSummary ? [payload.feedbackSummary] : [],
+          isNewHypotheses: true,
+        })
       );
     },
     [
@@ -315,7 +320,7 @@ export const useInvestigation = () => {
 
       // Persist the failed investigation info to backend
       try {
-        await updateHypotheses(hypothesesRef.current || []);
+        await updateHypotheses({ hypotheses: hypothesesRef.current || [] });
       } catch (saveError) {
         console.error('Failed to save failed investigation info:', saveError);
       }
@@ -513,7 +518,7 @@ export const useInvestigation = () => {
         });
 
         // Immediately save these IDs to backend so they persist across page refreshes
-        await updateHypotheses(contextStateValue?.hypotheses || []);
+        await updateHypotheses({ hypotheses: contextStateValue?.hypotheses || [] });
 
         return pollInvestigationCompletion({
           runningMemory,
@@ -612,6 +617,7 @@ export const useInvestigation = () => {
       const notebookContextPrompt = await retrieveInvestigationContextPrompt();
 
       const originalHypotheses = contextStateValue?.hypotheses || [];
+      const originalFeedbackSummary = (contextStateValue?.feedbackSummary || [])[0];
 
       const { supportingFindingParagraphs, newAddedFindingParagraphs } = allParagraphs.reduce(
         (acc, paragraph) => {
@@ -670,6 +676,13 @@ The user has reviewed your previous investigation and provided the following fee
 - User Added Findings: ${newAddedFindingParagraphs.length}
 - Ruled Out Hypotheses: ${ruledOutHypotheses.length}
 - Active Hypotheses: ${activeHypotheses.length}
+${
+  originalFeedbackSummary
+    ? `
+## Previous Feedback Summary
+${originalFeedbackSummary}`
+    : ''
+}
 
 # Current Hypotheses State
 ${
@@ -765,6 +778,7 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
       retrieveInvestigationContextPrompt,
       contextStateValue?.hypotheses,
       executeInvestigation,
+      contextStateValue?.feedbackSummary,
     ]
   );
 

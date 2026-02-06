@@ -137,10 +137,12 @@ describe('HypothesisStatusButton', () => {
     fireEvent.click(screen.getByText('Rule in'));
 
     await waitFor(() => {
-      expect(mockUpdateHypotheses).toHaveBeenCalledWith([
-        { id: 'h1', status: '', likelihood: 8 },
-        { id: 'h2', status: undefined, likelihood: 9 },
-      ]);
+      expect(mockUpdateHypotheses).toHaveBeenCalledWith({
+        hypotheses: [
+          { id: 'h1', status: '', likelihood: 8 },
+          { id: 'h2', status: undefined, likelihood: 9 },
+        ],
+      });
     });
   });
 });
