@@ -28,7 +28,7 @@ import {
 } from '@elastic/eui';
 import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
 import { useEffectOnce, useObservable } from 'react-use';
-import { useHistory } from 'react-router-dom';
+import { Redirect, useHistory } from 'react-router-dom';
 
 import { NoteBookServices } from 'public/types';
 import { ParagraphState } from '../../../../common/state/paragraph_state';
@@ -176,6 +176,9 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       .then(async (res) => {
         if (res.context) {
           notebookContext.state.updateContext(res.context);
+          if (res.context.notebookType === NotebookType.CLASSIC) {
+            return;
+          }
         }
 
         const { migratedParagraphs, migratedIds } = migrateFindingParagraphs(res.paragraphs);
@@ -365,26 +368,23 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     ]
   );
 
-  if (!isLoading && notebookType === NotebookType.CLASSIC) {
+  // Redirect before rendering any content to prevent page jitter
+  if (notebookType === NotebookType.CLASSIC) {
+    return <Redirect to={`/${openedNoteId}`} />;
+  }
+
+  if (isLoading) {
     return (
       <EuiPage direction="column">
         <EuiPageBody>
           <EuiEmptyPrompt
-            iconType="alert"
-            iconColor="danger"
+            icon={<EuiLoadingContent />}
             title={
               <h2>
-                {i18n.translate('notebook.agentic.errorLoadingNotebook', {
-                  defaultMessage: 'Error loading Notebook',
+                {i18n.translate('notebook.agentic.loadingNotebook', {
+                  defaultMessage: 'Loading Notebook',
                 })}
               </h2>
-            }
-            body={
-              <p>
-                {i18n.translate('notebook.agentic.incorrectNotebookType', {
-                  defaultMessage: 'Incorrect notebook type',
-                })}
-              </p>
             }
           />
         </EuiPageBody>
@@ -412,21 +412,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           />
           <EuiSpacer size="s" />
           <AlternativeHypothesesPanel notebookId={openedNoteId} isInvestigating={isInvestigating} />
-          {isLoading ? (
-            <EuiEmptyPrompt
-              icon={<EuiLoadingContent />}
-              title={
-                <h2>
-                  {i18n.translate('notebook.agentic.loadingNotebook', {
-                    defaultMessage: 'Loading Notebook',
-                  })}
-                </h2>
-              }
-            />
-          ) : null}
-          {isLoading
-            ? null
-            : paragraphsStates.length > 0
+          {paragraphsStates.length > 0
             ? paragraphsStates.map((paragraphState, index: number) => {
                 if (paragraphState.value.aiGenerated) {
                   return null;
@@ -449,7 +435,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
                 );
               })
             : null}
-          {!isLoading && !isInvestigating && !isNotebookReadonly && (
+          {!isInvestigating && !isNotebookReadonly && (
             <>
               <EuiSpacer size="s" />
               <EuiFlexGroup alignItems="center" gutterSize="none">

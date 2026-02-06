@@ -80,6 +80,14 @@ export const emptyNotebook = {
   context: { notebookType: 'Classic' },
 };
 
+export const agenticNotebook = {
+  path: 'sample-agentic-notebook',
+  dateCreated: '2023-12-14T18:49:43.375Z',
+  dateModified: '2023-12-15T06:13:23.463Z',
+  paragraphs: [],
+  context: { notebookType: 'Agentic' },
+};
+
 // Sample notebook with all input and output
 export const sampleNotebook1 = {
   id: 'note_5f4b9eed-5898-4b39-ba6c-755c0fadd84e',
