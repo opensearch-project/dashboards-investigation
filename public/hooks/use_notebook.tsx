@@ -145,11 +145,17 @@ export const useNotebook = () => {
   }, [context.state, http, showParagraphRunning, fetchIndexInsights]);
 
   const updateHypotheses = useCallback(
-    async (
-      hypotheses: HypothesisItem[],
-      topologies?: PERAgentTopology[],
-      isNewHypotheses?: boolean
-    ) => {
+    async ({
+      hypotheses,
+      topologies,
+      feedbackSummary,
+      isNewHypotheses,
+    }: {
+      hypotheses: HypothesisItem[];
+      topologies?: PERAgentTopology[];
+      feedbackSummary?: string[];
+      isNewHypotheses?: boolean;
+    }) => {
       const {
         id: openedNoteId,
         runningMemory,
@@ -162,6 +168,7 @@ export const useNotebook = () => {
             notebookId: openedNoteId,
             hypotheses,
             ...(topologies !== undefined && { topologies }),
+            ...(feedbackSummary !== undefined && { feedbackSummary }),
             ...(isNewHypotheses
               ? { historyMemory: runningMemory }
               : { historyMemory: historyMemory || null }),
@@ -185,6 +192,7 @@ export const useNotebook = () => {
         context.state.updateValue({
           hypotheses,
           ...(topologies !== undefined && { topologies }),
+          ...(feedbackSummary !== undefined && { feedbackSummary }),
           dateModified:
             response?.attributes?.savedNotebook?.dateModified || new Date().toISOString(),
         });

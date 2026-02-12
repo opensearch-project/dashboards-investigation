@@ -55,16 +55,17 @@ Final result must be a stringified JSON object:
     "findings": array[object],
     "hypotheses": array[object],
     "topologies": array[object],
-    "investigationName": "string object which will be the auto generated name for the whole investigation, max 30 characters"
+    "investigationName": "string object which will be the auto generated name for the whole investigation, max 30 characters",
+    "feedbackSummary": "string (optional, only for re-investigations) - A summary paragraph of user feedback from the previous investigation"
 }
 \`\`\`
 
 Your final result JSON must include:
 - **"findings"**: An array of finding objects, each containing:
   * **"id"**: A unique identifier for the finding (e.g., "F1", "F2")
-  * **"description"**: Clear statement of the finding
+  * **"description"**: A concise title or summary of the finding (e.g., "High error rate in payment service", "Database connection timeout")
   * **"importance"**: Rating from 0-100 indicating overall significance
-  * **"evidence"**: Specific data, quotes, or observations supporting this finding
+  * **"evidence"**: Detailed explanation with specific data, quotes, or observations (2-3 sentences describing what was discovered, why it matters, and supporting details)
 - **"hypotheses"**: An array of hypothesis objects, each containing:
   * **"id"**: A unique identifier for the hypothesis (e.g., "H1")
   * **"title"**: A concise title for the hypothesis
@@ -82,11 +83,15 @@ Your final result JSON must include:
 \`\`\`json
 {
     "id": string,
-    "description": string,
+    "description": string (concise title/summary),
     "importance": number (0-100),
-    "evidence": string
+    "evidence": string (detailed explanation with data, 2-3 sentences)
 }
 \`\`\`
+
+**Finding Field Guidelines:**
+- **description**: Keep this brief - a clear title or one-sentence summary of the finding
+- **evidence**: Provide detailed explanation (2-3 sentences) with specific data, metrics, quotes, or observations that support the finding
 
 ### Hypothesis Structure
 \`\`\`json
@@ -135,7 +140,7 @@ Your final result JSON must include:
 \`\`\`json
 {
   "steps": [],
-  "result": "{\"investigationName\": \"Invalid payment token Investigation\",\"findings\":[{\"id\":\"F1\",\"description\":\"High error rate detected\",\"importance\":90,\"evidence\":\"500+ errors in last hour\"}],\"hypotheses\":[{\"id\":\"H1\",\"title\":\"Database Connection Issue\",\"description\":\"Application errors caused by database connectivity problems\",\"likelihood\":85,\"supporting_findings\":[\"F1\"]}],\"topology\":[]}"
+  "result": "{\"investigationName\": \"Invalid payment token Investigation\",\"findings\":[{\"id\":\"F1\",\"description\":\"High error rate in payment processing\",\"importance\":90,\"evidence\":\"Over 500 payment processing errors were detected in the last hour, representing a 300% increase from normal levels. The errors are concentrated in the token validation module and affect multiple transaction types. Error logs show consistent 'invalid token' messages with timestamps clustered around the same period.\"}],\"hypotheses\":[{\"id\":\"H1\",\"title\":\"Database Connection Issue\",\"description\":\"Application errors caused by database connectivity problems\",\"likelihood\":85,\"supporting_findings\":[\"F1\"]}],\"topology\":[]}"
 }
 \`\`\`
 
@@ -231,6 +236,12 @@ ${commonInstructions}
 5. For findings marked as "irrelevant" to a hypothesis, do not associate them with that hypothesis again
 6. For findings marked as "user selected" for a hypothesis, these are findings the user explicitly chose as highly relevant - give them extra weight
 7. Findings with no user feedback are implicitly accepted - the user has not rejected them, so they can be used with moderate confidence
+8. **CRITICAL:** In your final result, you MUST include a "feedbackSummary" field at the root level. This summary serves as a PERMANENT RECORD of user feedback across all re-investigation rounds:
+   - If a "Previous Feedback Summary" is provided in the context, UPDATE it by incorporating the current user feedback
+   - Generate a cumulative paragraph that documents ALL feedback across re-investigation rounds
+   - Include: number of findings rejected/confirmed/manually added, hypothesis titles ruled out, and key finding-hypothesis associations
+   - Keep it concise and factual without including IDs
+   - This summary will be preserved and used in future re-investigations
 
 ## Findings Handling
 - **CRITICAL:** During rerun, ALL old findings will be DELETED. You MUST return a COMPLETE list of findings in the "findings" array
