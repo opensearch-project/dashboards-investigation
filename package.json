@@ -24,7 +24,7 @@
   "dependencies": {
     "@algolia/autocomplete-core": "^1.4.1",
     "@algolia/autocomplete-theme-classic": "^1.2.1",
-    "ajv": "^8.11.0",
+    "ajv": "^8.18.0",
     "autosize": "^6.0.1",
     "dompurify": "^3.2.4",
     "html2canvas-pro": "^1.6.6",
