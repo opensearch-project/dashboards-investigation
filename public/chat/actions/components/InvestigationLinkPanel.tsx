@@ -22,10 +22,10 @@ export const InvestigationLinkPanel: React.FC<Props> = ({ result, services }) =>
     ? `${currentHost}/app/${investigationNotebookID}#/agentic/${result.notebookId}`
     : '';
   const truncatedUrl =
-    investigationUrl.length > 50 ? `${investigationUrl.substring(0, 47)}...` : investigationUrl;
+    investigationUrl.length > 100 ? `${investigationUrl.substring(0, 97)}...` : investigationUrl;
 
   return (
-    <EuiPanel paddingSize="s" hasShadow={false} hasBorder={false}>
+    <EuiPanel paddingSize="s">
       <EuiText size="s">
         <strong>{result.name}</strong>
       </EuiText>

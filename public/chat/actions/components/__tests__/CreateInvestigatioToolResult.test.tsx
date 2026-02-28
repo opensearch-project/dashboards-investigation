@@ -7,7 +7,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
-import { CreateInvestigatioToolResult } from '../CreateInvestigatioToolResult';
+import { CreateInvestigationToolResult } from '../CreateInvestigationToolResult';
 import { coreStartMock } from '../../../../../test/__mocks__/coreMocks';
 import {
   CreateInvestigationRequest,
@@ -15,7 +15,7 @@ import {
 } from '../../create_investigation_action';
 import type { ToolStatus } from '../../../../../../../src/plugins/context_provider/public';
 
-describe('CreateInvestigatioToolResult', () => {
+describe('CreateInvestigationToolResult', () => {
   const mockArgs: CreateInvestigationRequest = {
     name: 'Test Investigation',
     initialGoal: 'Find root cause',
@@ -42,13 +42,13 @@ describe('CreateInvestigatioToolResult', () => {
   });
 
   it('returns null when no args and no result', () => {
-    const { container } = render(<CreateInvestigatioToolResult {...defaultProps} />);
+    const { container } = render(<CreateInvestigationToolResult {...defaultProps} />);
 
     expect(container.firstChild).toBeNull();
   });
 
   it('renders confirm step when executing without confirmation', () => {
-    render(<CreateInvestigatioToolResult {...defaultProps} args={mockArgs} />);
+    render(<CreateInvestigationToolResult {...defaultProps} args={mockArgs} />);
 
     // Check for actual UI elements
     expect(screen.getByText('Confirm investigation details')).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe('CreateInvestigatioToolResult', () => {
   it('renders confirm and creating steps when executing with confirmation', () => {
     const confirmedArgs = { ...mockArgs, confirmed: true };
 
-    render(<CreateInvestigatioToolResult {...defaultProps} args={confirmedArgs} />);
+    render(<CreateInvestigationToolResult {...defaultProps} args={confirmedArgs} />);
 
     expect(screen.getByText('Confirm investigation details')).toBeInTheDocument();
     expect(screen.getByText('Creating investigation')).toBeInTheDocument();
@@ -69,7 +69,7 @@ describe('CreateInvestigatioToolResult', () => {
     const onApprove = jest.fn();
 
     render(
-      <CreateInvestigatioToolResult {...defaultProps} args={mockArgs} onApprove={onApprove} />
+      <CreateInvestigationToolResult {...defaultProps} args={mockArgs} onApprove={onApprove} />
     );
 
     const confirmButton = screen.getByLabelText('Confirm investigation');
@@ -81,7 +81,7 @@ describe('CreateInvestigatioToolResult', () => {
   it('calls onReject when cancel button is clicked', () => {
     const onReject = jest.fn();
 
-    render(<CreateInvestigatioToolResult {...defaultProps} args={mockArgs} onReject={onReject} />);
+    render(<CreateInvestigationToolResult {...defaultProps} args={mockArgs} onReject={onReject} />);
 
     const cancelButton = screen.getByLabelText('Cancel investigation');
     fireEvent.click(cancelButton);
@@ -91,7 +91,7 @@ describe('CreateInvestigatioToolResult', () => {
 
   it('renders success state when complete', () => {
     render(
-      <CreateInvestigatioToolResult
+      <CreateInvestigationToolResult
         {...defaultProps}
         status="complete"
         args={mockArgs}
@@ -106,7 +106,7 @@ describe('CreateInvestigatioToolResult', () => {
 
   it('shows collapsed view by default when complete', () => {
     render(
-      <CreateInvestigatioToolResult
+      <CreateInvestigationToolResult
         {...defaultProps}
         status="complete"
         args={mockArgs}
@@ -122,7 +122,7 @@ describe('CreateInvestigatioToolResult', () => {
 
   it('expands to show all steps when arrow is clicked', () => {
     render(
-      <CreateInvestigatioToolResult
+      <CreateInvestigationToolResult
         {...defaultProps}
         status="complete"
         args={mockArgs}
@@ -142,7 +142,7 @@ describe('CreateInvestigatioToolResult', () => {
 
   it('collapses when arrow is clicked again', () => {
     render(
-      <CreateInvestigatioToolResult
+      <CreateInvestigationToolResult
         {...defaultProps}
         status="complete"
         args={mockArgs}
@@ -171,7 +171,7 @@ describe('CreateInvestigatioToolResult', () => {
     };
 
     render(
-      <CreateInvestigatioToolResult
+      <CreateInvestigationToolResult
         {...defaultProps}
         status="failed"
         args={mockArgs}
@@ -192,7 +192,7 @@ describe('CreateInvestigatioToolResult', () => {
     };
 
     render(
-      <CreateInvestigatioToolResult
+      <CreateInvestigationToolResult
         {...defaultProps}
         status="failed"
         args={mockArgs}
@@ -206,7 +206,7 @@ describe('CreateInvestigatioToolResult', () => {
 
   it('returns null for pending status', () => {
     const { container } = render(
-      <CreateInvestigatioToolResult {...defaultProps} status="pending" args={mockArgs} />
+      <CreateInvestigationToolResult {...defaultProps} status="pending" args={mockArgs} />
     );
 
     expect(container.firstChild).toBeNull();

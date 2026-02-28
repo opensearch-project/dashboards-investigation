@@ -24,7 +24,7 @@ interface Props {
   onReject?: () => void;
 }
 
-export const CreateInvestigatioToolResult: React.FC<Props> = ({
+export const CreateInvestigationToolResult: React.FC<Props> = ({
   status,
   args,
   result,
@@ -59,7 +59,7 @@ export const CreateInvestigatioToolResult: React.FC<Props> = ({
 
   if (status === 'complete' && result?.success) {
     return (
-      <EuiPanel paddingSize="s">
+      <EuiPanel paddingSize="s" hasBorder={false} hasShadow={false}>
         <EuiFlexGroup alignItems="center" gutterSize="s" responsive={false}>
           <EuiFlexItem grow={false}>
             <EuiIcon type="checkInCircleEmpty" color="success" />
