@@ -114,14 +114,18 @@ describe('CreateInvestigationToolResult', () => {
       />
     );
 
-    // Check for link panel content
-    expect(screen.getByText('Test Investigation')).toBeInTheDocument();
-    // Confirm and creating steps should not be visible when collapsed
-    expect(screen.queryByText('Investigation details')).not.toBeInTheDocument();
+    // Check that accordion is collapsed
+    const accordionButton = document.querySelector('.euiAccordion__button');
+    expect(accordionButton).toHaveAttribute('aria-expanded', 'false');
+
+    // Check for link panel with URL (visible when collapsed)
+    expect(
+      screen.getByText(/http:\/\/localhost\/app\/investigation-notebooks/)
+    ).toBeInTheDocument();
   });
 
-  it('expands to show all steps when arrow is clicked', () => {
-    render(
+  it('expands to show all steps when accordion button is clicked', () => {
+    const { container } = render(
       <CreateInvestigationToolResult
         {...defaultProps}
         status="complete"
@@ -130,18 +134,27 @@ describe('CreateInvestigationToolResult', () => {
       />
     );
 
-    const arrowIcon = document.querySelector('.euiIcon--subdued');
-    expect(arrowIcon).toBeInTheDocument();
+    // Find the accordion button by its class
+    const accordionButton = container.querySelector('.euiAccordion__button');
+    expect(accordionButton).toBeInTheDocument();
 
-    fireEvent.click(arrowIcon!);
+    fireEvent.click(accordionButton!);
+
+    // Check accordion is expanded
+    expect(accordionButton).toHaveAttribute('aria-expanded', 'true');
 
     // After expanding, should see the confirm step details
     expect(screen.getByText('Confirm investigation details')).toBeInTheDocument();
     expect(screen.getByText('Create investigation')).toBeInTheDocument();
+
+    // Link panel with URL should be hidden when expanded
+    expect(
+      container.querySelector('.euiPanel .euiLink[href*="investigation-notebooks"]')
+    ).not.toBeInTheDocument();
   });
 
-  it('collapses when arrow is clicked again', () => {
-    render(
+  it('collapses when accordion button is clicked again', () => {
+    const { container } = render(
       <CreateInvestigationToolResult
         {...defaultProps}
         status="complete"
@@ -150,17 +163,20 @@ describe('CreateInvestigationToolResult', () => {
       />
     );
 
-    const arrowIcon = document.querySelector('.euiIcon--subdued');
-    fireEvent.click(arrowIcon!);
+    const accordionButton = container.querySelector('.euiAccordion__button');
 
-    expect(screen.getByText('Confirm investigation details')).toBeInTheDocument();
+    // Expand the accordion
+    fireEvent.click(accordionButton!);
+    expect(accordionButton).toHaveAttribute('aria-expanded', 'true');
 
-    const arrowDownIcon = document.querySelector('.euiIcon--subdued');
-    fireEvent.click(arrowDownIcon!);
+    // Collapse the accordion
+    fireEvent.click(accordionButton!);
+    expect(accordionButton).toHaveAttribute('aria-expanded', 'false');
 
-    // After collapsing, confirm step should not be visible
-    expect(screen.queryByText('Investigation details')).not.toBeInTheDocument();
-    expect(screen.getByText('Test Investigation')).toBeInTheDocument();
+    // Link panel with URL should be visible again when collapsed
+    expect(
+      screen.getByText(/http:\/\/localhost\/app\/investigation-notebooks/)
+    ).toBeInTheDocument();
   });
 
   it('renders error state when failed', () => {
