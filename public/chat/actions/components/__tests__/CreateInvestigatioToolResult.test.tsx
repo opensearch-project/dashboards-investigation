@@ -7,7 +7,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
-import { CreateInvestigatioToolResult } from '../CreateInvestigatioToolResult';
+import { CreateInvestigationToolResult } from '../CreateInvestigationToolResult';
 import { coreStartMock } from '../../../../../test/__mocks__/coreMocks';
 import {
   CreateInvestigationRequest,
@@ -15,7 +15,7 @@ import {
 } from '../../create_investigation_action';
 import type { ToolStatus } from '../../../../../../../src/plugins/context_provider/public';
 
-describe('CreateInvestigatioToolResult', () => {
+describe('CreateInvestigationToolResult', () => {
   const mockArgs: CreateInvestigationRequest = {
     name: 'Test Investigation',
     initialGoal: 'Find root cause',
@@ -42,13 +42,13 @@ describe('CreateInvestigatioToolResult', () => {
   });
 
   it('returns null when no args and no result', () => {
-    const { container } = render(<CreateInvestigatioToolResult {...defaultProps} />);
+    const { container } = render(<CreateInvestigationToolResult {...defaultProps} />);
 
     expect(container.firstChild).toBeNull();
   });
 
   it('renders confirm step when executing without confirmation', () => {
-    render(<CreateInvestigatioToolResult {...defaultProps} args={mockArgs} />);
+    render(<CreateInvestigationToolResult {...defaultProps} args={mockArgs} />);
 
     // Check for actual UI elements
     expect(screen.getByText('Confirm investigation details')).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe('CreateInvestigatioToolResult', () => {
   it('renders confirm and creating steps when executing with confirmation', () => {
     const confirmedArgs = { ...mockArgs, confirmed: true };
 
-    render(<CreateInvestigatioToolResult {...defaultProps} args={confirmedArgs} />);
+    render(<CreateInvestigationToolResult {...defaultProps} args={confirmedArgs} />);
 
     expect(screen.getByText('Confirm investigation details')).toBeInTheDocument();
     expect(screen.getByText('Creating investigation')).toBeInTheDocument();
@@ -69,7 +69,7 @@ describe('CreateInvestigatioToolResult', () => {
     const onApprove = jest.fn();
 
     render(
-      <CreateInvestigatioToolResult {...defaultProps} args={mockArgs} onApprove={onApprove} />
+      <CreateInvestigationToolResult {...defaultProps} args={mockArgs} onApprove={onApprove} />
     );
 
     const confirmButton = screen.getByLabelText('Confirm investigation');
@@ -81,7 +81,7 @@ describe('CreateInvestigatioToolResult', () => {
   it('calls onReject when cancel button is clicked', () => {
     const onReject = jest.fn();
 
-    render(<CreateInvestigatioToolResult {...defaultProps} args={mockArgs} onReject={onReject} />);
+    render(<CreateInvestigationToolResult {...defaultProps} args={mockArgs} onReject={onReject} />);
 
     const cancelButton = screen.getByLabelText('Cancel investigation');
     fireEvent.click(cancelButton);
@@ -91,7 +91,7 @@ describe('CreateInvestigatioToolResult', () => {
 
   it('renders success state when complete', () => {
     render(
-      <CreateInvestigatioToolResult
+      <CreateInvestigationToolResult
         {...defaultProps}
         status="complete"
         args={mockArgs}
@@ -106,7 +106,7 @@ describe('CreateInvestigatioToolResult', () => {
 
   it('shows collapsed view by default when complete', () => {
     render(
-      <CreateInvestigatioToolResult
+      <CreateInvestigationToolResult
         {...defaultProps}
         status="complete"
         args={mockArgs}
@@ -114,15 +114,19 @@ describe('CreateInvestigatioToolResult', () => {
       />
     );
 
-    // Check for link panel content
-    expect(screen.getByText('Test Investigation')).toBeInTheDocument();
-    // Confirm and creating steps should not be visible when collapsed
-    expect(screen.queryByText('Investigation details')).not.toBeInTheDocument();
+    // Check that accordion is collapsed
+    const accordionButton = document.querySelector('.euiAccordion__button');
+    expect(accordionButton).toHaveAttribute('aria-expanded', 'false');
+
+    // Check for link panel with URL (visible when collapsed)
+    expect(
+      screen.getByText(/http:\/\/localhost\/app\/investigation-notebooks/)
+    ).toBeInTheDocument();
   });
 
-  it('expands to show all steps when arrow is clicked', () => {
-    render(
-      <CreateInvestigatioToolResult
+  it('expands to show all steps when accordion button is clicked', () => {
+    const { container } = render(
+      <CreateInvestigationToolResult
         {...defaultProps}
         status="complete"
         args={mockArgs}
@@ -130,19 +134,28 @@ describe('CreateInvestigatioToolResult', () => {
       />
     );
 
-    const arrowIcon = document.querySelector('.euiIcon--subdued');
-    expect(arrowIcon).toBeInTheDocument();
+    // Find the accordion button by its class
+    const accordionButton = container.querySelector('.euiAccordion__button');
+    expect(accordionButton).toBeInTheDocument();
 
-    fireEvent.click(arrowIcon!);
+    fireEvent.click(accordionButton!);
+
+    // Check accordion is expanded
+    expect(accordionButton).toHaveAttribute('aria-expanded', 'true');
 
     // After expanding, should see the confirm step details
     expect(screen.getByText('Confirm investigation details')).toBeInTheDocument();
     expect(screen.getByText('Create investigation')).toBeInTheDocument();
+
+    // Link panel with URL should be hidden when expanded
+    expect(
+      container.querySelector('.euiPanel .euiLink[href*="investigation-notebooks"]')
+    ).not.toBeInTheDocument();
   });
 
-  it('collapses when arrow is clicked again', () => {
-    render(
-      <CreateInvestigatioToolResult
+  it('collapses when accordion button is clicked again', () => {
+    const { container } = render(
+      <CreateInvestigationToolResult
         {...defaultProps}
         status="complete"
         args={mockArgs}
@@ -150,17 +163,20 @@ describe('CreateInvestigatioToolResult', () => {
       />
     );
 
-    const arrowIcon = document.querySelector('.euiIcon--subdued');
-    fireEvent.click(arrowIcon!);
+    const accordionButton = container.querySelector('.euiAccordion__button');
 
-    expect(screen.getByText('Confirm investigation details')).toBeInTheDocument();
+    // Expand the accordion
+    fireEvent.click(accordionButton!);
+    expect(accordionButton).toHaveAttribute('aria-expanded', 'true');
 
-    const arrowDownIcon = document.querySelector('.euiIcon--subdued');
-    fireEvent.click(arrowDownIcon!);
+    // Collapse the accordion
+    fireEvent.click(accordionButton!);
+    expect(accordionButton).toHaveAttribute('aria-expanded', 'false');
 
-    // After collapsing, confirm step should not be visible
-    expect(screen.queryByText('Investigation details')).not.toBeInTheDocument();
-    expect(screen.getByText('Test Investigation')).toBeInTheDocument();
+    // Link panel with URL should be visible again when collapsed
+    expect(
+      screen.getByText(/http:\/\/localhost\/app\/investigation-notebooks/)
+    ).toBeInTheDocument();
   });
 
   it('renders error state when failed', () => {
@@ -171,7 +187,7 @@ describe('CreateInvestigatioToolResult', () => {
     };
 
     render(
-      <CreateInvestigatioToolResult
+      <CreateInvestigationToolResult
         {...defaultProps}
         status="failed"
         args={mockArgs}
@@ -192,7 +208,7 @@ describe('CreateInvestigatioToolResult', () => {
     };
 
     render(
-      <CreateInvestigatioToolResult
+      <CreateInvestigationToolResult
         {...defaultProps}
         status="failed"
         args={mockArgs}
@@ -206,7 +222,7 @@ describe('CreateInvestigatioToolResult', () => {
 
   it('returns null for pending status', () => {
     const { container } = render(
-      <CreateInvestigatioToolResult {...defaultProps} status="pending" args={mockArgs} />
+      <CreateInvestigationToolResult {...defaultProps} status="pending" args={mockArgs} />
     );
 
     expect(container.firstChild).toBeNull();

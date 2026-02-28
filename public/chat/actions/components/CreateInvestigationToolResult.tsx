@@ -3,7 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { EuiFlexGroup, EuiFlexItem, EuiIcon, EuiPanel, EuiSpacer, EuiText } from '@elastic/eui';
+import {
+  EuiAccordion,
+  EuiFlexGroup,
+  EuiFlexItem,
+  EuiIcon,
+  EuiPanel,
+  EuiSpacer,
+  EuiText,
+} from '@elastic/eui';
 import React, { useState } from 'react';
 import { CoreStart } from '../../../../../../src/core/public';
 import { ConfirmInvestigationStep } from './ConfirmInvestigationStep';
@@ -24,7 +32,7 @@ interface Props {
   onReject?: () => void;
 }
 
-export const CreateInvestigatioToolResult: React.FC<Props> = ({
+export const CreateInvestigationToolResult: React.FC<Props> = ({
   status,
   args,
   result,
@@ -32,8 +40,7 @@ export const CreateInvestigatioToolResult: React.FC<Props> = ({
   onApprove,
   onReject,
 }) => {
-  // State must be declared at the top level
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isAccordionOpen, setIsAccordionOpen] = useState(false);
 
   // Return null if we have neither args nor result
   if (!args && !result) {
@@ -59,40 +66,33 @@ export const CreateInvestigatioToolResult: React.FC<Props> = ({
 
   if (status === 'complete' && result?.success) {
     return (
-      <EuiPanel paddingSize="s">
-        <EuiFlexGroup alignItems="center" gutterSize="s" responsive={false}>
-          <EuiFlexItem grow={false}>
-            <EuiIcon type="checkInCircleEmpty" color="success" />
-          </EuiFlexItem>
-          <EuiFlexItem>
-            <EuiText size="s">2 tasks performed summary</EuiText>
-          </EuiFlexItem>
+      <EuiPanel paddingSize="s" hasBorder={false} hasShadow={false}>
+        <EuiAccordion
+          id="investigation-summary"
+          buttonContent={
+            <EuiFlexGroup alignItems="center" gutterSize="s" responsive={false}>
+              <EuiFlexItem grow={false}>
+                <EuiIcon type="checkInCircleEmpty" color="success" />
+              </EuiFlexItem>
+              <EuiFlexItem>
+                <EuiText size="s">2 tasks performed summary</EuiText>
+              </EuiFlexItem>
+            </EuiFlexGroup>
+          }
+          arrowDisplay="right"
+          paddingSize="none"
+          onToggle={(isOpen) => setIsAccordionOpen(isOpen)}
+        >
+          <EuiSpacer size="s" />
+          <ConfirmInvestigationStep data={args!} services={services} isComplete={true} />
+          <EuiSpacer size="s" />
+          <CreatingInvestigationStep services={services} isComplete={true} />
+        </EuiAccordion>
 
-          <EuiFlexItem grow={false}>
-            <EuiIcon
-              onClick={() => setIsExpanded(!isExpanded)}
-              type={isExpanded ? 'arrowDown' : 'arrowRight'}
-              color="subdued"
-            />
-          </EuiFlexItem>
-        </EuiFlexGroup>
-
-        <EuiSpacer size="s" />
-
-        {/* Expanded view - Show steps 1 and 2 */}
-        {isExpanded && (
-          <>
-            <ConfirmInvestigationStep data={args!} services={services} isComplete={true} />
-            <EuiSpacer size="s" />
-            <CreatingInvestigationStep services={services} result={result} isComplete={true} />
-          </>
-        )}
-
-        {!isExpanded && (
+        {/* Investigation Link Panel - Only show when accordion is collapsed */}
+        {!isAccordionOpen && (
           <>
             <EuiSpacer size="xs" />
-
-            {/* Investigation Link Panel */}
             <InvestigationLinkPanel result={result} services={services} />
           </>
         )}
