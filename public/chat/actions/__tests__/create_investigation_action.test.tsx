@@ -232,7 +232,6 @@ describe('createInvestigationAction', () => {
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('Investigation created successfully');
-      expect(result.path).toBe('#/agentic/test-notebook-id');
     });
 
     it('handles absolute ISO-8601 time format', async () => {

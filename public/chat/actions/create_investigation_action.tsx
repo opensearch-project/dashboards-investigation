@@ -9,7 +9,7 @@ import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
 import { NotebookContext, NoteBookSource, NotebookType } from '../../../common/types/notebooks';
 import { CoreStart, UiSettingScope } from '../../../../../src/core/public';
 import { AssistantAction } from '../../../../../src/plugins/context_provider/public';
-import { CreateInvestigatioToolResult } from './components/CreateInvestigatioToolResult';
+import { CreateInvestigationToolResult } from './components/CreateInvestigationToolResult';
 
 export interface CreateInvestigationRequest {
   name: string;
@@ -250,8 +250,6 @@ export const createInvestigationAction = (
           throw new Error('Failed to create investigation notebook');
         }
 
-        const path = `#/agentic/${notebookId}`;
-
         return {
           success: true,
           notebookId,
@@ -264,7 +262,6 @@ export const createInvestigationAction = (
           'A new Investigation <Name> has been created. \n\n
           <summary of this investigation> \n\n
           Click the above link to open and start to run it.'`,
-          path,
         };
       } catch (error) {
         return {
@@ -284,7 +281,11 @@ export const createInvestigationAction = (
       onApprove?: () => void;
       onReject?: () => void;
     }) => {
-      return <CreateInvestigatioToolResult {...props} services={services} />;
+      return (
+        <div className="messageRow">
+          <CreateInvestigationToolResult {...props} services={services} />
+        </div>
+      );
     },
     enabled: true,
     useCustomRenderer: true,

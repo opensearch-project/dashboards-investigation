@@ -53,9 +53,11 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
   const { startFormatted, endFormatted } = useMemo(
     () => ({
       startFormatted: selectedTimeRange
-        ? moment(selectedTimeRange.selectionFrom).format()
+        ? moment(selectedTimeRange.selectionFrom).toISOString()
         : undefined,
-      endFormatted: selectedTimeRange ? moment(selectedTimeRange.selectionTo).format() : undefined,
+      endFormatted: selectedTimeRange
+        ? moment(selectedTimeRange.selectionTo).toISOString()
+        : undefined,
     }),
     [selectedTimeRange]
   );
@@ -72,20 +74,25 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
 
   return (
     <EuiOverlayMask>
-      <EuiModal onClose={closeModal}>
+      <EuiModal onClose={closeModal} maxWidth={false}>
         <EuiModalHeader>
           <EuiModalHeaderTitle>
             <h1>Reinvestigate the issue</h1>
           </EuiModalHeaderTitle>
         </EuiModalHeader>
         <EuiModalBody>
-          <EuiFormRow label="Edit initial goal">
-            <EuiTextArea value={value} onChange={(e) => setValue(e.target.value)} required />
+          <EuiFormRow label="Edit initial goal" fullWidth>
+            <EuiTextArea
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              required
+              fullWidth
+            />
           </EuiFormRow>
           {!!timeRange && (
             <>
               <EuiSpacer size="s" />
-              <EuiFormRow label="Edit time range">
+              <EuiFormRow label="Edit time range" fullWidth>
                 <EuiSuperDatePicker
                   compressed
                   start={startFormatted}

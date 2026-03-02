@@ -60,7 +60,7 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
     <EuiFlexGroup direction="column" gutterSize="none">
       <EuiFlexItem grow={true}>
         {/* Investigation Details Panel */}
-        <EuiSplitPanel.Outer hasBorder={false} hasShadow={false}>
+        <EuiSplitPanel.Outer>
           <EuiSplitPanel.Inner paddingSize="s">
             <EuiFlexGroup alignItems="center" gutterSize="s" responsive={false}>
               <EuiFlexItem grow={false}>

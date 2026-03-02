@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import { VisualizationParagraph } from '../components/notebooks/components/paragraph_components/visualization';
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 import { getClient } from '../services';
@@ -110,6 +110,10 @@ export const VisualizationParagraphItem: ParagraphRegistryItem = {
       const visualizationContainer = await waitForVisualizationRendered(id);
 
       // Use html2canvas to capture the visualization as an image
+      const nonce = document.querySelector('meta[name="csp-nonce"]')?.getAttribute('content');
+      if (nonce) {
+        html2canvas.setCspNonce(nonce);
+      }
       const canvas = await html2canvas(visualizationContainer as HTMLElement, {
         backgroundColor: '#ffffff',
         scale: 1, // Lower scale for smaller file size
