@@ -41,6 +41,8 @@ import { useOpenSearchDashboards } from '../../../../../../src/plugins/opensearc
 import { getDataSourceById } from '../../../utils/data_source_utils';
 import { HypothesesFeedback, HypothesisItem } from './hypothesis';
 import { HypothesesStep } from './hypothesis/hypotheses_step';
+import { calculateStepDuration } from './hypothesis/investigation/utils';
+import { formatTimeGap } from '../../../utils/time';
 import { MessageTraceFlyout } from './hypothesis/investigation/message_trace_flyout';
 import { Paragraph } from './paragraph_components/paragraph';
 import { InvestigationPhase, isInvestigationActive } from '../../../../common/state/notebook_state';
@@ -266,6 +268,14 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   const renderInvestigationSteps = () => {
     if (!PERAgentServices || isNotebookReadonly || !hasActiveMemoryPermission) return null;
 
+    const totalInvestigationTime = executorMessages.reduce((total, msg) => {
+      const duration = calculateStepDuration(msg.create_time, msg.update_time);
+      return total + (duration || 0);
+    }, 0);
+
+    const showTotalTime =
+      !isInvestigating && executorMessages.length > 0 && totalInvestigationTime > 0;
+
     return (
       <EuiAccordion
         id="investigation-steps"
@@ -280,6 +290,12 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
                 : i18n.translate('notebook.summary.card.investigationStepsNoCount', {
                     defaultMessage: 'Investigation Steps',
                   })}
+              {showTotalTime && (
+                <EuiText color="subdued" size="xs">
+                  {' '}
+                  Total Duration ({formatTimeGap(totalInvestigationTime)})
+                </EuiText>
+              )}
             </b>
           </EuiTitle>
         }

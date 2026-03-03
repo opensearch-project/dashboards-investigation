@@ -20,7 +20,8 @@ import {
   EuiSmallButton,
 } from '@elastic/eui';
 import { useObservable } from 'react-use';
-import { isMarkdownText } from './investigation/utils';
+import { isMarkdownText, calculateStepDuration } from './investigation/utils';
+import { formatTimeGap } from '../../../../utils/time';
 import { PERAgentMessageService } from './investigation/services/per_agent_message_service';
 import { PERAgentMemoryService } from './investigation/services/per_agent_memory_service';
 
@@ -83,6 +84,10 @@ export const HypothesesStep = ({
               index === executorMessages.length - 1 &&
               !executorMessage.response &&
               (isInvestigating ? !message : false);
+            const duration = calculateStepDuration(
+              executorMessage.create_time,
+              executorMessage.update_time
+            );
             return (
               <React.Fragment key={executorMessage.message_id}>
                 <EuiPanel paddingSize="s" borderRadius="l" hasBorder>
@@ -113,7 +118,15 @@ export const HypothesesStep = ({
                           )}
                         </EuiFlexItem>
                         <EuiFlexItem>
-                          <EuiText size="s">{executorMessage.input}</EuiText>
+                          <EuiText size="s">
+                            {executorMessage.input}
+                            {!isLastMessageLoading && duration !== undefined && (
+                              <EuiText color="subdued" size="xs">
+                                {' '}
+                                Duration ({formatTimeGap(duration)})
+                              </EuiText>
+                            )}
+                          </EuiText>
                         </EuiFlexItem>
                       </EuiFlexGroup>
                     }
