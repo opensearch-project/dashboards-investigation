@@ -265,9 +265,17 @@ export const MessageTraceFlyout = ({
           <React.Fragment key={traceNumber}>
             <EuiAccordion
               id={`trace-${index}`}
-              buttonContent={`Step ${index + 1} - ${isFromLLM ? reason : `Execute ${origin}`} ${
-                durationStr ? `Duration (${durationStr})` : ''
-              }`}
+              buttonContent={
+                <EuiText size="s">
+                  {`Step ${index + 1} - ${isFromLLM ? reason : `Execute ${origin}`}`}
+                  {durationStr && (
+                    <EuiText color="subdued" size="xs">
+                      {' '}
+                      Duration ({durationStr})
+                    </EuiText>
+                  )}
+                </EuiText>
+              }
               paddingSize="l"
             >
               <EuiText className="markdown-output-text" size="s">
