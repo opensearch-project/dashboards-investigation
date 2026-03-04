@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getMemoryPermission } from '../utils';
+import { getMemoryPermission, calculateStepDuration } from '../utils';
 import * as mlCommonsApis from '../../../../../../utils/ml_commons_apis';
 
 jest.mock('../../../../../../utils/ml_commons_apis');
@@ -187,5 +187,55 @@ describe('getMemoryPermission', () => {
         dataSourceId: 'test-datasource',
       })
     );
+  });
+});
+
+describe('calculateStepDuration', () => {
+  it('should return undefined when createTime is undefined', () => {
+    expect(calculateStepDuration(undefined, '2024-01-01T00:00:10.000Z')).toBeUndefined();
+  });
+
+  it('should return undefined when updateTime is undefined', () => {
+    expect(calculateStepDuration('2024-01-01T00:00:00.000Z', undefined)).toBeUndefined();
+  });
+
+  it('should return undefined when both times are undefined', () => {
+    expect(calculateStepDuration(undefined, undefined)).toBeUndefined();
+  });
+
+  it('should calculate duration correctly in milliseconds', () => {
+    const createTime = '2024-01-01T00:00:00.000Z';
+    const updateTime = '2024-01-01T00:00:10.000Z';
+    expect(calculateStepDuration(createTime, updateTime)).toBe(10000); // 10 seconds
+  });
+
+  it('should handle duration of 0 when times are equal', () => {
+    const time = '2024-01-01T00:00:00.000Z';
+    expect(calculateStepDuration(time, time)).toBe(0);
+  });
+
+  it('should handle longer durations', () => {
+    const createTime = '2024-01-01T00:00:00.000Z';
+    const updateTime = '2024-01-01T01:30:00.000Z';
+    expect(calculateStepDuration(createTime, updateTime)).toBe(5400000); // 1.5 hours
+  });
+
+  it('should handle negative durations when updateTime is before createTime', () => {
+    const createTime = '2024-01-01T00:00:10.000Z';
+    const updateTime = '2024-01-01T00:00:00.000Z';
+    expect(calculateStepDuration(createTime, updateTime)).toBe(-10000); // -10 seconds
+  });
+
+  it('should handle different date formats', () => {
+    // ISO format with timezone offset
+    const createTime = '2024-01-01T00:00:00+00:00';
+    const updateTime = '2024-01-01T00:01:00+00:00';
+    expect(calculateStepDuration(createTime, updateTime)).toBe(60000); // 1 minute
+  });
+
+  it('should handle millisecond precision', () => {
+    const createTime = '2024-01-01T00:00:00.000Z';
+    const updateTime = '2024-01-01T00:00:00.500Z';
+    expect(calculateStepDuration(createTime, updateTime)).toBe(500); // 500ms
   });
 });

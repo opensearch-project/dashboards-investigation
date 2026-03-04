@@ -15,7 +15,20 @@ export interface Trace {
   message_id?: string;
   origin?: string;
   create_time?: string;
+  update_time?: string;
 }
+
+export const calculateStepDuration = (
+  createTime: string | undefined,
+  updateTime: string | undefined
+): number | undefined => {
+  if (!createTime || !updateTime) {
+    return undefined;
+  }
+  const startTime = new Date(createTime).getTime();
+  const endTime = new Date(updateTime).getTime();
+  return endTime - startTime;
+};
 
 export const isMarkdownText = (text: string) => {
   // Common Markdown patterns to check for
@@ -63,6 +76,8 @@ export const getAllMessagesBySessionIdAndMemoryId = async (
         input: structuredData.input,
         response: structuredData.response,
         message_id: hit._id,
+        create_time: hit._source.created_time,
+        update_time: hit._source.last_updated_time,
       });
     });
     nextToken = result.next_token;
