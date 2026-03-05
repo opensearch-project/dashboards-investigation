@@ -139,7 +139,9 @@ export const HypothesisItem: React.FC<{
               </>
             )}
           </EuiFlexGroup>
-          <HypothesisStatusButton hypothesisId={id} hypothesisStatus={status} />
+          <EuiFlexItem grow={false}>
+            <HypothesisStatusButton hypothesisId={id} hypothesisStatus={status} />
+          </EuiFlexItem>
           <EuiIcon type="arrowRight" color="subdued" style={{ marginInlineStart: 8 }} />
         </EuiFlexGroup>
         <EuiSpacer size="s" />

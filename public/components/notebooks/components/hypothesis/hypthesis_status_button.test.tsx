@@ -47,7 +47,7 @@ describe('HypothesisStatusButton', () => {
     mockUpdateHypotheses.mockResolvedValue({});
   });
 
-  it('renders rule out button for active hypothesis', () => {
+  it('renders Accept and Rule out buttons for active hypothesis', () => {
     const mockContext = createMockContext([{ id: 'h1', status: undefined, likelihood: 8 }]);
     render(
       <NotebookReactContext.Provider value={mockContext as any}>
@@ -55,6 +55,7 @@ describe('HypothesisStatusButton', () => {
       </NotebookReactContext.Provider>
     );
 
+    expect(screen.getByText('Accept')).toBeInTheDocument();
     expect(screen.getByText('Rule out')).toBeInTheDocument();
   });
 
@@ -67,6 +68,41 @@ describe('HypothesisStatusButton', () => {
     );
 
     expect(screen.getByText('Rule in')).toBeInTheDocument();
+    expect(screen.queryByText('Accept')).not.toBeInTheDocument();
+  });
+
+  it('renders Accepted button when hypothesis is accepted', () => {
+    const mockContext = createMockContext([{ id: 'h1', status: 'ACCEPTED', likelihood: 8 }]);
+    render(
+      <NotebookReactContext.Provider value={mockContext as any}>
+        <HypothesisStatusButton hypothesisId="h1" hypothesisStatus="ACCEPTED" />
+      </NotebookReactContext.Provider>
+    );
+
+    expect(screen.getByText('Accepted')).toBeInTheDocument();
+    expect(screen.queryByText('Rule out')).not.toBeInTheDocument();
+  });
+
+  it('accepts hypothesis when Accept button is clicked', async () => {
+    const hypotheses = [{ id: 'h1', status: undefined, likelihood: 8 }];
+    const mockContext = createMockContext(hypotheses);
+
+    render(
+      <NotebookReactContext.Provider value={mockContext as any}>
+        <HypothesisStatusButton hypothesisId="h1" hypothesisStatus={undefined} />
+      </NotebookReactContext.Provider>
+    );
+
+    fireEvent.click(screen.getByText('Accept'));
+
+    await waitFor(() => {
+      expect(mockUpdateHypotheses).toHaveBeenCalledWith([
+        { id: 'h1', status: 'ACCEPTED', likelihood: 8 },
+      ]);
+      expect(mockUpdateValue).toHaveBeenCalledWith({
+        hypotheses: [{ id: 'h1', status: 'ACCEPTED', likelihood: 8 }],
+      });
+    });
   });
 
   it('reorders hypotheses when ruling out', async () => {
