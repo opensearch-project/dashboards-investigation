@@ -36,47 +36,33 @@ export const FindingFooter: React.FC<FindingFooterProps> = ({
       <EuiSpacer size="s" />
       <EuiFlexGroup gutterSize="none" justifyContent="spaceBetween">
         <EuiFlexGroup gutterSize="none" alignItems="center" style={{ gap: 8 }}>
-          {feedback !== 'REJECTED' && (
-            <EuiSmallButton
-              fill
-              onClick={() => onFeedback('CONFIRMED')}
-              disabled={isSaving}
-              color={feedback === 'CONFIRMED' ? 'success' : 'primary'}
-            >
-              {feedback === 'CONFIRMED'
-                ? i18n.translate('notebook.finding.footer.confirmed', {
-                    defaultMessage: 'Confirmed',
-                  })
-                : i18n.translate('notebook.finding.footer.confirm', {
-                    defaultMessage: 'Confirm',
-                  })}
+          {!feedback && (
+            <EuiSmallButton fill onClick={() => onFeedback('CONFIRMED')} disabled={isSaving}>
+              {i18n.translate('notebook.finding.footer.confirm', {
+                defaultMessage: 'Confirm',
+              })}
             </EuiSmallButton>
           )}
-          {feedback !== 'CONFIRMED' && (
-            <EuiSmallButton
-              fill={feedback === 'REJECTED'}
-              onClick={() => onFeedback('REJECTED')}
-              disabled={isSaving}
-              color={feedback === 'REJECTED' ? 'danger' : 'primary'}
-            >
-              {feedback === 'REJECTED'
-                ? i18n.translate('notebook.finding.footer.rejected', {
-                    defaultMessage: 'Rejected',
-                  })
-                : i18n.translate('notebook.finding.footer.reject', {
-                    defaultMessage: 'Reject',
-                  })}
+          {!feedback && (
+            <EuiSmallButton onClick={() => onFeedback('REJECTED')} disabled={isSaving}>
+              {i18n.translate('notebook.finding.footer.reject', {
+                defaultMessage: 'Reject',
+              })}
             </EuiSmallButton>
           )}
           {(feedback === 'CONFIRMED' || feedback === 'REJECTED') && (
             <EuiButtonEmpty
               onClick={() => onFeedback(feedback)}
               disabled={isSaving}
-              style={{ textDecoration: 'underline' }}
+              style={{ textDecoration: 'underline', height: 32 }}
             >
-              {i18n.translate('notebook.finding.footer.undo', {
-                defaultMessage: 'Undo',
-              })}
+              {feedback === 'CONFIRMED'
+                ? i18n.translate('notebook.finding.footer.undoConfirmation', {
+                    defaultMessage: 'Undo confirmation',
+                  })
+                : i18n.translate('notebook.finding.footer.undoRejection', {
+                    defaultMessage: 'Undo rejection',
+                  })}
             </EuiButtonEmpty>
           )}
         </EuiFlexGroup>
