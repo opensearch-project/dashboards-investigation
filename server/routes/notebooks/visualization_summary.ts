@@ -40,6 +40,7 @@ export function registerVisualizationSummaryRoute(router: IRouter) {
         body: schema.object({
           visualization: schema.string({
             minLength: 1,
+            maxLength: 200000,
           }),
           localTimeZoneOffset: schema.number(),
         }),
