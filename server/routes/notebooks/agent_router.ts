@@ -8,45 +8,7 @@ import { IOpenSearchDashboardsResponse, IRouter } from '../../../../../src/core/
 import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
 import { getOpenSearchClientTransport, handleError } from '../utils';
 
-const commonInstructions = `
-# Instructions
-
-## Core Planning Rules
-- Break the objective into an ordered list of atomic, self-contained Steps that, if executed, will lead to the final result or complete the objective
-- Each Step must state what to do, where, and which tool/parameters would be used. You do not execute tools, only reference them for planning
-- Use only the provided tools; do not invent or assume tools. If no suitable tool applies, use reasoning or observations instead
-- Base your plan only on the data and information explicitly provided; do not rely on unstated knowledge or external facts
-- If there is insufficient information to create a complete plan, summarize what is known so far and clearly state what additional information is required to proceed
-- Stop and summarize if the task is complete or further progress is unlikely
-- Avoid vague instructions; be specific about data sources, indexes, or parameters
-- Never make assumptions or rely on implicit knowledge
-- Respond only in JSON format
-${/* Avoid too many tokens when it is an index pattern */ ''}
-- When using ListIndexTool, use include_details false when the input is an index pattern or wildcard.
-
-## Step Examples
-**Good example:** "Use Tool to sample documents from index: 'my-index'"
-
-**Bad example:** "Use Tool to sample documents from each index"
-
-**Bad example:** "Use Tool to sample documents from all indices"`;
-
-const commonResponseFormat = `
-# Response Format
-
-## JSON Response Requirements
-Only respond in JSON format. Always follow the given response instructions. Do not return any content that does not follow the response instructions. Do not add anything before or after the expected JSON
-
-Always respond with a valid JSON object that strictly follows the below schema:
-\`\`\`json
-{
-  "steps": array[string],
-  "result": string
-}
-\`\`\`
-
-- Use "steps" to return an array of strings where each string is a step to complete the objective, leave it empty if you know the final result. Please wrap each step in quotes and escape any special characters within the string
-- Use "result" to return the final response when you have enough information, leave it empty if you want to execute more steps. When providing the final result, it MUST be a stringified JSON object with the following structure:
+const resultExpendAndOverride = `When providing the final result, it MUST be a stringified JSON object with the following structure:
 
 ## Final Result Structure
 Final result must be a stringified JSON object:
@@ -139,17 +101,15 @@ Your final result JSON must include:
 }
 \`\`\`
 
-## Critical Rules
-1. Do not use commas within individual steps
-2. **CRITICAL: For tool parameters use commas without spaces (e.g., "param1,param2,param3") - This rule must be followed exactly**
-3. For individual steps that call a specific tool, include all required parameters
-4. Do not add any content before or after the JSON
-5. Only respond with a pure JSON object
-6. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
-7. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
-8. **Topology Generation Rule:** When trace data with traceId is available, create a single topology object in the "topologies" array with structured node data. Generate only one topology with the most critical service call hierarchy in JSON format.
+`;
 
-### Topology Node Requirements:
+const importantRulesExpend = `4. For individual steps that call a specific tool, include all required parameters
+5. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
+6. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
+7. **Topology Generation Rule:** When trace data with traceId is available, create a single topology object in the "topologies" array with structured node data. Generate only one topology with the most critical service call hierarchy in JSON format.
+`;
+
+const topologyRules = `### Topology Node Requirements:
 - Each node represents a service or operation in the trace
 - Use parentId to establish hierarchy (null for root nodes)
 - Include precise startTime (ISO format) and duration
@@ -198,19 +158,15 @@ export function registerAgentExecutionRoute(router: IRouter) {
         const { agentId } = request.params;
         const { async } = request.query;
         let systemPrompt;
+        const isReInvestigation = prevContent && !!initialGoal;
 
-        if (prevContent && !!initialGoal) {
+        if (isReInvestigation) {
           systemPrompt = `
 # Re-Investigation Agent
 
 You are a thoughtful and analytical planner agent specializing in **RE-INVESTIGATION**. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.
-${getTimeScopePrompt(timeRange)}
-## Investigation Context
-**ORIGINAL QUESTION:** "${initialGoal}"
 
 The hypotheses were generated from this original question.
-
-**NEW INVESTIGATION QUESTION:** "${question}"
 
 You are now investigating this new question. Update the hypotheses based on this new question and current evidence.
 
@@ -220,7 +176,6 @@ You are now investigating this new question. Update the hypotheses based on this
 - Only create **NEW** findings when absolutely necessary for novel evidence
 - Update hypothesis likelihood based on all available evidence
 
-${commonInstructions}
 
 ## User Feedback Handling Instructions
 **CRITICAL: Follow these rules when processing user feedback:**
@@ -259,20 +214,7 @@ You **MUST** include ONLY findings that are genuinely NEW. A finding is **NOT** 
 ## Operation Guidance
 Create new hypotheses with fresh IDs. Previous hypotheses will be replaced.
 
-${commonResponseFormat}
-
 **The final response should create a clear chain of evidence where findings support your hypothesis while maximizing reuse of existing evidence.**
-`.trim();
-        } else {
-          systemPrompt = `
-# Investigation Planner Agent
-
-You are a thoughtful and analytical planner agent in a plan-execute-reflect framework. Your job is to design a clear, step-by-step plan for a given objective.
-${getTimeScopePrompt(timeRange)}
-
-${commonInstructions}
-
-${commonResponseFormat}
 `.trim();
         }
 
@@ -282,6 +224,20 @@ ${commonResponseFormat}
 
 ## PLANNING GUIDANCE
 \${parameters.planner_prompt}
+
+
+${
+  isReInvestigation
+    ? `
+## Investigation Context
+**ORIGINAL QUESTION:** "${initialGoal}"
+
+**NEW INVESTIGATION QUESTION:** "${question}"`
+    : ''
+}
+
+## INVESTIGATION SCOPE
+**TIME RANGE:** ${getTimeScopePrompt(timeRange)}
 
 ## OBJECTIVE
 Your job is to fulfill user's requirements and answer their questions effectively. User Input:
@@ -367,6 +323,12 @@ Remember: Respond only in JSON format following the required schema.`;
               executor_agent_memory_id: parameters.executor_agent_memory_id,
               question,
               system_prompt: systemPrompt,
+              // custom_response_format: custom_response_format,
+              custom_instruction_expend:
+                '\n- When using ListIndexTool, use include_details false when the input is an index pattern or wildcard.\n\n',
+              result_expend_and_override: resultExpendAndOverride,
+              important_rules_expend: importantRulesExpend,
+              topology_rules: topologyRules,
               planner_prompt_template: plannerPromptTemplate,
               planner_with_history_template: plannerWithHistoryTemplate,
               reflect_prompt_template: reflectPromptTemplate,
