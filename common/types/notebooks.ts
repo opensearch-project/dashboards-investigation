@@ -86,6 +86,7 @@ export interface ParagraphBackendType<TOutputResult, TInputParameters = unknown>
 export enum HypothesisStatus {
   RULED_OUT = 'RULED_OUT',
   RULED_IN = '',
+  ACCEPTED = 'ACCEPTED',
 }
 
 export interface HypothesisItem {

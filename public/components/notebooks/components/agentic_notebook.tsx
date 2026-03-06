@@ -99,6 +99,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     paragraphs: paragraphsStates,
     isLoading,
     isNotebookReadonly,
+    hypotheses,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
@@ -504,6 +505,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           timeRange={timeRange}
           dateFormat={uiSettings.get('dateFormat')}
           defaultToggleOn={reinvestigateWithFeedback}
+          hypotheses={hypotheses}
           confirm={handleReinvestigate}
           closeModal={() => setIsReinvestigateModalVisible(false)}
         />
