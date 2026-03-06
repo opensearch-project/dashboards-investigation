@@ -58,13 +58,14 @@ export const waitForPrecheckContexts = ({
             const output = ParagraphState.getOutput(value);
             const fieldComparison = (output?.result as AnomalyVisualizationAnalysisOutputResult)
               ?.fieldComparison;
-            return !!hasError || fieldComparison;
+            return !!hasError || !!fieldComparison;
           }
 
           if (inputType === LOG_PATTERN_PARAGRAPH_TYPE) {
-            const output = ParagraphState.getOutput(value);
-            const error = value.uiState?.logPattern?.error;
-            return !!output?.result || !!error;
+            const { isLoadingLogInsights, isLoadingPatternMapDifference, isLoadingLogSequence } =
+              value.uiState?.logPattern || {};
+            // Complete when all loading states are false (regardless of error or result)
+            return !isLoadingLogInsights && !isLoadingPatternMapDifference && !isLoadingLogSequence;
           }
 
           if (value.input.inputText?.startsWith('%ppl')) {
@@ -380,12 +381,18 @@ export const usePrecheck = () => {
         }
 
         // TODO: when support baseline time for log pattern and log sequence
-        // const logPatternParagraph = paragraphStates.find(
-        //   (paragraphState) => paragraphState.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
-        // );
-        // if (logPatternParagraph) {
-        //   paragraphIdsToSave.push(logPatternParagraph.value.id);
-        // }
+        const logPatternParagraph = paragraphStates.find(
+          (paragraphState) => paragraphState.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
+        );
+        if (logPatternParagraph) {
+          // Clear existing output to trigger re-run
+          logPatternParagraph.updateOutput({ result: undefined });
+          await paragraphService.getParagraphRegistry(LOG_PATTERN_PARAGRAPH_TYPE)?.runParagraph({
+            paragraphState: logPatternParagraph,
+            notebookStateValue: state.value,
+          });
+          paragraphIdsToSave.push(logPatternParagraph.value.id);
+        }
 
         const dataDistributionParagraph = paragraphStates.find(
           (paragraphState) =>
