@@ -13,7 +13,7 @@ import {
   EuiSplitPanel,
   EuiButtonIcon,
 } from '@elastic/eui';
-import React from 'react';
+import React, { useMemo } from 'react';
 import dateMath from '@elastic/datemath';
 import { CoreStart } from '../../../../../../src/core/public';
 import { CreateInvestigationRequest } from '../create_investigation_action';
@@ -38,23 +38,23 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
   const { uiSettings } = services;
   const dateFormat = uiSettings?.get('dateFormat');
 
-  // Format time range for display
-  const formatTimeRange = (timeRange?: { from: string; to: string }) => {
-    if (!timeRange) return null;
+  // Memoize formatted time range to prevent recalculation on every render, especially for relative time range like now-1h ~ now
+  const formattedTimeRange = useMemo(() => {
+    if (!data.timeRange) return null;
 
     try {
-      const fromMoment = dateMath.parse(timeRange.from);
-      const toMoment = dateMath.parse(timeRange.to, { roundUp: true });
+      const fromMoment = dateMath.parse(data.timeRange.from);
+      const toMoment = dateMath.parse(data.timeRange.to, { roundUp: true });
 
       if (fromMoment && toMoment && fromMoment.isValid() && toMoment.isValid()) {
         return `${fromMoment.format(dateFormat)} to ${toMoment.format(dateFormat)}`;
       }
     } catch (e) {
       // Fallback to raw values if parsing fails
-      return `${timeRange.from} to ${timeRange.to}`;
+      return `${data.timeRange.from} to ${data.timeRange.to}`;
     }
-    return `${timeRange.from} to ${timeRange.to}`;
-  };
+    return `${data.timeRange.from} to ${data.timeRange.to}`;
+  }, [data.timeRange, dateFormat]);
 
   return (
     <EuiFlexGroup direction="column" gutterSize="none">
@@ -117,7 +117,7 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
                   </EuiText>
                   <EuiSpacer size="xs" />
                   <EuiText size="s" color="subdued">
-                    {formatTimeRange(data.timeRange)}
+                    {formattedTimeRange}
                   </EuiText>
                 </EuiFlexItem>
               )}
