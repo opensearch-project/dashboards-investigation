@@ -136,7 +136,7 @@ export const MessageTraceFlyout = ({
           errors.pipe(
             delay(INTERVAL_TIME),
             scan((retryCount, err) => {
-              if (retryCount >= 2) {
+              if (retryCount >= 6) {
                 throw err;
               }
               return retryCount + 1;
