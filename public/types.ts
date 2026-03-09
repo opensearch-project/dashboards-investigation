@@ -62,13 +62,13 @@ export interface SetupDependencies {
 }
 
 export type NoteBookServices = CoreStart &
-  AppPluginStartDependencies & {
+  Omit<AppPluginStartDependencies, 'chat'> & {
     appName: string;
     pplService: PPLService;
     appMountService?: AppMountParameters;
     paragraphService: ParagraphServiceSetup;
     contextService: ContextServiceSetup;
-    updateContext: (id: string, chatConetxt: NoteBookAssistantContext | undefined) => void;
+    updateContext: (id: string, chatContext: NoteBookAssistantContext | undefined) => void;
     findingService: FindingService;
   };
 

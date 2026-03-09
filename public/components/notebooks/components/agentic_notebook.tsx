@@ -290,7 +290,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     // TODO: remove the optional chain after each method
     (chrome as any).setIsNavDrawerLocked?.(false);
     const rafId = window.requestAnimationFrame(() => {
-      (chat as any)?.openWindow?.();
+      chat?.openWindow?.();
     });
     return () => {
       window.cancelAnimationFrame(rafId);
