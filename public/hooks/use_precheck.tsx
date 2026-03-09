@@ -385,6 +385,16 @@ export const usePrecheck = () => {
           (paragraphState) => paragraphState.value.input.inputType === LOG_PATTERN_PARAGRAPH_TYPE
         );
         if (logPatternParagraph) {
+          // Set loading state before clearing output to prevent race condition with LogPatternContainer's useEffect
+          const hasBaseline = !!(timeRange?.baselineFrom && timeRange?.baselineTo);
+          const hasTraceId = !!state.value.context.value?.indexInsight?.trace_id_field;
+          logPatternParagraph.updateUIState({
+            logPattern: {
+              isLoadingLogInsights: true,
+              isLoadingPatternMapDifference: hasBaseline,
+              isLoadingLogSequence: hasBaseline && hasTraceId,
+            },
+          });
           // Clear existing output to trigger re-run
           logPatternParagraph.updateOutput({ result: undefined });
           await paragraphService.getParagraphRegistry(LOG_PATTERN_PARAGRAPH_TYPE)?.runParagraph({
