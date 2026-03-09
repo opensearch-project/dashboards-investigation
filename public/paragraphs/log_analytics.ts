@@ -3,12 +3,108 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import moment from 'moment';
 import { LogPatternAnalysisResult } from '../../common/types/log_pattern';
+import { IndexInsightContent } from '../../common/types/notebooks';
+import { dateFormat } from '../../common/constants/notebooks';
 import { LogPatternContainer } from '../components/notebooks/components/log_analytics/log_pattern_container';
+import { sortPatternMapDifference } from '../components/notebooks/components/log_analytics/components/pattern_difference';
 import { ParagraphRegistryItem } from '../services/paragraph_service';
+import { LogPatternService, LogPatternAnalysisParams } from '../services/requests/log_pattern';
+import { getClient, getNotifications } from '../services';
 
 export const LogPatternParagraphItem: ParagraphRegistryItem<LogPatternAnalysisResult> = {
   ParagraphComponent: LogPatternContainer,
+  runParagraph: async ({ paragraphState, notebookStateValue }) => {
+    const context = notebookStateValue.context.value;
+    const parameters = paragraphState.value.input.parameters as
+      | {
+          index?: string;
+          timeField?: string;
+          insight?: IndexInsightContent;
+        }
+      | undefined;
+
+    // Use paragraph parameters if available, fallback to context
+    const timeField = parameters?.timeField || context.timeField;
+    const index = parameters?.index || context.index;
+    const indexInsight = parameters?.insight || context.indexInsight;
+    const { timeRange, dataSourceId } = context;
+
+    const updateLoadingState = (
+      loading: Partial<{
+        isLoadingLogInsights: boolean;
+        isLoadingPatternMapDifference: boolean;
+        isLoadingLogSequence: boolean;
+      }>,
+      error?: string
+    ) => {
+      paragraphState.updateUIState({
+        logPattern: {
+          ...loading,
+          ...(error && { error }),
+        },
+      });
+    };
+
+    try {
+      if (!timeRange || !timeField || !index) {
+        throw new Error('Missing essential parameters: timeRange, timeField, index');
+      }
+
+      const { selectionFrom, selectionTo, baselineFrom, baselineTo } = timeRange;
+      const hasBaseline = !!(baselineFrom && baselineTo);
+      const hasTraceId = !!indexInsight?.trace_id_field;
+
+      updateLoadingState({
+        isLoadingLogInsights: true,
+        isLoadingPatternMapDifference: hasBaseline,
+        isLoadingLogSequence: hasBaseline && hasTraceId,
+      });
+
+      const params: LogPatternAnalysisParams = {
+        selectionStartTime: moment(selectionFrom).utc().format(dateFormat),
+        selectionEndTime: moment(selectionTo).utc().format(dateFormat),
+        timeField,
+        logMessageField: indexInsight?.log_message_field,
+        indexName: index,
+        dataSourceMDSId: dataSourceId,
+        ...(hasBaseline && {
+          baselineStartTime: moment(baselineFrom).utc().format(dateFormat),
+          baselineEndTime: moment(baselineTo).utc().format(dateFormat),
+        }),
+        ...(hasTraceId && { traceIdField: indexInsight?.trace_id_field }),
+      };
+
+      const logPatternService = new LogPatternService(getClient());
+      const analysisResult = await logPatternService.analyzeLogPatterns(params);
+
+      const result: LogPatternAnalysisResult = {
+        logInsights: analysisResult.logInsights,
+        ...(analysisResult.patternMapDifference && {
+          patternMapDifference: sortPatternMapDifference(analysisResult.patternMapDifference),
+        }),
+        ...(analysisResult.EXCEPTIONAL && { EXCEPTIONAL: analysisResult.EXCEPTIONAL }),
+      };
+
+      paragraphState.updateOutput({ result });
+      updateLoadingState({
+        isLoadingLogInsights: false,
+        isLoadingPatternMapDifference: false,
+        isLoadingLogSequence: false,
+      });
+    } catch (error) {
+      updateLoadingState(
+        {
+          isLoadingLogInsights: false,
+          isLoadingPatternMapDifference: false,
+          isLoadingLogSequence: false,
+        },
+        error.message || 'Failed to analyze log patterns'
+      );
+      getNotifications().toasts.addDanger(error.message);
+    }
+  },
   getContext: async (paragraph) => {
     const { logInsights, patternMapDifference, EXCEPTIONAL } = paragraph?.output?.[0].result! || {};
     const index = paragraph?.input.parameters?.index || '';
@@ -212,8 +308,5 @@ Patterns contain tokens (<token1>, <token2>) representing variable values. To qu
 - Link multiple related patterns to identify common root causes
 - Reference sample logs to validate hypotheses
 `;
-  },
-  runParagraph: async () => {
-    return;
   },
 };

@@ -23,6 +23,9 @@ export interface ParagraphUIState {
     error?: string;
   };
   logPattern?: {
+    isLoadingLogInsights?: boolean;
+    isLoadingPatternMapDifference?: boolean;
+    isLoadingLogSequence?: boolean;
     error?: string;
   };
 }
