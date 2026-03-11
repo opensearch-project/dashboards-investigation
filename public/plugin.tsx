@@ -32,7 +32,6 @@ import {
 } from './types';
 
 import './index.scss';
-import { DataDistributionEmbeddableFactory } from './components/notebooks/components/data_distribution/embeddable/data_distribution_embeddable_factory';
 import {
   setClient,
   setData,
@@ -134,11 +133,6 @@ export class InvestigationPlugin
     });
 
     registerAllPluginNavGroups(core);
-
-    setupDeps.embeddable.registerEmbeddableFactory(
-      'vega_visualization',
-      new DataDistributionEmbeddableFactory()
-    );
 
     setDataSourceManagementSetup(
       !!setupDeps.dataSourceManagement
