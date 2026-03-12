@@ -3,40 +3,50 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect } from 'react';
 import * as echarts from 'echarts';
 import type { EChartsOption, ECharts } from 'echarts';
 import { darkMode } from '@osd/ui-shared-deps/theme';
 
-// Simple theme for data distribution charts
+// Theme name for data distribution charts
 const THEME_NAME = 'osd-data-distribution';
 
-// Register theme based on current dark mode
-const textColor = darkMode ? '#FFF' : '#343741';
-const subTextColor = darkMode ? '#ccc' : '#69707d';
-const gridColor = darkMode ? '#27252C' : '#eef1f7';
-
-echarts.registerTheme(THEME_NAME, {
-  title: {
-    textStyle: { color: textColor },
-    subtextStyle: { color: subTextColor },
-  },
-  legend: {
-    textStyle: { color: textColor },
-  },
-  categoryAxis: {
-    axisLine: { lineStyle: { color: gridColor } },
-    axisTick: { lineStyle: { color: gridColor } },
-    axisLabel: { color: textColor },
-    splitLine: { lineStyle: { color: [gridColor] } },
-  },
-  valueAxis: {
-    axisLine: { lineStyle: { color: gridColor } },
-    axisTick: { lineStyle: { color: gridColor } },
-    axisLabel: { color: textColor },
-    splitLine: { lineStyle: { color: [gridColor] } },
-  },
+/**
+ * Get theme colors based on current dark mode setting
+ */
+const getThemeColors = () => ({
+  text: darkMode ? '#FFF' : '#343741',
+  subText: darkMode ? '#ccc' : '#69707d',
+  grid: darkMode ? '#27252C' : '#eef1f7',
 });
+
+/**
+ * Create and register ECharts theme with current colors
+ */
+const registerTheme = () => {
+  const colors = getThemeColors();
+  const axisConfig = {
+    axisLine: { lineStyle: { color: colors.grid } },
+    axisTick: { lineStyle: { color: colors.grid } },
+    axisLabel: { color: colors.text },
+    splitLine: { lineStyle: { color: [colors.grid] } },
+  };
+
+  echarts.registerTheme(THEME_NAME, {
+    title: {
+      textStyle: { color: colors.text },
+      subtextStyle: { color: colors.subText },
+    },
+    legend: {
+      textStyle: { color: colors.text },
+    },
+    categoryAxis: axisConfig,
+    valueAxis: axisConfig,
+  });
+};
+
+// Register theme on module load
+registerTheme();
 
 export interface EChartsChartProps {
   option: EChartsOption;
@@ -51,51 +61,58 @@ export const EChartsChart: React.FC<EChartsChartProps> = ({
   height = 250,
   className,
 }) => {
-  const chartRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<HTMLDivElement | null>(null);
   const chartInstanceRef = useRef<ECharts | null>(null);
 
-  const containerResizeObserver = useMemo(
-    () =>
-      new ResizeObserver(() => {
-        chartInstanceRef.current?.resize();
-      }),
-    []
-  );
-
+  /**
+   * Initialize chart instance
+   */
   useEffect(() => {
     if (!chartRef.current) return;
 
-    // Initialize chart with theme
-    if (!chartInstanceRef.current) {
-      chartInstanceRef.current = echarts.init(chartRef.current, THEME_NAME);
+    // Get existing instance or create new one
+    let chart = echarts.getInstanceByDom(chartRef.current);
+    if (!chart) {
+      chart = echarts.init(chartRef.current, THEME_NAME);
     }
+    chartInstanceRef.current = chart;
 
-    // Set option with notMerge to ensure clean update
-    chartInstanceRef.current.setOption(option, { notMerge: true });
+    return () => {
+      chart.dispose();
+      chartInstanceRef.current = null;
+    };
+  }, []);
 
-    // Handle resize
+  /**
+   * Update chart option when it changes
+   */
+  useEffect(() => {
+    const chart = chartInstanceRef.current;
+    if (!chart) return;
+
+    chart.setOption(option, {
+      notMerge: true,
+      lazyUpdate: true,
+    });
+  }, [option]);
+
+  /**
+   * Handle resize
+   */
+  useEffect(() => {
+    if (!chartRef.current) return;
+
     const handleResize = () => {
       chartInstanceRef.current?.resize();
     };
 
+    const observer = new ResizeObserver(handleResize);
+    observer.observe(chartRef.current);
     window.addEventListener('resize', handleResize);
 
-    // Observe container size changes
-    containerResizeObserver.observe(chartRef.current);
-
     return () => {
+      observer.disconnect();
       window.removeEventListener('resize', handleResize);
-      containerResizeObserver.disconnect();
-    };
-  }, [option, containerResizeObserver]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.dispose();
-        chartInstanceRef.current = null;
-      }
     };
   }, []);
 
