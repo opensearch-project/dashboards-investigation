@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useContext, useEffect, useCallback, useRef, useState } from 'react';
+import React, { useContext, useEffect, useCallback, useState, useRef } from 'react';
 import { EuiPanel, EuiText, EuiSpacer, EuiCallOut, EuiTitle } from '@elastic/eui';
 import { useObservable } from 'react-use';
 import { LogPattern, LogPatternAnalysisResult, LogSequenceEntry } from 'common/types/log_pattern';
@@ -18,8 +18,7 @@ import { PatternDifference } from './components/pattern_difference';
 import { LogSequence } from './components/log_sequence';
 import { SummaryStatistics } from './components/summary_statistics';
 import { IndexInsightContent } from '../../../../../common/types/notebooks';
-import { useLogPatternAnalysis } from './hooks/useLogPatternAnalysis';
-import { useContextProcessor } from './hooks/useContextProcessor';
+import { LOG_PATTERN_PARAGRAPH_TYPE } from '../../../../../common/constants/notebooks';
 
 interface LogPatternContainerProps {
   paragraphState: ParagraphState<
@@ -30,54 +29,80 @@ interface LogPatternContainerProps {
 
 export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragraphState }) => {
   const {
-    services: { http },
+    services: { paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
   const notebookReactContext = useContext(NotebookReactContext);
   const { saveParagraph } = notebookReactContext.paragraphHooks;
 
-  // each time will get a new paragraph object reference
   const paragraph = useObservable(paragraphState.getValue$());
   const notebookState = useObservable(notebookReactContext.state.getValue$());
   const context = notebookState?.context.value;
 
-  const paragraphRef = useRef(paragraph);
+  const paragraphRegistry = paragraphService?.getParagraphRegistry(LOG_PATTERN_PARAGRAPH_TYPE);
+  const { result } = ParagraphState.getOutput(paragraph) || {};
+  const { isLoadingLogInsights, isLoadingPatternMapDifference, isLoadingLogSequence, error } =
+    paragraph?.uiState?.logPattern || {};
+
+  const isLoading = isLoadingLogInsights || isLoadingPatternMapDifference || isLoadingLogSequence;
+
+  // Run paragraph if no result exists
   useEffect(() => {
-    paragraphRef.current = paragraph;
-  }, [paragraph]);
+    if (error || result || isLoading || !paragraph || paragraph.uiState?.isRunning) {
+      return;
+    }
+    paragraphRegistry?.runParagraph({
+      paragraphState,
+      notebookStateValue: notebookReactContext.state.value,
+    });
+  }, [
+    paragraphRegistry,
+    result,
+    isLoading,
+    paragraph,
+    error,
+    paragraphState,
+    notebookReactContext.state.value,
+  ]);
 
-  const processedContext = useContextProcessor(context, JSON.stringify(paragraph?.input));
-
-  const existingResult = paragraph?.output?.[0]?.result
-    ? JSON.stringify(paragraph.output[0].result)
-    : undefined;
-
-  const onSaveOutput = useCallback(
-    (result: LogPatternAnalysisResult) => {
-      if (paragraphRef.current) {
-        paragraphState.updateOutput({ result });
+  const handleExclude = useCallback(
+    (
+      item: LogPattern | LogSequenceEntry,
+      type: 'logInsights' | 'patternMapDifference' | 'logSequence'
+    ) => {
+      if (!result) return;
+      const newResult = { ...result };
+      if (type === 'logInsights') {
+        newResult.logInsights = newResult.logInsights?.map((insight) =>
+          insight.pattern === (item as LogPattern).pattern
+            ? { ...insight, excluded: !insight.excluded }
+            : insight
+        );
+      } else if (type === 'patternMapDifference') {
+        newResult.patternMapDifference = newResult.patternMapDifference?.map((pattern) =>
+          pattern.pattern === (item as LogPattern).pattern
+            ? { ...pattern, excluded: !pattern.excluded }
+            : pattern
+        );
+      } else if (type === 'logSequence') {
+        newResult.EXCEPTIONAL = newResult.EXCEPTIONAL?.map((sequence) =>
+          sequence.traceId === (item as LogSequenceEntry).traceId
+            ? { ...sequence, excluded: !sequence.excluded }
+            : sequence
+        );
       }
+      paragraphState.updateOutput({ result: newResult });
+      pendingSaveRef.current = newResult;
+      setResultChanged(true);
     },
-    [paragraphState]
+    [result, paragraphState]
   );
 
-  const setUiState = useCallback(
-    (uiState) => {
-      paragraphState.updateUIState(uiState);
-    },
-    [paragraphState]
-  );
-
-  const { result, loadingStatus, error, handleExclude } = useLogPatternAnalysis(
-    http,
-    processedContext,
-    onSaveOutput,
-    existingResult,
-    setUiState
-  );
+  const [changes, setChanges] = useState<string[]>([]);
+  const [resultChanged, setResultChanged] = useState(false);
+  const pendingSaveRef = useRef<LogPatternAnalysisResult | null>(null);
 
   const toggleChange = useCallback((changeId: string) => {
-    setResultChanged(true);
-    setChanges((prev: string[]) =>
+    setChanges((prev) =>
       prev.includes(changeId) ? prev.filter((name) => name !== changeId) : [...prev, changeId]
     );
   }, []);
@@ -106,20 +131,17 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
     [handleExclude, toggleChange]
   );
 
-  const [changes, setChanges] = useState<string[]>([]);
-  const [resultChanged, setResultChanged] = useState<boolean>();
-
-  // Save results when needed
+  // Save results when exclusions change
   useEffect(() => {
-    if (paragraphRef.current && resultChanged) {
-      (async () => {
-        await saveParagraph({
-          paragraphStateValue: ParagraphState.updateOutputResult(paragraphRef.current!, result),
-        });
-        setResultChanged(false);
-      })();
+    if (paragraph && resultChanged && pendingSaveRef.current) {
+      const resultToSave = pendingSaveRef.current;
+      pendingSaveRef.current = null;
+      setResultChanged(false);
+      saveParagraph({
+        paragraphStateValue: ParagraphState.updateOutputResult(paragraph, resultToSave),
+      });
     }
-  }, [result, resultChanged, saveParagraph]);
+  }, [paragraph, resultChanged, saveParagraph]);
 
   if (error) {
     return (
@@ -144,7 +166,7 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
             {i18n.translate('notebook.log.sequence.paragraph.subtitle', {
               defaultMessage:
                 'Analyzing log patterns from {index} index by comparing two time periods',
-              values: { index: processedContext?.index },
+              values: { index: context?.index },
             })}
           </EuiText>
         </>
@@ -168,31 +190,28 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
 
       <LogInsight
         logInsights={result?.logInsights || []}
-        isLoadingLogInsights={loadingStatus.isLoadingLogInsights}
-        disableExclude={!!resultChanged}
+        isLoadingLogInsights={!!isLoadingLogInsights}
+        disableExclude={resultChanged}
         onExclude={handleLogInsightExclude}
       />
       <EuiSpacer size="s" />
 
       <PatternDifference
         patternMapDifference={result?.patternMapDifference || []}
-        isLoadingPatternMapDifference={loadingStatus.isLoadingPatternMapDifference}
-        isNotApplicable={!processedContext?.timeRange?.baselineFrom}
-        disableExclude={!!resultChanged}
+        isLoadingPatternMapDifference={!!isLoadingPatternMapDifference}
+        isNotApplicable={!context?.timeRange?.baselineFrom}
+        disableExclude={resultChanged}
         onExclude={handlePatternDifferenceExclude}
       />
       <EuiSpacer size="s" />
 
       <LogSequence
         exceptionalSequences={result?.EXCEPTIONAL || []}
-        isLoadingLogSequence={loadingStatus.isLoadingLogSequence}
+        isLoadingLogSequence={!!isLoadingLogSequence}
         isNotApplicable={
-          !(
-            processedContext?.timeRange?.baselineFrom &&
-            processedContext.indexInsight?.trace_id_field
-          )
+          !(context?.timeRange?.baselineFrom && context?.indexInsight?.trace_id_field)
         }
-        disableExclude={!!resultChanged}
+        disableExclude={resultChanged}
         onExclude={handleLogSequenceExclude}
       />
     </EuiPanel>

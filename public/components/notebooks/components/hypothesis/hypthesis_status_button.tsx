@@ -4,7 +4,7 @@
  */
 
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { EuiSmallButton } from '@elastic/eui';
+import { EuiSmallButton, EuiFlexGroup, EuiFlexItem } from '@elastic/eui';
 import { i18n } from '@osd/i18n';
 import { useObservable } from 'react-use';
 import { NoteBookServices } from 'public/types';
@@ -32,8 +32,17 @@ export const HypothesisStatusButton: React.FC<{
   const { updateHypotheses } = useNotebook();
 
   const [isSaving, setIsSaving] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [isRuleOutHovered, setIsRuleOutHovered] = useState(false);
+  const [isAcceptHovered, setIsAcceptHovered] = useState(false);
   const isMountedRef = useRef(true);
+
+  const isRuledOut = hypothesisStatus === HypothesisStatus.RULED_OUT;
+  const isAccepted = hypothesisStatus === HypothesisStatus.ACCEPTED;
+
+  const defaultButtonStyle = {
+    color: euiThemeVars.euiColorDarkShade,
+    borderColor: euiThemeVars.euiColorMediumShade,
+  };
 
   useEffect(() => {
     return () => {
@@ -44,7 +53,6 @@ export const HypothesisStatusButton: React.FC<{
   const handleToggleStatus = async () => {
     if (!hypothesisId) return;
 
-    const isRuledOut = hypothesisStatus === HypothesisStatus.RULED_OUT;
     const updatedStatus = isRuledOut ? HypothesisStatus.RULED_IN : HypothesisStatus.RULED_OUT;
 
     const updatedHypotheses =
@@ -126,33 +134,96 @@ export const HypothesisStatusButton: React.FC<{
     }
   };
 
-  const isRuledOut = hypothesisStatus === HypothesisStatus.RULED_OUT;
+  const handleAccept = async () => {
+    if (!hypothesisId) return;
+    const updatedHypotheses =
+      hypotheses?.map((h) =>
+        h.id === hypothesisId ? { ...h, status: HypothesisStatus.ACCEPTED } : h
+      ) || [];
+    setIsSaving(true);
+    try {
+      await updateHypotheses(updatedHypotheses);
+      notebookContext.state.updateValue({ hypotheses: updatedHypotheses });
+      notifications.toasts.addSuccess(
+        i18n.translate('notebook.hypothesis.detail.hypothesisAccepted', {
+          defaultMessage: 'Hypothesis accepted',
+        })
+      );
+    } catch (error) {
+      notifications.toasts.addError(error, {
+        title: i18n.translate('notebook.hypothesis.detail.failedToAccept', {
+          defaultMessage: 'Failed to accept hypothesis',
+        }),
+      });
+    } finally {
+      if (isMountedRef.current) setIsSaving(false);
+    }
+  };
 
   return (
-    <EuiSmallButton
-      onClick={(e) => {
-        e.stopPropagation();
-        handleToggleStatus();
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      disabled={isSaving}
-      iconType={isRuledOut ? 'checkInCircleEmpty' : 'crossInCircleEmpty'}
-      color={fill ? 'primary' : isHovered ? (isRuledOut ? 'success' : 'danger') : undefined}
-      fill={fill}
-      style={
-        isHovered || fill
-          ? {}
-          : { color: euiThemeVars.euiColorDarkShade, borderColor: euiThemeVars.euiColorMediumShade }
-      }
-    >
-      {isRuledOut
-        ? i18n.translate('notebook.hypothesis.detail.ruleIn', {
-            defaultMessage: 'Rule in',
-          })
-        : i18n.translate('notebook.hypothesis.detail.ruleOut', {
-            defaultMessage: 'Rule out',
-          })}
-    </EuiSmallButton>
+    <EuiFlexGroup gutterSize="s" responsive={false}>
+      {!isRuledOut && (
+        <EuiFlexItem grow={false}>
+          <EuiSmallButton
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAccept();
+            }}
+            onMouseEnter={() => setIsAcceptHovered(true)}
+            onMouseLeave={() => setIsAcceptHovered(false)}
+            disabled={isSaving || isAccepted}
+            iconType={isAccepted ? 'starFilled' : 'starEmpty'}
+            color={isAcceptHovered || isAccepted ? 'success' : undefined}
+            fill={isAccepted}
+            style={
+              isAccepted
+                ? {
+                    color: euiThemeVars.ouiColorGhost,
+                    borderColor: euiThemeVars.ouiColorSuccess,
+                    backgroundColor: euiThemeVars.ouiColorSuccess,
+                  }
+                : isAcceptHovered
+                ? {}
+                : defaultButtonStyle
+            }
+          >
+            {isAccepted
+              ? i18n.translate('notebook.hypothesis.detail.accepted', {
+                  defaultMessage: 'Accepted',
+                })
+              : i18n.translate('notebook.hypothesis.detail.accept', {
+                  defaultMessage: 'Accept',
+                })}
+          </EuiSmallButton>
+        </EuiFlexItem>
+      )}
+      {!isAccepted && (
+        <EuiFlexItem grow={false}>
+          <EuiSmallButton
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggleStatus();
+            }}
+            onMouseEnter={() => setIsRuleOutHovered(true)}
+            onMouseLeave={() => setIsRuleOutHovered(false)}
+            disabled={isSaving}
+            iconType={isRuledOut ? 'checkInCircleEmpty' : 'crossInCircleEmpty'}
+            color={
+              fill ? 'primary' : isRuleOutHovered ? (isRuledOut ? 'success' : 'danger') : undefined
+            }
+            fill={fill}
+            style={isRuleOutHovered || fill ? {} : defaultButtonStyle}
+          >
+            {isRuledOut
+              ? i18n.translate('notebook.hypothesis.detail.ruleIn', {
+                  defaultMessage: 'Rule in',
+                })
+              : i18n.translate('notebook.hypothesis.detail.ruleOut', {
+                  defaultMessage: 'Rule out',
+                })}
+          </EuiSmallButton>
+        </EuiFlexItem>
+      )}
+    </EuiFlexGroup>
   );
 };

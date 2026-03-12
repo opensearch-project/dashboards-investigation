@@ -99,6 +99,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     paragraphs: paragraphsStates,
     isLoading,
     isNotebookReadonly,
+    hypotheses,
   } = useObservable(notebookContext.state.getValue$(), notebookContext.state.value);
   const paraDivRefs = useRef<Array<HTMLDivElement | null>>([]);
 
@@ -289,7 +290,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
     // TODO: remove the optional chain after each method
     (chrome as any).setIsNavDrawerLocked?.(false);
     const rafId = window.requestAnimationFrame(() => {
-      (chat as any)?.openWindow?.();
+      chat?.openWindow?.();
     });
     return () => {
       window.cancelAnimationFrame(rafId);
@@ -504,6 +505,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           timeRange={timeRange}
           dateFormat={uiSettings.get('dateFormat')}
           defaultToggleOn={reinvestigateWithFeedback}
+          hypotheses={hypotheses}
           confirm={handleReinvestigate}
           closeModal={() => setIsReinvestigateModalVisible(false)}
         />

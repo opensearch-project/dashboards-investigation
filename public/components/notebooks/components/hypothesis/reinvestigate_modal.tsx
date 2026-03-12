@@ -17,11 +17,16 @@ import {
   EuiButton,
   EuiSuperDatePicker,
   EuiTextArea,
+  EuiCallOut,
 } from '@elastic/eui';
 import moment from 'moment';
 import dateMath from '@elastic/datemath';
 
-import { InvestigationTimeRange } from '../../../../../common/types/notebooks';
+import {
+  InvestigationTimeRange,
+  HypothesisItem,
+  HypothesisStatus,
+} from '../../../../../common/types/notebooks';
 
 type DatePickerTimeRange = Omit<InvestigationTimeRange, 'baselineFrom' | 'baselineTo'> | undefined;
 
@@ -30,6 +35,7 @@ interface ReinvestigateModalProps {
   timeRange: DatePickerTimeRange | undefined;
   dateFormat: string;
   defaultToggleOn?: boolean;
+  hypotheses?: HypothesisItem[];
   confirm: (params: {
     question: string;
     updatedTimeRange: DatePickerTimeRange;
@@ -43,12 +49,15 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
   timeRange,
   dateFormat,
   defaultToggleOn = false,
+  hypotheses,
   confirm,
   closeModal,
 }) => {
   const [value, setValue] = useState(initialGoal);
   const [checked, setChecked] = useState(defaultToggleOn);
   const [selectedTimeRange, setSelectedTimeRange] = useState(timeRange);
+
+  const hasAcceptedHypothesis = hypotheses?.some((h) => h.status === HypothesisStatus.ACCEPTED);
 
   const { startFormatted, endFormatted } = useMemo(
     () => ({
@@ -110,6 +119,16 @@ export const ReinvestigateModal: React.FC<ReinvestigateModalProps> = ({
             checked={checked}
             onChange={(e) => setChecked(e.target.checked)}
           />
+          {hasAcceptedHypothesis && (
+            <>
+              <EuiSpacer size="s" />
+              <EuiCallOut
+                title="Reinvestigating may result in the accepted hypothesis being lost."
+                color="warning"
+                size="s"
+              />
+            </>
+          )}
         </EuiModalBody>
         <EuiModalFooter>
           <EuiButton

@@ -70,11 +70,19 @@ export class DataDistributionEmbeddable extends Embeddable<
   }
 
   /**
+   * Escape string for use in expression pipeline
+   * Must escape backslashes first, then single quotes
+   */
+  private escapeString = (data: string): string => {
+    return data.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  };
+
+  /**
    * Build expression for the visualization, it only supports vega type visualization now
    */
   private buildPipeline = async () => {
-    const jsonString = JSON.stringify(this.visInput?.spec).replace(/'/g, '\\u0027');
-    return `vega spec='${jsonString}'`;
+    const jsonString = JSON.stringify(this.visInput?.spec);
+    return `vega spec='${this.escapeString(jsonString)}'`;
   };
 
   private dirtyCheck() {

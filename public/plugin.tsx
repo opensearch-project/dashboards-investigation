@@ -100,9 +100,11 @@ export class InvestigationPlugin
     const getServices = async () => {
       const [coreStart, depsStart] = await core.getStartServices();
       const pplService: PPLService = new PPLService(core.http);
+      // Omit chat from deps since coreStart already have chat
+      const { chat: _chat, ...restDepsStart } = depsStart;
       const services: NoteBookServices = {
         ...coreStart,
-        ...depsStart,
+        ...restDepsStart,
         appName: NOTEBOOK_APP_NAME,
         pplService,
         savedObjects: coreStart.savedObjects,
