@@ -10,6 +10,7 @@ import { NotebookContext, NoteBookSource, NotebookType } from '../../../common/t
 import { CoreStart, UiSettingScope } from '../../../../../src/core/public';
 import { AssistantAction } from '../../../../../src/plugins/context_provider/public';
 import { CreateInvestigationToolResult } from './components/CreateInvestigationToolResult';
+import { validateDSLQuery, validatePPLQuery } from '../../utils/query_validation';
 
 export interface CreateInvestigationRequest {
   name: string;
@@ -75,11 +76,11 @@ export const createInvestigationAction = (
         },
         dslQuery: {
           type: 'string',
-          description: 'Optional DSL query to include in the investigation',
+          description: 'Optional OpenSearch DSL (Domain Specific Language) query in JSON format.',
         },
         pplQuery: {
           type: 'string',
-          description: 'Optional PPL query to include in the investigation',
+          description: 'Optional PPL (Piped Processing Language) query with pipe operators.',
         },
         timeField: {
           type: 'string',
@@ -229,11 +230,39 @@ export const createInvestigationAction = (
           };
         }
 
-        // Add query variables if provided
-        if (args.dslQuery || args.pplQuery) {
+        // Validate and add query variables if provided
+        // Invalid queries are ignored rather than blocking investigation creation
+        let validDslQuery: string | undefined;
+        let validPplQuery: string | undefined;
+
+        if (args.dslQuery) {
+          const dslValidation = await validateDSLQuery(
+            http,
+            args.dslQuery,
+            args.index,
+            dataSourceId || undefined
+          );
+          if (dslValidation.isValid) {
+            validDslQuery = args.dslQuery;
+          }
+        }
+
+        if (args.pplQuery) {
+          const pplValidation = await validatePPLQuery(
+            http,
+            args.pplQuery,
+            dataSourceId || undefined
+          );
+          if (pplValidation.isValid) {
+            validPplQuery = args.pplQuery;
+          }
+        }
+
+        // Add validated query variables
+        if (validDslQuery || validPplQuery) {
           context.variables = {
-            ...(args.dslQuery && { dslQuery: args.dslQuery }),
-            ...(args.pplQuery && { pplQuery: args.pplQuery }),
+            ...(validDslQuery && { dslQuery: validDslQuery }),
+            ...(validPplQuery && { pplQuery: validPplQuery }),
             pplFilters: [],
           };
         }
