@@ -49,12 +49,12 @@ export const handleError = (
   }
 
   // handle http response error of calling backend API
-  if (e.statusCode >= 400) {
+  if (e.statusCode >= 400 || e.status >= 400) {
     return res.customError({
       body: {
         message: 'Unable to process the request, please try again later.',
       },
-      statusCode: e.statusCode,
+      statusCode: e.statusCode || e.status,
     });
   }
 

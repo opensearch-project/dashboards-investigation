@@ -16,7 +16,7 @@
 
 import { schema } from '@osd/config-schema';
 import { IRouter, IOpenSearchDashboardsResponse } from '../../../../../src/core/server';
-import { getOpenSearchClientTransport } from '../utils';
+import { getOpenSearchClientTransport, handleError } from '../utils';
 import { OPENSEARCH_ML_COMMONS_API_PREFIX } from '../../../common/constants/ml_commons';
 import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
 
@@ -62,36 +62,26 @@ export function registerVisualizationSummaryRoute(router: IRouter) {
         });
 
         // Step 1: Get model ID from ML config API
-        let agentId: string;
-        try {
-          const configResponse = await transport.request({
-            method: 'GET',
-            path: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/config/${ML_CONFIG_NAME}`,
-          });
+        const configResponse = await transport.request({
+          method: 'GET',
+          path: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/config/${ML_CONFIG_NAME}`,
+        });
 
-          // Extract agent ID from config response
-          const configBody = configResponse.body as any;
-          agentId = configBody?.configuration?.agent_id;
+        // Extract agent ID from config response
+        const configBody = configResponse.body as any;
+        const agentId = configBody?.configuration?.agent_id;
 
-          if (!agentId) {
-            return response.notFound({
-              body: {
-                message: `Agent not found.`,
-              },
-            });
-          }
-        } catch (configError: any) {
-          return response.customError({
-            statusCode: configError.statusCode || 500,
+        if (!agentId) {
+          return response.notFound({
             body: {
-              message: `Failed to retrieve ML config '${ML_CONFIG_NAME}': ${configError.message}`,
+              message: `Agent not found.`,
             },
           });
         }
 
         // Step 2: Call ML model predict API with the visualization
-        try {
-          const predictResponse = await transport.request({
+        const predictResponse = await transport.request(
+          {
             method: 'POST',
             path: `${OPENSEARCH_ML_COMMONS_API_PREFIX}/agents/${agentId}/_execute`,
             body: {
@@ -100,64 +90,58 @@ export function registerVisualizationSummaryRoute(router: IRouter) {
                 local_time_offset: localTimeZoneOffset,
               },
             },
-          });
-
-          const predictBody = predictResponse.body as any;
-
-          // Extract summary from prediction response
-          // The response structure may vary depending on the model
-          const resultString = predictBody?.inference_results?.[0]?.output?.[0]?.result;
-          if (!resultString) {
-            return response.customError({
-              statusCode: 500,
-              body: {
-                message: `Invalid ML response structure: missing result field`,
-              },
-            });
+          },
+          {
+            // Generating visualization summary can be time consuming,
+            // give it a large timeout but no retries
+            requestTimeout: 60000,
+            maxRetries: 0,
           }
+        );
 
-          let resultJson;
-          try {
-            resultJson = JSON.parse(resultString);
-          } catch (parseError) {
-            return response.customError({
-              statusCode: 500,
-              body: {
-                message: `Failed to parse ML response: invalid JSON`,
-              },
-            });
-          }
+        const predictBody = predictResponse.body as any;
 
-          const summaryText = resultJson?.output?.message?.content?.[0]?.text;
-          if (!summaryText) {
-            return response.customError({
-              statusCode: 500,
-              body: {
-                message: `Invalid ML response structure: missing summary text`,
-              },
-            });
-          }
-
-          return response.ok({
-            body: {
-              summary: summaryText,
-            },
-          });
-        } catch (predictError: any) {
+        // Extract summary from prediction response
+        // The response structure may vary depending on the model
+        const resultString = predictBody?.inference_results?.[0]?.output?.[0]?.result;
+        if (!resultString) {
           return response.customError({
-            statusCode: predictError.statusCode || 500,
+            statusCode: 500,
             body: {
-              message: `Failed to generate visualization summary using agent '${agentId}': ${predictError.message}`,
+              message: `Invalid ML response structure: missing result field`,
             },
           });
         }
-      } catch (error: any) {
-        return response.customError({
-          statusCode: error.statusCode || 500,
+
+        let resultJson;
+        try {
+          resultJson = JSON.parse(resultString);
+        } catch (parseError) {
+          return response.customError({
+            statusCode: 500,
+            body: {
+              message: `Failed to parse ML response: invalid JSON`,
+            },
+          });
+        }
+
+        const summaryText = resultJson?.output?.message?.content?.[0]?.text;
+        if (!summaryText) {
+          return response.customError({
+            statusCode: 500,
+            body: {
+              message: `Invalid ML response structure: missing summary text`,
+            },
+          });
+        }
+
+        return response.ok({
           body: {
-            message: `Unexpected error generating visualization summary: ${error.message}`,
+            summary: summaryText,
           },
         });
+      } catch (error: any) {
+        return handleError(error, response);
       }
     }
   );
