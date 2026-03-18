@@ -15,6 +15,7 @@
  */
 
 import { registerVisualizationSummaryRoute } from './visualization_summary';
+import { setLogger } from '../../services/get_set';
 
 describe('registerVisualizationSummaryRoute', () => {
   let mockRouter: any;
@@ -24,6 +25,17 @@ describe('registerVisualizationSummaryRoute', () => {
   let routeHandler: any;
 
   beforeEach(() => {
+    // Set up mock logger for handleError
+    setLogger({
+      error: jest.fn(),
+      warn: jest.fn(),
+      info: jest.fn(),
+      debug: jest.fn(),
+      trace: jest.fn(),
+      fatal: jest.fn(),
+      get: jest.fn(),
+    } as any);
+
     // Mock router
     mockRouter = {
       post: jest.fn(),
@@ -177,8 +189,56 @@ describe('registerVisualizationSummaryRoute', () => {
             local_time_offset: 480,
           },
         },
+      }),
+      expect.objectContaining({
+        requestTimeout: 60000,
+        maxRetries: 0,
       })
     );
+  });
+
+  it('should call ML agent execute API with timeout options', async () => {
+    const mockConfigResponse = {
+      body: {
+        configuration: {
+          agent_id: 'agent-123',
+        },
+      },
+    };
+
+    const mockPredictResponse = {
+      body: {
+        inference_results: [
+          {
+            output: [
+              {
+                result: JSON.stringify({
+                  output: {
+                    message: {
+                      content: [{ text: 'Test summary' }],
+                    },
+                  },
+                }),
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    mockContext.core.opensearch.client.asCurrentUser.transport.request
+      .mockResolvedValueOnce(mockConfigResponse)
+      .mockResolvedValueOnce(mockPredictResponse);
+
+    await routeHandler(mockContext, mockRequest, mockResponse);
+
+    // Verify that the second call (ML agent execute) includes timeout options
+    const secondCall =
+      mockContext.core.opensearch.client.asCurrentUser.transport.request.mock.calls[1];
+    expect(secondCall[1]).toEqual({
+      requestTimeout: 60000,
+      maxRetries: 0,
+    });
   });
 
   it('should return summary on successful prediction', async () => {
@@ -234,7 +294,7 @@ describe('registerVisualizationSummaryRoute', () => {
     expect(mockResponse.customError).toHaveBeenCalledWith({
       statusCode: 500,
       body: {
-        message: expect.stringContaining('Failed to retrieve ML config'),
+        message: 'Unable to process the request, please try again later.',
       },
     });
   });
@@ -260,7 +320,7 @@ describe('registerVisualizationSummaryRoute', () => {
     expect(mockResponse.customError).toHaveBeenCalledWith({
       statusCode: 500,
       body: {
-        message: expect.stringContaining('Failed to generate visualization summary'),
+        message: 'Unable to process the request, please try again later.',
       },
     });
   });
@@ -376,6 +436,10 @@ describe('registerVisualizationSummaryRoute', () => {
               local_time_offset: 480,
             },
           },
+        }),
+        expect.objectContaining({
+          requestTimeout: 60000,
+          maxRetries: 0,
         })
       );
     });
@@ -433,6 +497,10 @@ describe('registerVisualizationSummaryRoute', () => {
               local_time_offset: -480,
             },
           },
+        }),
+        expect.objectContaining({
+          requestTimeout: 60000,
+          maxRetries: 0,
         })
       );
     });
@@ -490,6 +558,10 @@ describe('registerVisualizationSummaryRoute', () => {
               local_time_offset: 0,
             },
           },
+        }),
+        expect.objectContaining({
+          requestTimeout: 60000,
+          maxRetries: 0,
         })
       );
     });
