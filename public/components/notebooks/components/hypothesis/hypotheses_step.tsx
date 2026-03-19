@@ -118,7 +118,7 @@ export const HypothesesStep = ({
                           )}
                         </EuiFlexItem>
                         <EuiFlexItem>
-                          <EuiText size="s">
+                          <EuiText size="s" style={{ wordBreak: 'break-word' }}>
                             {executorMessage.input}
                             {!isLastMessageLoading && duration !== undefined && (
                               <EuiText color="subdued" size="xs">

@@ -13,6 +13,7 @@ import {
 import { DataDistributionService } from '../components/notebooks/components/data_distribution/data_distribution_service';
 import { getPPLQueryWithTimeRange } from '../utils/time';
 import { getNotifications } from '../services';
+import { extractErrorMessage } from '../utils/error';
 
 export const DataDistributionParagraphItem: ParagraphRegistryItem<AnomalyVisualizationAnalysisOutputResult> = {
   ParagraphComponent: DataDistributionContainer,
@@ -174,12 +175,9 @@ ${guidelinesText}
       });
       updateLoadingState(false, false);
     } catch (error) {
-      updateLoadingState(
-        false,
-        false,
-        error.message || error.body || 'Failed to fetch data distribution'
-      );
-      getNotifications().toasts.addDanger(error.message);
+      const errorMessage = extractErrorMessage(error, 'Failed to fetch data distribution');
+      updateLoadingState(false, false, errorMessage);
+      getNotifications().toasts.addDanger(errorMessage);
     }
   },
 };
