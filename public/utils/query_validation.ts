@@ -30,16 +30,24 @@ export const validatePPLQuery = async (
       };
     }
 
-    // Execute dry-run with LIMIT 0 to validate syntax without fetching data
-    const dryRunQuery = `${trimmedQuery} | head 0`;
+    // Check for basic PPL syntax (should start with 'source' or 'search')
+    const pplPattern = /^\s*(source\s*=|search\s+source\s*=)/i;
+    if (!pplPattern.test(trimmedQuery)) {
+      return {
+        isValid: false,
+        error:
+          'Invalid PPL syntax: Query must start with "source = <index>" or "search source = <index>"',
+      };
+    }
 
+    // Use _explain endpoint to validate syntax without executing the query
     await callOpenSearchCluster({
       http,
       dataSourceId,
       request: {
-        path: '/_plugins/_ppl',
+        path: '/_plugins/_ppl/_explain',
         method: 'POST',
-        body: JSON.stringify({ query: dryRunQuery }),
+        body: JSON.stringify({ query: trimmedQuery }),
       },
     });
 

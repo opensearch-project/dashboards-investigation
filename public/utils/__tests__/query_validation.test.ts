@@ -36,9 +36,9 @@ describe('Query Validation', () => {
         http: mockHttp,
         dataSourceId: 'test-ds',
         request: {
-          path: '/_plugins/_ppl',
+          path: '/_plugins/_ppl/_explain',
           method: 'POST',
-          body: JSON.stringify({ query: 'source = logs | where status="error" | head 0' }),
+          body: JSON.stringify({ query: 'source = logs | where status="error"' }),
         },
       });
     });
@@ -48,6 +48,14 @@ describe('Query Validation', () => {
 
       expect(result.isValid).toBe(false);
       expect(result.error).toBe('PPL query cannot be empty');
+    });
+
+    it('should reject PPL query without source keyword', async () => {
+      const result = await validatePPLQuery(mockHttp, 'where status="error"', 'test-ds');
+
+      expect(result.isValid).toBe(false);
+      expect(result.error).toContain('Invalid PPL syntax');
+      expect(result.error).toContain('must start with "source = <index>"');
     });
 
     it('should handle PPL validation errors from OpenSearch', async () => {
