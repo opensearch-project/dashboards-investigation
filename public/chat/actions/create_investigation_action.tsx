@@ -27,7 +27,7 @@ export interface CreateInvestigationRequest {
     from: string;
     to: string;
   };
-  dataSourceId?: string;
+  datasourceId?: string;
   confirmed?: boolean; // whether user confirmed the action
 }
 
@@ -146,9 +146,8 @@ export const createInvestigationAction = (
 
         // Get default data source ID
         const dataSourceId =
-          args.dataSourceId || uiSettings
-            ? await uiSettings.getUserProvidedWithScope<string | null>('defaultDataSource', scope)
-            : undefined;
+          args.datasourceId ||
+          (await uiSettings.getUserProvidedWithScope<string | null>('defaultDataSource', scope));
 
         // Build the notebook context
         const context: NotebookContext = {
