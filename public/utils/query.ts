@@ -5,7 +5,7 @@
 
 import { PPL_ENDPOINT, PPL_EXPLAIN_ENDPOINT } from '../../common/constants/shared';
 import { HttpSetup } from '../../../../src/core/public';
-import { callOpenSearchCluster } from '../../public/plugin_helpers/plugin_proxy_call';
+import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
 import { extractErrorMessage } from './error';
 
 /**
