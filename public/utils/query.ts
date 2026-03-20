@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { PPL_ENDPOINT } from '../../common/constants/shared';
+import { PPL_ENDPOINT, PPL_EXPLAIN_ENDPOINT } from '../../common/constants/shared';
 import { HttpSetup } from '../../../../src/core/public';
 import { callOpenSearchCluster } from '../../public/plugin_helpers/plugin_proxy_call';
+import { extractErrorMessage } from './error';
 
 /**
  * The size that query result should always be sampling to
@@ -147,4 +148,37 @@ export const isDateAppenddablePPL = (query: string) => {
   const trimmedQuery = query.trim();
   const describePattern = /^describe/i;
   return !describePattern.test(trimmedQuery);
+};
+
+export interface PPLValidationResult {
+  isValid: boolean;
+  error?: string;
+}
+
+/**
+ * Validates a PPL query using the _explain API to check syntax without executing.
+ * Returns validation result with error message if invalid.
+ */
+export const validatePPLQuery = async (params: PPLQueryParams): Promise<PPLValidationResult> => {
+  const { query, http, dataSourceId } = params;
+
+  if (!query || !query.trim()) {
+    return { isValid: false, error: 'PPL query is empty' };
+  }
+
+  try {
+    await callOpenSearchCluster({
+      http,
+      dataSourceId,
+      request: {
+        path: PPL_EXPLAIN_ENDPOINT,
+        method: 'POST',
+        body: JSON.stringify({ query }),
+      },
+    });
+    return { isValid: true };
+  } catch (error) {
+    const errorMessage = extractErrorMessage(error, 'Invalid PPL query');
+    return { isValid: false, error: errorMessage };
+  }
 };

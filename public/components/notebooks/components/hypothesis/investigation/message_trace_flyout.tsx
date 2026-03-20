@@ -266,7 +266,7 @@ export const MessageTraceFlyout = ({
             <EuiAccordion
               id={`trace-${index}`}
               buttonContent={
-                <EuiText size="s">
+                <EuiText size="s" style={{ wordBreak: 'break-word' }}>
                   {`Step ${index + 1} - ${isFromLLM ? reason : `Execute ${origin}`}`}
                   {durationStr && (
                     <EuiText color="subdued" size="xs">

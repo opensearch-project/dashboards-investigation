@@ -9,6 +9,7 @@ import {
   jsonArrayToTsv,
   flattenObject,
   executePPLQuery,
+  validatePPLQuery,
 } from '../query';
 import { callOpenSearchCluster } from '../../plugin_helpers/plugin_proxy_call';
 
@@ -353,6 +354,117 @@ describe('Query Utils', () => {
       expect(result).toBe(
         'id\tuser.name\tactive\tmetadata.created\n1\tJohn\ttrue\t\n2\t\tfalse\t2023-01-01'
       );
+    });
+  });
+
+  describe('validatePPLQuery', () => {
+    it('should return valid result when query syntax is correct', async () => {
+      const explainResponse = { root: { name: 'ProjectOperator' } };
+      mockCallOpenSearchCluster.mockResolvedValueOnce(explainResponse);
+
+      const params = {
+        http: mockHttp as any,
+        dataSourceId: 'test-datasource',
+        query: 'source=logs | fields message',
+      };
+
+      const result = await validatePPLQuery(params);
+
+      expect(result.isValid).toBe(true);
+      expect(result.error).toBeUndefined();
+      expect(mockCallOpenSearchCluster).toHaveBeenCalledWith({
+        http: mockHttp,
+        dataSourceId: 'test-datasource',
+        request: {
+          path: '/_plugins/_ppl/_explain',
+          method: 'POST',
+          body: JSON.stringify({ query: 'source=logs | fields message' }),
+        },
+      });
+    });
+
+    it('should return invalid result with error message when query fails', async () => {
+      const mockError = {
+        body: {
+          error: {
+            reason: 'Invalid Query',
+            details: '[field] is not a valid term',
+            type: 'SyntaxCheckException',
+          },
+        },
+      };
+      mockCallOpenSearchCluster.mockRejectedValueOnce(mockError);
+
+      const params = {
+        http: mockHttp as any,
+        query: 'source=logs | field a,b',
+      };
+
+      const result = await validatePPLQuery(params);
+
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe('[field] is not a valid term');
+    });
+
+    it('should return invalid result for empty query', async () => {
+      const params = {
+        http: mockHttp as any,
+        query: '',
+      };
+
+      const result = await validatePPLQuery(params);
+
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe('PPL query is empty');
+      expect(mockCallOpenSearchCluster).not.toHaveBeenCalled();
+    });
+
+    it('should return invalid result for whitespace-only query', async () => {
+      const params = {
+        http: mockHttp as any,
+        query: '   ',
+      };
+
+      const result = await validatePPLQuery(params);
+
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe('PPL query is empty');
+    });
+
+    it('should extract error reason when details not available', async () => {
+      const mockError = {
+        body: {
+          error: {
+            reason: 'Syntax error in query',
+          },
+        },
+      };
+      mockCallOpenSearchCluster.mockRejectedValueOnce(mockError);
+
+      const params = {
+        http: mockHttp as any,
+        query: 'invalid query',
+      };
+
+      const result = await validatePPLQuery(params);
+
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe('Syntax error in query');
+    });
+
+    it('should use fallback message when no error details available', async () => {
+      const mockError = new Error('Network error');
+      mockCallOpenSearchCluster.mockRejectedValueOnce(mockError);
+
+      const params = {
+        http: mockHttp as any,
+        query: 'source=logs',
+      };
+
+      const result = await validatePPLQuery(params);
+
+      expect(result.isValid).toBe(false);
+      expect(result.error).toBe('Network error');
     });
   });
 });

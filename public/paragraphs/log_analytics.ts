@@ -12,6 +12,7 @@ import { sortPatternMapDifference } from '../components/notebooks/components/log
 import { ParagraphRegistryItem } from '../services/paragraph_service';
 import { LogPatternService, LogPatternAnalysisParams } from '../services/requests/log_pattern';
 import { getClient, getNotifications } from '../services';
+import { extractErrorMessage } from '../utils/error';
 
 export const LogPatternParagraphItem: ParagraphRegistryItem<LogPatternAnalysisResult> = {
   ParagraphComponent: LogPatternContainer,
@@ -94,15 +95,16 @@ export const LogPatternParagraphItem: ParagraphRegistryItem<LogPatternAnalysisRe
         isLoadingLogSequence: false,
       });
     } catch (error) {
+      const errorMessage = extractErrorMessage(error, 'Failed to analyze log patterns');
       updateLoadingState(
         {
           isLoadingLogInsights: false,
           isLoadingPatternMapDifference: false,
           isLoadingLogSequence: false,
         },
-        error.message || 'Failed to analyze log patterns'
+        errorMessage
       );
-      getNotifications().toasts.addDanger(error.message);
+      getNotifications().toasts.addDanger(errorMessage);
     }
   },
   getContext: async (paragraph) => {

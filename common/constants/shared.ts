@@ -15,6 +15,7 @@ export const SECURITY_PLUGIN_ACCOUNT_API = '/api/v1/configuration/account';
 
 // Server route
 export const PPL_ENDPOINT = '/_plugins/_ppl';
+export const PPL_EXPLAIN_ENDPOINT = '/_plugins/_ppl/_explain';
 export const SQL_ENDPOINT = '/_plugins/_sql';
 
 export const investigationNotebookID = 'investigation-notebooks';

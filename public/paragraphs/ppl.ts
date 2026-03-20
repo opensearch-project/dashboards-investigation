@@ -17,6 +17,7 @@ import { parsePPLQuery } from '../../common/utils';
 import { addTimeRangeFilter } from '../utils/time';
 import { NotebookType } from '../../common/types/notebooks';
 import { ParagraphState } from '../../common/state/paragraph_state';
+import { extractErrorMessage } from '../utils/error';
 
 export const PPLParagraphItem: ParagraphRegistryItem<string, unknown, QueryObject> = {
   ParagraphComponent: PPLParagraph,
@@ -117,14 +118,15 @@ ${jsonArrayToTsv(data)}
         isRunning: false,
       });
     } catch (err) {
+      const errorMessage = extractErrorMessage(err, 'Failed to execute query');
       paragraphState.resetFullfilledOutput();
       paragraphState.updateFullfilledOutput({
-        error: err.message,
+        error: errorMessage,
       });
       paragraphState.updateUIState({
         isRunning: false,
       });
-      getNotifications().toasts.addDanger(`Error executing query: ${err.message}`);
+      getNotifications().toasts.addDanger(`Error executing query: ${errorMessage}`);
     }
   },
 };
