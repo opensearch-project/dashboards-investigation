@@ -29,4 +29,11 @@ httpClientMockInstance.put = jest.fn(() => ({
   })),
 }));
 
+httpClientMockInstance.basePath = {
+  prepend: jest.fn((path: string) => path),
+  remove: jest.fn((path: string) => path),
+  get: jest.fn(() => ''),
+  serverBasePath: '',
+};
+
 export const httpClientMock = httpClientMockInstance as HttpSetup;
