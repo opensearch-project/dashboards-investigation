@@ -19,7 +19,7 @@ import { CoreStart } from '../../../../../../src/core/public';
 import { CreateInvestigationRequest } from '../create_investigation_action';
 
 interface Props {
-  data: CreateInvestigationRequest;
+  data: CreateInvestigationRequest | string;
   services: CoreStart;
   isComplete?: boolean;
   onEdit?: () => void;
@@ -37,6 +37,27 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
 }) => {
   const { uiSettings } = services;
   const dateFormat = uiSettings?.get('dateFormat');
+
+  // Parse data if it's a string (streaming JSON)
+  const parsedData: Partial<CreateInvestigationRequest> = React.useMemo(() => {
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data);
+      } catch (e) {
+        // If JSON is incomplete/invalid, return empty object
+        return {};
+      }
+    }
+    return data || {};
+  }, [data]);
+
+  // Check if data is still streaming (incomplete)
+  const isStreaming =
+    !isComplete &&
+    (typeof data === 'string' ||
+      !parsedData.initialGoal ||
+      !parsedData.symptom ||
+      !parsedData.index);
 
   // Format time range for display
   const formatTimeRange = (timeRange?: { from: string; to: string }) => {
@@ -63,13 +84,12 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
         <EuiSplitPanel.Outer>
           <EuiSplitPanel.Inner paddingSize="s">
             <EuiFlexGroup alignItems="center" gutterSize="s" responsive={false}>
-              <EuiFlexItem grow={false}>
-                {isComplete ? (
-                  <EuiIcon type="checkInCircleEmpty" color="success" />
-                ) : (
-                  <EuiLoadingSpinner size="m" />
-                )}
-              </EuiFlexItem>
+              {(isComplete || isStreaming) && (
+                <EuiFlexItem grow={false}>
+                  {isComplete && <EuiIcon type="checkInCircleEmpty" color="success" />}
+                  {isStreaming && <EuiLoadingSpinner size="m" />}
+                </EuiFlexItem>
+              )}
               <EuiFlexItem>
                 <EuiText size="s">
                   <strong>Confirm investigation details</strong>
@@ -86,7 +106,7 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
                 </EuiText>
                 <EuiSpacer size="xs" />
                 <EuiText size="s" color="subdued">
-                  {data.initialGoal}
+                  {parsedData.initialGoal || '—'}
                 </EuiText>
               </EuiFlexItem>
 
@@ -96,7 +116,7 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
                 </EuiText>
                 <EuiSpacer size="xs" />
                 <EuiText size="s" color="subdued">
-                  {data.symptom}
+                  {parsedData.symptom || '—'}
                 </EuiText>
               </EuiFlexItem>
 
@@ -106,18 +126,18 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
                 </EuiText>
                 <EuiSpacer size="xs" />
                 <EuiText size="s" color="subdued">
-                  {data.index}
+                  {parsedData.index || '—'}
                 </EuiText>
               </EuiFlexItem>
 
-              {data.timeRange && (
+              {parsedData.timeRange && (
                 <EuiFlexItem>
                   <EuiText size="s">
                     <strong>Time range</strong>
                   </EuiText>
                   <EuiSpacer size="xs" />
                   <EuiText size="s" color="subdued">
-                    {formatTimeRange(data.timeRange)}
+                    {formatTimeRange(parsedData.timeRange)}
                   </EuiText>
                 </EuiFlexItem>
               )}
@@ -129,7 +149,7 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
               <EuiFlexGroup justifyContent="spaceBetween" alignItems="center" gutterSize="s">
                 <EuiFlexItem>
                   <EuiText size="s">
-                    <strong>Investigation details</strong>
+                    <strong>Confirm investigation details</strong>
                   </EuiText>
                 </EuiFlexItem>
                 <EuiFlexItem grow={false}>

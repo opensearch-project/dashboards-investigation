@@ -51,7 +51,7 @@ describe('CreateInvestigationToolResult', () => {
     render(<CreateInvestigationToolResult {...defaultProps} args={mockArgs} />);
 
     // Check for actual UI elements
-    expect(screen.getByText('Confirm investigation details')).toBeInTheDocument();
+    expect(screen.getAllByText('Confirm investigation details').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Goal')).toBeInTheDocument();
     expect(screen.getByText('Find root cause')).toBeInTheDocument();
   });

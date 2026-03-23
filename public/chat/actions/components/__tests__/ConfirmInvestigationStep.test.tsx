@@ -32,12 +32,43 @@ describe('ConfirmInvestigationStep', () => {
     jest.clearAllMocks();
   });
 
-  it('renders loading state when not complete', () => {
+  it('renders loading state when data is streaming', () => {
+    // Pass incomplete data (missing fields) to simulate streaming
+    const incompleteData = {
+      name: 'Test Investigation',
+      initialGoal: 'Find root cause of errors',
+      symptom: '',
+      index: '',
+    } as CreateInvestigationRequest;
+
+    render(<ConfirmInvestigationStep {...defaultProps} data={incompleteData} />);
+
+    expect(screen.getAllByText('Confirm investigation details').length).toBeGreaterThanOrEqual(1);
+    // EuiLoadingSpinner should show when data is incomplete
+    expect(document.querySelector('.euiLoadingSpinner')).toBeInTheDocument();
+  });
+
+  it('does not show spinner when data is complete', () => {
+    // Complete data should not show spinner even if isComplete is false
     render(<ConfirmInvestigationStep {...defaultProps} />);
 
-    expect(screen.getByText('Confirm investigation details')).toBeInTheDocument();
-    // EuiLoadingSpinner doesn't have progressbar role, check for the spinner class
+    expect(screen.getAllByText('Confirm investigation details').length).toBeGreaterThanOrEqual(1);
+    // No spinner should show when data is complete
+    expect(document.querySelector('.euiLoadingSpinner')).not.toBeInTheDocument();
+  });
+
+  it('handles streaming JSON data', () => {
+    // Pass partial JSON string to simulate streaming
+    const partialJsonString = '{"name":"Test Investigation","initialGoal":"Find root cause"';
+
+    render(<ConfirmInvestigationStep {...defaultProps} data={partialJsonString as any} />);
+
+    expect(screen.getAllByText('Confirm investigation details').length).toBeGreaterThanOrEqual(1);
+    // Should show spinner for incomplete JSON
     expect(document.querySelector('.euiLoadingSpinner')).toBeInTheDocument();
+    // Should show placeholders for missing fields
+    const placeholders = screen.getAllByText('—');
+    expect(placeholders.length).toBeGreaterThan(0);
   });
 
   it('renders complete state with success icon', () => {
@@ -91,7 +122,7 @@ describe('ConfirmInvestigationStep', () => {
       />
     );
 
-    expect(screen.getByText('Investigation details')).toBeInTheDocument();
+    expect(screen.getAllByText('Confirm investigation details').length).toBe(2);
     expect(screen.getByLabelText('Edit investigation details')).toBeInTheDocument();
     expect(screen.getByLabelText('Cancel investigation')).toBeInTheDocument();
     expect(screen.getByLabelText('Confirm investigation')).toBeInTheDocument();
