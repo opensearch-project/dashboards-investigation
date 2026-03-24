@@ -21,6 +21,7 @@ describe('useReplaceAsPrimary', () => {
   const mockAddDanger = jest.fn();
   const mockUpdateHypotheses = jest.fn();
   const mockUpdateValue = jest.fn();
+  const mockRecordEvent = jest.fn();
 
   const mockHypotheses = [
     { id: 'hyp1', title: 'Hypothesis 1', likelihood: 0.9 },
@@ -38,6 +39,9 @@ describe('useReplaceAsPrimary', () => {
             addSuccess: mockAddSuccess,
             addDanger: mockAddDanger,
           },
+        },
+        investigationTelemetry: {
+          recordEvent: mockRecordEvent,
         },
       },
     });

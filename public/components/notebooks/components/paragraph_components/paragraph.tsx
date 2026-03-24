@@ -38,7 +38,7 @@ export const Paragraph = (props: ParagraphProps) => {
   const paragraph = context.state.value.paragraphs[index];
   const { hypotheses } = useObservable(context.state.getValue$(), context.state.value);
   const {
-    services: { notifications, paragraphService, http },
+    services: { notifications, paragraphService, http, investigationTelemetry },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { id: notebookId } = useParams<{ id: string }>();
   const [isSaving, setIsSaving] = useState(false);
@@ -113,6 +113,24 @@ export const Paragraph = (props: ParagraphProps) => {
         },
       });
       await saveParagraph({ paragraphStateValue: paragraph.value, showLoading: false });
+
+      // Record telemetry for finding feedback
+      if (newFeedback === 'CONFIRMED') {
+        investigationTelemetry.recordEvent({
+          name: 'finding_confirm',
+          data: { notebookId, findingId: paragraphValue.id },
+        });
+      } else if (newFeedback === 'REJECTED') {
+        investigationTelemetry.recordEvent({
+          name: 'finding_reject',
+          data: { notebookId, findingId: paragraphValue.id },
+        });
+      } else {
+        investigationTelemetry.recordEvent({
+          name: 'finding_undo_feedback',
+          data: { notebookId, findingId: paragraphValue.id },
+        });
+      }
     } catch (error) {
       notifications.toasts.addError(error, { title: 'Updating finding failed.' });
       paragraph.updateInput({
@@ -180,6 +198,33 @@ export const Paragraph = (props: ParagraphProps) => {
       });
 
       context.state.updateValue({ hypotheses: updatedHypotheses });
+
+      // Record telemetry for marking finding
+      if (listType === 'irrelevant') {
+        if (isInIrrelevant) {
+          investigationTelemetry.recordEvent({
+            name: 'finding_undo_mark',
+            data: { notebookId, findingId: paragraphValue.id },
+          });
+        } else {
+          investigationTelemetry.recordEvent({
+            name: 'finding_thumb_down',
+            data: { notebookId, findingId: paragraphValue.id },
+          });
+        }
+      } else {
+        if (isInSelected) {
+          investigationTelemetry.recordEvent({
+            name: 'finding_undo_mark',
+            data: { notebookId, findingId: paragraphValue.id },
+          });
+        } else {
+          investigationTelemetry.recordEvent({
+            name: 'finding_thumb_up',
+            data: { notebookId, findingId: paragraphValue.id },
+          });
+        }
+      }
 
       const message =
         listType === 'irrelevant'

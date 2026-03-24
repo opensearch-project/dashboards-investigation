@@ -22,6 +22,7 @@ import {
   getMLCommonsAgentDetail,
   getMLCommonsConfig,
 } from '../utils/ml_commons_apis';
+import type { FinalMessageResult } from '../components/notebooks/components/hypothesis/investigation/utils';
 import { extractParentInteractionId } from '../../common/utils/task';
 import {
   AgenticMemory,
@@ -114,7 +115,7 @@ const isValidHypothesesResponse = (parsed: unknown) => {
 export const useInvestigation = () => {
   const context = useContext(NotebookReactContext);
   const {
-    services: { http, paragraphService, notifications, application },
+    services: { http, paragraphService, notifications, application, investigationTelemetry },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { addError } = useToast();
   const { updateHypotheses, updateNotebookContext } = useNotebook();
@@ -301,7 +302,11 @@ export const useInvestigation = () => {
   );
 
   const handleInvestigationFailure = useCallback(
-    async (error: Error, memory?: AgenticMemory) => {
+    async (
+      error: Error,
+      memory?: AgenticMemory,
+      timestamps?: { createTime?: number; updateTime?: number }
+    ) => {
       const failedInfo: FailedInvestigationInfo = {
         error,
         memory,
@@ -313,6 +318,34 @@ export const useInvestigation = () => {
         investigationPhase: InvestigationPhase.COMPLETED,
       });
 
+      // Calculate duration from server-side timestamps
+      const durationMs =
+        timestamps?.createTime && timestamps?.updateTime
+          ? timestamps.updateTime - timestamps.createTime
+          : undefined;
+
+      investigationTelemetry.recordEvent({
+        name: 'investigation_failure',
+        data: {
+          notebookId: context.state.value.id,
+          errorMessage: error.message,
+          errorType: error.name,
+          durationMs,
+        },
+      });
+      if (durationMs !== undefined) {
+        investigationTelemetry.recordMetric({
+          name: 'investigation_duration',
+          value: durationMs,
+          unit: 'ms',
+        });
+      }
+      investigationTelemetry.recordError({
+        type: error.name || 'InvestigationError',
+        message: error.message || 'Investigation failed',
+        context: { notebookId: context.state.value.id },
+      });
+
       // Persist the failed investigation info to backend
       try {
         await updateHypotheses(hypothesesRef.current || []);
@@ -320,14 +353,15 @@ export const useInvestigation = () => {
         console.error('Failed to save failed investigation info:', saveError);
       }
     },
-    [context.state, updateHypotheses]
+    [context.state, updateHypotheses, investigationTelemetry]
   );
 
   const handlePollingSuccess = useCallback(
-    async (message: string, runningMemory: AgenticMemory) => {
+    async (result: FinalMessageResult, runningMemory: AgenticMemory) => {
+      const { message, createTime, updateTime } = result;
       try {
         const responseJson = await withErrorTitle('Failed to parse response', async () => {
-          const parsed = isValidJSON(message);
+          const parsed = isValidJSON(message!);
 
           isValidHypothesesResponse(parsed);
           return parsed;
@@ -343,12 +377,32 @@ export const useInvestigation = () => {
           historyMemory: runningMemory,
           failedInvestigation: undefined,
         });
+
+        // Calculate duration from server-side timestamps
+        const durationMs = createTime && updateTime ? updateTime - createTime : undefined;
+
+        investigationTelemetry.recordEvent({
+          name: 'investigation_success',
+          data: {
+            notebookId: context.state.value.id,
+            hypothesesCount: responseJson.hypotheses?.length,
+            findingsCount: responseJson.findings?.length,
+            durationMs,
+          },
+        });
+        if (durationMs !== undefined) {
+          investigationTelemetry.recordMetric({
+            name: 'investigation_duration',
+            value: durationMs,
+            unit: 'ms',
+          });
+        }
       } catch (error: any) {
         addError({
           error,
           title: getErrorTitle(error, 'Failed to complete investigation'),
         });
-        await handleInvestigationFailure(error, runningMemory);
+        await handleInvestigationFailure(error, runningMemory, { createTime, updateTime });
       } finally {
         context.state.updateValue({
           runningMemory: undefined,
@@ -362,6 +416,7 @@ export const useInvestigation = () => {
       updateInvestigationName,
       addError,
       handleInvestigationFailure,
+      investigationTelemetry,
     ]
   );
 
@@ -381,7 +436,7 @@ export const useInvestigation = () => {
       const sharedPollingService = SharedMessagePollingService.getInstance(http);
 
       try {
-        const message = await firstValueFrom(
+        const result = await firstValueFrom(
           race(
             sharedPollingService
               .poll({
@@ -390,11 +445,11 @@ export const useInvestigation = () => {
                 dataSourceId,
                 pollInterval: INTERVAL_TIME,
               })
-              .pipe(filter(Boolean)),
+              .pipe(filter((r): r is FinalMessageResult => !!r?.message)),
             fromEvent(abortSignal, 'abort').pipe(concatMap(() => throwError(new Error('ABORTED'))))
           )
         );
-        await handlePollingSuccess(message as string, runningMemory);
+        await handlePollingSuccess(result, runningMemory);
       } catch (error) {
         if (error.message && error.message === 'ABORTED') {
           return;
@@ -603,6 +658,15 @@ export const useInvestigation = () => {
       initialGoal?: string;
       timeRange?: InvestigationTimeRange;
     }) => {
+      // Record reinvestigate telemetry
+      investigationTelemetry.recordEvent({
+        name: 'investigation_reinvestigate',
+        data: {
+          notebookId: context.state.value.id,
+          withExistingContent: true,
+        },
+      });
+
       // Clear old memory IDs before starting new investigation
       context.state.updateValue({
         runningMemory: undefined,
@@ -765,6 +829,7 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
       retrieveInvestigationContextPrompt,
       contextStateValue?.hypotheses,
       executeInvestigation,
+      investigationTelemetry,
     ]
   );
 

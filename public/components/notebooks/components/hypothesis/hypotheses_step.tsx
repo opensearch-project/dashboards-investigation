@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import {
   EuiLoadingContent,
   EuiText,
@@ -24,6 +24,8 @@ import { isMarkdownText, calculateStepDuration } from './investigation/utils';
 import { formatTimeGap } from '../../../../utils/time';
 import { PERAgentMessageService } from './investigation/services/per_agent_message_service';
 import { PERAgentMemoryService } from './investigation/services/per_agent_memory_service';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { NoteBookServices } from '../../../../types';
 
 interface Props {
   isInvestigating: boolean;
@@ -38,6 +40,10 @@ export const HypothesesStep = ({
   onExplainThisStep,
   isInvestigating,
 }: Props) => {
+  const {
+    services: { investigationTelemetry },
+  } = useOpenSearchDashboards<NoteBookServices>();
+
   const observables = useMemo(
     () => ({
       executorMessages$: executorMemoryService.getMessages$(),
@@ -50,6 +56,17 @@ export const HypothesesStep = ({
   const executorError = useObservable(observables.executorError$);
   const executorMessages = useObservable(observables.executorMessages$);
   const loadingExecutorMessage = useObservable(observables.messagePollingState$);
+
+  const handleExplainStep = useCallback(
+    (messageId: string, stepIndex: number) => {
+      investigationTelemetry.recordEvent({
+        name: 'investigation_steps_explain',
+        data: { stepIndex },
+      });
+      onExplainThisStep(messageId);
+    },
+    [investigationTelemetry, onExplainThisStep]
+  );
 
   const renderTraces = () => {
     if (executorError) {
@@ -98,7 +115,7 @@ export const HypothesesStep = ({
                       <EuiSmallButtonEmpty
                         iconSide="right"
                         onClick={() => {
-                          onExplainThisStep(executorMessage.message_id);
+                          handleExplainStep(executorMessage.message_id, index);
                         }}
                       >
                         Explain this step

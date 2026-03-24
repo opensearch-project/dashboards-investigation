@@ -32,6 +32,7 @@ import {
   UsageCollectionStart,
 } from '../../../src/plugins/usage_collection/public';
 import { ChatPluginSetup, ChatPluginStart } from '../../../src/plugins/chat/public';
+import type { PluginTelemetryRecorder } from '../../../src/core/public';
 
 export interface AppPluginStartDependencies {
   navigation: NavigationPublicPluginStart;
@@ -70,6 +71,7 @@ export type NoteBookServices = CoreStart &
     contextService: ContextServiceSetup;
     updateContext: (id: string, chatContext: NoteBookAssistantContext | undefined) => void;
     findingService: FindingService;
+    investigationTelemetry: PluginTelemetryRecorder;
   };
 
 export interface InvestigationSetup {
