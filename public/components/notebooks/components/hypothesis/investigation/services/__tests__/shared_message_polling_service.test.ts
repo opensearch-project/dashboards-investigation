@@ -4,6 +4,7 @@
  */
 
 import { SharedMessagePollingService } from '../shared_message_polling_service';
+import { PollingMaxErrorsError } from '../../errors';
 import { getFinalMessage } from '../../utils';
 import { httpServiceMock } from '../../../../../../../../../../src/core/public/http/http_service.mock';
 import { CoreStart } from '../../../../../../../../../../src/core/public';
@@ -189,7 +190,7 @@ describe('SharedMessagePollingService', () => {
     subscription.unsubscribe();
   });
 
-  test('should handle errors from getFinalMessage', async () => {
+  test('should throw PollingMaxErrorsError after consecutive errors', async () => {
     const testError = new Error('Test error');
     (getFinalMessage as jest.Mock)
       .mockRejectedValueOnce(testError)
@@ -223,7 +224,7 @@ describe('SharedMessagePollingService', () => {
     jest.runAllTimers();
     await Promise.resolve();
 
-    expect(receivedError).toBeTruthy();
+    expect(receivedError).toBeInstanceOf(PollingMaxErrorsError);
     expect(receivedError!.message).toContain('Polling failed after');
 
     subscription.unsubscribe();

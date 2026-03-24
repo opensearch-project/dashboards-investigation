@@ -226,6 +226,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
                   message: schema.string(),
                   name: schema.maybe(schema.string()),
                   cause: schema.maybe(schema.any()),
+                  isRecoverable: schema.maybe(schema.boolean()),
                 }),
                 memory: schema.object({
                   executorMemoryId: schema.maybe(schema.string()),

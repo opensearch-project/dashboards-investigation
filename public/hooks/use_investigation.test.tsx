@@ -17,6 +17,10 @@ import { useNotebook } from './use_notebook';
 import { useToast } from './use_toast';
 import { isValidPERAgentInvestigationResponse } from '../../common/utils/per_agent';
 import { SharedMessagePollingService } from '../components/notebooks/components/hypothesis/investigation/services/shared_message_polling_service';
+import {
+  PollingTimeoutError,
+  PollingMaxErrorsError,
+} from '../components/notebooks/components/hypothesis/investigation/errors';
 
 jest.mock('../../../../src/plugins/opensearch_dashboards_react/public', () => ({
   useOpenSearchDashboards: jest.fn(),
@@ -26,7 +30,12 @@ jest.mock('../utils/ml_commons_apis');
 jest.mock('./use_notebook');
 jest.mock('./use_toast');
 jest.mock(
-  '../components/notebooks/components/hypothesis/investigation/services/shared_message_polling_service'
+  '../components/notebooks/components/hypothesis/investigation/services/shared_message_polling_service',
+  () => ({
+    SharedMessagePollingService: {
+      getInstance: jest.fn(),
+    },
+  })
 );
 jest.mock('../../common/utils/per_agent');
 jest.mock('react-use', () => ({
@@ -803,6 +812,132 @@ describe('useInvestigation', () => {
           }),
         })
       );
+    });
+  });
+
+  describe('recoverable failure handling', () => {
+    let mockSharedMessagePollingService: any;
+
+    beforeEach(() => {
+      mockSharedMessagePollingService = {
+        poll: jest.fn(),
+      };
+
+      (SharedMessagePollingService.getInstance as jest.Mock) = jest
+        .fn()
+        .mockReturnValue(mockSharedMessagePollingService);
+
+      (mlCommonsApis.getMLCommonsConfig as jest.Mock).mockResolvedValue({
+        configuration: { agent_id: 'test-agent-id' },
+      });
+      (mlCommonsApis.getMLCommonsAgentDetail as jest.Mock).mockResolvedValue({
+        memory: { memory_container_id: 'test-container-id' },
+      });
+      (mlCommonsApis.createAgenticExecutionMemory as jest.Mock).mockResolvedValue({
+        session_id: 'test-session-id',
+      });
+      (mlCommonsApis.executeMLCommonsAgent as jest.Mock).mockResolvedValue({
+        response: {
+          parent_interaction_id: 'test-parent-interaction',
+        },
+      });
+    });
+
+    it('should store memory in failedInvestigation when PollingTimeoutError occurs', async () => {
+      mockSharedMessagePollingService.poll.mockReturnValue(throwError(new PollingTimeoutError()));
+
+      const { result } = renderHook(() => useInvestigation(), { wrapper });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      // Check that runningMemory is cleared but failedInvestigation.memory has the recovery data
+      expect(mockNotebookState.value.runningMemory).toBeUndefined();
+      expect(mockNotebookState.value.failedInvestigation?.error.isRecoverable).toBe(true);
+      expect(mockNotebookState.value.failedInvestigation?.memory).toBeDefined();
+      expect(mockNotebookState.value.failedInvestigation?.memory?.parentInteractionId).toBe(
+        'test-parent-interaction'
+      );
+    });
+
+    it('should store memory in failedInvestigation when PollingMaxErrorsError occurs', async () => {
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        throwError(new PollingMaxErrorsError(5))
+      );
+
+      const { result } = renderHook(() => useInvestigation(), { wrapper });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      // Check that runningMemory is cleared but failedInvestigation.memory has the recovery data
+      expect(mockNotebookState.value.runningMemory).toBeUndefined();
+      expect(mockNotebookState.value.failedInvestigation?.error.isRecoverable).toBe(true);
+      expect(mockNotebookState.value.failedInvestigation?.memory).toBeDefined();
+      expect(mockNotebookState.value.failedInvestigation?.memory?.parentInteractionId).toBe(
+        'test-parent-interaction'
+      );
+    });
+
+    it('should clear runningMemory for non-recoverable errors', async () => {
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        throwError(new Error('Some other error'))
+      );
+
+      const { result } = renderHook(() => useInvestigation(), { wrapper });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      // Check that runningMemory is cleared for non-recoverable errors
+      expect(mockNotebookState.value.runningMemory).toBeUndefined();
+      expect(mockNotebookState.value.failedInvestigation?.error.isRecoverable).toBeFalsy();
+    });
+
+    it('should clear failedInvestigation when continueInvestigation is called', async () => {
+      // Setup state with a recoverable failure
+      mockNotebookState.updateValue({
+        runningMemory: {
+          memoryContainerId: 'test-container-id',
+          parentInteractionId: 'test-parent-interaction',
+          executorMemoryId: 'test-session-id',
+        },
+        failedInvestigation: {
+          error: new PollingTimeoutError(),
+          memory: {
+            memoryContainerId: 'test-container-id',
+            parentInteractionId: 'test-parent-interaction',
+          },
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      // Mock successful polling on retry
+      ((isValidPERAgentInvestigationResponse as unknown) as jest.Mock).mockReturnValue(true);
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of('{"findings":[],"hypotheses":[],"topologies":[]}')
+      );
+      mockParagraphHooks.batchDeleteParagraphs.mockResolvedValue({});
+      mockParagraphHooks.batchCreateParagraphs.mockResolvedValue({ paragraphs: [] });
+      mockParagraphHooks.batchRunParagraphs.mockResolvedValue({});
+
+      const { result } = renderHook(() => useInvestigation(), { wrapper });
+
+      await act(async () => {
+        await result.current.continueInvestigation();
+      });
+
+      // failedInvestigation should be cleared when resuming
+      expect(mockNotebookState.value.failedInvestigation).toBeUndefined();
     });
   });
 });

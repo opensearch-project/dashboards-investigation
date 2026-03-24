@@ -781,6 +781,11 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
         throw new Error('No ongoing investigation to continue');
       }
 
+      // Clear any previous failure state when resuming polling
+      context.state.updateValue({
+        failedInvestigation: undefined,
+      });
+
       return pollInvestigationCompletion({
         runningMemory,
       }).finally(() => {
