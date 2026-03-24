@@ -14,9 +14,10 @@ import { NoteBookServices } from '../../../../types';
 
 export const HypothesesFeedback: React.FC<{
   appName: string;
+  notebookId: string;
   usageCollection: UsageCollectionStart | undefined;
   openReinvestigateModal: (withFeedback?: boolean) => void;
-}> = ({ usageCollection, appName, openReinvestigateModal }) => {
+}> = ({ usageCollection, appName, notebookId, openReinvestigateModal }) => {
   const {
     services: { investigationTelemetry },
   } = useOpenSearchDashboards<NoteBookServices>();
@@ -35,16 +36,22 @@ export const HypothesesFeedback: React.FC<{
 
       // Record telemetry for thumb up/down
       if (eventName === 'thumbup') {
-        investigationTelemetry.recordEvent({ name: 'hypothesis_thumb_up', data: {} });
+        investigationTelemetry.recordEvent({
+          name: 'investigation_thumb_up',
+          data: { notebookId },
+        });
       } else {
-        investigationTelemetry.recordEvent({ name: 'hypothesis_thumb_down', data: {} });
+        investigationTelemetry.recordEvent({
+          name: 'investigation_thumb_down',
+          data: { notebookId },
+        });
       }
 
       if (eventName === 'thumbdown') {
         openReinvestigateModal(true);
       }
     },
-    [usageCollection, feedback, appName, openReinvestigateModal, investigationTelemetry]
+    [usageCollection, feedback, appName, notebookId, openReinvestigateModal, investigationTelemetry]
   );
 
   return (

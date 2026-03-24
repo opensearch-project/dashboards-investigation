@@ -340,11 +340,6 @@ export const useInvestigation = () => {
           unit: 'ms',
         });
       }
-      investigationTelemetry.recordError({
-        type: error.name || 'InvestigationError',
-        message: error.message || 'Investigation failed',
-        context: { notebookId: context.state.value.id },
-      });
 
       // Persist the failed investigation info to backend
       try {

@@ -620,6 +620,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
             <EuiFlexItem grow={false}>
               <HypothesesFeedback
                 appName={appName}
+                notebookId={notebookId}
                 usageCollection={usageCollection}
                 openReinvestigateModal={openReinvestigateModal}
               />

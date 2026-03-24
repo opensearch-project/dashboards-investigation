@@ -59,7 +59,6 @@ const mockParagraphService = {
 const mockInvestigationTelemetry = {
   recordEvent: jest.fn(),
   recordMetric: jest.fn(),
-  recordError: jest.fn(),
 };
 
 const createMockServices = () => ({
@@ -880,7 +879,6 @@ describe('useInvestigation', () => {
       // Reset telemetry mocks
       mockInvestigationTelemetry.recordEvent.mockClear();
       mockInvestigationTelemetry.recordMetric.mockClear();
-      mockInvestigationTelemetry.recordError.mockClear();
     });
 
     it('should record investigation_success event with duration on successful investigation', async () => {
@@ -981,32 +979,6 @@ describe('useInvestigation', () => {
           notebookId: 'test-notebook',
           durationMs: updateTime - createTime,
         }),
-      });
-    });
-
-    it('should record investigation error on failed investigation', async () => {
-      ((isValidPERAgentInvestigationResponse as unknown) as jest.Mock).mockReturnValue(false);
-
-      mockSharedMessagePollingService.poll.mockReturnValue(
-        of({
-          message: '{"invalid": "response"}',
-          createTime: 1711267562195,
-          updateTime: 1711267572195,
-        })
-      );
-
-      const { result } = renderHook(() => useInvestigation(), { wrapper });
-
-      await act(async () => {
-        await result.current.doInvestigate({
-          investigationQuestion: 'Test question',
-        });
-      });
-
-      expect(mockInvestigationTelemetry.recordError).toHaveBeenCalledWith({
-        type: expect.any(String),
-        message: expect.any(String),
-        context: { notebookId: 'test-notebook' },
       });
     });
 
