@@ -653,15 +653,6 @@ export const useInvestigation = () => {
       initialGoal?: string;
       timeRange?: InvestigationTimeRange;
     }) => {
-      // Record reinvestigate telemetry
-      investigationTelemetry.recordEvent({
-        name: 'investigation_reinvestigate',
-        data: {
-          notebookId: context.state.value.id,
-          withExistingContent: true,
-        },
-      });
-
       // Clear old memory IDs before starting new investigation
       context.state.updateValue({
         runningMemory: undefined,
@@ -824,7 +815,6 @@ ${convertParagraphsToFindings(newAddedFindingParagraphs)}`
       retrieveInvestigationContextPrompt,
       contextStateValue?.hypotheses,
       executeInvestigation,
-      investigationTelemetry,
     ]
   );
 
