@@ -111,9 +111,10 @@ export interface AgenticMemory {
 }
 
 export interface FailedInvestigationInfo {
-  error: Error;
+  error: Error & { isRecoverable?: boolean };
   memory?: AgenticMemory;
   timestamp: string;
+  /** Indicates if polling can be resumed on page refresh (e.g., timeout or transient errors) */
 }
 
 export type ParagraphInputType<TParameters = unknown> = ParagraphBackendType<TParameters>['input'];
