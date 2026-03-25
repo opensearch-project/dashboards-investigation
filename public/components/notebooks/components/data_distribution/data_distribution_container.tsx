@@ -30,16 +30,21 @@ import {
   NoteBookSource,
 } from '../../../../../common/types/notebooks';
 import { NoteBookServices } from '../../../../types';
-import { DataDistributionInput, MemoItemProps } from './embeddable/types';
-import { EmbeddableRenderer } from '../../../../../../../src/plugins/embeddable/public';
 import { NotebookReactContext } from '../../context_provider/context_provider';
-import { generateAllFieldCharts } from './render_data_distribution_vega';
+import { generateAllFieldECharts, EChartsChartData } from './render_data_distribution_echarts';
+import { EChartsChart } from './echarts_chart';
 import { ParagraphState } from '../../../../../common/state/paragraph_state';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import { DATA_DISTRIBUTION_PARAGRAPH_TYPE } from '../../../../../common/constants/notebooks';
-import './data_distribution_viz.scss';
 
 const ITEMS_PER_PAGE = 3;
+
+interface MemoItemProps {
+  uniqueId: string;
+  chartIndex: number;
+  isSelected: boolean;
+  chartData: EChartsChartData;
+}
 
 export const DataDistributionContainer = ({
   paragraphState,
@@ -47,7 +52,7 @@ export const DataDistributionContainer = ({
   paragraphState: ParagraphState<AnomalyVisualizationAnalysisOutputResult>;
 }) => {
   const {
-    services: { notifications, embeddable, paragraphService },
+    services: { notifications, paragraphService },
   } = useOpenSearchDashboards<NoteBookServices>();
   const context = useContext(NotebookReactContext);
   const topContextValue = useObservable(
@@ -62,16 +67,15 @@ export const DataDistributionContainer = ({
   const [activePage, setActivePage] = useState(0);
   const [distributionModalExpand, setDistributionModalExpand] = useState(false);
   const [isUpdatingParagraph, setIsUpdatingParagraph] = useState(false);
-  const factory = embeddable.getEmbeddableFactory<DataDistributionInput>('vega_visualization');
   const paragraphRegistry = paragraphService?.getParagraphRegistry(
     DATA_DISTRIBUTION_PARAGRAPH_TYPE
   );
   const { fetchDataLoading, distributionLoading, error } =
     paragraph?.uiState?.dataDistribution || {};
 
-  const dataDistributionSpecs = useMemo(() => {
+  const dataDistributionCharts = useMemo(() => {
     if (fieldComparison) {
-      return generateAllFieldCharts(fieldComparison, source);
+      return generateAllFieldECharts(fieldComparison, source);
     }
     return [];
   }, [fieldComparison, source]);
@@ -103,18 +107,18 @@ export const DataDistributionContainer = ({
     context.state.value,
   ]);
 
-  const { paginatedSpecs, totalPages } = useMemo(() => {
-    if (!dataDistributionSpecs?.length) {
-      return { paginatedSpecs: [], totalPages: 0 };
+  const { paginatedCharts, totalPages } = useMemo(() => {
+    if (!dataDistributionCharts?.length) {
+      return { paginatedCharts: [], totalPages: 0 };
     }
 
     const start = activePage * ITEMS_PER_PAGE;
     const end = start + ITEMS_PER_PAGE;
     return {
-      paginatedSpecs: dataDistributionSpecs.slice(start, end),
-      totalPages: Math.ceil(dataDistributionSpecs.length / ITEMS_PER_PAGE),
+      paginatedCharts: dataDistributionCharts.slice(start, end),
+      totalPages: Math.ceil(dataDistributionCharts.length / ITEMS_PER_PAGE),
     };
-  }, [dataDistributionSpecs, activePage]);
+  }, [dataDistributionCharts, activePage]);
 
   if (!context || !timeRange || !timeField || !index || !paragraphRegistry || !paragraph) {
     return null;
@@ -205,7 +209,7 @@ export const DataDistributionContainer = ({
 
   const BASE_FLEX_ITEM_STYLE = { minHeight: 300, minWidth: 300 };
   const MemoItem: React.FC<MemoItemProps> = React.memo(
-    ({ uniqueId, chartIndex, isSelected, spec }: MemoItemProps) => {
+    ({ chartIndex, isSelected, chartData }: MemoItemProps) => {
       const itemStyle = useMemo(
         () => ({
           ...BASE_FLEX_ITEM_STYLE,
@@ -216,30 +220,21 @@ export const DataDistributionContainer = ({
       );
       return (
         <EuiFlexItem grow={true} style={itemStyle}>
-          {factory && spec && (
-            <EmbeddableRenderer
-              factory={factory}
-              input={{
-                id: uniqueId,
-                savedObjectId: '',
-                visInput: { spec },
-              }}
-            />
-          )}
+          <EChartsChart option={chartData.option} height={280} />
           {excludeButton(chartIndex, isSelected)}
         </EuiFlexItem>
       );
     }
   ) as React.FC<MemoItemProps>;
 
-  const specsVis = !fetchDataLoading && !distributionLoading && (
+  const chartsVis = !fetchDataLoading && !distributionLoading && (
     <EuiPanel hasShadow={false} borderRadius="l">
-      {paginatedSpecs.length ? (
+      {paginatedCharts.length ? (
         <>
           <EuiFlexGroup wrap responsive={false}>
-            {paginatedSpecs.map((spec, specIndex) => {
-              const uniqueId = `dis-id-${activePage * ITEMS_PER_PAGE + specIndex}`;
-              const chartIndex = activePage * ITEMS_PER_PAGE + specIndex;
+            {paginatedCharts.map((chartData, chartIdx) => {
+              const uniqueId = `dis-id-${activePage * ITEMS_PER_PAGE + chartIdx}`;
+              const chartIndex = activePage * ITEMS_PER_PAGE + chartIdx;
               const isSelected = !!fieldComparison[chartIndex].excludeFromContext;
 
               return (
@@ -248,7 +243,7 @@ export const DataDistributionContainer = ({
                   uniqueId={uniqueId}
                   chartIndex={chartIndex}
                   isSelected={isSelected}
-                  spec={spec as any}
+                  chartData={chartData}
                 />
               );
             })}
@@ -282,24 +277,14 @@ export const DataDistributionContainer = ({
       </EuiModalHeader>
       <EuiModalBody>
         <EuiFlexGrid columns={3} gutterSize="m">
-          {dataDistributionSpecs.map((spec, specIndex) => {
-            const uniqueKey = `dis-modal-key-${specIndex}`;
-            const uniqueId = `dis-modal-id-${specIndex}`;
-            const isSelected = !!fieldComparison[specIndex].excludeFromContext;
+          {dataDistributionCharts.map((chartData, chartIdx) => {
+            const uniqueKey = `dis-modal-key-${chartIdx}`;
+            const isSelected = !!fieldComparison[chartIdx].excludeFromContext;
 
             return (
               <EuiFlexItem key={uniqueKey} style={{ opacity: isSelected ? 0.5 : 1, height: 300 }}>
-                {factory && spec && (
-                  <EmbeddableRenderer
-                    factory={factory}
-                    input={{
-                      id: uniqueId,
-                      savedObjectId: '',
-                      visInput: { spec },
-                    }}
-                  />
-                )}
-                {excludeButton(specIndex, isSelected)}
+                <EChartsChart option={chartData.option} height={280} />
+                {excludeButton(chartIdx, isSelected)}
               </EuiFlexItem>
             );
           })}
@@ -312,7 +297,7 @@ export const DataDistributionContainer = ({
     <EuiPanel hasBorder={false} hasShadow={false} paddingSize="none">
       <EuiFlexGroup alignItems="center" gutterSize="none" justifyContent="spaceBetween">
         <EuiFlexItem grow={false}>{dataDistributionTitle}</EuiFlexItem>
-        {dataDistributionSpecs.length > 0 && (
+        {dataDistributionCharts.length > 0 && (
           <EuiFlexItem grow={false} className="notebookDataDistributionParaExpandButton">
             <EuiButtonIcon
               onClick={() => setDistributionModalExpand(true)}
@@ -332,7 +317,7 @@ export const DataDistributionContainer = ({
       ) : (
         <>
           {dataDistributionLoadingSpinner}
-          {specsVis}
+          {chartsVis}
           {distributionModal}
         </>
       )}
