@@ -98,7 +98,11 @@ describe('SharedMessagePollingService', () => {
   });
 
   test('should emit message when getFinalMessage returns a response', async () => {
-    const mockResponse = 'This is the final response';
+    const mockResponse = {
+      message: 'This is the final response',
+      createTime: 1711267562195,
+      updateTime: 1711267592195,
+    };
     (getFinalMessage as jest.Mock).mockResolvedValueOnce(mockResponse);
 
     const observable = service.poll({
@@ -121,16 +125,21 @@ describe('SharedMessagePollingService', () => {
     jest.runAllTimers();
     await Promise.resolve();
 
-    expect(emittedValues).toContain(mockResponse);
+    expect(emittedValues).toContainEqual(mockResponse);
 
     subscription.unsubscribe();
   });
 
   test('should continue polling when getFinalMessage returns null', async () => {
+    const mockResponse = {
+      message: 'final response',
+      createTime: 1711267562195,
+      updateTime: 1711267592195,
+    };
     (getFinalMessage as jest.Mock)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce('final response');
+      .mockResolvedValueOnce(mockResponse);
 
     const observable = service.poll({
       memoryContainerId: mockMemoryContainerId,
@@ -160,7 +169,11 @@ describe('SharedMessagePollingService', () => {
   });
 
   test('should stop polling when message is received', async () => {
-    const mockResponse = 'Final response';
+    const mockResponse = {
+      message: 'Final response',
+      createTime: 1711267562195,
+      updateTime: 1711267592195,
+    };
     (getFinalMessage as jest.Mock).mockResolvedValueOnce(mockResponse);
 
     const observable = service.poll({
@@ -231,9 +244,14 @@ describe('SharedMessagePollingService', () => {
 
   test('should emit null and continue polling on individual errors', async () => {
     const testError = new Error('Test error');
+    const mockResponse = {
+      message: 'final response',
+      createTime: 1711267562195,
+      updateTime: 1711267592195,
+    };
     (getFinalMessage as jest.Mock)
       .mockRejectedValueOnce(testError)
-      .mockResolvedValueOnce('final response');
+      .mockResolvedValueOnce(mockResponse);
 
     const observable = service.poll({
       memoryContainerId: mockMemoryContainerId,
@@ -258,7 +276,7 @@ describe('SharedMessagePollingService', () => {
     await Promise.resolve();
 
     expect(emittedValues).toContain(null);
-    expect(emittedValues).toContain('final response');
+    expect(emittedValues).toContainEqual(mockResponse);
 
     subscription.unsubscribe();
   });
@@ -352,7 +370,11 @@ describe('SharedMessagePollingService', () => {
   });
 
   test('should share replay the last emitted value to new subscribers', async () => {
-    const mockResponse = 'Shared response';
+    const mockResponse = {
+      message: 'Shared response',
+      createTime: 1711267562195,
+      updateTime: 1711267592195,
+    };
     (getFinalMessage as jest.Mock).mockResolvedValue(mockResponse);
 
     const observable = service.poll({
@@ -380,8 +402,8 @@ describe('SharedMessagePollingService', () => {
 
     await Promise.resolve();
 
-    expect(emittedValues1).toContain(mockResponse);
-    expect(emittedValues2).toContain(mockResponse);
+    expect(emittedValues1).toContainEqual(mockResponse);
+    expect(emittedValues2).toContainEqual(mockResponse);
 
     subscription1.unsubscribe();
     subscription2.unsubscribe();

@@ -21,6 +21,8 @@ import { NotebookReactContext } from '../../context_provider/context_provider';
 import { HypothesisItem } from './hypothesis_item';
 import { useReplaceAsPrimary } from '../../../../hooks/use_replace_primary_hypothesis';
 import { HypothesisStatus } from '../../../../../common/types/notebooks';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { NoteBookServices } from '../../../../types';
 
 const RULED_OUT_PENALTY = 1000000;
 
@@ -45,8 +47,15 @@ export const AlternativeHypothesesPanel: React.FC<AlternativeHypothesesPanelProp
   );
   const history = useHistory();
   const { replaceAsPrimary } = useReplaceAsPrimary();
+  const {
+    services: { investigationTelemetry },
+  } = useOpenSearchDashboards<NoteBookServices>();
 
   const handleClickHypothesis = (hypothesisId: string) => {
+    investigationTelemetry.recordEvent({
+      name: 'hypothesis_click',
+      data: { notebookId, hypothesisId },
+    });
     history.push(`/agentic/${notebookId}/hypothesis/${hypothesisId}`);
   };
 

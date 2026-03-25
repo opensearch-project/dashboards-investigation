@@ -45,6 +45,7 @@ import {
   setVisualizations,
   FindingService,
 } from './services';
+import type { PluginTelemetryRecorder } from '../../../src/core/public';
 import { StartInvestigationAction } from './actions/start_investigation_action';
 import { CONTEXT_MENU_TRIGGER } from '../../../src/plugins/embeddable/public';
 import {
@@ -66,6 +67,7 @@ export class InvestigationPlugin
     Plugin<InvestigationSetup, InvestigationStart, SetupDependencies, AppPluginStartDependencies> {
   private paragraphService: ParagraphService;
   private contextService: ContextService;
+  private telemetryRecorder: PluginTelemetryRecorder | undefined;
   private startDeps: AppPluginStartDependencies | undefined;
   private unregisterInvestigateCommand?: () => void;
 
@@ -97,7 +99,7 @@ export class InvestigationPlugin
 
     const findingService = new FindingService();
 
-    const getServices = async () => {
+    const getServices = async (): Promise<NoteBookServices> => {
       const [coreStart, depsStart] = await core.getStartServices();
       const pplService: PPLService = new PPLService(core.http);
       // Omit chat from deps since coreStart already have chat
@@ -115,6 +117,7 @@ export class InvestigationPlugin
         usageCollection: depsStart.usageCollection,
         overlay: depsStart.overlay,
         workspaces: coreStart.workspaces,
+        investigationTelemetry: this.telemetryRecorder!,
       };
       return services;
     };
@@ -252,6 +255,9 @@ export class InvestigationPlugin
     setVisualizations(startDeps.visualizations);
     this.startDeps = startDeps;
 
+    // Get telemetry recorder for this plugin
+    this.telemetryRecorder = core.telemetry.getPluginRecorder('dashboards-investigation');
+
     if (core.application?.capabilities.investigation.agenticFeaturesEnabled) {
       startDeps.explore?.slotRegistry?.register?.({
         id: 'start-investigate-all',
@@ -311,5 +317,7 @@ export class InvestigationPlugin
     if (this.unregisterInvestigateCommand) {
       this.unregisterInvestigateCommand();
     }
+
+    this.telemetryRecorder = undefined;
   }
 }
