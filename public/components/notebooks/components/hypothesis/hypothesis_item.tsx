@@ -64,7 +64,7 @@ export const HypothesisItem: React.FC<{
       }}
       role="button"
       tabIndex={0}
-      data-test-subject="hypothesisItem"
+      data-test-subj="hypothesisItem"
     >
       <EuiPanel
         style={{
