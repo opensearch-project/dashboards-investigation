@@ -30,8 +30,9 @@ import {
 import { getInputType } from '../../common/utils/paragraph';
 import { NotebookReactContext } from '../components/notebooks/context_provider/context_provider';
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
-import { isDateAppenddablePPL } from '../utils/query';
+import { isDateAppenddablePPL, validatePPLQuery } from '../utils/query';
 import { createDashboardVizObject } from '../utils/visualization';
+import { getClient } from '../services';
 
 export const waitForPrecheckContexts = ({
   paragraphStates,
@@ -116,8 +117,22 @@ export const usePrecheck = () => {
           dataSourceMDSId?: string;
         }> = [];
 
-        // Collect log pattern paragraph
-        if (!logPatternParaExists) {
+        // Validate PPL query if present before creating PPL-dependent paragraphs
+        const pplQueryFromVariables = res.context?.variables?.['pplQuery'] as string | undefined;
+        let isPPLValid = true;
+        if (pplQueryFromVariables) {
+          const validationResult = await validatePPLQuery({
+            http: getClient(),
+            dataSourceId: res.context?.dataSourceId,
+            query: pplQueryFromVariables,
+          });
+          if (!validationResult.isValid) {
+            isPPLValid = false;
+          }
+        }
+
+        // Collect log pattern paragraph (only if PPL is valid)
+        if (!logPatternParaExists && isPPLValid) {
           const resContext = res.context as NotebookContext;
           if (resContext?.timeRange && resContext?.index && resContext?.timeField) {
             if (
@@ -159,8 +174,8 @@ export const usePrecheck = () => {
           }
         }
 
-        // Collect anomaly analysis paragraph
-        if (!anomalyAnalysisParaExists) {
+        // Collect anomaly analysis paragraph (only if PPL is valid)
+        if (!anomalyAnalysisParaExists && isPPLValid) {
           const resContext = res.context;
           const canAnalyticDis =
             [NoteBookSource.DISCOVER, NoteBookSource.VISUALIZATION, NoteBookSource.CHAT].includes(
@@ -193,8 +208,9 @@ export const usePrecheck = () => {
           }
         }
 
-        // Collect PPL paragraph
+        // Collect PPL paragraph (only if PPL is valid)
         if (
+          isPPLValid &&
           (res.context?.source === NoteBookSource.DISCOVER ||
             res.context?.source === NoteBookSource.CHAT) &&
           !res.paragraphs.find((paragraph) => getInputType(paragraph) === PPL_PARAGRAPH_TYPE) &&

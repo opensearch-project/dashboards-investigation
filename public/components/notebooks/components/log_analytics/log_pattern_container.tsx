@@ -143,77 +143,72 @@ export const LogPatternContainer: React.FC<LogPatternContainerProps> = ({ paragr
     }
   }, [paragraph, resultChanged, saveParagraph]);
 
-  if (error) {
-    return (
-      <EuiCallOut title="Error" color="danger">
-        <p>{error}</p>
-      </EuiCallOut>
-    );
-  }
-
   return (
     <EuiPanel hasBorder={false} hasShadow={false} paddingSize="none">
-      {context?.index && context?.timeRange && (
-        <>
-          <EuiTitle size="s">
-            <h3>
-              {i18n.translate('notebook.log.sequence.paragraph.title', {
-                defaultMessage: 'Log sequence analysis',
-              })}
-            </h3>
-          </EuiTitle>
-          <EuiText size="s" color="subdued">
-            {i18n.translate('notebook.log.sequence.paragraph.subtitle', {
-              defaultMessage:
-                'Analyzing log patterns from {index} index by comparing two time periods',
-              values: { index: context?.index },
-            })}
-          </EuiText>
-        </>
-      )}
+      <EuiTitle size="s">
+        <h3>
+          {i18n.translate('notebook.log.sequence.paragraph.title', {
+            defaultMessage: 'Log sequence analysis',
+          })}
+        </h3>
+      </EuiTitle>
+      <EuiText size="s" color="subdued">
+        {i18n.translate('notebook.log.sequence.paragraph.subtitle', {
+          defaultMessage: 'Analyzing log patterns from {index} index by comparing two time periods',
+          values: { index: context?.index || 'the' },
+        })}
+      </EuiText>
       <EuiSpacer size="m" />
 
-      <SummaryStatistics result={result} />
-      <EuiSpacer size="s" />
-
-      {changes.length > 0 && (
-        <EuiCallOut color="warning" iconType="info">
-          <EuiText>
-            {i18n.translate('notebook.log.sequence.paragraph.notice', {
-              defaultMessage:
-                'Log analysis result is part of context of AI investigation, exclude some not useful items and re-run the AI investigation to see the more accurate investigation result based on your valuable feedback.',
-            })}
-          </EuiText>
+      {error ? (
+        <EuiCallOut title="Error" color="danger">
+          <p>{error}</p>
         </EuiCallOut>
+      ) : (
+        <>
+          <SummaryStatistics result={result} />
+          <EuiSpacer size="s" />
+
+          {changes.length > 0 && (
+            <EuiCallOut color="warning" iconType="info">
+              <EuiText>
+                {i18n.translate('notebook.log.sequence.paragraph.notice', {
+                  defaultMessage:
+                    'Log analysis result is part of context of AI investigation, exclude some not useful items and re-run the AI investigation to see the more accurate investigation result based on your valuable feedback.',
+                })}
+              </EuiText>
+            </EuiCallOut>
+          )}
+          <EuiSpacer size="s" />
+
+          <LogInsight
+            logInsights={result?.logInsights || []}
+            isLoadingLogInsights={!!isLoadingLogInsights}
+            disableExclude={resultChanged}
+            onExclude={handleLogInsightExclude}
+          />
+          <EuiSpacer size="s" />
+
+          <PatternDifference
+            patternMapDifference={result?.patternMapDifference || []}
+            isLoadingPatternMapDifference={!!isLoadingPatternMapDifference}
+            isNotApplicable={!context?.timeRange?.baselineFrom}
+            disableExclude={resultChanged}
+            onExclude={handlePatternDifferenceExclude}
+          />
+          <EuiSpacer size="s" />
+
+          <LogSequence
+            exceptionalSequences={result?.EXCEPTIONAL || []}
+            isLoadingLogSequence={!!isLoadingLogSequence}
+            isNotApplicable={
+              !(context?.timeRange?.baselineFrom && context?.indexInsight?.trace_id_field)
+            }
+            disableExclude={resultChanged}
+            onExclude={handleLogSequenceExclude}
+          />
+        </>
       )}
-      <EuiSpacer size="s" />
-
-      <LogInsight
-        logInsights={result?.logInsights || []}
-        isLoadingLogInsights={!!isLoadingLogInsights}
-        disableExclude={resultChanged}
-        onExclude={handleLogInsightExclude}
-      />
-      <EuiSpacer size="s" />
-
-      <PatternDifference
-        patternMapDifference={result?.patternMapDifference || []}
-        isLoadingPatternMapDifference={!!isLoadingPatternMapDifference}
-        isNotApplicable={!context?.timeRange?.baselineFrom}
-        disableExclude={resultChanged}
-        onExclude={handlePatternDifferenceExclude}
-      />
-      <EuiSpacer size="s" />
-
-      <LogSequence
-        exceptionalSequences={result?.EXCEPTIONAL || []}
-        isLoadingLogSequence={!!isLoadingLogSequence}
-        isNotApplicable={
-          !(context?.timeRange?.baselineFrom && context?.indexInsight?.trace_id_field)
-        }
-        disableExclude={resultChanged}
-        onExclude={handleLogSequenceExclude}
-      />
     </EuiPanel>
   );
 };

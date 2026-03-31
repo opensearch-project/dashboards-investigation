@@ -173,11 +173,13 @@ export const HypothesisDetail: React.FC = () => {
                       })}
                     </EuiSmallButton>
                   )}
-                  <HypothesisStatusButton
-                    hypothesisId={currentHypothesis.id}
-                    hypothesisStatus={status}
-                    fill
-                  />
+                  <EuiFlexItem grow={false}>
+                    <HypothesisStatusButton
+                      hypothesisId={currentHypothesis.id}
+                      hypothesisStatus={status}
+                      fill
+                    />
+                  </EuiFlexItem>
                 </EuiFlexGroup>
               </EuiFlexGroup>
               <EuiSpacer size="s" />

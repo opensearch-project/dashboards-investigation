@@ -15,7 +15,14 @@ import {
   LOG_PATTERN_PARAGRAPH_TYPE,
   PPL_PARAGRAPH_TYPE,
 } from '../../../common/constants/notebooks';
-import { NoteBookSource } from '../../../common/types/notebooks';
+import {
+  NoteBookSource,
+  NotebookContext,
+  ParagraphBackendType,
+  HypothesisItem,
+  InvestigationTimeRange,
+} from '../../../common/types/notebooks';
+import { ParagraphStateValue } from '../../../common/state/paragraph_state';
 import { BehaviorSubject } from 'rxjs';
 import React from 'react';
 
@@ -31,23 +38,71 @@ jest.mock('../../utils/query', () => ({
   isDateAppenddablePPL: jest.fn((query: string) => {
     return !query.includes('stats') && !query.includes('dedup');
   }),
+  validatePPLQuery: jest.fn().mockResolvedValue({ isValid: true }),
 }));
+
+import { validatePPLQuery } from '../../utils/query';
+const mockValidatePPLQuery = jest.mocked(validatePPLQuery);
 jest.mock('../../utils/visualization', () => ({
   createDashboardVizObject: jest.fn(() => ({})),
 }));
 
+jest.mock('../../services', () => ({
+  getClient: jest.fn(() => ({})),
+}));
+
+interface MockParagraphRegistry {
+  runParagraph: jest.Mock;
+}
+
+interface MockParagraphService {
+  getParagraphRegistry: jest.Mock<MockParagraphRegistry | null, [string]>;
+}
+
+interface MockParagraphHooks {
+  batchCreateParagraphs: jest.Mock;
+  batchSaveParagraphs: jest.Mock;
+  runParagraph: jest.Mock;
+}
+
+// Mock type for paragraph state value that allows test mutations
+interface MockParagraphValue {
+  id: string;
+  input: {
+    inputType: string;
+    inputText: string;
+    parameters?: Record<string, unknown>;
+  };
+  output?: Array<{
+    execution_time?: string;
+    outputType?: string;
+    result: unknown;
+  }>;
+  fullfilledOutput?: unknown;
+  uiState?: Record<string, unknown>;
+  dateCreated?: string;
+  dateModified?: string;
+  dataSourceMDSId?: string;
+}
+
+// Mock paragraph state with mutable value property for testing
+interface MockParagraphState {
+  value: MockParagraphValue;
+  getValue$: () => ReturnType<ParagraphState<unknown>['getValue$']>;
+}
+
 describe('usePrecheck', () => {
-  let mockParagraphService: any;
+  let mockParagraphService: MockParagraphService;
   let mockBatchCreateParagraphs: jest.Mock;
   let mockBatchSaveParagraphs: jest.Mock;
   let mockRunParagraph: jest.Mock;
   let mockNotebookState: NotebookState;
-  let mockParagraphHooks: any;
+  let mockParagraphHooks: MockParagraphHooks;
 
   const createMockParagraphState = (
     inputType: string,
     inputText: string = '',
-    additionalProps: any = {}
+    additionalProps: Partial<MockParagraphValue> = {}
   ): ParagraphState<unknown> => {
     const mockValue = {
       id: `para-${Math.random()}`,
@@ -56,21 +111,21 @@ describe('usePrecheck', () => {
         inputText,
         parameters: {},
       },
-      fullfilledOutput: null,
+      fullfilledOutput: undefined,
       uiState: {},
       ...additionalProps,
     };
 
     const subject = new BehaviorSubject(mockValue);
-    const paragraphState = {
+    const paragraphState = ({
       value: mockValue,
       getValue$: jest.fn(() => subject.asObservable()),
-      updateInput: jest.fn((input) => {
+      updateInput: jest.fn((input: ParagraphStateValue<unknown>['input']) => {
         mockValue.input = input;
         subject.next(mockValue);
       }),
       getBackendValue: jest.fn(() => mockValue),
-    } as any;
+    } as unknown) as ParagraphState<unknown>;
 
     return paragraphState;
   };
@@ -90,6 +145,8 @@ describe('usePrecheck', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reset validatePPLQuery mock to return valid by default
+    mockValidatePPLQuery.mockResolvedValue({ isValid: true });
 
     // Setup mock functions
     mockBatchCreateParagraphs = jest.fn().mockResolvedValue(undefined);
@@ -157,7 +214,7 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: jest.fn(),
           });
@@ -203,7 +260,7 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: jest.fn(),
           });
@@ -255,8 +312,8 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
-            paragraphs: existingParagraphs as any,
+            context: mockContext as Partial<NotebookContext>,
+            paragraphs: existingParagraphs as Array<ParagraphBackendType<unknown>>,
             doInvestigate: jest.fn(),
           });
         });
@@ -279,7 +336,7 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: jest.fn(),
           });
@@ -306,7 +363,7 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: jest.fn(),
           });
@@ -355,8 +412,8 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
-            paragraphs: existingParagraphs as any,
+            context: mockContext as Partial<NotebookContext>,
+            paragraphs: existingParagraphs as Array<ParagraphBackendType<unknown>>,
             doInvestigate: jest.fn(),
           });
         });
@@ -379,7 +436,7 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: jest.fn(),
           });
@@ -403,7 +460,7 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: jest.fn(),
           });
@@ -413,7 +470,8 @@ describe('usePrecheck', () => {
         expect(mockBatchCreateParagraphs).toHaveBeenCalled();
         const call = mockBatchCreateParagraphs.mock.calls[0][0];
         const hasDataDist = call.paragraphs.some(
-          (p: any) => p.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
+          (p: { input: { inputType: string } }) =>
+            p.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
         );
         expect(hasDataDist).toBe(false);
       });
@@ -434,7 +492,7 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: jest.fn(),
           });
@@ -444,7 +502,8 @@ describe('usePrecheck', () => {
         expect(mockBatchCreateParagraphs).toHaveBeenCalled();
         const call = mockBatchCreateParagraphs.mock.calls[0][0];
         const hasDataDist = call.paragraphs.some(
-          (p: any) => p.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
+          (p: { input: { inputType: string } }) =>
+            p.input.inputType === DATA_DISTRIBUTION_PARAGRAPH_TYPE
         );
         expect(hasDataDist).toBe(false);
       });
@@ -467,7 +526,7 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: jest.fn(),
           });
@@ -516,8 +575,8 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
-            paragraphs: existingParagraphs as any,
+            context: mockContext as Partial<NotebookContext>,
+            paragraphs: existingParagraphs as Array<ParagraphBackendType<unknown>>,
             doInvestigate: jest.fn(),
           });
         });
@@ -540,7 +599,7 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: jest.fn(),
           });
@@ -576,7 +635,7 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: mockDoInvestigate,
             hypotheses: [],
@@ -602,10 +661,10 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: mockDoInvestigate,
-            hypotheses: [{ id: 'hyp-1' } as any],
+            hypotheses: [{ id: 'hyp-1' } as Partial<HypothesisItem>] as HypothesisItem[],
           });
         });
 
@@ -618,13 +677,106 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: {} as any,
+            context: {} as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: mockDoInvestigate,
           });
         });
 
         expect(mockDoInvestigate).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('PPL validation', () => {
+      it('should validate PPL query before creating paragraphs', async () => {
+        const { result } = renderHook(() => usePrecheck(), { wrapper });
+
+        const mockContext = {
+          source: NoteBookSource.DISCOVER,
+          timeRange: { selectionFrom: 1000, selectionTo: 2000 },
+          index: 'test-index',
+          timeField: '@timestamp',
+          dataSourceId: 'ds-123',
+          variables: {
+            pplQuery: 'source=test-index | fields message',
+          },
+        };
+
+        await act(async () => {
+          await result.current.start({
+            context: mockContext as Partial<NotebookContext>,
+            paragraphs: [],
+            doInvestigate: jest.fn(),
+          });
+        });
+
+        expect(mockValidatePPLQuery).toHaveBeenCalledWith({
+          http: expect.anything(),
+          dataSourceId: 'ds-123',
+          query: 'source=test-index | fields message',
+        });
+      });
+
+      it('should not create PPL-dependent paragraphs when PPL validation fails', async () => {
+        mockValidatePPLQuery.mockResolvedValue({
+          isValid: false,
+          error: '[field] is not a valid term',
+        });
+
+        const { result } = renderHook(() => usePrecheck(), { wrapper });
+
+        const mockContext = {
+          source: NoteBookSource.DISCOVER,
+          timeRange: { selectionFrom: 1000, selectionTo: 2000 },
+          index: 'test-index',
+          timeField: '@timestamp',
+          dataSourceId: 'ds-123',
+          indexInsight: {
+            is_log_index: true,
+            log_message_field: 'message',
+          },
+          variables: {
+            pplQuery: 'source=test-index | field a,b',
+          },
+        };
+
+        await act(async () => {
+          await result.current.start({
+            context: mockContext as Partial<NotebookContext>,
+            paragraphs: [],
+            doInvestigate: jest.fn(),
+          });
+        });
+
+        // Should not create any paragraphs (log pattern, data distribution, PPL all depend on valid PPL)
+        expect(mockBatchCreateParagraphs).not.toHaveBeenCalled();
+      });
+
+      it('should not validate PPL when no pplQuery in context', async () => {
+        const { result } = renderHook(() => usePrecheck(), { wrapper });
+
+        const mockContext = {
+          timeRange: { selectionFrom: 1000, selectionTo: 2000 },
+          index: 'test-index',
+          timeField: '@timestamp',
+          indexInsight: {
+            is_log_index: true,
+            log_message_field: 'message',
+          },
+        };
+
+        await act(async () => {
+          await result.current.start({
+            context: mockContext as Partial<NotebookContext>,
+            paragraphs: [],
+            doInvestigate: jest.fn(),
+          });
+        });
+
+        // Should not call validatePPLQuery when there's no pplQuery
+        expect(mockValidatePPLQuery).not.toHaveBeenCalled();
+        // Should still create log pattern paragraph (doesn't require PPL validation)
+        expect(mockBatchCreateParagraphs).toHaveBeenCalled();
       });
     });
 
@@ -647,7 +799,7 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: jest.fn(),
           });
@@ -685,13 +837,15 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: jest.fn(),
           });
         });
 
         // The error handling is tested - error may or may not be logged depending on timing
+        // Assert that the hook completed without throwing
+        expect(result.current).toBeDefined();
         consoleErrorSpy.mockRestore();
       });
     });
@@ -717,7 +871,7 @@ describe('usePrecheck', () => {
 
         await act(async () => {
           await result.current.start({
-            context: mockContext as any,
+            context: mockContext as Partial<NotebookContext>,
             paragraphs: [],
             doInvestigate: jest.fn(),
           });
@@ -770,7 +924,7 @@ describe('usePrecheck', () => {
       };
 
       await act(async () => {
-        await result.current.rerun([pplParagraph], timeRange as any);
+        await result.current.rerun([pplParagraph], timeRange as InvestigationTimeRange);
       });
 
       expect(pplParagraph.updateInput).toHaveBeenCalled();
@@ -851,7 +1005,10 @@ describe('usePrecheck', () => {
       };
 
       await act(async () => {
-        await result.current.rerun([pplParagraph, dataDistParagraph], timeRange as any);
+        await result.current.rerun(
+          [pplParagraph, dataDistParagraph],
+          timeRange as InvestigationTimeRange
+        );
       });
 
       expect(mockRunParagraph).toHaveBeenCalledWith({ id: pplParagraph.value.id });
@@ -952,15 +1109,15 @@ describe('usePrecheck', () => {
           inputText: '',
           parameters: {},
         },
-        fullfilledOutput: null,
+        fullfilledOutput: undefined,
         uiState: {},
       };
 
       const subject = new BehaviorSubject(initialValue);
-      const paragraphState = {
+      const paragraphState = ({
         value: initialValue,
         getValue$: () => subject.asObservable(),
-      } as any;
+      } as unknown) as ParagraphState<unknown>;
 
       const onReady = jest.fn(() => {
         expect(onReady).toHaveBeenCalledWith([paragraphState]);
@@ -983,7 +1140,6 @@ describe('usePrecheck', () => {
           },
         ],
       };
-      paragraphState.value = updatedValue;
       subject.next(updatedValue);
     });
 
@@ -995,15 +1151,15 @@ describe('usePrecheck', () => {
           inputText: '',
           parameters: {},
         },
-        fullfilledOutput: null,
+        fullfilledOutput: undefined,
         uiState: {},
       };
 
       const subject = new BehaviorSubject(mockValue);
-      const paragraphState = {
+      const paragraphState = ({
         value: mockValue,
         getValue$: () => subject.asObservable(),
-      } as any;
+      } as unknown) as ParagraphState<unknown>;
 
       const onReady = jest.fn(() => {
         expect(onReady).toHaveBeenCalledWith([paragraphState]);
@@ -1034,15 +1190,15 @@ describe('usePrecheck', () => {
           inputText: '',
           parameters: {},
         },
-        fullfilledOutput: null,
+        fullfilledOutput: undefined,
         uiState: {},
       };
 
       const subject = new BehaviorSubject(initialValue);
-      const paragraphState = {
+      const paragraphState = ({
         value: initialValue,
         getValue$: () => subject.asObservable(),
-      } as any;
+      } as unknown) as ParagraphState<unknown>;
 
       const onReady = jest.fn(() => {
         expect(onReady).toHaveBeenCalledWith([paragraphState]);
@@ -1063,7 +1219,6 @@ describe('usePrecheck', () => {
           },
         ],
       };
-      paragraphState.value = updatedValue;
       subject.next(updatedValue);
     });
 
@@ -1075,15 +1230,15 @@ describe('usePrecheck', () => {
           inputText: '',
           parameters: {},
         },
-        fullfilledOutput: null,
+        fullfilledOutput: undefined,
         uiState: {},
       };
 
       const subject = new BehaviorSubject(mockValue);
-      const paragraphState = {
+      const paragraphState = ({
         value: mockValue,
         getValue$: () => subject.asObservable(),
-      } as any;
+      } as unknown) as ParagraphState<unknown>;
 
       const onReady = jest.fn(() => {
         expect(onReady).toHaveBeenCalledWith([paragraphState]);
@@ -1107,22 +1262,22 @@ describe('usePrecheck', () => {
     });
 
     it('should wait for PPL paragraph to have fulfilledOutput', (done) => {
-      const mockValue: any = {
+      const mockValue: MockParagraphValue = {
         id: 'para-1',
         input: {
           inputType: 'CODE',
           inputText: '%ppl source=test-index',
           parameters: {},
         },
-        fullfilledOutput: null,
+        fullfilledOutput: undefined,
         uiState: {},
       };
 
-      const subject = new BehaviorSubject<any>(mockValue);
-      const paragraphState = {
+      const subject = new BehaviorSubject<MockParagraphValue>(mockValue);
+      const paragraphState = ({
         value: mockValue,
         getValue$: () => subject.asObservable(),
-      } as any;
+      } as unknown) as ParagraphState<unknown>;
 
       const onReady = jest.fn(() => {
         expect(onReady).toHaveBeenCalledWith([paragraphState]);
@@ -1135,7 +1290,7 @@ describe('usePrecheck', () => {
       });
 
       // Simulate paragraph completing with output synchronously
-      const updatedValue: any = {
+      const updatedValue: MockParagraphValue = {
         ...mockValue,
         fullfilledOutput: {
           result: { data: [] },
@@ -1145,40 +1300,40 @@ describe('usePrecheck', () => {
     });
 
     it('should wait for all paragraphs to complete', (done) => {
-      const initialValue1: any = {
+      const initialValue1: MockParagraphValue = {
         id: 'para-1',
         input: {
           inputType: DATA_DISTRIBUTION_PARAGRAPH_TYPE,
           inputText: '',
           parameters: {},
         },
-        fullfilledOutput: null,
+        fullfilledOutput: undefined,
         uiState: {},
       };
 
-      const initialValue2: any = {
+      const initialValue2: MockParagraphValue = {
         id: 'para-2',
         input: {
           inputType: 'CODE',
           inputText: '%ppl source=test-index',
           parameters: {},
         },
-        fullfilledOutput: null,
+        fullfilledOutput: undefined,
         uiState: {},
       };
 
-      const subject1 = new BehaviorSubject<any>(initialValue1);
-      const subject2 = new BehaviorSubject<any>(initialValue2);
+      const subject1 = new BehaviorSubject<MockParagraphValue>(initialValue1);
+      const subject2 = new BehaviorSubject<MockParagraphValue>(initialValue2);
 
-      const paragraphState1 = {
+      const paragraphState1 = ({
         value: initialValue1,
         getValue$: () => subject1.asObservable(),
-      } as any;
+      } as unknown) as ParagraphState<unknown>;
 
-      const paragraphState2 = {
+      const paragraphState2 = ({
         value: initialValue2,
         getValue$: () => subject2.asObservable(),
-      } as any;
+      } as unknown) as ParagraphState<unknown>;
 
       const onReady = jest.fn(() => {
         expect(onReady).toHaveBeenCalledWith([paragraphState1, paragraphState2]);
@@ -1191,7 +1346,7 @@ describe('usePrecheck', () => {
       });
 
       // Complete both paragraphs
-      const updatedValue1: any = {
+      const updatedValue1: MockParagraphValue = {
         ...initialValue1,
         output: [
           {
@@ -1201,16 +1356,14 @@ describe('usePrecheck', () => {
           },
         ],
       };
-      paragraphState1.value = updatedValue1;
       subject1.next(updatedValue1);
 
-      const updatedValue2: any = {
+      const updatedValue2: MockParagraphValue = {
         ...initialValue2,
         fullfilledOutput: {
           result: { data: [] },
         },
       };
-      paragraphState2.value = updatedValue2;
       subject2.next(updatedValue2);
     });
 
@@ -1222,15 +1375,15 @@ describe('usePrecheck', () => {
           inputText: '# Title',
           parameters: {},
         },
-        fullfilledOutput: null,
+        fullfilledOutput: undefined,
         uiState: {},
       };
 
       const subject = new BehaviorSubject(mockValue);
-      const paragraphState = {
+      const paragraphState = ({
         value: mockValue,
         getValue$: () => subject.asObservable(),
-      } as any;
+      } as unknown) as ParagraphState<unknown>;
 
       const onReady = jest.fn(() => {
         expect(onReady).toHaveBeenCalledWith([paragraphState]);
@@ -1250,7 +1403,7 @@ describe('usePrecheck', () => {
 
       await act(async () => {
         await result.current.start({
-          context: {} as any,
+          context: {} as Partial<NotebookContext>,
           paragraphs: [],
           doInvestigate: jest.fn(),
         });
@@ -1264,7 +1417,7 @@ describe('usePrecheck', () => {
 
       await act(async () => {
         await result.current.start({
-          context: undefined as any,
+          context: undefined,
           paragraphs: [],
           doInvestigate: jest.fn(),
         });
@@ -1287,24 +1440,25 @@ describe('usePrecheck', () => {
     it('should handle paragraph without getValue$ method', async () => {
       const { result } = renderHook(() => usePrecheck(), { wrapper });
 
-      const invalidParagraph = {
+      const invalidParagraph = ({
         value: {
           id: 'invalid',
           input: { inputType: 'CODE', inputText: '' },
         },
-      } as any;
+      } as unknown) as ParagraphState<unknown>;
 
       mockNotebookState.value.paragraphs = [invalidParagraph];
 
       await act(async () => {
         await result.current.start({
-          context: { initialGoal: 'test' } as any,
+          context: { initialGoal: 'test' } as Partial<NotebookContext>,
           paragraphs: [],
           doInvestigate: jest.fn(),
         });
       });
 
-      // Should not crash
+      // Should not crash - assert that the hook completed without throwing
+      expect(result.current).toBeDefined();
     });
   });
 
@@ -1333,7 +1487,7 @@ describe('usePrecheck', () => {
 
       await act(async () => {
         await result.current.start({
-          context: mockContext as any,
+          context: mockContext as Partial<NotebookContext>,
           paragraphs: [],
           doInvestigate: mockDoInvestigate,
           hypotheses: [],
@@ -1367,7 +1521,10 @@ describe('usePrecheck', () => {
       };
 
       await act(async () => {
-        await result.current.rerun([pplParagraph, dataDistParagraph], newTimeRange as any);
+        await result.current.rerun(
+          [pplParagraph, dataDistParagraph],
+          newTimeRange as InvestigationTimeRange
+        );
       });
 
       expect(pplParagraph.updateInput).toHaveBeenCalled();

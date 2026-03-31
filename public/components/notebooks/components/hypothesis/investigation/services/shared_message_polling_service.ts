@@ -6,7 +6,7 @@
 import { Observable, timer, throwError, from, of } from 'rxjs';
 import { concatMap, takeWhile, finalize, shareReplay, catchError, timeout } from 'rxjs/operators';
 import { CoreStart } from '../../../../../../../../../src/core/public';
-import { getFinalMessage } from '../utils';
+import { getFinalMessage, FinalMessageResult } from '../utils';
 import {
   INTERVAL_TIME,
   REQUEST_TIMEOUT_MS,
@@ -43,7 +43,7 @@ export class SharedMessagePollingService {
     messageId: string;
     dataSourceId?: string;
     pollInterval?: number;
-  }): Observable<any> {
+  }): Observable<FinalMessageResult | null> {
     if (this.currentPolling) {
       return this.currentPolling.observable;
     }
@@ -83,7 +83,7 @@ export class SharedMessagePollingService {
           })
         );
       }),
-      takeWhile((message) => !message, true),
+      takeWhile((result) => !result?.message, true),
       finalize(() => {
         this.cleanup();
       }),

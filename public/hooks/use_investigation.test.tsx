@@ -56,6 +56,11 @@ const mockParagraphService = {
   getParagraph: jest.fn(),
 };
 
+const mockInvestigationTelemetry = {
+  recordEvent: jest.fn(),
+  recordMetric: jest.fn(),
+};
+
 const createMockServices = () => ({
   http: mockHttp,
   paragraphService: mockParagraphService,
@@ -73,6 +78,7 @@ const createMockServices = () => ({
       },
     },
   },
+  investigationTelemetry: mockInvestigationTelemetry,
 });
 
 describe('useInvestigation', () => {
@@ -562,7 +568,11 @@ describe('useInvestigation', () => {
       ((isValidPERAgentInvestigationResponse as unknown) as jest.Mock).mockReturnValue(true);
 
       mockSharedMessagePollingService.poll.mockReturnValue(
-        of('{"findings":[],"hypotheses":[],"topologies":[]}')
+        of({
+          message: '{"findings":[],"hypotheses":[],"topologies":[]}',
+          createTime: 1711267562195,
+          updateTime: 1711267592195,
+        })
       );
 
       mockParagraphHooks.batchDeleteParagraphs.mockResolvedValue({});
@@ -596,8 +606,13 @@ describe('useInvestigation', () => {
     it('should handle polling when component is still mounted', async () => {
       ((isValidPERAgentInvestigationResponse as unknown) as jest.Mock).mockReturnValue(true);
 
-      const validResponse = '{"findings":[],"hypotheses":[],"topologies":[]}';
-      mockSharedMessagePollingService.poll.mockReturnValue(of(validResponse));
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: '{"findings":[],"hypotheses":[],"topologies":[]}',
+          createTime: 1711267562195,
+          updateTime: 1711267592195,
+        })
+      );
 
       mockParagraphHooks.batchDeleteParagraphs.mockResolvedValue({});
       mockParagraphHooks.batchCreateParagraphs.mockResolvedValue({ paragraphs: [] });
@@ -650,8 +665,13 @@ describe('useInvestigation', () => {
     it('should call addError with error.message as "Invalid per agent response" and i18n cause when response validation fails', async () => {
       mockIsValidPERAgentInvestigationResponse.mockReturnValue(false);
 
-      const invalidResponse = '{"findings": [], "hypotheses": []}';
-      mockSharedMessagePollingService.poll.mockReturnValue(of(invalidResponse));
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: '{"findings": [], "hypotheses": []}',
+          createTime: 1711267562195,
+          updateTime: 1711267592195,
+        })
+      );
 
       const { result } = renderHook(() => useInvestigation(), { wrapper });
 
@@ -675,7 +695,13 @@ describe('useInvestigation', () => {
 
     it('should call addError with empty error.message and cause containing raw message when JSON parsing fails', async () => {
       const invalidJsonResponse = '{"invalid": json}';
-      mockSharedMessagePollingService.poll.mockReturnValue(of(invalidJsonResponse));
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: invalidJsonResponse,
+          createTime: 1711267562195,
+          updateTime: 1711267592195,
+        })
+      );
 
       const { result } = renderHook(() => useInvestigation(), { wrapper });
 
@@ -699,8 +725,13 @@ describe('useInvestigation', () => {
     it('should update investigation error state when response validation fails', async () => {
       mockIsValidPERAgentInvestigationResponse.mockReturnValue(false);
 
-      const invalidResponse = '{"some": "data"}';
-      mockSharedMessagePollingService.poll.mockReturnValue(of(invalidResponse));
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: '{"some": "data"}',
+          createTime: 1711267562195,
+          updateTime: 1711267592195,
+        })
+      );
 
       const { result } = renderHook(() => useInvestigation(), { wrapper });
 
@@ -749,7 +780,13 @@ describe('useInvestigation', () => {
         ],
         topologies: [],
       });
-      mockSharedMessagePollingService.poll.mockReturnValue(of(validResponse));
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: validResponse,
+          createTime: 1711267562195,
+          updateTime: 1711267592195,
+        })
+      );
 
       mockParagraphHooks.batchCreateParagraphs.mockResolvedValue({
         paragraphs: [{ id: 'paragraph-1' }],
@@ -784,7 +821,13 @@ describe('useInvestigation', () => {
 
     it('should clean up "Max Steps Limit (xx) Reached" error message to "Max Steps Limit Reached"', async () => {
       const maxStepsErrorMessage = 'Max Steps Limit (20) Reached';
-      mockSharedMessagePollingService.poll.mockReturnValue(of(maxStepsErrorMessage));
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: maxStepsErrorMessage,
+          createTime: 1711267562195,
+          updateTime: 1711267592195,
+        })
+      );
 
       const { result } = renderHook(() => useInvestigation(), { wrapper });
 
@@ -803,6 +846,176 @@ describe('useInvestigation', () => {
           }),
         })
       );
+    });
+  });
+
+  describe('telemetry tracking', () => {
+    let mockSharedMessagePollingService: any;
+
+    beforeEach(() => {
+      mockSharedMessagePollingService = {
+        poll: jest.fn(),
+      };
+
+      (SharedMessagePollingService.getInstance as jest.Mock) = jest
+        .fn()
+        .mockReturnValue(mockSharedMessagePollingService);
+
+      (mlCommonsApis.getMLCommonsConfig as jest.Mock).mockResolvedValue({
+        configuration: { agent_id: 'test-agent-id' },
+      });
+      (mlCommonsApis.getMLCommonsAgentDetail as jest.Mock).mockResolvedValue({
+        memory: { memory_container_id: 'test-container-id' },
+      });
+      (mlCommonsApis.createAgenticExecutionMemory as jest.Mock).mockResolvedValue({
+        session_id: 'test-session-id',
+      });
+      (mlCommonsApis.executeMLCommonsAgent as jest.Mock).mockResolvedValue({
+        response: {
+          parent_interaction_id: 'test-parent-interaction',
+        },
+      });
+
+      // Reset telemetry mocks
+      mockInvestigationTelemetry.recordEvent.mockClear();
+      mockInvestigationTelemetry.recordMetric.mockClear();
+    });
+
+    it('should record investigation_success event with duration on successful investigation', async () => {
+      ((isValidPERAgentInvestigationResponse as unknown) as jest.Mock).mockReturnValue(true);
+
+      const createTime = 1711267562195;
+      const updateTime = 1711267592195;
+      const expectedDuration = updateTime - createTime;
+
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: '{"findings":[],"hypotheses":[],"topologies":[]}',
+          createTime,
+          updateTime,
+        })
+      );
+
+      mockParagraphHooks.batchDeleteParagraphs.mockResolvedValue({});
+      mockParagraphHooks.batchCreateParagraphs.mockResolvedValue({ paragraphs: [] });
+      mockParagraphHooks.batchRunParagraphs.mockResolvedValue({});
+
+      const { result } = renderHook(() => useInvestigation(), { wrapper });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      expect(mockInvestigationTelemetry.recordEvent).toHaveBeenCalledWith({
+        name: 'investigation_success',
+        data: expect.objectContaining({
+          notebookId: 'test-notebook',
+          durationMs: expectedDuration,
+        }),
+      });
+    });
+
+    it('should record investigation_duration metric on successful investigation', async () => {
+      ((isValidPERAgentInvestigationResponse as unknown) as jest.Mock).mockReturnValue(true);
+
+      const createTime = 1711267562195;
+      const updateTime = 1711267592195;
+      const expectedDuration = updateTime - createTime;
+
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: '{"findings":[],"hypotheses":[],"topologies":[]}',
+          createTime,
+          updateTime,
+        })
+      );
+
+      mockParagraphHooks.batchDeleteParagraphs.mockResolvedValue({});
+      mockParagraphHooks.batchCreateParagraphs.mockResolvedValue({ paragraphs: [] });
+      mockParagraphHooks.batchRunParagraphs.mockResolvedValue({});
+
+      const { result } = renderHook(() => useInvestigation(), { wrapper });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      expect(mockInvestigationTelemetry.recordMetric).toHaveBeenCalledWith({
+        name: 'investigation_duration',
+        value: expectedDuration,
+        unit: 'ms',
+      });
+    });
+
+    it('should record investigation_failure event on failed investigation', async () => {
+      ((isValidPERAgentInvestigationResponse as unknown) as jest.Mock).mockReturnValue(false);
+
+      const createTime = 1711267562195;
+      const updateTime = 1711267572195;
+
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: '{"invalid": "response"}',
+          createTime,
+          updateTime,
+        })
+      );
+
+      const { result } = renderHook(() => useInvestigation(), { wrapper });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      expect(mockInvestigationTelemetry.recordEvent).toHaveBeenCalledWith({
+        name: 'investigation_failure',
+        data: expect.objectContaining({
+          notebookId: 'test-notebook',
+          durationMs: updateTime - createTime,
+        }),
+      });
+    });
+
+    it('should not record duration metric when timestamps are missing', async () => {
+      ((isValidPERAgentInvestigationResponse as unknown) as jest.Mock).mockReturnValue(true);
+
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: '{"findings":[],"hypotheses":[],"topologies":[]}',
+          createTime: undefined,
+          updateTime: undefined,
+        })
+      );
+
+      mockParagraphHooks.batchDeleteParagraphs.mockResolvedValue({});
+      mockParagraphHooks.batchCreateParagraphs.mockResolvedValue({ paragraphs: [] });
+      mockParagraphHooks.batchRunParagraphs.mockResolvedValue({});
+
+      const { result } = renderHook(() => useInvestigation(), { wrapper });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      // recordMetric should not be called when timestamps are missing
+      expect(mockInvestigationTelemetry.recordMetric).not.toHaveBeenCalled();
+
+      // But recordEvent should still be called with undefined durationMs
+      expect(mockInvestigationTelemetry.recordEvent).toHaveBeenCalledWith({
+        name: 'investigation_success',
+        data: expect.objectContaining({
+          notebookId: 'test-notebook',
+          durationMs: undefined,
+        }),
+      });
     });
   });
 });

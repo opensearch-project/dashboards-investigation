@@ -76,6 +76,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       workspaces,
       http,
       application,
+      investigationTelemetry,
     },
   } = useOpenSearchDashboards<NoteBookServices>();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -349,6 +350,18 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
         await rerunPrecheck(paragraphsStates, newTimeRange);
       }
 
+      if (isReinvestigate) {
+        // Record reinvestigate telemetry
+        investigationTelemetry.recordEvent({
+          name: 'investigation_reinvestigate',
+          data: {
+            notebookId: openedNoteId,
+            hasTimeRangeChanged,
+            hasQuestionChanged: initialGoal !== question,
+          },
+        });
+      }
+
       (isReinvestigate ? rerunInvestigation : doInvestigate)({
         investigationQuestion: question,
         timeRange: newTimeRange,
@@ -366,6 +379,8 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
       rerunPrecheck,
       checkOngoingInvestigation,
       notebookContext.state,
+      investigationTelemetry,
+      openedNoteId,
     ]
   );
 
