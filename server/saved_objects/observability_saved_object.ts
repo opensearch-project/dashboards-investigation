@@ -38,5 +38,15 @@ export const notebookSavedObject: SavedObjectsType = {
       version: { type: 'integer' },
     },
   },
-  migrations: {},
+  migrations: {
+    '1.0.0': (doc) => {
+      if (!doc.attributes.title && doc.attributes.savedNotebook?.name) {
+        return {
+          ...doc,
+          attributes: { ...doc.attributes, title: doc.attributes.savedNotebook.name },
+        };
+      }
+      return doc;
+    },
+  },
 };

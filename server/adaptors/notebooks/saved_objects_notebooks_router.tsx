@@ -57,6 +57,7 @@ export function createNotebook(notebookName: { name: string; context?: any }, us
   }
 
   return {
+    title: notebookName.name,
     savedNotebook: noteObject,
   };
 }
@@ -73,6 +74,7 @@ export function cloneNotebook(fetchedNotebook: NotebookBackendType, name: string
   };
 
   return {
+    title: name,
     savedNotebook: noteObject,
   };
 }
@@ -85,6 +87,7 @@ export function renameNotebook(noteBookObj: { name: string; noteId: string }) {
   };
 
   return {
+    title: noteBookObj.name,
     savedNotebook: noteObject,
   };
 }
