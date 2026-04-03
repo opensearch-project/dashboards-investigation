@@ -85,10 +85,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
   }, [searchQuery]);
 
   const sortFieldMap: Record<string, string> = {
-    path: 'title.keyword',
-    notebookType: 'savedNotebook.context.notebookType',
     dateModified: 'updated_at',
-    dateCreated: 'savedNotebook.dateCreated',
   };
 
   // Fetches notebooks with server-side pagination, sort, and search
@@ -478,7 +475,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
     {
       field: 'path',
       name: 'Name',
-      sortable: true,
+      sortable: false,
       truncateText: true,
       render: (value: string, record: NotebookInfo) => (
         <EuiLink
@@ -495,7 +492,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
     {
       field: 'notebookType',
       name: 'Type',
-      sortable: true,
+      sortable: false,
       render: (value: string) => value ?? NotebookType.CLASSIC,
     },
     {
@@ -507,7 +504,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
     {
       field: 'dateCreated',
       name: 'Created',
-      sortable: true,
+      sortable: false,
       render: (value: string) => moment(value).format(UI_DATE_FORMAT),
     },
   ];

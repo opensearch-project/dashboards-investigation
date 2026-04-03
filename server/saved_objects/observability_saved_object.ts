@@ -39,7 +39,7 @@ export const notebookSavedObject: SavedObjectsType = {
     },
   },
   migrations: {
-    '1.0.0': (doc) => {
+    '3.7.0': (doc) => {
       if (!doc.attributes.title && doc.attributes.savedNotebook?.name) {
         return {
           ...doc,
