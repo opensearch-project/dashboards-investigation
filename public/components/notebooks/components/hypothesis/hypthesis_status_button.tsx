@@ -21,7 +21,7 @@ export const HypothesisStatusButton: React.FC<{
   fill?: boolean;
 }> = ({ hypothesisId, hypothesisStatus, fill }) => {
   const {
-    services: { notifications },
+    services: { notifications, investigationTelemetry },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const notebookContext = useContext(NotebookReactContext);
@@ -108,6 +108,20 @@ export const HypothesisStatusButton: React.FC<{
         hypotheses: reorderedHypotheses,
         isPromoted: shouldPromote,
       });
+
+      // Record telemetry for rule out/rule in
+      if (isRuledOut) {
+        investigationTelemetry.recordEvent({
+          name: 'hypothesis_rule_in',
+          data: { notebookId: notebookContext.state.value.id, hypothesisId },
+        });
+      } else {
+        investigationTelemetry.recordEvent({
+          name: 'hypothesis_rule_out',
+          data: { notebookId: notebookContext.state.value.id, hypothesisId },
+        });
+      }
+
       notifications.toasts.addSuccess(
         isRuledOut
           ? i18n.translate('notebook.hypothesis.detail.hypothesisReactivated', {
@@ -144,6 +158,13 @@ export const HypothesisStatusButton: React.FC<{
     try {
       await updateHypotheses(updatedHypotheses);
       notebookContext.state.updateValue({ hypotheses: updatedHypotheses });
+
+      // Record telemetry for accept
+      investigationTelemetry.recordEvent({
+        name: 'hypothesis_accept',
+        data: { notebookId: notebookContext.state.value.id, hypothesisId },
+      });
+
       notifications.toasts.addSuccess(
         i18n.translate('notebook.hypothesis.detail.hypothesisAccepted', {
           defaultMessage: 'Hypothesis accepted',

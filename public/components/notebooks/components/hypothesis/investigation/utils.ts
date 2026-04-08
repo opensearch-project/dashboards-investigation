@@ -113,15 +113,34 @@ export const getAllTracesMessages = async (
   return traces;
 };
 
+export interface FinalMessageResult {
+  message: string | null;
+  createTime?: number;
+  updateTime?: number;
+}
+
 export const getFinalMessage = async (
   options: Parameters<typeof executeMLCommonsAgenticMessage>[0]
-) => {
+): Promise<FinalMessageResult | null> => {
   try {
     const response = await executeMLCommonsAgenticMessage(options);
-    const finalMessage =
-      response?.hits?.hits?.[0]?._source?.structured_data_blob?.response ||
-      response?.hits?.hits?.[0]?._source?.structured_data?.response;
-    return finalMessage;
+    const hit = response?.hits?.hits?.[0]?._source;
+    const structuredData = hit?.structured_data_blob || hit?.structured_data;
+    const finalMessage = structuredData?.response;
+
+    if (!finalMessage) {
+      return null;
+    }
+
+    return {
+      message: finalMessage,
+      createTime: structuredData?.create_time
+        ? new Date(structuredData.create_time).getTime()
+        : undefined,
+      updateTime: structuredData?.updated_time
+        ? new Date(structuredData.updated_time).getTime()
+        : undefined,
+    };
   } catch (error) {
     if (error.name === 'AbortError') {
       return null;

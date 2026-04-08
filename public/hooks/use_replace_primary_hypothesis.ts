@@ -12,7 +12,7 @@ import { useNotebook } from './use_notebook';
 
 export const useReplaceAsPrimary = () => {
   const {
-    services: { notifications },
+    services: { notifications, investigationTelemetry },
   } = useOpenSearchDashboards<NoteBookServices>();
   const notebookContext = useContext(NotebookReactContext);
   const { updateHypotheses } = useNotebook();
@@ -31,6 +31,13 @@ export const useReplaceAsPrimary = () => {
 
         await updateHypotheses(reorderedHypotheses);
         notebookContext.state.updateValue({ isPromoted: true });
+
+        // Record telemetry for replace as primary
+        investigationTelemetry.recordEvent({
+          name: 'hypothesis_replace_primary',
+          data: { notebookId: notebookContext.state.value.id, hypothesisId },
+        });
+
         notifications.toasts.addSuccess(
           i18n.translate('notebook.hypotheses.primaryHypothesisUpdated', {
             defaultMessage: 'Primary hypothesis updated successfully',
@@ -45,7 +52,7 @@ export const useReplaceAsPrimary = () => {
         console.error(error);
       }
     },
-    [notebookContext.state, updateHypotheses, notifications.toasts]
+    [notebookContext.state, updateHypotheses, notifications.toasts, investigationTelemetry]
   );
 
   return { replaceAsPrimary };

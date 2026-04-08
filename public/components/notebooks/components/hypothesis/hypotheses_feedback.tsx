@@ -9,12 +9,18 @@ import React, { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { UsageCollectionStart } from '../../../../../../../src/plugins/usage_collection/public';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { NoteBookServices } from '../../../../types';
 
 export const HypothesesFeedback: React.FC<{
   appName: string;
+  notebookId: string;
   usageCollection: UsageCollectionStart | undefined;
   openReinvestigateModal: (withFeedback?: boolean) => void;
-}> = ({ usageCollection, appName, openReinvestigateModal }) => {
+}> = ({ usageCollection, appName, notebookId, openReinvestigateModal }) => {
+  const {
+    services: { investigationTelemetry },
+  } = useOpenSearchDashboards<NoteBookServices>();
   const [feedback, setFeedback] = useState<'thumbup' | 'thumbdown' | undefined>();
 
   const onFeedback = useCallback(
@@ -28,11 +34,24 @@ export const HypothesesFeedback: React.FC<{
         setFeedback(eventName);
       }
 
+      // Record telemetry for thumb up/down
+      if (eventName === 'thumbup') {
+        investigationTelemetry.recordEvent({
+          name: 'investigation_thumb_up',
+          data: { notebookId },
+        });
+      } else {
+        investigationTelemetry.recordEvent({
+          name: 'investigation_thumb_down',
+          data: { notebookId },
+        });
+      }
+
       if (eventName === 'thumbdown') {
         openReinvestigateModal(true);
       }
     },
-    [usageCollection, feedback, appName, openReinvestigateModal]
+    [usageCollection, feedback, appName, notebookId, openReinvestigateModal, investigationTelemetry]
   );
 
   return (

@@ -30,6 +30,16 @@ jest.mock('react-router-dom', () => ({
   }),
 }));
 
+jest.mock('../../../../../../../src/plugins/opensearch_dashboards_react/public', () => ({
+  useOpenSearchDashboards: () => ({
+    services: {
+      investigationTelemetry: {
+        recordEvent: jest.fn(),
+      },
+    },
+  }),
+}));
+
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
   useContext: jest.fn(() => ({

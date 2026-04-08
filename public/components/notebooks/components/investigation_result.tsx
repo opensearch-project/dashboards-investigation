@@ -61,7 +61,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
 }) => {
   const notebookContext = useContext(NotebookReactContext);
   const {
-    services: { uiSettings, savedObjects, appName, usageCollection, http },
+    services: { uiSettings, savedObjects, appName, usageCollection, http, investigationTelemetry },
   } = useOpenSearchDashboards<NoteBookServices>();
   const history = useHistory();
 
@@ -169,6 +169,10 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   ]);
 
   const handleClickHypothesis = (hypothesisId: string) => {
+    investigationTelemetry.recordEvent({
+      name: 'hypothesis_click',
+      data: { notebookId, hypothesisId },
+    });
     history.push(`/agentic/${notebookId}/hypothesis/${hypothesisId}`);
   };
 
@@ -302,6 +306,12 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
         forceState={showSteps ? 'open' : 'closed'}
         onToggle={(isOpen) => {
           setShowSteps(isOpen);
+          if (isOpen) {
+            investigationTelemetry.recordEvent({
+              name: 'investigation_steps_expand',
+              data: {},
+            });
+          }
         }}
       >
         <HypothesesStep
@@ -322,7 +332,13 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
             color="primary"
             iconType="refresh"
             fill
-            onClick={() => openReinvestigateModal(true)}
+            onClick={() => {
+              investigationTelemetry.recordEvent({
+                name: 'reinvestigate_click',
+                data: { notebookId, withFeedback: true },
+              });
+              openReinvestigateModal(true);
+            }}
           >
             {i18n.translate('notebook.summary.card.reinvestigateWithFeedback', {
               defaultMessage: 'Reinvestigate with feedback',
@@ -556,7 +572,13 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
   const reinvestigationButton = (
     <EuiSmallButton
       fill
-      onClick={() => openReinvestigateModal(false)}
+      onClick={() => {
+        investigationTelemetry.recordEvent({
+          name: 'reinvestigate_click',
+          data: { notebookId, withFeedback: false },
+        });
+        openReinvestigateModal(false);
+      }}
       disabled={isInvestigating}
       iconType={isInvestigating ? undefined : 'refresh'}
     >
@@ -598,6 +620,7 @@ export const InvestigationResult: React.FC<InvestigationResultProps> = ({
             <EuiFlexItem grow={false}>
               <HypothesesFeedback
                 appName={appName}
+                notebookId={notebookId}
                 usageCollection={usageCollection}
                 openReinvestigateModal={openReinvestigateModal}
               />
