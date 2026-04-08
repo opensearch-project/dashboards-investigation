@@ -1137,7 +1137,7 @@ describe('useInvestigation', () => {
       // Mock successful polling on retry
       ((isValidPERAgentInvestigationResponse as unknown) as jest.Mock).mockReturnValue(true);
       mockSharedMessagePollingService.poll.mockReturnValue(
-        of('{"findings":[],"hypotheses":[],"topologies":[]}')
+        of({ message: '{"findings":[],"hypotheses":[],"topologies":[]}' })
       );
       mockParagraphHooks.batchDeleteParagraphs.mockResolvedValue({});
       mockParagraphHooks.batchCreateParagraphs.mockResolvedValue({ paragraphs: [] });
