@@ -273,8 +273,10 @@ export const useInvestigation = () => {
    */
   const updateInvestigationName = useCallback(
     async (suggestedName: string) => {
+      // Read title directly from the state value to avoid stale closure issues
+      const currentTitle = context.state.value.title || '';
       const isDefaultName = [DEFAULT_INVESTIGATION_NAME, DEFAULT_VISUALIZATION_NAME].includes(
-        contextStateValue?.title || ''
+        currentTitle
       );
       if (isDefaultName && suggestedName) {
         try {
@@ -298,7 +300,7 @@ export const useInvestigation = () => {
         }
       }
     },
-    [contextStateValue?.title, context.state, http, addError]
+    [context.state, http, addError]
   );
 
   const handleInvestigationFailure = useCallback(

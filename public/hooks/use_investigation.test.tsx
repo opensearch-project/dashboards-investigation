@@ -1028,6 +1028,319 @@ describe('useInvestigation', () => {
     });
   });
 
+  describe('updateInvestigationName', () => {
+    let mockSharedMessagePollingService: any;
+
+    beforeEach(() => {
+      mockSharedMessagePollingService = {
+        poll: jest.fn(),
+      };
+
+      (SharedMessagePollingService.getInstance as jest.Mock) = jest
+        .fn()
+        .mockReturnValue(mockSharedMessagePollingService);
+
+      (mlCommonsApis.getMLCommonsConfig as jest.Mock).mockResolvedValue({
+        configuration: { agent_id: 'test-agent-id' },
+      });
+      (mlCommonsApis.getMLCommonsAgentDetail as jest.Mock).mockResolvedValue({
+        memory: { memory_container_id: 'test-container-id' },
+      });
+      (mlCommonsApis.createAgenticExecutionMemory as jest.Mock).mockResolvedValue({
+        session_id: 'test-session-id',
+      });
+      (mlCommonsApis.executeMLCommonsAgent as jest.Mock).mockResolvedValue({
+        response: {
+          parent_interaction_id: 'test-parent-interaction',
+        },
+      });
+      ((isValidPERAgentInvestigationResponse as unknown) as jest.Mock).mockReturnValue(true);
+
+      mockParagraphHooks.batchDeleteParagraphs.mockResolvedValue({});
+      mockParagraphHooks.batchCreateParagraphs.mockResolvedValue({ paragraphs: [] });
+      mockParagraphHooks.batchRunParagraphs.mockResolvedValue({});
+    });
+
+    it('should rename notebook when title is default investigation name', async () => {
+      const state = new NotebookState({
+        ...mockNotebookState.value,
+        title: 'Discover investigation',
+        path: 'Discover investigation',
+      });
+
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: JSON.stringify({
+            investigationName: 'Web Log Anomaly Analysis',
+            findings: [],
+            hypotheses: [],
+            topologies: [],
+          }),
+          createTime: 1711267562195,
+          updateTime: 1711267592195,
+        })
+      );
+
+      const { result } = renderHook(() => useInvestigation(), {
+        wrapper: ({ children }) => (
+          <NotebookReactContext.Provider value={{ state, paragraphHooks: mockParagraphHooks }}>
+            {children}
+          </NotebookReactContext.Provider>
+        ),
+      });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      expect(mockHttp.put).toHaveBeenCalledWith(
+        expect.stringContaining('/note/savedNotebook/rename'),
+        expect.objectContaining({
+          body: JSON.stringify({
+            name: 'Web Log Anomaly Analysis',
+            noteId: state.value.id,
+          }),
+        })
+      );
+      expect(state.value.title).toBe('Web Log Anomaly Analysis');
+      expect(state.value.path).toBe('Web Log Anomaly Analysis');
+    });
+
+    it('should rename notebook when title is default visualization name', async () => {
+      const state = new NotebookState({
+        ...mockNotebookState.value,
+        title: 'Visualization investigation',
+        path: 'Visualization investigation',
+      });
+
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: JSON.stringify({
+            investigationName: 'Dashboard Analysis',
+            findings: [],
+            hypotheses: [],
+            topologies: [],
+          }),
+          createTime: 1711267562195,
+          updateTime: 1711267592195,
+        })
+      );
+
+      const { result } = renderHook(() => useInvestigation(), {
+        wrapper: ({ children }) => (
+          <NotebookReactContext.Provider value={{ state, paragraphHooks: mockParagraphHooks }}>
+            {children}
+          </NotebookReactContext.Provider>
+        ),
+      });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      expect(mockHttp.put).toHaveBeenCalledWith(
+        expect.stringContaining('/note/savedNotebook/rename'),
+        expect.objectContaining({
+          body: JSON.stringify({
+            name: 'Dashboard Analysis',
+            noteId: state.value.id,
+          }),
+        })
+      );
+    });
+
+    it('should not rename notebook when title is already custom', async () => {
+      const state = new NotebookState({
+        ...mockNotebookState.value,
+        title: 'My Custom Investigation',
+        path: 'My Custom Investigation',
+      });
+
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: JSON.stringify({
+            investigationName: 'Web Log Anomaly Analysis',
+            findings: [],
+            hypotheses: [],
+            topologies: [],
+          }),
+          createTime: 1711267562195,
+          updateTime: 1711267592195,
+        })
+      );
+
+      const { result } = renderHook(() => useInvestigation(), {
+        wrapper: ({ children }) => (
+          <NotebookReactContext.Provider value={{ state, paragraphHooks: mockParagraphHooks }}>
+            {children}
+          </NotebookReactContext.Provider>
+        ),
+      });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      expect(mockHttp.put).not.toHaveBeenCalledWith(
+        expect.stringContaining('/note/savedNotebook/rename'),
+        expect.anything()
+      );
+      expect(state.value.title).toBe('My Custom Investigation');
+    });
+
+    it('should truncate investigation name to 50 characters', async () => {
+      const state = new NotebookState({
+        ...mockNotebookState.value,
+        title: 'Discover investigation',
+        path: 'Discover investigation',
+      });
+
+      const longName = 'A'.repeat(60);
+
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: JSON.stringify({
+            investigationName: longName,
+            findings: [],
+            hypotheses: [],
+            topologies: [],
+          }),
+          createTime: 1711267562195,
+          updateTime: 1711267592195,
+        })
+      );
+
+      const { result } = renderHook(() => useInvestigation(), {
+        wrapper: ({ children }) => (
+          <NotebookReactContext.Provider value={{ state, paragraphHooks: mockParagraphHooks }}>
+            {children}
+          </NotebookReactContext.Provider>
+        ),
+      });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      expect(mockHttp.put).toHaveBeenCalledWith(
+        expect.stringContaining('/note/savedNotebook/rename'),
+        expect.objectContaining({
+          body: JSON.stringify({
+            name: longName.substring(0, 50),
+            noteId: state.value.id,
+          }),
+        })
+      );
+    });
+
+    it('should read title from state.value at call time to avoid stale closure', async () => {
+      // Start with empty title (simulating initial state before notebook loads)
+      const state = new NotebookState({
+        ...mockNotebookState.value,
+        title: '',
+        path: '',
+      });
+
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: JSON.stringify({
+            investigationName: 'Web Log Anomaly Analysis',
+            findings: [],
+            hypotheses: [],
+            topologies: [],
+          }),
+          createTime: 1711267562195,
+          updateTime: 1711267592195,
+        })
+      );
+
+      const { result } = renderHook(() => useInvestigation(), {
+        wrapper: ({ children }) => (
+          <NotebookReactContext.Provider value={{ state, paragraphHooks: mockParagraphHooks }}>
+            {children}
+          </NotebookReactContext.Provider>
+        ),
+      });
+
+      // Simulate title being updated after notebook loads (before polling completes)
+      // This mimics the real scenario where state.value.title is updated by loadNotebook
+      // but the useCallback closure would have captured the old empty title
+      state.updateValue({ title: 'Discover investigation', path: 'Discover investigation' });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      // Should still rename because we read from state.value.title (current)
+      // not from the stale closure value
+      expect(mockHttp.put).toHaveBeenCalledWith(
+        expect.stringContaining('/note/savedNotebook/rename'),
+        expect.objectContaining({
+          body: JSON.stringify({
+            name: 'Web Log Anomaly Analysis',
+            noteId: state.value.id,
+          }),
+        })
+      );
+    });
+
+    it('should not fail the investigation if rename API call fails', async () => {
+      const state = new NotebookState({
+        ...mockNotebookState.value,
+        title: 'Discover investigation',
+        path: 'Discover investigation',
+      });
+
+      mockHttp.put.mockRejectedValueOnce(new Error('Rename API failed'));
+
+      mockSharedMessagePollingService.poll.mockReturnValue(
+        of({
+          message: JSON.stringify({
+            investigationName: 'Web Log Anomaly Analysis',
+            findings: [],
+            hypotheses: [],
+            topologies: [],
+          }),
+          createTime: 1711267562195,
+          updateTime: 1711267592195,
+        })
+      );
+
+      const { result } = renderHook(() => useInvestigation(), {
+        wrapper: ({ children }) => (
+          <NotebookReactContext.Provider value={{ state, paragraphHooks: mockParagraphHooks }}>
+            {children}
+          </NotebookReactContext.Provider>
+        ),
+      });
+
+      await act(async () => {
+        await result.current.doInvestigate({
+          investigationQuestion: 'Test question',
+        });
+      });
+
+      // Should show error toast for rename failure but not fail the investigation
+      expect(mockAddError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Failed to update investigation title',
+        })
+      );
+      // Investigation itself should still complete successfully
+      expect(state.value.investigationPhase).toBe(InvestigationPhase.COMPLETED);
+    });
+  });
+
   describe('recoverable failure handling', () => {
     let mockSharedMessagePollingService: any;
 
