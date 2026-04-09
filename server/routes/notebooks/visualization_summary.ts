@@ -22,6 +22,15 @@ import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
 
 const ML_CONFIG_NAME = 'os_visualization_summary';
 
+const JPEG_BASE64_PREFIX = '/9j/';
+
+/**
+ * Validates that a base64 string represents a JPEG image.
+ */
+export function isValidImageFormat(base64: string): boolean {
+  return base64.startsWith(JPEG_BASE64_PREFIX);
+}
+
 /**
  * Route handler for generating visualization summaries using ML models
  *
@@ -53,6 +62,15 @@ export function registerVisualizationSummaryRoute(router: IRouter) {
       try {
         const { visualization, localTimeZoneOffset } = request.body;
         const { dataSourceId } = request.query;
+
+        // Validate image format
+        if (!isValidImageFormat(visualization)) {
+          return response.badRequest({
+            body: {
+              message: 'Unsupported image format. Only JPEG is supported.',
+            },
+          });
+        }
 
         // Get transport client with data source support
         const transport = await getOpenSearchClientTransport({

@@ -14,7 +14,7 @@
  * GitHub history for details.
  */
 
-import { registerVisualizationSummaryRoute } from './visualization_summary';
+import { registerVisualizationSummaryRoute, isValidImageFormat } from './visualization_summary';
 import { setLogger } from '../../services/get_set';
 
 describe('registerVisualizationSummaryRoute', () => {
@@ -59,7 +59,7 @@ describe('registerVisualizationSummaryRoute', () => {
     // Mock request
     mockRequest = {
       body: {
-        visualization: 'base64-encoded-image',
+        visualization: '/9j/4AAQSkZJRgABAQ==',
         localTimeZoneOffset: 480,
       },
       query: {},
@@ -185,7 +185,7 @@ describe('registerVisualizationSummaryRoute', () => {
         path: '/_plugins/_ml/agents/agent-123/_execute',
         body: {
           parameters: {
-            image_base64: 'base64-encoded-image',
+            image_base64: '/9j/4AAQSkZJRgABAQ==',
             local_time_offset: 480,
           },
         },
@@ -412,7 +412,7 @@ describe('registerVisualizationSummaryRoute', () => {
 
       const requestWithOffset = {
         body: {
-          visualization: 'base64-encoded-image',
+          visualization: '/9j/4AAQSkZJRgABAQ==',
           localTimeZoneOffset: 480,
         },
         query: {},
@@ -432,7 +432,7 @@ describe('registerVisualizationSummaryRoute', () => {
           path: '/_plugins/_ml/agents/agent-123/_execute',
           body: {
             parameters: {
-              image_base64: 'base64-encoded-image',
+              image_base64: '/9j/4AAQSkZJRgABAQ==',
               local_time_offset: 480,
             },
           },
@@ -475,7 +475,7 @@ describe('registerVisualizationSummaryRoute', () => {
 
       const requestWithNegativeOffset = {
         body: {
-          visualization: 'base64-encoded-image',
+          visualization: '/9j/4AAQSkZJRgABAQ==',
           localTimeZoneOffset: -480,
         },
         query: {},
@@ -493,7 +493,7 @@ describe('registerVisualizationSummaryRoute', () => {
         expect.objectContaining({
           body: {
             parameters: {
-              image_base64: 'base64-encoded-image',
+              image_base64: '/9j/4AAQSkZJRgABAQ==',
               local_time_offset: -480,
             },
           },
@@ -536,7 +536,7 @@ describe('registerVisualizationSummaryRoute', () => {
 
       const requestWithZeroOffset = {
         body: {
-          visualization: 'base64-encoded-image',
+          visualization: '/9j/4AAQSkZJRgABAQ==',
           localTimeZoneOffset: 0,
         },
         query: {},
@@ -554,7 +554,7 @@ describe('registerVisualizationSummaryRoute', () => {
         expect.objectContaining({
           body: {
             parameters: {
-              image_base64: 'base64-encoded-image',
+              image_base64: '/9j/4AAQSkZJRgABAQ==',
               local_time_offset: 0,
             },
           },
@@ -577,6 +577,102 @@ describe('registerVisualizationSummaryRoute', () => {
         localTimeZoneOffset: 480,
       });
       expect(validResult.error).toBeUndefined();
+    });
+  });
+
+  describe('image size limitation', () => {
+    it('should reject visualization exceeding max length of 200000', () => {
+      const routeConfig = mockRouter.post.mock.calls[0][0];
+      const bodySchema = routeConfig.validate.body;
+
+      const oversizedVisualization = 'a'.repeat(200001);
+      expect(() =>
+        bodySchema.validate({
+          visualization: oversizedVisualization,
+          localTimeZoneOffset: 480,
+        })
+      ).toThrow();
+    });
+
+    it('should accept visualization at exactly max length of 200000', () => {
+      const routeConfig = mockRouter.post.mock.calls[0][0];
+      const bodySchema = routeConfig.validate.body;
+
+      const maxVisualization = 'a'.repeat(200000);
+      expect(() =>
+        bodySchema.validate({
+          visualization: maxVisualization,
+          localTimeZoneOffset: 480,
+        })
+      ).not.toThrow();
+    });
+
+    it('should reject empty visualization string', () => {
+      const routeConfig = mockRouter.post.mock.calls[0][0];
+      const bodySchema = routeConfig.validate.body;
+
+      expect(() =>
+        bodySchema.validate({
+          visualization: '',
+          localTimeZoneOffset: 480,
+        })
+      ).toThrow();
+    });
+  });
+
+  describe('image format validation', () => {
+    it('should accept JPEG base64 images', () => {
+      expect(isValidImageFormat('/9j/4AAQSkZJRg==')).toBe(true);
+    });
+
+    it('should reject non-JPEG image formats', () => {
+      expect(isValidImageFormat('iVBORw0KGgo=')).toBe(false); // PNG
+      expect(isValidImageFormat('R0lGODlh')).toBe(false); // GIF
+      expect(isValidImageFormat('UklGR')).toBe(false); // WebP
+      expect(isValidImageFormat('randomstring')).toBe(false);
+    });
+
+    it('should return badRequest for unsupported image format', async () => {
+      mockRequest.body.visualization = 'iVBORw0KGgoAAAANSUhEUg==';
+
+      await routeHandler(mockContext, mockRequest, mockResponse);
+
+      expect(mockResponse.badRequest).toHaveBeenCalledWith({
+        body: {
+          message: 'Unsupported image format. Only JPEG is supported.',
+        },
+      });
+    });
+
+    it('should proceed for valid JPEG image', async () => {
+      mockRequest.body.visualization = '/9j/4AAQSkZJRgABAQ==';
+
+      mockContext.core.opensearch.client.asCurrentUser.transport.request
+        .mockResolvedValueOnce({
+          body: { configuration: { agent_id: 'agent-123' } },
+        })
+        .mockResolvedValueOnce({
+          body: {
+            inference_results: [
+              {
+                output: [
+                  {
+                    result: JSON.stringify({
+                      output: { message: { content: [{ text: 'Summary' }] } },
+                    }),
+                  },
+                ],
+              },
+            ],
+          },
+        });
+
+      await routeHandler(mockContext, mockRequest, mockResponse);
+
+      expect(mockResponse.badRequest).not.toHaveBeenCalled();
+      expect(mockResponse.ok).toHaveBeenCalledWith({
+        body: { summary: 'Summary' },
+      });
     });
   });
 });
