@@ -59,6 +59,7 @@ import { migrateFindingParagraphs } from '../../../utils/finding_migration';
 import { InvestigationPhase } from '../../../../common/state/notebook_state';
 import { useSidecarPadding } from '../../../hooks/use_sidecar_padding';
 import { getMemoryPermission } from './hypothesis/investigation/utils';
+import { isRecoverableError } from './hypothesis/investigation/errors';
 
 interface AgenticNotebookProps extends NotebookComponentProps {
   openedNoteId: string;
@@ -254,6 +255,21 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
           notebookContext.state.updateValue({
             historyMemory: res.historyMemory,
           });
+        }
+
+        // Check if there's a recoverable failure to resume from
+        if (
+          res.failedInvestigation?.error &&
+          isRecoverableError(res.failedInvestigation.error) &&
+          res.failedInvestigation?.memory?.parentInteractionId
+        ) {
+          // Set runningMemory from failedInvestigation.memory so continueInvestigation can use it
+          notebookContext.state.updateValue({
+            runningMemory: res.failedInvestigation.memory,
+            investigationPhase: InvestigationPhase.PLANNING,
+          });
+          await continueInvestigation();
+          return;
         }
 
         // Only call start() for new notebooks or completed investigations

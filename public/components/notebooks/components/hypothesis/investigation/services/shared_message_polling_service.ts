@@ -11,6 +11,8 @@ import {
   INTERVAL_TIME,
   REQUEST_TIMEOUT_MS,
 } from '../../../../../../../common/constants/investigation';
+import { PollingTimeoutError } from '../errors/polling_timeout_error';
+import { PollingMaxErrorsError } from '../errors/polling_max_errors_error';
 
 interface PollingInstance {
   observable: Observable<any>;
@@ -55,7 +57,7 @@ export class SharedMessagePollingService {
     const source$ = timer(0, pollInterval).pipe(
       concatMap(() => {
         if (Date.now() - startTime > TIMEOUT_MS) {
-          return throwError(new Error('Investigation polling exceeded 20 minutes'));
+          return throwError(new PollingTimeoutError());
         }
 
         return from(
@@ -77,7 +79,7 @@ export class SharedMessagePollingService {
             errorCount += 1;
 
             if (errorCount >= MAX_ERROR_COUNT) {
-              return throwError(new Error(`Polling failed after ${errorCount} errors`));
+              return throwError(new PollingMaxErrorsError(errorCount));
             }
             return of(null);
           })

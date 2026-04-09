@@ -111,7 +111,7 @@ export interface AgenticMemory {
 }
 
 export interface FailedInvestigationInfo {
-  error: Error;
+  error: Error & { isRecoverable?: boolean };
   memory?: AgenticMemory;
   timestamp: string;
 }

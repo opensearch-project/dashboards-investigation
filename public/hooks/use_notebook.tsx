@@ -174,6 +174,7 @@ export const useNotebook = () => {
                     message: failedInvestigation.error.message,
                     name: failedInvestigation.error.name,
                     cause: (failedInvestigation.error as any).cause,
+                    isRecoverable: !!failedInvestigation.error.isRecoverable,
                   },
                   memory: failedInvestigation.memory,
                   timestamp: failedInvestigation.timestamp,
