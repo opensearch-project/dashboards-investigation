@@ -39,7 +39,7 @@ const suggestedActions: SuggestedAction[] = [
     ),
     question: i18n.translate(
       'investigate.discoverExplorer.startInvestigateButton.suggestedAction.performance.question',
-      { defaultMessage: 'Why do these request take time?' }
+      { defaultMessage: 'Why do these requests take time?' }
     ),
   },
 ];
