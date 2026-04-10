@@ -107,7 +107,7 @@ describe('<StartInvestigationModal /> spec', () => {
   it('renders suggested actions when suggestedActions prop is provided', () => {
     const suggestedActions = [
       { name: 'Root cause analytics', question: 'Analyze anomaly and root cause in this dataset.' },
-      { name: 'Performance issues', question: 'Why these request take time?' },
+      { name: 'Performance issues', question: 'Why do these requests take time?' },
     ];
     renderModal({ suggestedActions });
 
@@ -131,7 +131,7 @@ describe('<StartInvestigationModal /> spec', () => {
   it('populates text area when suggested action button is clicked', () => {
     const suggestedActions = [
       { name: 'Root cause analytics', question: 'Analyze anomaly and root cause in this dataset.' },
-      { name: 'Performance issues', question: 'Why these request take time?' },
+      { name: 'Performance issues', question: 'Why do these requests take time?' },
     ];
     renderModal({ suggestedActions });
 
@@ -147,7 +147,7 @@ describe('<StartInvestigationModal /> spec', () => {
     const performanceButton = screen.getByText('Performance issues');
     fireEvent.click(performanceButton);
 
-    expect(textArea.value).toBe('Why these request take time?');
+    expect(textArea.value).toBe('Why do these requests take time?');
   });
 
   it('creates notebook and navigates when Start Investigation is clicked', async () => {
