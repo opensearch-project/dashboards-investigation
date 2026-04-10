@@ -27,28 +27,10 @@ import {
 } from '../../../../../common/constants/notebooks';
 import type { NotebookContext } from '../../../../../common/types/notebooks';
 
-const suggestedActions = [
-  {
-    name: i18n.translate(
-      'investigate.discoverExplorer.startInvestigationModal.suggestedAction.rootCause.name',
-      { defaultMessage: 'Root cause analytics' }
-    ),
-    question: i18n.translate(
-      'investigate.discoverExplorer.startInvestigationModal.suggestedAction.rootCause.question',
-      { defaultMessage: 'Analyze anomaly and root cause in this dataset.' }
-    ),
-  },
-  {
-    name: i18n.translate(
-      'investigate.discoverExplorer.startInvestigationModal.suggestedAction.performance.name',
-      { defaultMessage: 'Performance issues' }
-    ),
-    question: i18n.translate(
-      'investigate.discoverExplorer.startInvestigationModal.suggestedAction.performance.question',
-      { defaultMessage: 'Why these request take time?' }
-    ),
-  },
-];
+export interface SuggestedAction {
+  name: string;
+  question: string;
+}
 
 export interface NotebookCreationPayload {
   name: string;
@@ -61,6 +43,7 @@ export interface StartInvestigationModalProps {
     defaultParameters: NotebookCreationPayload
   ) => Promise<NotebookCreationPayload>;
   additionalContent?: React.ReactNode;
+  suggestedActions?: SuggestedAction[];
 }
 
 export type StartInvestigateModalDedentServices = Pick<
@@ -72,6 +55,7 @@ export const StartInvestigationModal = ({
   closeModal,
   onProvideNotebookParameters,
   additionalContent,
+  suggestedActions = [],
 }: StartInvestigationModalProps) => {
   const [value, setValue] = useState('');
   const {
@@ -175,26 +159,28 @@ export const StartInvestigationModal = ({
         </EuiFormRow>
         <EuiSpacer size="s" />
 
-        <EuiFlexGroup wrap responsive={false} gutterSize="xs" alignItems="center">
-          <EuiFlexItem grow={false}>
-            <EuiText color="subdued">
-              {i18n.translate('investigate.discoverExplorer.startInvestigationModal.suggested', {
-                defaultMessage: 'Suggested:',
-              })}
-            </EuiText>
-          </EuiFlexItem>
-          {suggestedActions.map(({ name, question }, index) => (
-            <EuiFlexItem grow={false} key={index}>
-              <EuiSmallButton
-                onClick={() => {
-                  setValue(question);
-                }}
-              >
-                {name}
-              </EuiSmallButton>
+        {suggestedActions.length > 0 && (
+          <EuiFlexGroup wrap responsive={false} gutterSize="xs" alignItems="center">
+            <EuiFlexItem grow={false}>
+              <EuiText color="subdued">
+                {i18n.translate('investigate.discoverExplorer.startInvestigationModal.suggested', {
+                  defaultMessage: 'Suggested:',
+                })}
+              </EuiText>
             </EuiFlexItem>
-          ))}
-        </EuiFlexGroup>
+            {suggestedActions.map(({ name, question }, index) => (
+              <EuiFlexItem grow={false} key={index}>
+                <EuiSmallButton
+                  onClick={() => {
+                    setValue(question);
+                  }}
+                >
+                  {name}
+                </EuiSmallButton>
+              </EuiFlexItem>
+            ))}
+          </EuiFlexGroup>
+        )}
       </EuiModalBody>
 
       <EuiModalFooter>

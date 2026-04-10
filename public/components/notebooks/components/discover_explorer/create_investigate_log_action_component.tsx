@@ -5,14 +5,41 @@
 
 import React from 'react';
 import { EuiPanel, EuiText, EuiSpacer, EuiCodeBlock } from '@elastic/eui';
+import { i18n } from '@osd/i18n';
 
 import { OpenSearchDashboardsContextProvider } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import {
   StartInvestigationModal,
   StartInvestigateModalDedentServices,
   NotebookCreationPayload,
+  SuggestedAction,
 } from './start_investigation_modal';
 import { NoteBookSource, NotebookType } from '../../../../../common/types/notebooks';
+
+const suggestedActions: SuggestedAction[] = [
+  {
+    name: i18n.translate(
+      'investigate.discoverExplorer.investigateLogAction.suggestedAction.rootCause.name',
+      { defaultMessage: 'Root cause analysis' }
+    ),
+    question: i18n.translate(
+      'investigate.discoverExplorer.investigateLogAction.suggestedAction.rootCause.question',
+      { defaultMessage: 'Why did this error happen? Analyze the root cause of this log entry.' }
+    ),
+  },
+  {
+    name: i18n.translate(
+      'investigate.discoverExplorer.investigateLogAction.suggestedAction.performance.name',
+      { defaultMessage: 'Performance issues' }
+    ),
+    question: i18n.translate(
+      'investigate.discoverExplorer.investigateLogAction.suggestedAction.performance.question',
+      {
+        defaultMessage: 'Why does this request take time? Identify the bottleneck of this request.',
+      }
+    ),
+  },
+];
 
 export const createInvestigateLogActionComponent = ({
   services,
@@ -61,6 +88,7 @@ export const createInvestigateLogActionComponent = ({
           closeModal={onClose}
           onProvideNotebookParameters={handleProvideNotebookParameters}
           additionalContent={logDisplay}
+          suggestedActions={suggestedActions}
         />
       </OpenSearchDashboardsContextProvider>
     );

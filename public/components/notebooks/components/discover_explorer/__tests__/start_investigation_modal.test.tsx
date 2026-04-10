@@ -99,11 +99,21 @@ describe('<StartInvestigationModal /> spec', () => {
     expect(
       screen.getByPlaceholderText('Describe the issue you want to investigate.')
     ).toBeInTheDocument();
+    expect(screen.queryByText('Suggested:')).not.toBeInTheDocument();
+    expect(screen.getByText('Cancel')).toBeInTheDocument();
+    expect(screen.getByText('Start Investigation')).toBeInTheDocument();
+  });
+
+  it('renders suggested actions when suggestedActions prop is provided', () => {
+    const suggestedActions = [
+      { name: 'Root cause analytics', question: 'Analyze anomaly and root cause in this dataset.' },
+      { name: 'Performance issues', question: 'Why these request take time?' },
+    ];
+    renderModal({ suggestedActions });
+
     expect(screen.getByText('Suggested:')).toBeInTheDocument();
     expect(screen.getByText('Root cause analytics')).toBeInTheDocument();
     expect(screen.getByText('Performance issues')).toBeInTheDocument();
-    expect(screen.getByText('Cancel')).toBeInTheDocument();
-    expect(screen.getByText('Start Investigation')).toBeInTheDocument();
   });
 
   it('updates text area value when user types', () => {
@@ -119,7 +129,11 @@ describe('<StartInvestigationModal /> spec', () => {
   });
 
   it('populates text area when suggested action button is clicked', () => {
-    renderModal();
+    const suggestedActions = [
+      { name: 'Root cause analytics', question: 'Analyze anomaly and root cause in this dataset.' },
+      { name: 'Performance issues', question: 'Why these request take time?' },
+    ];
+    renderModal({ suggestedActions });
 
     const textArea = screen.getByPlaceholderText(
       'Describe the issue you want to investigate.'

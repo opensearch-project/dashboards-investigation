@@ -4,17 +4,38 @@
  */
 
 import React, { useMemo } from 'react';
+import { i18n } from '@osd/i18n';
 import { IEmbeddable } from '../../../../src/plugins/embeddable/public';
 import { OpenSearchDashboardsContextProvider } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import {
   StartInvestigationModal,
   NotebookCreationPayload,
   StartInvestigateModalDedentServices,
+  SuggestedAction,
 } from '../components/notebooks/components/discover_explorer/start_investigation_modal';
 import { NoteBookSource, NotebookType } from '../../common/types/notebooks';
 import { calculateBounds, TimeRangeBounds } from '../../../../src/plugins/data/common';
 import { SavedExplore } from '../../../../src/plugins/explore/public';
 import { DEFAULT_VISUALIZATION_NAME } from '../../common/constants/notebooks';
+
+const suggestedActions: SuggestedAction[] = [
+  {
+    name: i18n.translate('investigate.discoverVisualization.suggestedAction.anomaly.name', {
+      defaultMessage: 'Anomaly analysis',
+    }),
+    question: i18n.translate('investigate.discoverVisualization.suggestedAction.anomaly.question', {
+      defaultMessage: 'Detect and explain anomalies or unexpected spikes in this visualization.',
+    }),
+  },
+  {
+    name: i18n.translate('investigate.discoverVisualization.suggestedAction.trend.name', {
+      defaultMessage: 'Trend analysis',
+    }),
+    question: i18n.translate('investigate.discoverVisualization.suggestedAction.trend.question', {
+      defaultMessage: 'Analyze the trends and patterns shown in this visualization.',
+    }),
+  },
+];
 
 export interface DiscoverVisualizationEmbeddable extends IEmbeddable {
   savedExplore: SavedExplore;
@@ -93,6 +114,7 @@ export const StartInvestigationFromDiscoverVisualizationComponent = ({
       <StartInvestigationModal
         closeModal={onClose}
         onProvideNotebookParameters={handleProvideNotebookParameters}
+        suggestedActions={suggestedActions}
       />
     </OpenSearchDashboardsContextProvider>
   );
