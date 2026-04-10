@@ -7,12 +7,42 @@ import React, { useState, useMemo } from 'react';
 import { EuiSmallButtonEmpty } from '@elastic/eui';
 import { i18n } from '@osd/i18n';
 
-import { StartInvestigationModal, NotebookCreationPayload } from './start_investigation_modal';
+import {
+  StartInvestigationModal,
+  NotebookCreationPayload,
+  SuggestedAction,
+} from './start_investigation_modal';
 import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
 import type { NoteBookServices } from '../../../../types';
 import { NoteBookSource, NotebookType } from '../../../../../common/types/notebooks';
 
 type StartInvestigateButtonServices = Pick<NoteBookServices, 'data'>;
+
+const suggestedActions: SuggestedAction[] = [
+  {
+    name: i18n.translate(
+      'investigate.discoverExplorer.startInvestigateButton.suggestedAction.rootCause.name',
+      { defaultMessage: 'Root cause analytics' }
+    ),
+    question: i18n.translate(
+      'investigate.discoverExplorer.startInvestigateButton.suggestedAction.rootCause.question',
+      {
+        defaultMessage:
+          'Analyze anomaly in this dataset, if there are major errors, find the root cause.',
+      }
+    ),
+  },
+  {
+    name: i18n.translate(
+      'investigate.discoverExplorer.startInvestigateButton.suggestedAction.performance.name',
+      { defaultMessage: 'Performance issues' }
+    ),
+    question: i18n.translate(
+      'investigate.discoverExplorer.startInvestigateButton.suggestedAction.performance.question',
+      { defaultMessage: 'Why do these request take time?' }
+    ),
+  },
+];
 
 export const StartInvestigateButton = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -71,6 +101,7 @@ export const StartInvestigateButton = () => {
             setIsVisible(false);
           }}
           onProvideNotebookParameters={handleProvideNotebookParameters}
+          suggestedActions={suggestedActions}
         />
       )}
     </>
