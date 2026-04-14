@@ -44,7 +44,7 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
     if (typeof data === 'string') {
       try {
         return JSON.parse(data);
-      } catch (e) {
+      } catch (_e) {
         // If JSON is incomplete/invalid, return empty object
         return {};
       }
@@ -71,7 +71,7 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
       if (fromMoment && toMoment && fromMoment.isValid() && toMoment.isValid()) {
         return `${fromMoment.format(dateFormat)} to ${toMoment.format(dateFormat)}`;
       }
-    } catch (e) {
+    } catch (_e) {
       // Fallback to raw values if parsing fails
       return `${timeRange.from} to ${timeRange.to}`;
     }
