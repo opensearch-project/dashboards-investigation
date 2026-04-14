@@ -258,7 +258,7 @@ export const createInvestigationAction = (
           index: args.index,
           timeRange: args.timeRange,
           message: `Investigation created successfully. Reply ONLY with this exact format, do NOT add any extra description or elaboration:
-          '✅ Investigation **<Name>** created.\n\n**Goal:** <repeat the user's original goal exactly as they stated it, nothing more>\n\n👉 Click the above link to open and start running it.'`,
+          '✅ Investigation **<Name>** created.\n\n**Goal:** <repeat the user's original goal exactly as they stated it, nothing more>\n\n👉 Click the link above to open and run the investigation.'`,
         };
       } catch (error) {
         return {
