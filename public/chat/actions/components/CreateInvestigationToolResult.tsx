@@ -12,7 +12,7 @@ import {
   EuiSpacer,
   EuiText,
 } from '@elastic/eui';
-import React, { useState } from 'react';
+import React from 'react';
 import { CoreStart } from '../../../../../../src/core/public';
 import { ConfirmInvestigationStep } from './ConfirmInvestigationStep';
 import { ToolStatus } from '../../../../../../src/plugins/context_provider/public';
@@ -40,8 +40,6 @@ export const CreateInvestigationToolResult: React.FC<Props> = ({
   onApprove,
   onReject,
 }) => {
-  const [isAccordionOpen, setIsAccordionOpen] = useState(false);
-
   // Return null if we have neither args nor result
   if (!args && !result) {
     return null;
@@ -81,7 +79,6 @@ export const CreateInvestigationToolResult: React.FC<Props> = ({
           }
           arrowDisplay="right"
           paddingSize="none"
-          onToggle={(isOpen) => setIsAccordionOpen(isOpen)}
         >
           <EuiSpacer size="s" />
           <ConfirmInvestigationStep data={args!} services={services} isComplete={true} />
@@ -89,13 +86,8 @@ export const CreateInvestigationToolResult: React.FC<Props> = ({
           <CreatingInvestigationStep services={services} isComplete={true} />
         </EuiAccordion>
 
-        {/* Investigation Link Panel - Only show when accordion is collapsed */}
-        {!isAccordionOpen && (
-          <>
-            <EuiSpacer size="xs" />
-            <InvestigationLinkPanel result={result} services={services} />
-          </>
-        )}
+        <EuiSpacer size="xs" />
+        <InvestigationLinkPanel result={result} services={services} />
       </EuiPanel>
     );
   }

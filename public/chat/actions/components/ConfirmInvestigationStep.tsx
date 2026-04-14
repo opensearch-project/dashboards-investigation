@@ -35,6 +35,7 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
   onCancel,
   onConfirm,
 }) => {
+  const [isActionTaken, setIsActionTaken] = React.useState(false);
   const { uiSettings } = services;
   const dateFormat = uiSettings?.get('dateFormat');
 
@@ -43,7 +44,7 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
     if (typeof data === 'string') {
       try {
         return JSON.parse(data);
-      } catch (e) {
+      } catch (_e) {
         // If JSON is incomplete/invalid, return empty object
         return {};
       }
@@ -70,7 +71,7 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
       if (fromMoment && toMoment && fromMoment.isValid() && toMoment.isValid()) {
         return `${fromMoment.format(dateFormat)} to ${toMoment.format(dateFormat)}`;
       }
-    } catch (e) {
+    } catch (_e) {
       // Fallback to raw values if parsing fails
       return `${timeRange.from} to ${timeRange.to}`;
     }
@@ -92,7 +93,9 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
               )}
               <EuiFlexItem>
                 <EuiText size="s">
-                  <strong>Confirm investigation details</strong>
+                  <strong>
+                    {isStreaming ? 'Preparing investigation...' : 'Confirm investigation details'}
+                  </strong>
                 </EuiText>
               </EuiFlexItem>
             </EuiFlexGroup>
@@ -144,7 +147,7 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
             </EuiFlexGroup>
           </EuiSplitPanel.Inner>
 
-          {!isComplete && (
+          {!isComplete && !isStreaming && (
             <EuiSplitPanel.Inner color="subdued" paddingSize="s">
               <EuiFlexGroup justifyContent="spaceBetween" alignItems="center" gutterSize="s">
                 <EuiFlexItem>
@@ -159,8 +162,12 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
                         <EuiButtonIcon
                           iconType="pencil"
                           aria-label="Edit investigation details"
-                          onClick={onEdit}
+                          onClick={() => {
+                            setIsActionTaken(true);
+                            onEdit!();
+                          }}
                           color="text"
+                          isDisabled={isActionTaken}
                         />
                       </EuiFlexItem>
                     )}
@@ -169,8 +176,12 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
                         <EuiButtonIcon
                           iconType="crossInCircleEmpty"
                           aria-label="Cancel investigation"
-                          onClick={onCancel}
+                          onClick={() => {
+                            setIsActionTaken(true);
+                            onCancel!();
+                          }}
                           color="danger"
+                          isDisabled={isActionTaken}
                         />
                       </EuiFlexItem>
                     )}
@@ -179,8 +190,12 @@ export const ConfirmInvestigationStep: React.FC<Props> = ({
                         <EuiButtonIcon
                           iconType="checkInCircleEmpty"
                           aria-label="Confirm investigation"
-                          onClick={onConfirm}
+                          onClick={() => {
+                            setIsActionTaken(true);
+                            onConfirm!();
+                          }}
                           color="success"
+                          isDisabled={isActionTaken}
                         />
                       </EuiFlexItem>
                     )}
