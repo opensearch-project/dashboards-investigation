@@ -43,7 +43,7 @@ describe('ConfirmInvestigationStep', () => {
 
     render(<ConfirmInvestigationStep {...defaultProps} data={incompleteData} />);
 
-    expect(screen.getAllByText('Confirm investigation details').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Preparing investigation...')).toBeInTheDocument();
     // EuiLoadingSpinner should show when data is incomplete
     expect(document.querySelector('.euiLoadingSpinner')).toBeInTheDocument();
   });
@@ -63,7 +63,7 @@ describe('ConfirmInvestigationStep', () => {
 
     render(<ConfirmInvestigationStep {...defaultProps} data={partialJsonString as any} />);
 
-    expect(screen.getAllByText('Confirm investigation details').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Preparing investigation...')).toBeInTheDocument();
     // Should show spinner for incomplete JSON
     expect(document.querySelector('.euiLoadingSpinner')).toBeInTheDocument();
     // Should show placeholders for missing fields
