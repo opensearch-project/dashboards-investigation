@@ -4,7 +4,7 @@
  */
 
 import { coreMock } from '../../../../src/core/public/mocks';
-import { DEFAULT_APP_CATEGORIES, DEFAULT_NAV_GROUPS } from '../../../../src/core/public';
+import { DEFAULT_APP_CATEGORIES, DEFAULT_NAV_GROUPS } from '../../../../src/core/utils';
 import { registerAllPluginNavGroups } from './plugin_nav';
 
 describe('registerAllPluginNavGroups', () => {
