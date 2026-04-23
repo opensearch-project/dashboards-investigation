@@ -13,6 +13,9 @@ describe('registerAllPluginNavGroups', () => {
   beforeEach(() => {
     coreSetup = coreMock.createSetup();
     coreSetup.chrome.navGroup.getNavGroupEnabled.mockReturnValue(true);
+    if (!coreSetup.chrome.getIsIconSideNavEnabled) {
+      coreSetup.chrome.getIsIconSideNavEnabled = jest.fn();
+    }
   });
 
   it('should register investigation notebooks in observability nav group', () => {
