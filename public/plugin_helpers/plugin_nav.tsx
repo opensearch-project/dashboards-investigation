@@ -9,13 +9,24 @@ import { AppPluginStartDependencies } from '../types';
 import { DEFAULT_NAV_GROUPS, DEFAULT_APP_CATEGORIES } from '../../../../src/core/public';
 
 export function registerAllPluginNavGroups(core: CoreSetup<AppPluginStartDependencies>) {
-  core.chrome.navGroup.addNavLinksToGroup(DEFAULT_NAV_GROUPS.observability, [
-    {
-      id: investigationNotebookID,
-      category: DEFAULT_APP_CATEGORIES.visualizeAndReport,
-      order: 400,
-    },
-  ]);
+  if (core.chrome.getIsIconSideNavEnabled()) {
+    core.chrome.navGroup.addNavLinksToGroup(DEFAULT_NAV_GROUPS.observability, [
+      {
+        id: investigationNotebookID,
+        category: DEFAULT_APP_CATEGORIES.observabilityTools,
+        order: 400,
+        euiIconType: 'notebookApp',
+      },
+    ]);
+  } else {
+    core.chrome.navGroup.addNavLinksToGroup(DEFAULT_NAV_GROUPS.observability, [
+      {
+        id: investigationNotebookID,
+        category: DEFAULT_APP_CATEGORIES.visualizeAndReport,
+        order: 400,
+      },
+    ]);
+  }
   core.chrome.navGroup.addNavLinksToGroup(DEFAULT_NAV_GROUPS[`security-analytics`], [
     {
       id: investigationNotebookID,
