@@ -118,7 +118,7 @@ export const usePrecheck = () => {
         }> = [];
 
         // Validate PPL query if present before creating PPL-dependent paragraphs
-        const pplQueryFromVariables = res.context?.variables?.['pplQuery'] as string | undefined;
+        const pplQueryFromVariables = res.context?.variables?.pplQuery as string | undefined;
         let isPPLValid = true;
         if (pplQueryFromVariables) {
           const validationResult = await validatePPLQuery({
@@ -181,7 +181,7 @@ export const usePrecheck = () => {
             [NoteBookSource.DISCOVER, NoteBookSource.VISUALIZATION, NoteBookSource.CHAT].includes(
               resContext?.source!
             ) &&
-            resContext?.variables?.['pplQuery'] &&
+            resContext?.variables?.pplQuery &&
             !resContext.variables?.log &&
             isDateAppenddablePPL(resContext.variables.pplQuery);
 
@@ -196,7 +196,7 @@ export const usePrecheck = () => {
               timeField: resContext.timeField,
               dataSourceId: resContext?.dataSourceId,
               timeRange: resContext.timeRange,
-              query: resContext.variables?.['pplQuery'],
+              query: resContext.variables?.pplQuery,
             });
             paragraphsToCreate.push({
               input: {
@@ -214,12 +214,12 @@ export const usePrecheck = () => {
           (res.context?.source === NoteBookSource.DISCOVER ||
             res.context?.source === NoteBookSource.CHAT) &&
           !res.paragraphs.find((paragraph) => getInputType(paragraph) === PPL_PARAGRAPH_TYPE) &&
-          res.context.variables?.['pplQuery'] &&
+          res.context.variables?.pplQuery &&
           res.context.timeField &&
           res.context.timeRange
         ) {
           const formatToLocalTime = (timestamp: number) => moment(timestamp).format(dateFormat);
-          const pplQuery = res.context.variables?.['pplQuery'];
+          const pplQuery = res.context.variables?.pplQuery;
           paragraphsToCreate.push({
             input: {
               inputText: `%ppl ${pplQuery}`,
@@ -244,19 +244,24 @@ export const usePrecheck = () => {
           !res.paragraphs.find(
             (paragraph) => getInputType(paragraph) === DASHBOARDS_VISUALIZATION_TYPE
           ) &&
-          res.context.variables?.['savedObjectId'] &&
+          res.context.variables?.savedObjectId &&
           res.context.timeRange
         ) {
           const formatToLocalTime = (timestamp: number) => moment(timestamp).format(dateFormat);
           const savedObjectId = res.context.variables.savedObjectId as string;
           const visualizationFilters = res.context.variables.visualizationFilters || [];
+          const exploreSnapshot = res.context.variables.exploreSnapshot as
+            | { attributes: any; references: any[] }
+            | undefined;
 
           // Create visualization input value with saved object ID and time range
-          const vizInputValue = {
+          const vizInputValue: VisualizationInputValue = {
             type: 'explore', // Type for discover visualizations
             id: savedObjectId,
             startTime: formatToLocalTime(res.context.timeRange.selectionFrom),
             endTime: formatToLocalTime(res.context.timeRange.selectionTo),
+            ...(exploreSnapshot?.attributes && { attributes: exploreSnapshot.attributes }),
+            ...(exploreSnapshot?.references && { references: exploreSnapshot.references }),
           };
 
           // Create dashboard viz object and add filters

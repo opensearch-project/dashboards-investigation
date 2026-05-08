@@ -28,7 +28,7 @@ export const useVisualizationInput = () => {
   const fetchSavedObjectsVisualizations = useCallback(() => {
     return savedObjects.client
       ?.find<{ title: string; typeName: string; visState: object }>({
-        type: ['visualization-visbuilder', 'visualization-nlq', 'explore', 'visualization'],
+        type: ['visualization-visbuilder', 'visualization-nlq', 'visualization'],
         page: 1,
         perPage: 1000,
       })
@@ -36,11 +36,7 @@ export const useVisualizationInput = () => {
         return res.savedObjects.map(({ id, attributes }) => {
           let typeName = attributes.typeName;
           if (attributes.visState) {
-            try {
-              typeName = JSON.parse(String(attributes.visState)).type;
-            } catch (e) {
-              // Do nothing
-            }
+            typeName = JSON.parse(String(attributes.visState)).type;
           }
           const { title, icon } = getVisualizationType(typeName) || {};
           return {

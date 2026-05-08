@@ -14,7 +14,11 @@ import {
   SuggestedAction,
 } from '../components/notebooks/components/discover_explorer/start_investigation_modal';
 import { NoteBookSource, NotebookType } from '../../common/types/notebooks';
-import { calculateBounds, TimeRangeBounds } from '../../../../src/plugins/data/common';
+import {
+  calculateBounds,
+  parseSearchSourceJSON,
+  TimeRangeBounds,
+} from '../../../../src/plugins/data/common';
 import { SavedExplore } from '../../../../src/plugins/explore/public';
 import { DEFAULT_VISUALIZATION_NAME } from '../../common/constants/notebooks';
 
@@ -61,7 +65,8 @@ export const StartInvestigationFromDiscoverVisualizationComponent = ({
   ): Promise<NotebookCreationPayload> => {
     const input = embeddable.getInput();
     const timeRange = input.timeRange;
-    const searchSource = embeddable.savedExplore.searchSource;
+    const savedExplore = embeddable.savedExplore;
+    const searchSource = savedExplore.searchSource;
 
     // Extract time range from embeddable input
     let bounds: TimeRangeBounds | undefined;
@@ -85,6 +90,29 @@ export const StartInvestigationFromDiscoverVisualizationComponent = ({
       throw new Error('Time range can not be found');
     }
 
+    // Extract SavedExplore attributes for by-value embedding (snapshot)
+    const { searchSourceJSON: originalSearchSourceJSON, references } = searchSource.serialize();
+
+    // Update the query in searchSourceJSON to use interpolated query
+    let searchSourceJSON = originalSearchSourceJSON;
+    const parsedSearchSource = parseSearchSourceJSON(originalSearchSourceJSON);
+    parsedSearchSource.query = query;
+    searchSourceJSON = JSON.stringify(parsedSearchSource);
+
+    // Build exploreAttributes
+    const exploreAttributes = {
+      title: savedExplore.title,
+      description: savedExplore.description,
+      columns: savedExplore.columns,
+      sort: savedExplore.sort,
+      type: savedExplore.type,
+      visualization: savedExplore.visualization,
+      uiState: savedExplore.uiState,
+      kibanaSavedObjectMeta: {
+        searchSourceJSON,
+      },
+    };
+
     return {
       ...defaultParameters,
       name: DEFAULT_VISUALIZATION_NAME,
@@ -104,6 +132,10 @@ export const StartInvestigationFromDiscoverVisualizationComponent = ({
           pplQuery: query.query as string,
           savedObjectId: embeddable.savedExplore.id,
           visualizationFilters: filters,
+          exploreSnapshot: {
+            attributes: exploreAttributes,
+            references,
+          },
         },
       },
     };

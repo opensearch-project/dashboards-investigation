@@ -13,17 +13,31 @@ import { ViewMode } from '../../../../src/plugins/embeddable/public';
 export const getPanelValue = (
   panelValue: DashboardContainerInput['panels'][number],
   value: VisualizationInputValue
-) => ({
-  ...panelValue,
-  type: value.type,
-  explicitInput: {
+) => {
+  const explicitInput = {
     ...panelValue.explicitInput,
-    savedObjectId: value.id,
-  },
-});
+  };
+
+  // By-value embedding (snapshot) takes priority over savedObjectId
+  const hasAttributes = panelValue.explicitInput?.attributes;
+
+  if (hasAttributes) {
+    explicitInput.attributes = panelValue.explicitInput.attributes;
+    explicitInput.references = panelValue.explicitInput.references || [];
+  } else {
+    // By-reference: use savedObjectId
+    explicitInput.savedObjectId = value.id;
+  }
+
+  return {
+    ...panelValue,
+    type: value.type,
+    explicitInput,
+  };
+};
 
 export const createDashboardVizObject = (value: VisualizationInputValue) => {
-  const { startTime, endTime } = value;
+  const { startTime, endTime, attributes, references } = value;
   const vizUniqueId = htmlIdGenerator()();
   // a dashboard container object for new visualization
   const newVizObject: DashboardContainerInput = {
@@ -41,6 +55,8 @@ export const createDashboardVizObject = (value: VisualizationInputValue) => {
           type: '',
           explicitInput: {
             id: '1',
+            ...(attributes && { attributes }), // By-value embedding for snapshot
+            ...(references && { references }), // References for indexPattern etc.
           },
         },
         value
