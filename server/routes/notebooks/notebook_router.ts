@@ -38,7 +38,15 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
   router.get(
     {
       path: `${NOTEBOOKS_API_PREFIX}/savedNotebook`,
-      validate: {},
+      validate: {
+        query: schema.object({
+          page: schema.number({ defaultValue: 1, min: 1 }),
+          perPage: schema.number({ defaultValue: 10, min: 1, max: 1000 }),
+          search: schema.maybe(schema.string()),
+          sortField: schema.maybe(schema.string()),
+          sortOrder: schema.maybe(schema.oneOf([schema.literal('asc'), schema.literal('desc')])),
+        }),
+      },
     },
     async (
       context,
@@ -48,12 +56,28 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
       const opensearchNotebooksClient: SavedObjectsClientContract =
         context.core.savedObjects.client;
       try {
-        const notebooksData = await opensearchNotebooksClient.find({
-          type: NOTEBOOK_SAVED_OBJECT,
-          perPage: 1000,
-        });
+        const { page, perPage, search, sortField, sortOrder } = request.query;
         const capabilities = await getCapabilities().resolveCapabilities(request);
         const agenticFeaturesEnabled = capabilities.investigation.agenticFeaturesEnabled;
+
+        const findOptions: Parameters<typeof opensearchNotebooksClient.find>[0] = {
+          type: NOTEBOOK_SAVED_OBJECT,
+          page,
+          perPage,
+          sortField: sortField ?? 'updated_at',
+          sortOrder: sortOrder ?? 'desc',
+        };
+
+        if (search) {
+          findOptions.search = search;
+          findOptions.searchFields = ['title'];
+        }
+
+        if (!agenticFeaturesEnabled) {
+          findOptions.filter = `NOT ${NOTEBOOK_SAVED_OBJECT}.attributes.savedNotebook.context.notebookType: "${NotebookType.AGENTIC}"`;
+        }
+
+        const notebooksData = await opensearchNotebooksClient.find(findOptions);
 
         const fetchedNotebooks = fetchNotebooks(
           notebooksData.saved_objects as any,
@@ -62,6 +86,7 @@ export function registerNoteRoute(router: IRouter, auth: HttpAuth) {
         return response.ok({
           body: {
             data: fetchedNotebooks,
+            total: notebooksData.total,
           },
         });
       } catch (error) {

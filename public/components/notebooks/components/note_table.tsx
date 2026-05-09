@@ -5,10 +5,11 @@
 
 import { i18n } from '@osd/i18n';
 import {
+  EuiBasicTable,
+  EuiBasicTableColumn,
   EuiCompressedFieldSearch,
   EuiFlexGroup,
   EuiFlexItem,
-  EuiInMemoryTable,
   EuiLink,
   EuiLoadingSpinner,
   EuiOverlayMask,
@@ -21,7 +22,6 @@ import {
   EuiPageHeaderSection,
   EuiSmallButton,
   EuiSpacer,
-  EuiTableFieldDataColumnType,
   EuiText,
   EuiTitle,
 } from '@elastic/eui';
@@ -58,45 +58,71 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [notebooks, setNotebooks] = useState<NotebookInfo[]>([]);
+  const [total, setTotal] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false); // Modal Toggle
   const [modalLayout, setModalLayout] = useState(<EuiOverlayMask />); // Modal Layout
   const [selectedNotebooks, setSelectedNotebooks] = useState<NotebookInfo[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-    pageSizeOptions: [10, 20, 50],
-  });
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [sortField, setSortField] = useState<string>('dateModified');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [refreshKey, setRefreshKey] = useState(0);
   const location = useLocation();
 
   const dataSourceEnabled = !!dataSource;
   const newNavigation = chrome.navGroup.getNavGroupEnabled();
 
-  // Reset pagination to first page when search query changes
+  // Debounce search input
   useEffect(() => {
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPageIndex(0);
+    }, 300);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetches path and id for all stored notebooks
-  const fetchNotebooks = useCallback(() => {
-    // Notebooks plugin only supports savedNotebooks stored in .kibana
-    // The support for notebooks in .opensearch-observability is removed in OSD 3.0.0 version
-    // Related Issue: https://github.com/opensearch-project/dashboards-observability/issues/2350
-    return http
-      .get(`${NOTEBOOKS_API_PREFIX}/savedNotebook`)
-      .then((savedNotebooksResponse) => {
-        setNotebooks(savedNotebooksResponse.data);
+  const sortFieldMap: Record<string, string> = {
+    dateModified: 'updated_at',
+  };
+
+  // Fetches notebooks with server-side pagination, sort, and search
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const query: Record<string, string | number> = {
+      page: pageIndex + 1,
+      perPage: pageSize,
+      sortField: sortFieldMap[sortField] ?? 'savedNotebook.dateModified',
+      sortOrder: sortDirection,
+    };
+    if (debouncedSearch) query.search = debouncedSearch;
+
+    http
+      .get(`${NOTEBOOKS_API_PREFIX}/savedNotebook`, { query })
+      .then((res) => {
+        if (!cancelled) {
+          setNotebooks(res.data);
+          setTotal(res.total);
+        }
       })
       .catch((err) => {
         console.error(
           'Issue in fetching the notebooks',
           err?.body?.message || err?.message || 'Unknown error'
         );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-  }, [http]);
 
-  const finalNotebooks = notebooks;
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [http, pageIndex, pageSize, sortField, sortDirection, debouncedSearch, refreshKey]);
 
   useEffect(() => {
     setNavBreadCrumbs(
@@ -108,10 +134,9 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
         },
       ],
       chrome,
-      finalNotebooks.length
+      total
     );
-    fetchNotebooks();
-  }, [finalNotebooks.length, fetchNotebooks, chrome]);
+  }, [total, chrome]);
 
   const closeModal = useCallback(() => {
     window.location.assign('#/');
@@ -183,7 +208,8 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
     setLoading(true);
     try {
       await deleteNotebook(selectedNotebooks.map((note) => note.id));
-      await fetchNotebooks();
+      setPageIndex(0);
+      setRefreshKey((k) => k + 1);
     } finally {
       closeModal();
       setLoading(false);
@@ -445,13 +471,13 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
     showModal();
   };
 
-  const tableColumns = [
+  const tableColumns: Array<EuiBasicTableColumn<NotebookInfo>> = [
     {
       field: 'path',
       name: 'Name',
-      sortable: true,
+      sortable: false,
       truncateText: true,
-      render: (value, record) => (
+      render: (value: string, record: NotebookInfo) => (
         <EuiLink
           href={
             record.notebookType === NotebookType.AGENTIC
@@ -466,22 +492,22 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
     {
       field: 'notebookType',
       name: 'Type',
-      sortable: true,
-      render: (value) => value ?? NotebookType.CLASSIC,
+      sortable: false,
+      render: (value: string) => value ?? NotebookType.CLASSIC,
     },
     {
       field: 'dateModified',
       name: 'Last updated',
       sortable: true,
-      render: (value) => moment(value).format(UI_DATE_FORMAT),
+      render: (value: string) => moment(value).format(UI_DATE_FORMAT),
     },
     {
       field: 'dateCreated',
       name: 'Created',
-      sortable: true,
-      render: (value) => moment(value).format(UI_DATE_FORMAT),
+      sortable: false,
+      render: (value: string) => moment(value).format(UI_DATE_FORMAT),
     },
-  ] as Array<EuiTableFieldDataColumnType<NotebookInfo>>;
+  ];
 
   return (
     <>
@@ -577,7 +603,7 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
                 </EuiPageContentHeaderSection>
               </EuiPageContentHeader>
             )}
-            {finalNotebooks.length > 0 ? (
+            {total > 0 || debouncedSearch || loading ? (
               <>
                 <EuiFlexGroup gutterSize="s" alignItems="center">
                   <EuiFlexItem grow={false}>
@@ -603,39 +629,40 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
                   </EuiFlexItem>
                 </EuiFlexGroup>
                 <EuiSpacer size="m" />
-                <EuiInMemoryTable
+                <EuiBasicTable
                   loading={loading}
-                  items={
-                    searchQuery
-                      ? finalNotebooks.filter((notebook) =>
-                          notebook.path.toLowerCase().includes(searchQuery.toLowerCase())
-                        )
-                      : finalNotebooks
-                  }
+                  items={notebooks}
                   itemId="id"
                   columns={tableColumns}
                   tableLayout="auto"
-                  onTableChange={({ page }) => {
+                  onChange={({ page, sort }) => {
                     if (page) {
-                      setPagination((prev) => ({
-                        ...prev,
-                        pageIndex: page.index,
-                        pageSize: page.size,
-                      }));
+                      setPageIndex(page.index);
+                      setPageSize(page.size);
+                    }
+                    if (sort) {
+                      setSortField(sort.field as string);
+                      setSortDirection(sort.direction);
                     }
                   }}
-                  pagination={pagination}
+                  pagination={{
+                    pageIndex,
+                    pageSize,
+                    totalItemCount: total,
+                    pageSizeOptions: [10, 20, 50],
+                  }}
                   sorting={{
                     sort: {
-                      field: 'dateModified',
-                      direction: 'desc',
+                      field: sortField,
+                      direction: sortDirection,
                     },
+                    allowNeutralSort: false,
                   }}
-                  allowNeutralSort={false}
                   isSelectable={true}
                   selection={{
                     onSelectionChange: (items) => setSelectedNotebooks(items),
                   }}
+                  noItemsMessage="No notebooks match your search."
                 />
               </>
             ) : (
