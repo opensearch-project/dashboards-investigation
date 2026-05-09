@@ -18,6 +18,7 @@ import { isValidUUID } from '../components/notebooks/components/helpers/notebook
 import { useOpenSearchDashboards } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
 import { parsePPLQuery } from '../../common/utils';
+import { getDataSourceVersion } from '../utils/data_source_utils';
 
 export const useNotebook = () => {
   const context = useContext(NotebookReactContext);
@@ -128,6 +129,17 @@ export const useNotebook = () => {
           indexInsight,
         };
       }
+
+      if (!contextPayload.dataSourceVersion) {
+        const version = await getDataSourceVersion(http, res.context?.dataSourceId);
+        if (version) {
+          contextPayload = { ...contextPayload, dataSourceVersion: version };
+          updateNotebookContext({ dataSourceVersion: version }).catch((err) =>
+            console.error('Failed to save dataSourceVersion:', err)
+          );
+        }
+      }
+
       return {
         ...res,
         vizPrefix: res.vizPrefix || '',
@@ -142,7 +154,7 @@ export const useNotebook = () => {
     });
 
     return promise;
-  }, [context.state, http, showParagraphRunning, fetchIndexInsights]);
+  }, [context.state, http, showParagraphRunning, fetchIndexInsights, updateNotebookContext]);
 
   const updateHypotheses = useCallback(
     async (

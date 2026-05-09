@@ -28,6 +28,8 @@ export const dateFormat = 'YYYY-MM-DD HH:mm:ss.SSS';
 
 export const NOTEBOOK_APP_NAME = 'investigate-notebook';
 
+export const LOG_PATTERN_MIN_SUPPORTED_VERSION = '2.19.0';
+
 export const OBSERVABILITY_VISUALIZATION_TYPE = 'observability-visualization';
 
 export const DASHBOARDS_VISUALIZATION_TYPE = 'visualization';

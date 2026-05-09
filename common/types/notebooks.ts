@@ -39,6 +39,7 @@ export interface InvestigationTimeRange {
 
 export interface NotebookContext {
   dataSourceId?: string;
+  dataSourceVersion?: string;
   timeField?: string;
   index?: string;
   currentTime?: number; // the time when PPL been executed when trigger from discovery

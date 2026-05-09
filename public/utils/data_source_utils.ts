@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SavedObjectsClientContract } from '../../../../src/core/public';
+import { HttpStart, SavedObjectsClientContract } from '../../../../src/core/public';
+import { callOpenSearchCluster } from '../plugin_helpers/plugin_proxy_call';
 
 /**
  * Get data source by ID
@@ -30,5 +31,25 @@ export async function getDataSourceById(
   } catch (error) {
     console.error('Error fetching data source:', error);
     throw error;
+  }
+}
+
+export async function getDataSourceVersion(
+  http: HttpStart,
+  dataSourceId?: string
+): Promise<string | undefined> {
+  try {
+    const response: any = await callOpenSearchCluster({
+      http,
+      dataSourceId,
+      request: {
+        path: '/',
+        method: 'GET',
+      },
+    });
+    return response?.version?.number;
+  } catch (error) {
+    console.error('Error fetching data source version:', error);
+    return undefined;
   }
 }

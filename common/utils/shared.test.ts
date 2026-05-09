@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { get, dataSourceFilterFn } from './shared';
+import { get, dataSourceFilterFn, supportsLogPatternAnalysis } from './shared';
 import { SavedObject } from '../../../../src/core/public';
 import { DataSourceAttributes } from '../../../../src/plugins/data_source/common/data_sources';
 
@@ -191,6 +191,29 @@ describe('shared utils', () => {
         references: [],
       };
       expect(dataSourceFilterFn(dataSource)).toBe(false);
+    });
+  });
+
+  describe('supportsLogPatternAnalysis', () => {
+    it('should return true when version is undefined', () => {
+      expect(supportsLogPatternAnalysis(undefined)).toBe(true);
+    });
+
+    it('should return true for version >= 2.19.0', () => {
+      expect(supportsLogPatternAnalysis('2.19.0')).toBe(true);
+      expect(supportsLogPatternAnalysis('2.20.0')).toBe(true);
+      expect(supportsLogPatternAnalysis('3.0.0')).toBe(true);
+    });
+
+    it('should return false for version < 2.19.0', () => {
+      expect(supportsLogPatternAnalysis('2.18.0')).toBe(false);
+      expect(supportsLogPatternAnalysis('2.9.0')).toBe(false);
+      expect(supportsLogPatternAnalysis('1.0.0')).toBe(false);
+    });
+
+    it('should handle version with pre-release suffix', () => {
+      expect(supportsLogPatternAnalysis('2.19.0-SNAPSHOT')).toBe(true);
+      expect(supportsLogPatternAnalysis('2.18.0-SNAPSHOT')).toBe(false);
     });
   });
 });

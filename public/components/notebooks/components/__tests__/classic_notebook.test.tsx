@@ -56,6 +56,11 @@ jest.mock('react-router-dom', () => ({
   Redirect: ({ to }: { to: string }) => <div data-testid="redirect" data-to={to} />,
 }));
 
+jest.mock('../../../../utils/data_source_utils', () => ({
+  getDataSourceVersion: jest.fn(() => Promise.resolve(undefined)),
+  getDataSourceById: jest.fn(() => Promise.resolve({ id: 'test', title: 'test' })),
+}));
+
 jest.mock('../data_distribution/data_distribution_container', () => ({
   DataDistributionContainer: () => <div />,
 }));
