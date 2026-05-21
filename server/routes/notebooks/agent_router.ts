@@ -8,7 +8,7 @@ import { IOpenSearchDashboardsResponse, IRouter } from '../../../../../src/core/
 import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
 import { getOpenSearchClientTransport, handleError } from '../utils';
 
-const resultExpendAndOverride = `When providing the final result, it MUST be a stringified JSON object with the following structure:
+const resultExpandAndOverride = `When providing the final result, it MUST be a stringified JSON object with the following structure:
 
 ## Final Result Structure
 Final result must be a stringified JSON object:
@@ -110,7 +110,7 @@ Your final result JSON must include:
 
 `;
 
-const importantRulesExpend = `
+const importantRulesExpand = `
 4. For individual steps that call a specific tool, include all required parameters
 5. **CRITICAL: The "result" field in your final response MUST contain a properly escaped JSON string**
 6. **CRITICAL: The hypothesis must reference specific findings by their IDs in the supporting_findings array**
@@ -291,6 +291,15 @@ You have already completed the following steps from the original plan. Consider 
 
 Remember: Respond only in JSON format following the required schema.`;
 
+        const plannerSystemPromptPrefix =
+          '# Investigation Planner Agent\n\nYou are a thoughtful and analytical planner agent in a plan-execute-reflect framework. Your job is to design a clear, step-by-step plan for a given objective.\n\n';
+
+        const reInvestigationPlannerSystemPromptPrefix =
+          '# Re-Investigation Agent\n\n' +
+          'You are a thoughtful and analytical planner agent specializing in **RE-INVESTIGATION**. Your job is to update existing hypotheses based on current evidence while minimizing new findings creation.\n\n' +
+          'The hypotheses were generated from this original question.\n\n' +
+          'You are now investigating this new question. Update the hypotheses based on this new question and current evidence.\n\n';
+
         const transport = await getOpenSearchClientTransport({
           context,
           request,
@@ -315,9 +324,13 @@ Remember: Respond only in JSON format following the required schema.`;
               context: parameters.context,
               executor_agent_memory_id: parameters.executor_agent_memory_id,
               question,
-              result_expend_and_override: resultExpendAndOverride,
-              important_rules_expend: importantRulesExpend,
-              re_investigation_rules: isReInvestigation ? reInvestigationRules : '',
+              result_expand_and_override: resultExpandAndOverride,
+              important_rules_expand: isReInvestigation
+                ? importantRulesExpand + reInvestigationRules
+                : importantRulesExpand,
+              planner_system_prompt_prefix: isReInvestigation
+                ? reInvestigationPlannerSystemPromptPrefix
+                : plannerSystemPromptPrefix,
               planner_prompt_template: plannerPromptTemplate,
               planner_with_history_template: plannerWithHistoryTemplate,
               reflect_prompt_template: reflectPromptTemplate,
