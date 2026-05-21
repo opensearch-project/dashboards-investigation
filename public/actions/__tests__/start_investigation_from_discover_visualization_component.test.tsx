@@ -31,6 +31,7 @@ jest.mock(
 
 jest.mock('../../../../../src/plugins/data/common', () => ({
   calculateBounds: jest.fn(),
+  parseSearchSourceJSON: jest.fn((json) => JSON.parse(json)),
 }));
 
 describe('StartInvestigationFromDiscoverVisualizationComponent', () => {
@@ -65,6 +66,13 @@ describe('StartInvestigationFromDiscoverVisualizationComponent', () => {
       type: 'explore',
       savedExplore: {
         id: 'test-saved-explore-id',
+        title: 'Test Explore',
+        description: 'Test description',
+        columns: ['column1', 'column2'],
+        sort: [['@timestamp', 'desc']],
+        type: 'logs',
+        visualization: JSON.stringify({ chartType: 'bar' }),
+        uiState: JSON.stringify({ foo: 'bar' }),
         searchSource: {
           getFields: jest.fn().mockReturnValue({
             query: {
@@ -75,6 +83,19 @@ describe('StartInvestigationFromDiscoverVisualizationComponent', () => {
                 timeFieldName: '@timestamp',
               },
             },
+          }),
+          serialize: jest.fn().mockReturnValue({
+            searchSourceJSON: JSON.stringify({
+              query: { query: 'original query', language: 'PPL' },
+              index: 'indexPatternRef',
+            }),
+            references: [
+              {
+                name: 'indexPatternRef',
+                type: 'index-pattern',
+                id: 'test-index-pattern-id',
+              },
+            ],
           }),
         },
       },
@@ -168,6 +189,27 @@ describe('StartInvestigationFromDiscoverVisualizationComponent', () => {
             visualizationFilters: [
               { meta: { disabled: false }, query: { match: { field: 'value' } } },
             ],
+            exploreSnapshot: {
+              attributes: {
+                title: 'Test Explore',
+                description: 'Test description',
+                columns: ['column1', 'column2'],
+                sort: [['@timestamp', 'desc']],
+                type: 'logs',
+                visualization: JSON.stringify({ chartType: 'bar' }),
+                uiState: JSON.stringify({ foo: 'bar' }),
+                kibanaSavedObjectMeta: {
+                  searchSourceJSON: expect.any(String),
+                },
+              },
+              references: [
+                {
+                  name: 'indexPatternRef',
+                  type: 'index-pattern',
+                  id: 'test-index-pattern-id',
+                },
+              ],
+            },
           },
         },
       });
@@ -423,6 +465,73 @@ describe('StartInvestigationFromDiscoverVisualizationComponent', () => {
       const result = await handler({ name: 'Test', context: {} });
 
       expect(result.context.variables.pplQuery).toBe('source = test_index | stats count()');
+    });
+
+    it('should include exploreSnapshot with attributes and references', async () => {
+      render(
+        <StartInvestigationFromDiscoverVisualizationComponent
+          embeddable={mockEmbeddable}
+          services={mockServices}
+          onClose={mockOnClose}
+        />
+      );
+
+      const handler = (global as any).testOnProvideNotebookParameters;
+      const result = await handler({ name: 'Test', context: {} });
+
+      // Check exploreSnapshot structure
+      expect(result.context.variables.exploreSnapshot).toBeDefined();
+      expect(result.context.variables.exploreSnapshot.attributes).toBeDefined();
+      expect(result.context.variables.exploreSnapshot.references).toBeDefined();
+
+      // Check attributes
+      const { attributes } = result.context.variables.exploreSnapshot;
+      expect(attributes.title).toBe('Test Explore');
+      expect(attributes.description).toBe('Test description');
+      expect(attributes.columns).toEqual(['column1', 'column2']);
+      expect(attributes.sort).toEqual([['@timestamp', 'desc']]);
+      expect(attributes.type).toBe('logs');
+      expect(attributes.visualization).toBe(JSON.stringify({ chartType: 'bar' }));
+      expect(attributes.uiState).toBe(JSON.stringify({ foo: 'bar' }));
+      expect(attributes.kibanaSavedObjectMeta).toBeDefined();
+      expect(attributes.kibanaSavedObjectMeta.searchSourceJSON).toBeDefined();
+
+      // Check references
+      const { references } = result.context.variables.exploreSnapshot;
+      expect(references).toHaveLength(1);
+      expect(references[0]).toEqual({
+        name: 'indexPatternRef',
+        type: 'index-pattern',
+        id: 'test-index-pattern-id',
+      });
+    });
+
+    it('should update query in searchSourceJSON with interpolated query', async () => {
+      render(
+        <StartInvestigationFromDiscoverVisualizationComponent
+          embeddable={mockEmbeddable}
+          services={mockServices}
+          onClose={mockOnClose}
+        />
+      );
+
+      const handler = (global as any).testOnProvideNotebookParameters;
+      const result = await handler({ name: 'Test', context: {} });
+
+      const {
+        searchSourceJSON,
+      } = result.context.variables.exploreSnapshot.attributes.kibanaSavedObjectMeta;
+      const parsedSearchSource = JSON.parse(searchSourceJSON);
+
+      // Should have the interpolated query from embeddable input
+      expect(parsedSearchSource.query).toEqual({
+        query: 'source = test_index | stats count()',
+        dataset: {
+          dataSource: { id: 'test-datasource-id' },
+          title: 'test-index',
+          timeFieldName: '@timestamp',
+        },
+      });
     });
 
     it('should preserve default parameters context properties', async () => {

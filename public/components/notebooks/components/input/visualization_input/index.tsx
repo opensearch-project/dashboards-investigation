@@ -40,6 +40,8 @@ export interface VisualizationInputValue {
   endTime: string;
   noDatePicker?: boolean; // Flag to hide the date picker
   hideReloadButton?: boolean; // Flag to hide the reload button
+  attributes?: any; // SavedExplore attributes for by-value embedding (snapshot)
+  references?: any[]; // SavedObject references (e.g., indexPattern) for by-value embedding
 }
 
 export const VisualizationInput: React.FC<{
