@@ -21,7 +21,7 @@ import { isAnalyticEngineDataSource } from '../utils/data_source_utils';
 export const ACTION_START_INVESTIGATION = 'startInvestigationAction';
 
 interface ActionContext {
-  embeddable: IEmbeddable;
+  embeddable: IEmbeddable & { savedExplore: { visualization: string } };
 }
 
 export class StartInvestigationAction implements Action<ActionContext> {
@@ -50,9 +50,24 @@ export class StartInvestigationAction implements Action<ActionContext> {
   }
 
   public async isCompatible({ embeddable }: ActionContext) {
+    const isExplore = embeddable.type === 'explore';
     // Show for new discover visualizations
     // and not show the `start investigation` action in notebook.
-    if (!(embeddable.type === 'explore' && this.currentAppId !== investigationNotebookID)) {
+    if (!(isExplore && this.currentAppId !== investigationNotebookID)) {
+      return false;
+    }
+
+    let hasTransformation = false;
+    try {
+      const visualizationObject = JSON.parse(embeddable.savedExplore.visualization) as {
+        dataTransformations?: [];
+      };
+      hasTransformation = !!visualizationObject.dataTransformations?.length;
+    } catch (_e) {
+      console.warn('Invalid visualization string');
+    }
+
+    if (hasTransformation) {
       return false;
     }
     // Hide for AnalyticEngine data sources
