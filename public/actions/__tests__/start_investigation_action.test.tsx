@@ -50,6 +50,7 @@ describe('StartInvestigationAction', () => {
     // Setup mock embeddable
     mockEmbeddable = {
       type: 'explore',
+      savedExplore: { visualization: '{}' },
       getInput: jest.fn(),
       getOutput: jest.fn(),
       reload: jest.fn(),
@@ -85,45 +86,81 @@ describe('StartInvestigationAction', () => {
   });
 
   describe('isCompatible', () => {
-    it('should return true for explore type embeddables', async () => {
-      const embeddable = { type: 'explore' } as IEmbeddable;
-      const result = await action.isCompatible({ embeddable });
+    const makeEmbeddable = (type: string, visualization = '{}') =>
+      ({ type, savedExplore: { visualization } } as any);
+
+    it('should return true for explore type embeddables without dataTransformations', async () => {
+      const result = await action.isCompatible({ embeddable: makeEmbeddable('explore') });
       expect(result).toBe(true);
     });
 
     it('should return false for non-explore type embeddables', async () => {
-      const embeddable = { type: 'visualization' } as IEmbeddable;
-      const result = await action.isCompatible({ embeddable });
+      const result = await action.isCompatible({ embeddable: makeEmbeddable('visualization') });
       expect(result).toBe(false);
     });
 
     it('should return false for dashboard type embeddables', async () => {
-      const embeddable = { type: 'dashboard' } as IEmbeddable;
-      const result = await action.isCompatible({ embeddable });
+      const result = await action.isCompatible({ embeddable: makeEmbeddable('dashboard') });
       expect(result).toBe(false);
     });
 
     it('should return false for lens type embeddables', async () => {
-      const embeddable = { type: 'lens' } as IEmbeddable;
-      const result = await action.isCompatible({ embeddable });
+      const result = await action.isCompatible({ embeddable: makeEmbeddable('lens') });
       expect(result).toBe(false);
     });
 
     it('should return false for undefined type', async () => {
-      const embeddable = { type: undefined } as any;
-      const result = await action.isCompatible({ embeddable });
+      const result = await action.isCompatible({ embeddable: makeEmbeddable(undefined as any) });
       expect(result).toBe(false);
     });
 
     it('should return false for null type', async () => {
-      const embeddable = { type: null } as any;
-      const result = await action.isCompatible({ embeddable });
+      const result = await action.isCompatible({ embeddable: makeEmbeddable(null as any) });
       expect(result).toBe(false);
     });
 
     it('should return false for empty string type', async () => {
-      const embeddable = { type: '' } as any;
-      const result = await action.isCompatible({ embeddable });
+      const result = await action.isCompatible({ embeddable: makeEmbeddable('') });
+      expect(result).toBe(false);
+    });
+
+    it('should return false when dataTransformations is non-empty', async () => {
+      const visualization = JSON.stringify({ dataTransformations: [{ type: 'filter' }] });
+      const result = await action.isCompatible({
+        embeddable: makeEmbeddable('explore', visualization),
+      });
+      expect(result).toBe(false);
+    });
+
+    it('should return true when dataTransformations is empty array', async () => {
+      const visualization = JSON.stringify({ dataTransformations: [] });
+      const result = await action.isCompatible({
+        embeddable: makeEmbeddable('explore', visualization),
+      });
+      expect(result).toBe(true);
+    });
+
+    it('should return true when dataTransformations is not present', async () => {
+      const visualization = JSON.stringify({ someOtherField: 'value' });
+      const result = await action.isCompatible({
+        embeddable: makeEmbeddable('explore', visualization),
+      });
+      expect(result).toBe(true);
+    });
+
+    it('should return true when visualization is invalid JSON', async () => {
+      const result = await action.isCompatible({
+        embeddable: makeEmbeddable('explore', 'not-json'),
+      });
+      expect(result).toBe(true);
+    });
+
+    it('should return false when in investigation notebook app', async () => {
+      (mockServices.application.currentAppId$ as BehaviorSubject<string | undefined>).next(
+        'investigation-notebooks'
+      );
+      action = new StartInvestigationAction(mockOverlay, mockServices);
+      const result = await action.isCompatible({ embeddable: makeEmbeddable('explore') });
       expect(result).toBe(false);
     });
   });
