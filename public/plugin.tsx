@@ -61,6 +61,7 @@ import { createInvestigateLogActionComponent } from './components/notebooks/comp
 import { StartInvestigateButton } from './components/notebooks/components/discover_explorer/start_investigate_button';
 import { createInvestigationAction } from './chat/actions/create_investigation_action';
 import { registerInvestigateCommand } from './chat/command/investigate_command';
+import { isAnalyticEngineDataSource } from './utils/data_source_utils';
 
 export class InvestigationPlugin
   implements
@@ -171,6 +172,7 @@ export class InvestigationPlugin
       if (!services.application?.capabilities.investigation.agenticFeaturesEnabled) {
         return;
       }
+
       setupDeps.explore?.logActionRegistry?.registerAction?.({
         id: 'investigate-single',
         displayName: i18n.translate('investigate.logAction.investigate-single', {
@@ -178,7 +180,9 @@ export class InvestigationPlugin
         }),
         iconType: 'notebookApp',
         order: 100,
-        isCompatible: () => true,
+        isCompatible: (context) => {
+          return !isAnalyticEngineDataSource(context.metadata?.dataSourceEngineType);
+        },
         component: createInvestigateLogActionComponent({
           services,
         }),
@@ -214,13 +218,13 @@ export class InvestigationPlugin
                   )?.content;
                   const output = context.currentMessage?.content;
 
-                  const notebookId = context.pageContext?.['notebookId'];
+                  const notebookId = context.pageContext?.notebookId;
 
                   if (input && output) {
                     try {
                       await findingService.addFinding(input, output, notebookId);
                       return true;
-                    } catch (error) {
+                    } catch {
                       // Return false to indicate failure to the suggestion system
                       return false;
                     }
@@ -263,6 +267,9 @@ export class InvestigationPlugin
         id: 'start-investigate-all',
         order: 10,
         slotType: 'resultsActionBar',
+        isCompatible: (context) => {
+          return !isAnalyticEngineDataSource(context.dataSourceEngineType);
+        },
         render: () => {
           return (
             <OpenSearchDashboardsContextProvider

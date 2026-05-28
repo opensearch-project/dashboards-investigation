@@ -53,3 +53,10 @@ export async function getDataSourceVersion(
     return undefined;
   }
 }
+
+/**
+ * Check if a data source type is AnalyticEngine (unsupported for AI features).
+ */
+export function isAnalyticEngineDataSource(dataSourceType: string | undefined): boolean {
+  return dataSourceType === 'AnalyticEngine';
+}
