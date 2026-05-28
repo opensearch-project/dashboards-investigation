@@ -16,6 +16,7 @@ import {
 } from './start_investigation_from_discover_visualization_component';
 import { StartInvestigateModalDedentServices } from '../components/notebooks/components/discover_explorer/start_investigation_modal';
 import { investigationNotebookID } from '../../common/constants/shared';
+import { isAnalyticEngineDataSource } from '../utils/data_source_utils';
 
 export const ACTION_START_INVESTIGATION = 'startInvestigationAction';
 
@@ -51,7 +52,15 @@ export class StartInvestigationAction implements Action<ActionContext> {
   public async isCompatible({ embeddable }: ActionContext) {
     // Show for new discover visualizations
     // and not show the `start investigation` action in notebook.
-    return embeddable.type === 'explore' && this.currentAppId !== investigationNotebookID;
+    if (!(embeddable.type === 'explore' && this.currentAppId !== investigationNotebookID)) {
+      return false;
+    }
+    // Hide for AnalyticEngine data sources
+    const visEmbeddable = embeddable as DiscoverVisualizationEmbeddable;
+    const dsType = visEmbeddable.savedExplore?.searchSource?.getFields()?.query?.dataset?.dataSource
+      ?.type;
+    if (isAnalyticEngineDataSource(dsType)) return false;
+    return true;
   }
 
   public async execute({ embeddable }: ActionContext) {
