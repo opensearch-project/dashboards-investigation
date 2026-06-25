@@ -5,7 +5,7 @@
 
 import { i18n } from '@osd/i18n';
 import React from 'react';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subscription } from 'rxjs';
 import { first } from 'rxjs/operators';
 import {
   AppMountParameters,
@@ -62,6 +62,7 @@ import { StartInvestigateButton } from './components/notebooks/components/discov
 import { createInvestigationAction } from './chat/actions/create_investigation_action';
 import { registerInvestigateCommand } from './chat/command/investigate_command';
 import { isAnalyticEngineDataSource } from './utils/data_source_utils';
+import { ChatPluginSetup } from '../../../src/plugins/chat/public';
 
 export class InvestigationPlugin
   implements
@@ -71,6 +72,8 @@ export class InvestigationPlugin
   private telemetryRecorder: PluginTelemetryRecorder | undefined;
   private startDeps: AppPluginStartDependencies | undefined;
   private unregisterInvestigateCommand?: () => void;
+  private appIdSubscription?: Subscription;
+  private chatSetup?: ChatPluginSetup;
 
   private appUpdater$ = new BehaviorSubject<AppUpdater>(() => ({}));
 
@@ -239,6 +242,7 @@ export class InvestigationPlugin
     })();
 
     // Register /investigate command if chat plugin is available
+    this.chatSetup = setupDeps.chat;
     this.unregisterInvestigateCommand = registerInvestigateCommand(setupDeps.chat);
 
     // Return methods that should be available to other plugins
@@ -286,9 +290,29 @@ export class InvestigationPlugin
       });
 
       // create investigation action
-      this.startDeps?.contextProvider?.actions?.registerAssistantAction?.(
-        createInvestigationAction(core)
-      );
+      const investigationAction = createInvestigationAction(core);
+      const registerAction = this.startDeps?.contextProvider?.actions?.registerAssistantAction;
+      registerAction?.(investigationAction);
+
+      // Disable create_investigation tool and /investigate command on the search-relevance page
+      this.appIdSubscription = core.application.currentAppId$.subscribe((appId) => {
+        if (appId === 'searchRelevance') {
+          if (registerAction) {
+            registerAction({ ...investigationAction, available: 'disabled' });
+          }
+          if (this.unregisterInvestigateCommand) {
+            this.unregisterInvestigateCommand();
+            this.unregisterInvestigateCommand = undefined;
+          }
+        } else {
+          if (registerAction) {
+            registerAction(investigationAction);
+          }
+          if (this.chatSetup && !this.unregisterInvestigateCommand) {
+            this.unregisterInvestigateCommand = registerInvestigateCommand(this.chatSetup);
+          }
+        }
+      });
       // Register "Start investigation" action for discover visualizations
       const startInvestigationAction = new StartInvestigationAction(core.overlays, {
         data: startDeps.data,
@@ -320,11 +344,12 @@ export class InvestigationPlugin
   };
 
   public stop() {
+    this.appIdSubscription?.unsubscribe();
+
     // Unregister the /investigate command
     if (this.unregisterInvestigateCommand) {
       this.unregisterInvestigateCommand();
     }
-
     this.telemetryRecorder = undefined;
   }
 }
