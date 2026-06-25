@@ -7,6 +7,7 @@ import { investigationNotebookID } from '../../common/constants/shared';
 import { CoreSetup } from '../../../../src/core/public';
 import { AppPluginStartDependencies } from '../types';
 import { DEFAULT_NAV_GROUPS, DEFAULT_APP_CATEGORIES } from '../../../../src/core/public';
+import { notebooksNavPopover } from './notebooks_nav_popover';
 
 export function registerAllPluginNavGroups(core: CoreSetup<AppPluginStartDependencies>) {
   if (core.chrome.getIsIconSideNavEnabled()) {
@@ -16,6 +17,7 @@ export function registerAllPluginNavGroups(core: CoreSetup<AppPluginStartDepende
         category: DEFAULT_APP_CATEGORIES.observabilityTools,
         order: 400,
         euiIconType: 'notebookApp',
+        navPopover: notebooksNavPopover,
       },
     ]);
   } else {
