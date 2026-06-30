@@ -225,10 +225,14 @@ export function NoteTable({ deleteNotebook }: NoteTableProps) {
 
   useEffect(() => {
     const url = window.location.hash.split('/');
-    if (url[url.length - 1] === 'create') {
+    // Open the create-notebook modal on the `#/create` route. Guard on
+    // `!isModalVisible` so a repeat navigation to `#/create` (e.g. clicking the
+    // side-nav "Create notebook" popover action again while the modal is already
+    // open) doesn't stack a second modal on top of the first.
+    if (url[url.length - 1] === 'create' && !isModalVisible) {
       createNote();
     }
-  }, [location, createNote]);
+  }, [location, createNote, isModalVisible]);
 
   const deleteNote = () => {
     setModalLayout(
