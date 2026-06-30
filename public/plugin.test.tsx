@@ -3,165 +3,227 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BehaviorSubject, Subscription } from 'rxjs';
-import { createInvestigationAction } from './chat/actions/create_investigation_action';
-import { registerInvestigateCommand } from './chat/command/investigate_command';
-import { coreStartMock } from '../test/__mocks__/coreMocks';
+import { BehaviorSubject } from 'rxjs';
+import { coreMock } from '../../../src/core/public/mocks';
 
-/**
- * Tests the create_investigation tool disable/enable logic based on currentAppId$.
- * This mirrors the subscription in InvestigationPlugin.start().
- */
-describe('create_investigation tool page-based availability', () => {
+// Mock all heavy transitive imports before importing plugin
+jest.mock('../common/utils', () => ({
+  uiSettingsService: { init: jest.fn() },
+  setOSDHttp: jest.fn(),
+  setOSDSavedObjectsClient: jest.fn(),
+}));
+jest.mock('./services', () => ({
+  setClient: jest.fn(),
+  setData: jest.fn(),
+  setDataSourceManagementSetup: jest.fn(),
+  setEmbeddable: jest.fn(),
+  setExpressions: jest.fn(),
+  setSearch: jest.fn(),
+  setNotifications: jest.fn(),
+  setVisualizations: jest.fn(),
+  ParagraphService: jest.fn().mockImplementation(() => ({
+    setup: jest.fn().mockReturnValue({ register: jest.fn() }),
+  })),
+  FindingService: jest.fn(),
+}));
+jest.mock('./services/context_service', () => ({
+  ContextService: jest.fn().mockImplementation(() => ({
+    setup: jest.fn().mockReturnValue({}),
+  })),
+}));
+jest.mock('./paragraphs', () => ({
+  paragraphRegistry: [],
+}));
+jest.mock('./plugin_helpers/plugin_nav', () => ({
+  registerAllPluginNavGroups: jest.fn(),
+}));
+jest.mock(
+  './components/notebooks/components/data_distribution/embeddable/data_distribution_embeddable_factory',
+  () => ({
+    DataDistributionEmbeddableFactory: jest.fn(),
+  })
+);
+jest.mock('./components/notebooks/components/classic_notebook', () => ({
+  ClassicNotebook: jest.fn(),
+}));
+jest.mock('./components/notebooks/components/discover_explorer', () => ({
+  createInvestigateLogActionComponent: jest.fn(),
+}));
+jest.mock('./components/notebooks/components/discover_explorer/start_investigate_button', () => ({
+  StartInvestigateButton: jest.fn(),
+}));
+jest.mock('./actions/start_investigation_action', () => ({
+  StartInvestigationAction: jest.fn().mockImplementation(() => ({ id: 'mock-action' })),
+}));
+jest.mock('./utils/data_source_utils', () => ({
+  isAnalyticEngineDataSource: jest.fn().mockReturnValue(false),
+}));
+
+// Now import the plugin
+import { InvestigationPlugin } from './plugin';
+
+describe('InvestigationPlugin page-based availability', () => {
+  let plugin: InvestigationPlugin;
   let currentAppId$: BehaviorSubject<string | undefined>;
-  let registerAssistantAction: jest.Mock;
-  let subscription: Subscription;
-
-  beforeEach(() => {
-    currentAppId$ = new BehaviorSubject<string | undefined>(undefined);
-    registerAssistantAction = jest.fn();
-  });
-
-  afterEach(() => {
-    subscription?.unsubscribe();
-  });
-
-  const setupSubscription = () => {
-    const investigationAction = createInvestigationAction(coreStartMock);
-    registerAssistantAction(investigationAction);
-
-    subscription = currentAppId$.subscribe((appId) => {
-      if (appId === 'searchRelevance') {
-        registerAssistantAction({ ...investigationAction, available: 'disabled' });
-      } else {
-        registerAssistantAction(investigationAction);
-      }
-    });
-
-    return investigationAction;
-  };
-
-  it('should register the action initially', () => {
-    setupSubscription();
-
-    expect(registerAssistantAction).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'create_investigation' })
-    );
-  });
-
-  it('should disable create_investigation when appId is searchRelevance', () => {
-    setupSubscription();
-    registerAssistantAction.mockClear();
-
-    currentAppId$.next('searchRelevance');
-
-    expect(registerAssistantAction).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'create_investigation',
-        available: 'disabled',
-      })
-    );
-  });
-
-  it('should enable create_investigation when navigating away from searchRelevance', () => {
-    setupSubscription();
-    currentAppId$.next('searchRelevance');
-    registerAssistantAction.mockClear();
-
-    currentAppId$.next('explore');
-
-    expect(registerAssistantAction).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'create_investigation' })
-    );
-    expect(registerAssistantAction).not.toHaveBeenCalledWith(
-      expect.objectContaining({ available: 'disabled' })
-    );
-  });
-
-  it('should not fire after unsubscribe', () => {
-    setupSubscription();
-    subscription.unsubscribe();
-    registerAssistantAction.mockClear();
-
-    currentAppId$.next('searchRelevance');
-
-    expect(registerAssistantAction).not.toHaveBeenCalled();
-  });
-});
-
-describe('/investigate command page-based availability', () => {
-  let currentAppId$: BehaviorSubject<string | undefined>;
+  let mockRegisterAssistantAction: jest.Mock;
   let mockRegisterCommand: jest.Mock;
-  let mockUnregister: jest.Mock;
-  let chatSetup: any;
-  let unregisterCommand: (() => void) | undefined;
-  let subscription: Subscription;
+  let mockUnregisterCommand: jest.Mock;
 
   beforeEach(() => {
+    plugin = new InvestigationPlugin();
     currentAppId$ = new BehaviorSubject<string | undefined>(undefined);
-    mockUnregister = jest.fn();
-    mockRegisterCommand = jest.fn().mockReturnValue(mockUnregister);
-    chatSetup = { commandRegistry: { registerCommand: mockRegisterCommand } };
-    unregisterCommand = registerInvestigateCommand(chatSetup);
+    mockRegisterAssistantAction = jest.fn();
+    mockUnregisterCommand = jest.fn();
+    mockRegisterCommand = jest.fn().mockReturnValue(mockUnregisterCommand);
   });
 
   afterEach(() => {
-    subscription?.unsubscribe();
+    plugin.stop();
   });
 
-  const setupSubscription = () => {
-    subscription = currentAppId$.subscribe((appId) => {
-      if (appId === 'searchRelevance') {
-        if (unregisterCommand) {
-          unregisterCommand();
-          unregisterCommand = undefined;
-        }
-      } else {
-        if (!unregisterCommand) {
-          unregisterCommand = registerInvestigateCommand(chatSetup);
-        }
-      }
+  const setupAndStart = async () => {
+    const coreSetup = coreMock.createSetup();
+    const coreStartForSetup = coreMock.createStart();
+    Object.defineProperty(coreStartForSetup.application, 'capabilities', {
+      value: {
+        ...coreStartForSetup.application.capabilities,
+        investigation: { enabled: true, agenticFeaturesEnabled: true },
+      },
+      writable: true,
     });
+    coreSetup.getStartServices.mockResolvedValue([coreStartForSetup, {} as any, {} as any]);
+
+    const setupDeps = {
+      embeddable: { registerEmbeddableFactory: jest.fn() } as any,
+      visualizations: {} as any,
+      data: { search: {} } as any,
+      dataSource: {} as any,
+      dataSourceManagement: undefined,
+      chat: { commandRegistry: { registerCommand: mockRegisterCommand } },
+    };
+
+    await plugin.setup(coreSetup, setupDeps);
+
+    const coreStart = coreMock.createStart();
+    (coreStart.application as any).currentAppId$ = currentAppId$;
+    Object.defineProperty(coreStart.application, 'capabilities', {
+      value: {
+        ...coreStart.application.capabilities,
+        investigation: { enabled: true, agenticFeaturesEnabled: true },
+      },
+      writable: true,
+    });
+    (coreStart as any).telemetry = {
+      getPluginRecorder: jest.fn().mockReturnValue({}),
+    };
+
+    const startDeps = {
+      navigation: {} as any,
+      embeddable: {} as any,
+      dashboard: {} as any,
+      savedObjectsClient: {} as any,
+      data: { search: {} } as any,
+      dataSource: {} as any,
+      expressions: {} as any,
+      visualizations: {} as any,
+      uiActions: { registerAction: jest.fn(), attachAction: jest.fn() } as any,
+      contextProvider: {
+        actions: { registerAssistantAction: mockRegisterAssistantAction },
+        getAssistantContextStore: jest.fn(),
+      },
+      explore: { slotRegistry: { register: jest.fn() } },
+    };
+
+    plugin.start(coreStart, startDeps as any);
   };
 
-  it('should unregister /investigate command on searchRelevance page', () => {
-    setupSubscription();
+  describe('create_investigation tool', () => {
+    it('should register the action on start', async () => {
+      await setupAndStart();
 
-    currentAppId$.next('searchRelevance');
+      expect(mockRegisterAssistantAction).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'create_investigation' })
+      );
+    });
 
-    expect(mockUnregister).toHaveBeenCalled();
-    expect(unregisterCommand).toBeUndefined();
+    it('should disable create_investigation when navigating to searchRelevance', async () => {
+      await setupAndStart();
+      mockRegisterAssistantAction.mockClear();
+
+      currentAppId$.next('searchRelevance');
+
+      expect(mockRegisterAssistantAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'create_investigation',
+          available: 'disabled',
+        })
+      );
+    });
+
+    it('should re-enable create_investigation when navigating away from searchRelevance', async () => {
+      await setupAndStart();
+      currentAppId$.next('searchRelevance');
+      mockRegisterAssistantAction.mockClear();
+
+      currentAppId$.next('explore');
+
+      expect(mockRegisterAssistantAction).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'create_investigation' })
+      );
+      expect(mockRegisterAssistantAction).not.toHaveBeenCalledWith(
+        expect.objectContaining({ available: 'disabled' })
+      );
+    });
   });
 
-  it('should re-register /investigate command when leaving searchRelevance', () => {
-    setupSubscription();
-    currentAppId$.next('searchRelevance');
-    mockRegisterCommand.mockClear();
+  describe('/investigate command', () => {
+    it('should register /investigate command during setup', async () => {
+      await setupAndStart();
 
-    currentAppId$.next('explore');
+      expect(mockRegisterCommand).toHaveBeenCalledWith(
+        expect.objectContaining({ command: 'investigate' })
+      );
+    });
 
-    expect(mockRegisterCommand).toHaveBeenCalledWith(
-      expect.objectContaining({ command: 'investigate' })
-    );
-    expect(unregisterCommand).toBeDefined();
+    it('should unregister /investigate command on searchRelevance page', async () => {
+      await setupAndStart();
+
+      currentAppId$.next('searchRelevance');
+
+      expect(mockUnregisterCommand).toHaveBeenCalled();
+    });
+
+    it('should re-register /investigate command when leaving searchRelevance', async () => {
+      await setupAndStart();
+      currentAppId$.next('searchRelevance');
+      mockRegisterCommand.mockClear();
+
+      currentAppId$.next('explore');
+
+      expect(mockRegisterCommand).toHaveBeenCalledWith(
+        expect.objectContaining({ command: 'investigate' })
+      );
+    });
+
+    it('should not re-register if already registered', async () => {
+      await setupAndStart();
+      mockRegisterCommand.mockClear();
+
+      currentAppId$.next('explore');
+
+      expect(mockRegisterCommand).not.toHaveBeenCalled();
+    });
   });
 
-  it('should not re-register if already registered', () => {
-    setupSubscription();
-    mockRegisterCommand.mockClear();
+  describe('cleanup', () => {
+    it('should unsubscribe and unregister on stop', async () => {
+      await setupAndStart();
 
-    currentAppId$.next('explore');
+      plugin.stop();
+      mockRegisterAssistantAction.mockClear();
 
-    expect(mockRegisterCommand).not.toHaveBeenCalled();
-  });
-
-  it('should not unregister if already unregistered', () => {
-    setupSubscription();
-    currentAppId$.next('searchRelevance');
-    mockUnregister.mockClear();
-
-    currentAppId$.next('searchRelevance');
-
-    expect(mockUnregister).not.toHaveBeenCalled();
+      currentAppId$.next('searchRelevance');
+      expect(mockRegisterAssistantAction).not.toHaveBeenCalled();
+    });
   });
 });
