@@ -13,12 +13,20 @@ import {
 } from '../create_investigation_action';
 import { coreStartMock } from '../../../../test/__mocks__/coreMocks';
 import { NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
+import * as queryValidation from '../../../utils/query_validation';
+
+jest.mock('../../../utils/query_validation');
 
 describe('createInvestigationAction', () => {
   const mockHttp = coreStartMock.http;
+  const mockValidateDSLQuery = queryValidation.validateDSLQuery as jest.Mock;
+  const mockValidatePPLQuery = queryValidation.validatePPLQuery as jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Default: validation passes
+    mockValidateDSLQuery.mockResolvedValue({ isValid: true });
+    mockValidatePPLQuery.mockResolvedValue({ isValid: true });
   });
 
   describe('action configuration', () => {
@@ -119,19 +127,32 @@ describe('createInvestigationAction', () => {
       expect(callBody.context.timeRange.baselineTo).toBeDefined();
     });
 
-    it('creates investigation with queries', async () => {
+    it('creates investigation with queries after validation', async () => {
       mockHttp.post = jest.fn().mockResolvedValue('test-notebook-id');
 
       const argsWithQueries = {
         ...mockArgs,
-        dslQuery: '{"query": {"match_all": {}}}',
-        pplQuery: 'source=logs-* | stats count()',
+        dslQuery: '{"match": {"message": "error"}}',
+        pplQuery: 'source = logs-* | stats count()',
       };
 
       const action = createInvestigationAction(coreStartMock);
       const result = await action.handler(argsWithQueries);
 
       expect(result.success).toBe(true);
+
+      // Verify validation was called
+      expect(mockValidateDSLQuery).toHaveBeenCalledWith(
+        mockHttp,
+        argsWithQueries.dslQuery,
+        'logs-*',
+        undefined
+      );
+      expect(mockValidatePPLQuery).toHaveBeenCalledWith(
+        mockHttp,
+        argsWithQueries.pplQuery,
+        undefined
+      );
 
       const callBody = JSON.parse(mockHttp.post.mock.calls[0][1].body);
       expect(callBody.context.variables.dslQuery).toBe(argsWithQueries.dslQuery);
