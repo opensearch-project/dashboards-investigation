@@ -4,7 +4,7 @@
  */
 
 import { schema } from '@osd/config-schema';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import {
   IOpenSearchDashboardsResponse,
   IRouter,
@@ -50,7 +50,7 @@ export function registerHypothesisRoute(router: IRouter) {
 
         // Create new hypothesis
         const newHypothesis: HypothesisItem = {
-          id: 'hypothesis_' + uuid(),
+          id: 'hypothesis_' + uuidv4(),
           title,
           description,
           likelihood,

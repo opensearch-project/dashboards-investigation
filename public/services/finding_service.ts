@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface Finding {
   id: string;
@@ -119,7 +119,7 @@ export class FindingService {
   }
 
   async addFinding(input: string, output: string, notebookId?: string): Promise<Finding> {
-    const id = uuid.v4();
+    const id = uuidv4();
     const timestamp = Date.now();
     const markdown = `## Investigation Finding
 
