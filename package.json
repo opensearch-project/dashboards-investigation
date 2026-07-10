@@ -43,7 +43,6 @@
     "cypress-multi-reporters": "^1.6.4",
     "cypress-parallel": "^0.14.0",
     "cypress-watch-and-reload": "^1.10.6",
-    "eslint": "^8.57.1",
     "fake-indexeddb": "^6.1.0",
     "husky": "^8.0.3",
     "jest-dom": "^4.0.0",
