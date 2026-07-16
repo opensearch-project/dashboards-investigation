@@ -26,7 +26,6 @@ import type { NoteBookServices } from '../../../../../public/types';
 import type { FailedInvestigationInfo } from '../../../../../common/types/notebooks';
 import { HypothesesStep } from './hypotheses_step';
 import { MessageTraceFlyout } from './investigation/message_trace_flyout';
-import { useSidecarPadding } from '../../../../hooks/use_sidecar_padding';
 import { usePERAgentServices } from '../../../../hooks/use_per_agent_services';
 import { useMemoryPermission } from '../../../../hooks/use_memory_permission';
 
@@ -42,12 +41,11 @@ export const FailedInvestigationFlyout: React.FC<FailedInvestigationFlyoutProps>
   onClose,
 }) => {
   const {
-    services: { http, overlays, uiSettings },
+    services: { http, uiSettings },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [traceMessageId, setTraceMessageId] = useState<string>();
   const [showSteps, setShowSteps] = useState(true);
-  const paddingRight = useSidecarPadding(overlays);
 
   const { memory, error, timestamp } = failedInvestigation;
   const isDarkMode = uiSettings.get('theme:darkMode');
@@ -84,7 +82,7 @@ export const FailedInvestigationFlyout: React.FC<FailedInvestigationFlyoutProps>
 
   return (
     <>
-      <EuiFlyout onClose={onClose} style={{ marginRight: paddingRight }}>
+      <EuiFlyout onClose={onClose}>
         <EuiFlyoutHeader hasBorder>
           <EuiTitle size="m">
             <h2>
