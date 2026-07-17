@@ -138,10 +138,8 @@ describe('<NoteTable /> spec', () => {
       NotebookType: 'Agentic',
     }));
     const utils = await renderNoteTable({ notebooks });
-    fireEvent.click(utils.getByText('Create notebook'));
-    await waitFor(() => {
-      expect(global.window.location.href).toContain('/create');
-    });
+    // Under jsdom 26 clicking an anchor no longer navigates; assert the link target instead.
+    expect(utils.getByText('Create notebook').closest('a')).toHaveAttribute('href', '#/create');
   });
 
   it('filters notebooks based on search input', async () => {
@@ -167,12 +165,15 @@ describe('<NoteTable /> spec', () => {
   });
 
   it('displays empty state message and create notebook button', async () => {
+    // The "Create notebook" anchor points at #/create; a mount effect reads
+    // window.location.hash to open the modal. Under jsdom 26 an anchor click no longer
+    // navigates, so set the hash before render instead of clicking the link.
+    window.location.assign('#/create');
     const { getAllByText, getAllByTestId } = await renderNoteTable({ notebooks: [] });
 
     expect(getAllByText('No notebooks')).toHaveLength(1);
 
     // Create notebook using the modal
-    fireEvent.click(getAllByText('Create notebook')[0]);
     fireEvent.click(getAllByTestId('custom-input-modal-input')[0]);
     fireEvent.input(getAllByTestId('custom-input-modal-input')[0], {
       target: { value: 'test-notebook' },

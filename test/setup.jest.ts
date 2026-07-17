@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import { configure } from '@testing-library/react';
 import { setOSDHttp, setOSDSavedObjectsClient } from '../common/utils';
 import { coreStartMock } from './__mocks__/coreMocks';
@@ -45,9 +45,15 @@ jest.setTimeout(30000);
 setOSDHttp(coreStartMock.http);
 setOSDSavedObjectsClient(coreStartMock.savedObjects.client);
 
+// jest-location-mock uses process.env.HOST as the base URL for its window.location mock.
+// Set it to match testEnvironmentOptions.url so window.location.origin is 'http://localhost:5601'
+// in all jsdom tests, consistent with the rest of the suite.
+process.env.HOST = 'http://localhost:5601';
+
 // Mock window.matchMedia for Monaco editor
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
+  configurable: true,
   value: jest.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
@@ -58,4 +64,18 @@ Object.defineProperty(window, 'matchMedia', {
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn(),
   })),
+});
+
+// jsdom 26 marks window.localStorage and window.sessionStorage as non-configurable.
+// Re-declare them as configurable once here so individual tests can override them
+// with Object.defineProperty without hitting "Cannot redefine property" errors.
+['localStorage', 'sessionStorage'].forEach((key) => {
+  const descriptor = Object.getOwnPropertyDescriptor(window, key);
+  if (descriptor && !descriptor.configurable) {
+    Object.defineProperty(window, key, {
+      configurable: true,
+      writable: true,
+      value: descriptor.value,
+    });
+  }
 });

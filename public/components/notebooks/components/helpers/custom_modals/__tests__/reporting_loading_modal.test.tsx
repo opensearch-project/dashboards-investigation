@@ -13,6 +13,6 @@ describe('<GenerateReportLoadingModal /> spec', () => {
     const utils = render(<GenerateReportLoadingModal setShowLoading={setShowLoading} />);
     expect(utils.container.firstChild).toMatchSnapshot();
     utils.getByTestId('reporting-loading-modal-close-button').click();
-    expect(setShowLoading).toBeCalledWith(false);
+    expect(setShowLoading).toHaveBeenCalledWith(false);
   });
 });
