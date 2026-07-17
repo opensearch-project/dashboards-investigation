@@ -120,7 +120,7 @@ describe('CreateInvestigationToolResult', () => {
 
     // Check for link panel with URL (visible when collapsed)
     expect(
-      screen.getByText(/http:\/\/localhost\/app\/investigation-notebooks/)
+      screen.getByText(/http:\/\/localhost:5601\/app\/investigation-notebooks/)
     ).toBeInTheDocument();
   });
 
@@ -175,7 +175,7 @@ describe('CreateInvestigationToolResult', () => {
 
     // Link panel with URL should be visible again when collapsed
     expect(
-      screen.getByText(/http:\/\/localhost\/app\/investigation-notebooks/)
+      screen.getByText(/http:\/\/localhost:5601\/app\/investigation-notebooks/)
     ).toBeInTheDocument();
   });
 

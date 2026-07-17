@@ -111,10 +111,7 @@ const ContextAwareParagraphs = (
 describe('<Paragraph /> spec', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    Object.defineProperty(window, 'location', {
-      value: mockLocation,
-      writable: true,
-    });
+    window.location.assign(mockLocation.href);
   });
 
   it('renders classic notebook paragraph', () => {
