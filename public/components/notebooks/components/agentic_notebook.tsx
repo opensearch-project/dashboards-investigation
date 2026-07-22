@@ -57,7 +57,6 @@ import { SubRouter, useSubRouter } from '../../../hooks/use_sub_router';
 import { InvestigationPageContext } from './investigation_page_context';
 import { migrateFindingParagraphs } from '../../../utils/finding_migration';
 import { InvestigationPhase } from '../../../../common/state/notebook_state';
-import { useSidecarPadding } from '../../../hooks/use_sidecar_padding';
 import { getMemoryPermission } from './hypothesis/investigation/utils';
 import { isRecoverableError } from './hypothesis/investigation/errors';
 
@@ -553,7 +552,7 @@ function NotebookComponent({ showPageHeader }: NotebookComponentProps) {
 
 export const AgenticNotebook = ({ openedNoteId, ...rest }: AgenticNotebookProps) => {
   const {
-    services: { dataSource, application, overlays },
+    services: { dataSource, application },
   } = useOpenSearchDashboards<NoteBookServices>();
   const { page } = useSubRouter();
   const stateRef = useRef(
@@ -563,7 +562,6 @@ export const AgenticNotebook = ({ openedNoteId, ...rest }: AgenticNotebookProps)
     })
   );
   const history = useHistory();
-  const paddingRight = useSidecarPadding(overlays);
 
   if (!application.capabilities.investigation.agenticFeaturesEnabled) {
     return (
@@ -602,7 +600,6 @@ export const AgenticNotebook = ({ openedNoteId, ...rest }: AgenticNotebookProps)
               const { id: notebookId } = stateRef.current.value;
               history.push(`/agentic/${notebookId}`);
             }}
-            style={{ marginRight: paddingRight }}
             size="l"
             paddingSize="none"
             ownFocus={false}
