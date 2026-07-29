@@ -7,15 +7,6 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.8.0
 * Add Notebooks navPopover to the icon side navigation with "Create notebook" and "View all notebooks" actions ([#390](https://github.com/opensearch-project/dashboards-investigation/pull/390))
 * Disable create_investigation tool on the Search Relevance page to reduce irrelevant tool suggestions ([#388](https://github.com/opensearch-project/dashboards-investigation/pull/388))
 
-### Enhancements
-
-* Onboard code diff analyzer/reviewer and issue dedupe workflows ([#391](https://github.com/opensearch-project/dashboards-investigation/pull/391))
-* Onboard new backport-pr reusable GitHub workflow replacing obsolete backport workflows ([#389](https://github.com/opensearch-project/dashboards-investigation/pull/389))
-
-### Bug Fixes
-
-* Downgrade codecov-action to v4 to fix intermittent GPG validation failures in CI ([#394](https://github.com/opensearch-project/dashboards-investigation/pull/394))
-
 ### Infrastructure
 
 * Pin GitHub Actions to commit SHAs to prevent supply chain attacks ([#375](https://github.com/opensearch-project/dashboards-investigation/pull/375))
@@ -23,6 +14,9 @@ Compatible with OpenSearch and OpenSearch Dashboards version 3.8.0
 * Update opensearch-build workflow references from commit SHA to main branch ([#384](https://github.com/opensearch-project/dashboards-investigation/pull/384))
 * Migrate ESLint configuration to ESLint 10 flat config format ([#398](https://github.com/opensearch-project/dashboards-investigation/pull/398))
 * Migrate Jest test suite to Jest 30 and jsdom 26 ([#403](https://github.com/opensearch-project/dashboards-investigation/pull/403))
+* Onboard code diff analyzer/reviewer and issue dedupe workflows ([#391](https://github.com/opensearch-project/dashboards-investigation/pull/391))
+* Onboard new backport-pr reusable GitHub workflow replacing obsolete backport workflows ([#389](https://github.com/opensearch-project/dashboards-investigation/pull/389))
+* Downgrade codecov-action to v4 to fix intermittent GPG validation failures in CI ([#394](https://github.com/opensearch-project/dashboards-investigation/pull/394))
 
 ### Maintenance
 
