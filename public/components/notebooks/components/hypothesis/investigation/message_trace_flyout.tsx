@@ -25,7 +25,6 @@ import { concatMap, delay, retryWhen, scan, timeout } from 'rxjs/operators';
 import type { NoteBookServices } from 'public/types';
 
 import { getTimeGapFromDates } from '../../../../../utils/time';
-import { useSidecarPadding } from '../../../../../hooks/use_sidecar_padding';
 import { useOpenSearchDashboards } from '../../../../../../../../src/plugins/opensearch_dashboards_react/public';
 
 import { getAllTracesMessages, isMarkdownText } from './utils';
@@ -77,13 +76,12 @@ export const MessageTraceFlyout = ({
   isInvestigating?: boolean;
 }) => {
   const {
-    services: { http, overlays, notifications },
+    services: { http, notifications },
   } = useOpenSearchDashboards<NoteBookServices>();
 
   const [traces, setTraces] = useState<any[]>([]);
   const [traceError, setTraceError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
-  const paddingRight = useSidecarPadding(overlays);
 
   const message = messageService.getMessageValue();
   const messages = useObservable(executorMemoryService.getMessages$());
@@ -314,7 +312,7 @@ export const MessageTraceFlyout = ({
   };
 
   return (
-    <EuiFlyout onClose={onClose} style={{ marginRight: paddingRight }} ownFocus={false}>
+    <EuiFlyout onClose={onClose} ownFocus={false}>
       <EuiFlyoutHeader hasBorder>
         <EuiTitle size="m">
           <h2>Step trace</h2>
