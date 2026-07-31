@@ -248,8 +248,9 @@ export async function batchDeleteParagraphs(
   opensearchNotebooksClient: SavedObjectsClientContract
 ) {
   const noteBookInfo = await fetchNotebook(params.noteId, opensearchNotebooksClient);
+  const paragraphIdsToDelete = new Set(params.paragraphIds);
   const updatedparagraphs = noteBookInfo.attributes.savedNotebook.paragraphs.filter(
-    (paragraph: ParagraphBackendType<unknown>) => !params.paragraphIds.includes(paragraph.id)
+    (paragraph: ParagraphBackendType<unknown>) => !paragraphIdsToDelete.has(paragraph.id)
   );
 
   noteBookInfo.attributes.savedNotebook.paragraphs = updatedparagraphs;

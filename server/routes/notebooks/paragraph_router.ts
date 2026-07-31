@@ -181,7 +181,7 @@ export function registerParaRoute(router: IRouter) {
       validate: {
         body: schema.object({
           noteId: schema.string(),
-          paragraphIds: schema.arrayOf(schema.string()),
+          paragraphIds: schema.arrayOf(schema.string(), { maxSize: 1000 }),
         }),
       },
     },
