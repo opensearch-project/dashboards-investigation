@@ -3,7 +3,6 @@
 - [Investigation](#investigation)
   - [Code Summary](#code-summary)
     - [Dashboards-Investigation](#dashboards-investigation)
-    - [Repository Checks](#repository-checks)
     - [Issues](#issues)
   - [Plugin Components](#plugin-components)
     - [Notebooks](#notebooks)
@@ -26,14 +25,6 @@ Investigation is a plugin to help you to investigate error based on logs.
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
 | Test and build           | [![Investigation Dashboards CI][dashboard-build-badge]][dashboard-build-link]                                      |
 | Code coverage            | [![codecov][dashboard-codecov-badge]][codecov-link]                                                                |
-| Distribution build tests | [![cypress tests][cypress-test-badge]][cypress-test-link] [![cypress code][cypress-code-badge]][cypress-code-link] |
-
-### Repository Checks
-
-|              |                                                                 |
-| ------------ | --------------------------------------------------------------- |
-| DCO Checker  | [![Developer certificate of origin][dco-badge]][dco-badge-link] |
-| Link Checker | [![Link Checker][link-check-badge]][link-check-link]            |
 
 ### Issues
 
@@ -46,18 +37,10 @@ Investigation is a plugin to help you to investigate error based on logs.
 | [![untriaged open][untriaged-badge]][untriaged-link]           |
 | [![nolabel open][nolabel-badge]][nolabel-link]                 |
 
-[dco-badge]: https://github.com/opensearch-project/dashboards-investigation/actions/workflows/dco.yml/badge.svg
-[dco-badge-link]: https://github.com/opensearch-project/dashboards-investigation/actions/workflows/dco.yml
-[link-check-badge]: https://github.com/opensearch-project/dashboards-investigation/actions/workflows/link-checker.yml/badge.svg
-[link-check-link]: https://github.com/opensearch-project/dashboards-investigation/actions/workflows/link-checker.yml
 [dashboard-build-badge]: https://github.com/opensearch-project/dashboards-investigation/actions/workflows/dashboards-investigation-test-and-build-workflow.yml/badge.svg
 [dashboard-build-link]: https://github.com/opensearch-project/dashboards-investigation/actions/workflows/dashboards-investigation-test-and-build-workflow.yml
 [dashboard-codecov-badge]: https://codecov.io/gh/opensearch-project/dashboards-investigation/branch/main/graphs/badge.svg?flag=dashboards-investigation
 [codecov-link]: https://codecov.io/gh/opensearch-project/dashboards-investigation
-[cypress-test-badge]: https://img.shields.io/badge/Cypress%20tests-in%20progress-yellow
-[cypress-test-link]: https://github.com/opensearch-project/opensearch-build/issues/1124
-[cypress-code-badge]: https://img.shields.io/badge/Cypress%20code-blue
-[cypress-code-link]: https://github.com/opensearch-project/dashboards-investigation/blob/main/.cypress/CYPRESS_TESTS.md
 [opensearch-it-badge]: https://img.shields.io/badge/OpenSearch%20Plugin%20IT%20tests-in%20progress-yellow
 [opensearch-it-link]: https://github.com/opensearch-project/opensearch-build/issues/1124
 [opensearch-it-code-badge]: https://img.shields.io/badge/OpenSearch%20IT%20code-blue
