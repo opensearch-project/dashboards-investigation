@@ -1,0 +1,79 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+.editorArea {
+  font-family: Dank Mono, Source Code Pro, Consolas, Courier New, Courier, monospace;
+  font-size: 1em;
+  border: none;
+  width: 100%;
+  height: 14em;
+}
+
+.panel-header-count {
+  color: #687078;
+  font-weight: normal;
+}
+
+.markdown-output-text {
+  font-family: 'Inter UI', -apple-system, system-ui, 'Segoe UI', Helvetica, Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+}
+
+.wrapAll {
+  word-break: break-all;
+  word-wrap: break-word;
+}
+
+.notebooks-paragraph button[aria-label='Expand'] {
+  display: none;
+}
+
+.notebookParagraphWrapper {
+  position: relative;
+  &:hover {
+    .notebookHeaderActionMenu {
+      opacity: 1;
+    }
+  }
+}
+
+.notebookHeaderActionMenu {
+  opacity: 0;
+  position: absolute;
+  top: 0;
+  z-index: 100;
+  margin: 0;
+  right: 0;
+}
+
+.notebooks-paragraph-dark .markdown-body {
+  pre.input {
+    background-color: #25262d !important;
+  }
+  code.language-text {
+    color: #e0e5ee !important;
+    background-color: #25262d !important;
+  }
+}
+
+// Temporary fix for OUI issue https://github.com/opensearch-project/oui/issues/1166
+#queryDataGrid {
+  .euiDataGrid--fullScreen {
+    .euiDataGrid__pagination {
+      margin-bottom: 100px;
+    }
+    margin-top: 98px;
+  }
+}
+
+.notebookLastUpdatedLabel {
+  align-content: center;
+}
+
+.paraQueryDatagrid {
+  .euiDataGrid__virtualized {
+    height: unset !important;
+  }
+}

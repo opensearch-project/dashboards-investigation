@@ -1,0 +1,112 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+.notebookQueryPanelWidgets {
+    display: flex;
+    overflow: hidden;
+
+    &__verticalSeparator {
+        width: 1px;
+        height: $ouiSizeS * 2;
+        background: $euiColorLightShade;
+        margin: $ouiSizeS $ouiSizeXXS;
+    }
+
+    &__datePicker {
+        margin-inline-start: 4px;
+
+        >* {
+            width: max-content;
+        }
+
+        * {
+            background-color: $ouiColorEmptyShade;
+            border: none !important;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        .euiSuperDatePicker__prettyFormat {
+            display: block;
+        }
+
+        .euiDatePickerRange>* {
+            flex-grow: 0;
+        }
+
+        .euiDatePickerRange__delimeter {
+            margin-inline: 4px;
+        }
+
+        .euiSuperDatePicker__prettyFormatLink {
+            margin-inline-start: 8px;
+        }
+
+        .euiIcon--medium {
+            height: 12px;
+        }
+
+        &--disabled {
+            .euiDatePopoverButton {
+                background-color: unset;
+                color: $euiColorMediumShade;
+            }
+
+            .euiTextColor--subdued {
+                color: $euiColorMediumShade;
+            }
+
+            .euiDatePickerRange:hover {
+                box-shadow: unset;
+            }
+        }
+    }
+
+    &__indexSelectorWrapper {
+        flex-shrink: 1;
+        min-width: 0;
+    }
+
+    &__dataSourceSelector {
+        display: flex;
+
+        .dataSourceMenuPopoverButton {
+            background: none;
+            border: none;
+
+            &::before {
+                display: none;
+            }
+        }
+
+        .dataSourceMenuPopoverButtonLabel {
+            box-shadow: none !important;
+            padding-right: 14px !important;
+
+            .euiButtonContent {
+                padding: 0 $ouiSizeS;
+            }
+
+            +.euiIcon {
+                margin: 0 0 0 -14px !important;
+            }
+        }
+
+        .euiButton__text {
+            display: none;
+        }
+
+        .euiIcon {
+            width: $ouiSizeM;
+            color: $ouiColorPrimary;
+        }
+
+        &--disabled {
+            .euiIcon {
+                color: $euiColorMediumShade;
+            }
+        }
+    }
+}

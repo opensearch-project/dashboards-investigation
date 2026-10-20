@@ -1,0 +1,92 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { i18n } from '@osd/i18n';
+import { EuiButtonIcon, EuiFlexGroup, EuiFlexItem, EuiText } from '@elastic/eui';
+import React, { useState, useCallback } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+
+import { UsageCollectionStart } from '../../../../../../../src/plugins/usage_collection/public';
+import { useOpenSearchDashboards } from '../../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { NoteBookServices } from '../../../../types';
+
+export const HypothesesFeedback: React.FC<{
+  appName: string;
+  notebookId: string;
+  usageCollection: UsageCollectionStart | undefined;
+  openReinvestigateModal: (withFeedback?: boolean) => void;
+}> = ({ usageCollection, appName, notebookId, openReinvestigateModal }) => {
+  const {
+    services: { investigationTelemetry },
+  } = useOpenSearchDashboards<NoteBookServices>();
+  const [feedback, setFeedback] = useState<'thumbup' | 'thumbdown' | undefined>();
+
+  const onFeedback = useCallback(
+    (eventName: 'thumbup' | 'thumbdown') => {
+      if (usageCollection && !feedback) {
+        usageCollection.reportUiStats(
+          appName,
+          usageCollection.METRIC_TYPE.CLICK,
+          `hypothesis-${eventName}-${uuidv4()}`
+        );
+        setFeedback(eventName);
+      }
+
+      // Record telemetry for thumb up/down
+      if (eventName === 'thumbup') {
+        investigationTelemetry.recordEvent({
+          name: 'investigation_thumb_up',
+          data: { notebookId },
+        });
+      } else {
+        investigationTelemetry.recordEvent({
+          name: 'investigation_thumb_down',
+          data: { notebookId },
+        });
+      }
+
+      if (eventName === 'thumbdown') {
+        openReinvestigateModal(true);
+      }
+    },
+    [usageCollection, feedback, appName, notebookId, openReinvestigateModal, investigationTelemetry]
+  );
+
+  return (
+    <EuiFlexGroup gutterSize="none" justifyContent="flexEnd" alignItems="center">
+      <EuiText color="subdued" size="s">
+        {i18n.translate('investigate.hypothesis.feedback.question', {
+          defaultMessage: 'How helpful were these hypotheses?',
+        })}
+      </EuiText>
+      {(!feedback || feedback === 'thumbup') && (
+        <EuiFlexItem grow={false}>
+          <EuiButtonIcon
+            size="xs"
+            color={feedback === 'thumbup' ? 'primary' : 'text'}
+            iconType="thumbsUp"
+            aria-label={i18n.translate('investigate.hypothesis.feedback.thumbsUp', {
+              defaultMessage: 'thumbs up',
+            })}
+            onClick={() => onFeedback('thumbup')}
+          />
+        </EuiFlexItem>
+      )}
+      {(!feedback || feedback === 'thumbdown') && (
+        <EuiFlexItem grow={false}>
+          <EuiButtonIcon
+            size="xs"
+            color={feedback === 'thumbdown' ? 'primary' : 'text'}
+            iconType="thumbsDown"
+            aria-label={i18n.translate('investigate.hypothesis.feedback.thumbsDown', {
+              defaultMessage: 'thumbs down',
+            })}
+            onClick={() => onFeedback('thumbdown')}
+          />
+        </EuiFlexItem>
+      )}
+    </EuiFlexGroup>
+  );
+};

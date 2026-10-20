@@ -1,0 +1,34 @@
+{
+  "id": "investigationDashboards",
+  "version": "3.10.0.0",
+  "opensearchDashboardsVersion": "3.10.0",
+  "server": true,
+  "ui": true,
+  "requiredPlugins": [
+    "dashboard",
+    "data",
+    "embeddable",
+    "navigation",
+    "opensearchDashboardsReact",
+    "opensearchDashboardsUtils",
+    "savedObjects",
+    "visualizations",
+    "expressions",
+    "uiActions"
+  ],
+  "optionalPlugins": [
+    "dataSource",
+    "dataSourceManagement",
+    "contextProvider",
+    "explore",
+    "usageCollection",
+    "chat"
+  ],
+  "configPath": [
+    "investigation"
+  ],
+  "supportedOSDataSourceVersions": ">=2.9.0",
+  "requiredOSDataSourcePlugins": [
+    "opensearch-sql"
+  ]
+}

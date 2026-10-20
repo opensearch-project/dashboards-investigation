@@ -1,0 +1,166 @@
+name: Test and Build Investigation Dashboards Plugin
+
+on: [pull_request, push]
+
+env:
+  PLUGIN_NAME: investigationDashboards
+  OPENSEARCH_DASHBOARDS_VERSION: 'main'
+  OPENSEARCH_PLUGIN_VERSION: '3.1.0'
+
+jobs:
+  Get-CI-Image-Tag:
+    uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@main
+    with:
+      product: opensearch-dashboards
+
+  build-linux:
+    needs: Get-CI-Image-Tag
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    container:
+      # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
+      # this image tag is subject to change as more dependencies and updates will arrive over time
+      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      # need to switch to root so that github actions can install runner binary on container without permission issues.
+      options: --user root
+
+    steps:
+      - name: Checkout OpenSearch Dashboards
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: opensearch-project/OpenSearch-Dashboards
+          ref: ${{ env.OPENSEARCH_DASHBOARDS_VERSION }}
+          path: OpenSearch-Dashboards
+
+      - name: Checkout Dashboards Investigation
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          path: OpenSearch-Dashboards/plugins/dashboards-investigation
+
+      - name: Plugin Bootstrap
+        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2
+        with:
+          timeout_minutes: 20
+          max_attempts: 2
+          command: |
+            chown -R 1000:1000 `pwd`
+            cd ./OpenSearch-Dashboards/
+            su `id -un 1000` -c "source $NVM_DIR/nvm.sh && nvm install && nvm use && npm i -g yarn && node -v && yarn -v &&
+                                 yarn config set network-timeout 1000000 -g &&
+                                 yarn osd bootstrap --single-version=loose"
+
+      - name: Test all dashboards-investigation modules
+        run: |
+          chown -R 1000:1000 `pwd`
+          cd ./OpenSearch-Dashboards/
+          su `id -un 1000` -c "source $NVM_DIR/nvm.sh && nvm install && nvm use && npm i -g yarn && node -v && yarn -v &&
+                               cd plugins/dashboards-investigation &&
+                               yarn osd bootstrap --single-version=loose && yarn test --coverage --maxWorkers=100%"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage-report-linux
+          path: ./OpenSearch-Dashboards/plugins/dashboards-investigation/coverage
+
+      # - name: Build Artifact
+      #   run: |
+      #     chown -R 1000:1000 `pwd`
+      #     cd ./OpenSearch-Dashboards/
+      #     su `id -un 1000` -c "source $NVM_DIR/nvm.sh && nvm use && node -v && yarn -v &&
+      #                          cd plugins/dashboards-investigation &&
+      #                          yarn build && mv ./build/*.zip ./build/${{ env.PLUGIN_NAME }}-${{ env.OPENSEARCH_PLUGIN_VERSION }}.zip"
+
+      # - name: Upload Artifact
+      #   uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      #   with:
+      #     name: dashboards-investigation-ubuntu-latest
+      #     path: ./OpenSearch-Dashboards/plugins/dashboards-investigation/build
+
+  build-windows-macos:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+      # Since Windows is inconsistent, we want to let other OSes run on a fail
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      # Enable longer filenames for windows
+      - name: Enable longer filenames
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: git config --system core.longpaths true
+
+      - name: Checkout OpenSearch Dashboards
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: opensearch-project/OpenSearch-Dashboards
+          ref: ${{ env.OPENSEARCH_VERSION }}
+          path: OpenSearch-Dashboards
+
+      - name: Setup Node
+        uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610 # v3
+        with:
+          node-version-file: './OpenSearch-Dashboards/.nvmrc'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install Yarn
+        # Need to use bash to avoid having a windows/linux specific step
+        shell: bash
+        run: |
+          YARN_VERSION=$(node -p "require('./OpenSearch-Dashboards/package.json').engines.yarn")
+          echo "Installing yarn@$YARN_VERSION"
+          npm i -g yarn@$YARN_VERSION
+
+      - run: node -v
+      - run: yarn -v
+
+      - name: Checkout Dashboards Investigation
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          path: OpenSearch-Dashboards/plugins/dashboards-investigation
+
+      - name: Plugin Bootstrap
+        uses: nick-fields/retry@14672906e672a08bd6eeb15720e9ed3ce869cdd4 # v2
+        with:
+          timeout_minutes: 20
+          max_attempts: 2
+          command: |
+            cd OpenSearch-Dashboards
+            yarn config set network-timeout 1000000 -g
+            yarn osd bootstrap --single-version=loose
+
+      - name: Test all dashboards-investigation modules
+        run: |
+          cd OpenSearch-Dashboards/plugins/dashboards-investigation
+          yarn test --coverage --maxWorkers=100%
+
+      # - name: Build Artifact
+      #   run: |
+      #     cd OpenSearch-Dashboards/plugins/dashboards-investigation
+      #     yarn build
+      #     mv ./build/*.zip ./build/${{ env.PLUGIN_NAME }}-${{ env.OPENSEARCH_PLUGIN_VERSION }}.zip
+
+      # - name: Upload Artifact
+      #   uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      #   with:
+      #     name: dashboards-investigation-${{ matrix.os }}
+      #     path: ./OpenSearch-Dashboards/plugins/dashboards-investigation/build
+  tests-codecov:
+    needs: build-linux
+    runs-on: ubuntu-latest
+    steps:
+      # uploader needs to scan the git tree to assemble a list of files
+      - name: Checkout dashboards-observability plugin
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: coverage-report-linux
+          path: ./coverage
+      - name: Upload Coverage Report
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage
+          fail_ci_if_error: true
+          verbose: true

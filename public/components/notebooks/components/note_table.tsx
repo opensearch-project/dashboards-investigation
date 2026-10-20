@@ -1,0 +1,689 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { i18n } from '@osd/i18n';
+import {
+  EuiCompressedFieldSearch,
+  EuiFlexGroup,
+  EuiFlexItem,
+  EuiInMemoryTable,
+  EuiLink,
+  EuiLoadingSpinner,
+  EuiOverlayMask,
+  EuiPage,
+  EuiPageBody,
+  EuiPageContent,
+  EuiPageContentHeader,
+  EuiPageContentHeaderSection,
+  EuiPageHeader,
+  EuiPageHeaderSection,
+  EuiSmallButton,
+  EuiSpacer,
+  EuiTableFieldDataColumnType,
+  EuiText,
+  EuiTitle,
+} from '@elastic/eui';
+import truncate from 'lodash/truncate';
+import moment from 'moment';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
+import {
+  NOTEBOOK_NAME_MAX_LENGTH,
+  NOTEBOOKS_DOCUMENTATION_URL,
+} from '../../../../common/constants/notebooks';
+import { UI_DATE_FORMAT } from '../../../../common/constants/shared';
+import { setNavBreadCrumbs } from '../../../../common/utils/set_nav_bread_crumbs';
+import { HeaderControlledComponentsWrapper } from '../../../../public/plugin_helpers/plugin_headerControl';
+import { DeleteNotebookModal, getSampleNotebooksModal } from './helpers/modal_containers';
+import { CustomInputModal } from './helpers/custom_modals/custom_input_modal';
+import { NotebookInfo } from './main';
+import { NOTEBOOKS_API_PREFIX } from '../../../../common/constants/notebooks';
+import {
+  toMountPoint,
+  useOpenSearchDashboards,
+} from '../../../../../../src/plugins/opensearch_dashboards_react/public';
+import { NoteBookServices } from '../../../types';
+import { NotebookType } from '../../../../common/types/notebooks';
+import { SavedObject } from '../../../../../../src/core/types';
+
+interface NoteTableProps {
+  deleteNotebook: (noteList: string[], toastMessage?: string) => Promise<void>;
+}
+
+export function NoteTable({ deleteNotebook }: NoteTableProps) {
+  const {
+    services: { http, notifications, savedObjects: savedObjectsMDSClient, dataSource, chrome },
+  } = useOpenSearchDashboards<NoteBookServices>();
+
+  const [notebooks, setNotebooks] = useState<NotebookInfo[]>([]);
+  const [isModalVisible, setIsModalVisible] = useState(false); // Modal Toggle
+  const [modalLayout, setModalLayout] = useState(<EuiOverlayMask />); // Modal Layout
+  const [selectedNotebooks, setSelectedNotebooks] = useState<NotebookInfo[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+    pageSizeOptions: [10, 20, 50],
+  });
+  const location = useLocation();
+
+  const dataSourceEnabled = !!dataSource;
+  const newNavigation = chrome.navGroup.getNavGroupEnabled();
+
+  // Reset pagination to first page when search query changes
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [searchQuery]);
+
+  // Fetches path and id for all stored notebooks
+  const fetchNotebooks = useCallback(() => {
+    // Notebooks plugin only supports savedNotebooks stored in .kibana
+    // The support for notebooks in .opensearch-observability is removed in OSD 3.0.0 version
+    // Related Issue: https://github.com/opensearch-project/dashboards-observability/issues/2350
+    return http
+      .get(`${NOTEBOOKS_API_PREFIX}/savedNotebook`)
+      .then((savedNotebooksResponse) => {
+        setNotebooks(savedNotebooksResponse.data);
+      })
+      .catch((err) => {
+        console.error(
+          'Issue in fetching the notebooks',
+          err?.body?.message || err?.message || 'Unknown error'
+        );
+      });
+  }, [http]);
+
+  const finalNotebooks = notebooks;
+
+  useEffect(() => {
+    setNavBreadCrumbs(
+      [],
+      [
+        {
+          text: 'Notebooks',
+          href: '#/',
+        },
+      ],
+      chrome,
+      finalNotebooks.length
+    );
+    fetchNotebooks();
+  }, [finalNotebooks.length, fetchNotebooks, chrome]);
+
+  const closeModal = useCallback(() => {
+    window.location.assign('#/');
+    setIsModalVisible(false);
+  }, []);
+  const showModal = () => {
+    setIsModalVisible(true);
+  };
+
+  // Creates a new notebook
+  const createNotebook = useCallback(
+    async (newNoteName: string, notebookType: NotebookType) => {
+      if (newNoteName.length > NOTEBOOK_NAME_MAX_LENGTH || newNoteName.length === 0) {
+        notifications.toasts.addDanger(
+          i18n.translate('investigate.noteTable.invalidNotebookName', {
+            defaultMessage: 'Invalid notebook name',
+          })
+        );
+        window.location.assign('#/');
+        return;
+      }
+      const newNoteObject = {
+        name: newNoteName,
+        context: { notebookType },
+      };
+
+      return http
+        .post(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook`, {
+          body: JSON.stringify(newNoteObject),
+        })
+        .then(async (res) => {
+          notifications.toasts.addSuccess(
+            i18n.translate('investigate.noteTable.notebookCreatedSuccess', {
+              defaultMessage: 'Notebook "{notebookName}" successfully created!',
+              values: { notebookName: newNoteName },
+            })
+          );
+          window.location.assign(`#/${res}`);
+        })
+        .catch((err) => {
+          notifications.toasts.addDanger({
+            title: i18n.translate('investigate.noteTable.enableNotebooksTitle', {
+              defaultMessage: 'Please ask your administrator to enable Notebooks for you.',
+            }),
+            text: toMountPoint(
+              <EuiLink href={NOTEBOOKS_DOCUMENTATION_URL} target="_blank">
+                {i18n.translate('investigate.noteTable.documentationLink', {
+                  defaultMessage: 'Documentation',
+                })}
+              </EuiLink>
+            ),
+          });
+
+          console.error(err);
+        });
+    },
+    [http, notifications]
+  );
+
+  const onCreate = useCallback(
+    async (newNoteName: string, notebookType: NotebookType) => {
+      createNotebook(newNoteName, notebookType);
+      closeModal();
+    },
+    [createNotebook, closeModal]
+  );
+
+  const onDelete = async () => {
+    setLoading(true);
+    try {
+      await deleteNotebook(selectedNotebooks.map((note) => note.id));
+      await fetchNotebooks();
+    } finally {
+      closeModal();
+      setLoading(false);
+    }
+  };
+
+  const loadingModal = (
+    <EuiOverlayMask>
+      <EuiLoadingSpinner size="xl" />
+    </EuiOverlayMask>
+  );
+
+  const createNote = useCallback(() => {
+    setModalLayout(
+      <CustomInputModal
+        runModal={(name, notebookType) => onCreate(name, notebookType || NotebookType.CLASSIC)}
+        closeModal={closeModal}
+        labelTxt={i18n.translate('investigate.noteTable.nameLabel', {
+          defaultMessage: 'Name',
+        })}
+        titletxt={i18n.translate('investigate.noteTable.createNotebookTitle', {
+          defaultMessage: 'Create notebook',
+        })}
+        btn1txt={i18n.translate('investigate.noteTable.cancelButton', {
+          defaultMessage: 'Cancel',
+        })}
+        btn2txt={i18n.translate('investigate.noteTable.createButton', {
+          defaultMessage: 'Create',
+        })}
+        openNoteName=""
+        helpText={i18n.translate('investigate.noteTable.createNoteMessage', {
+          defaultMessage: 'Enter a name to describe the purpose of this notebook.',
+        })}
+        notebookType={NotebookType.CLASSIC}
+      />
+    );
+    showModal();
+  }, [onCreate, closeModal]);
+
+  useEffect(() => {
+    const url = window.location.hash.split('/');
+    // Open the create-notebook modal on the `#/create` route. Guard on
+    // `!isModalVisible` so a repeat navigation to `#/create` (e.g. clicking the
+    // side-nav "Create notebook" popover action again while the modal is already
+    // open) doesn't stack a second modal on top of the first.
+    if (url[url.length - 1] === 'create' && !isModalVisible) {
+      createNote();
+    }
+  }, [location, createNote, isModalVisible]);
+
+  const deleteNote = () => {
+    setModalLayout(
+      <DeleteNotebookModal
+        onConfirm={onDelete}
+        onCancel={closeModal}
+        title={i18n.translate('investigate.noteTable.deleteNotebooksTitle', {
+          defaultMessage: 'Delete {count} {notebookString}',
+          values: {
+            count: selectedNotebooks.length,
+            notebookString: selectedNotebooks.length > 1 ? 'notebooks' : 'notebook',
+          },
+        })}
+        message={i18n.translate('investigate.noteTable.deleteNotebooksMessage', {
+          defaultMessage: 'Are you sure you want to delete the selected {count} {notebookString}?',
+          values: {
+            count: selectedNotebooks.length,
+            notebookString: selectedNotebooks.length > 1 ? 'notebooks' : 'notebook',
+          },
+        })}
+      />
+    );
+    showModal();
+  };
+
+  const addSampleNotebooks = async (dataSourceMDSId?: string, dataSourceMDSLabel?: string) => {
+    try {
+      setLoading(true);
+      const flights = await http
+        .get('../api/saved_objects/_find', {
+          query: {
+            type: 'index-pattern',
+            search_fields: 'title',
+            search: 'opensearch_dashboards_sample_data_flights',
+          },
+        })
+        .then((resp) => {
+          if (resp.total === 0) {
+            return true;
+          }
+          console.log(resp.saved_objects);
+          const hasDataSourceMDSId = resp.saved_objects.some((obj: SavedObject) =>
+            obj.references.some((ref) => ref.type === 'data-source' && ref.id === dataSourceMDSId)
+          );
+
+          // Return true if dataSourceMDSId is not found in any references
+          return !hasDataSourceMDSId;
+        });
+      const logs = await http
+        .get('../api/saved_objects/_find', {
+          query: {
+            type: 'index-pattern',
+            search_fields: 'title',
+            search: 'opensearch_dashboards_sample_data_logs',
+          },
+        })
+        .then((resp) => {
+          if (resp.total === 0) {
+            return true;
+          }
+          const hasDataSourceMDSId = resp.saved_objects.some((obj: SavedObject) =>
+            obj.references.some((ref) => ref.type === 'data-source' && ref.id === dataSourceMDSId)
+          );
+
+          // Return true if dataSourceMDSId is not found in any references
+          return !hasDataSourceMDSId;
+        });
+      if (flights) {
+        notifications.toasts.addSuccess(
+          i18n.translate('investigate.noteTable.addingSampleFlights', {
+            defaultMessage: 'Adding sample data for flights. This can take some time.',
+          })
+        );
+        await http.post('../api/sample_data/flights', {
+          query: { data_source_id: dataSourceMDSId },
+        });
+      }
+      if (logs) {
+        notifications.toasts.addSuccess(
+          i18n.translate('investigate.noteTable.addingSampleLogs', {
+            defaultMessage: 'Adding sample data for logs. This can take some time.',
+          })
+        );
+        await http.post('../api/sample_data/logs', {
+          query: { data_source_id: dataSourceMDSId },
+        });
+      }
+      const visIds: string[] = [];
+      await http
+        .get('../api/saved_objects/_find', {
+          query: {
+            type: 'visualization',
+            search_fields: 'title',
+            search:
+              `[Logs] Response Codes Over Time + Annotations` +
+              (dataSourceMDSLabel ? `_${dataSourceMDSLabel}` : ''),
+          },
+        })
+        .then((resp) => {
+          if (dataSourceMDSId) {
+            const searchTitle = `[Logs] Response Codes Over Time + Annotations_${dataSourceMDSLabel}`;
+            const savedObjects = resp.saved_objects;
+
+            const foundObject = savedObjects.find(
+              (obj: SavedObject<{ title: string }>) => obj.attributes.title === searchTitle
+            );
+            if (foundObject) {
+              visIds.push(foundObject.id);
+            }
+          } else {
+            visIds.push(resp.saved_objects[0].id);
+          }
+        });
+      await http
+        .get('../api/saved_objects/_find', {
+          query: {
+            type: 'visualization',
+            search_fields: 'title',
+            search:
+              `[Logs] Unique Visitors vs. Average Bytes` +
+              (dataSourceMDSLabel ? `_${dataSourceMDSLabel}` : ''),
+          },
+        })
+        .then((resp) => {
+          if (dataSourceMDSId) {
+            const searchTitle = `[Logs] Unique Visitors vs. Average Bytes_${dataSourceMDSLabel}`;
+            const savedObjects = resp.saved_objects;
+
+            const foundObject = savedObjects.find(
+              (obj: SavedObject<{ title: string }>) => obj.attributes.title === searchTitle
+            );
+            if (foundObject) {
+              visIds.push(foundObject.id);
+            }
+          } else {
+            visIds.push(resp.saved_objects[0].id);
+          }
+        });
+      await http
+        .get('../api/saved_objects/_find', {
+          query: {
+            type: 'visualization',
+            search_fields: 'title',
+            search:
+              `[Flights] Flight Count and Average Ticket Price` +
+              (dataSourceMDSLabel ? `_${dataSourceMDSLabel}` : ''),
+          },
+        })
+        .then((resp) => {
+          if (dataSourceMDSId) {
+            const searchTitle = `[Flights] Flight Count and Average Ticket Price_${dataSourceMDSLabel}`;
+            const savedObjects = resp.saved_objects;
+
+            const foundObject = savedObjects.find(
+              (obj: SavedObject<{ title: string }>) => obj.attributes.title === searchTitle
+            );
+            if (foundObject) {
+              visIds.push(foundObject.id);
+            }
+          } else {
+            visIds.push(resp.saved_objects[0].id);
+          }
+        });
+      await http
+        .post(`${NOTEBOOKS_API_PREFIX}/note/savedNotebook/addSampleNotebooks`, {
+          body: JSON.stringify({ visIds, dataSourceId: dataSourceMDSId }),
+        })
+        .then((res) => {
+          const newData = res.body.map((notebook: any) => ({
+            path: notebook.name,
+            id: notebook.id,
+            dateCreated: notebook.dateCreated,
+            dateModified: notebook.dateModified,
+          }));
+          setNotebooks((prevState) => [...prevState, ...newData]);
+        });
+      notifications.toasts.addSuccess(
+        i18n.translate('investigate.noteTable.sampleNotebooksSuccess', {
+          defaultMessage: 'Sample notebooks successfully added.',
+        })
+      );
+    } catch (err: any) {
+      notifications.toasts.addDanger(
+        i18n.translate('investigate.noteTable.sampleNotebooksError', {
+          defaultMessage: 'Error adding sample notebooks.',
+        })
+      );
+      console.error(err?.body?.message || err?.message || 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addSampleNotebooksModal = async () => {
+    let selectedDataSourceId: string | undefined;
+    let selectedDataSourceLabel: string | undefined;
+    const handleSelectedDataSourceChange = (id?: string, label?: string) => {
+      selectedDataSourceId = id;
+      selectedDataSourceLabel = label;
+    };
+    setModalLayout(
+      getSampleNotebooksModal(
+        closeModal,
+        async () => {
+          closeModal();
+          await addSampleNotebooks(selectedDataSourceId, selectedDataSourceLabel);
+        },
+        dataSourceEnabled,
+        savedObjectsMDSClient,
+        notifications,
+        handleSelectedDataSourceChange
+      )!
+    );
+    showModal();
+  };
+
+  const tableColumns = [
+    {
+      field: 'path',
+      name: 'Name',
+      sortable: true,
+      truncateText: true,
+      render: (value, record) => (
+        <EuiLink
+          href={
+            record.notebookType === NotebookType.AGENTIC
+              ? `#/agentic/${record.id}`
+              : `#/${record.id}`
+          }
+        >
+          {truncate(value, { length: 100 })}
+        </EuiLink>
+      ),
+    },
+    {
+      field: 'notebookType',
+      name: 'Type',
+      sortable: true,
+      render: (value) => value ?? NotebookType.CLASSIC,
+    },
+    {
+      field: 'dateModified',
+      name: 'Last updated',
+      sortable: true,
+      render: (value) => moment(value).format(UI_DATE_FORMAT),
+    },
+    {
+      field: 'dateCreated',
+      name: 'Created',
+      sortable: true,
+      render: (value) => moment(value).format(UI_DATE_FORMAT),
+    },
+  ] as Array<EuiTableFieldDataColumnType<NotebookInfo>>;
+
+  return (
+    <>
+      <EuiPage>
+        <EuiPageBody component="div">
+          {!newNavigation && (
+            <EuiPageHeader>
+              <EuiPageHeaderSection>
+                <EuiTitle size="l">
+                  <h3>Notebooks</h3>
+                </EuiTitle>
+              </EuiPageHeaderSection>
+            </EuiPageHeader>
+          )}
+          <EuiPageContent id="notebookArea" paddingSize="m">
+            {loading && loadingModal}
+            {newNavigation ? (
+              <HeaderControlledComponentsWrapper
+                description={{
+                  text:
+                    'Use Notebooks to interactively and collaboratively develop rich reports backed by live data. Common use cases for notebooks include creating postmortem reports, designing run books, building live infrastructure reports, or even documentation.',
+                  url: NOTEBOOKS_DOCUMENTATION_URL,
+                  urlTitle: 'Learn more',
+                }}
+                components={[
+                  <EuiFlexGroup gutterSize="s" key="controls">
+                    <EuiFlexItem grow={false}>
+                      <EuiSmallButton
+                        data-test-subj="notebookEmptyTableAddSamplesBtn"
+                        fullWidth={false}
+                        onClick={() => addSampleNotebooksModal()}
+                      >
+                        Add sample notebooks
+                      </EuiSmallButton>
+                    </EuiFlexItem>
+                    <EuiFlexItem>
+                      <EuiSmallButton
+                        fill
+                        href="#/create"
+                        data-test-subj="createNotebookPrimaryBtn"
+                        iconType="plus"
+                        iconSide="left"
+                      >
+                        Create notebook
+                      </EuiSmallButton>
+                    </EuiFlexItem>
+                  </EuiFlexGroup>,
+                ]}
+              />
+            ) : (
+              <EuiPageContentHeader>
+                <EuiPageContentHeaderSection>
+                  <EuiTitle size="s" data-test-subj="notebookTableTitle">
+                    <h3>
+                      Notebooks
+                      <span className="panel-header-count"> ({finalNotebooks.length})</span>
+                    </h3>
+                  </EuiTitle>
+                  <EuiSpacer size="s" />
+                  <EuiText size="s" color="subdued" data-test-subj="notebookTableDescription">
+                    Use Notebooks to interactively and collaboratively develop rich reports backed
+                    by live data. Common use cases for notebooks include creating postmortem
+                    reports, designing run books, building live infrastructure reports, or even
+                    documentation.{' '}
+                    <EuiLink external={true} href={NOTEBOOKS_DOCUMENTATION_URL} target="blank">
+                      Learn more
+                    </EuiLink>
+                  </EuiText>
+                </EuiPageContentHeaderSection>
+                <EuiPageContentHeaderSection>
+                  <EuiFlexGroup gutterSize="s">
+                    <EuiFlexItem grow={false}>
+                      <EuiSmallButton
+                        data-test-subj="notebookEmptyTableAddSamplesBtn"
+                        fullWidth={false}
+                        onClick={() => addSampleNotebooksModal()}
+                      >
+                        Add sample notebooks
+                      </EuiSmallButton>
+                    </EuiFlexItem>
+                    <EuiFlexItem>
+                      <EuiSmallButton
+                        fill
+                        href="#/create"
+                        data-test-subj="createNotebookPrimaryBtn"
+                        iconType="plus"
+                        iconSide="left"
+                      >
+                        Create notebook
+                      </EuiSmallButton>
+                    </EuiFlexItem>
+                  </EuiFlexGroup>
+                </EuiPageContentHeaderSection>
+              </EuiPageContentHeader>
+            )}
+            {finalNotebooks.length > 0 ? (
+              <>
+                <EuiFlexGroup gutterSize="s" alignItems="center">
+                  <EuiFlexItem grow={false}>
+                    {selectedNotebooks.length > 0 && (
+                      <EuiSmallButton
+                        color="danger"
+                        iconType="trash"
+                        onClick={deleteNote}
+                        data-test-subj="deleteSelectedNotebooks"
+                      >
+                        Delete {selectedNotebooks.length} notebook
+                        {selectedNotebooks.length > 1 ? 's' : ''}
+                      </EuiSmallButton>
+                    )}
+                  </EuiFlexItem>
+                  <EuiFlexItem>
+                    <EuiCompressedFieldSearch
+                      fullWidth
+                      placeholder="Search notebook name"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </EuiFlexItem>
+                </EuiFlexGroup>
+                <EuiSpacer size="m" />
+                <EuiInMemoryTable
+                  loading={loading}
+                  items={
+                    searchQuery
+                      ? finalNotebooks.filter((notebook) =>
+                          notebook.path.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                      : finalNotebooks
+                  }
+                  itemId="id"
+                  columns={tableColumns}
+                  tableLayout="auto"
+                  onTableChange={({ page }) => {
+                    if (page) {
+                      setPagination((prev) => ({
+                        ...prev,
+                        pageIndex: page.index,
+                        pageSize: page.size,
+                      }));
+                    }
+                  }}
+                  pagination={pagination}
+                  sorting={{
+                    sort: {
+                      field: 'dateModified',
+                      direction: 'desc',
+                    },
+                  }}
+                  allowNeutralSort={false}
+                  isSelectable={true}
+                  selection={{
+                    onSelectionChange: (items) => setSelectedNotebooks(items),
+                  }}
+                />
+              </>
+            ) : (
+              <>
+                <EuiSpacer size="xxl" />
+                <EuiText textAlign="center" data-test-subj="notebookEmptyTableText">
+                  <h2>No notebooks</h2>
+                  <EuiSpacer size="m" />
+                  <EuiText color="subdued" size="s">
+                    Use notebooks to create post-mortem reports, build live infrastructure
+                    <br />
+                    reports, or foster explorative collaborations with data.
+                  </EuiText>
+                </EuiText>
+                <EuiSpacer size="m" />
+                <EuiFlexGroup justifyContent="center">
+                  <EuiFlexItem grow={false}>
+                    <EuiSmallButton
+                      href="#/create"
+                      data-test-subj="notebookEmptyTableCreateBtn"
+                      fullWidth={false}
+                      iconType="plus"
+                      iconSide="left"
+                    >
+                      Create notebook
+                    </EuiSmallButton>
+                  </EuiFlexItem>
+                  <EuiFlexItem grow={false}>
+                    <EuiSmallButton
+                      data-test-subj="notebookEmptyTableAddSamplesBtn"
+                      fullWidth={false}
+                      onClick={() => addSampleNotebooksModal()}
+                    >
+                      Add sample notebooks
+                    </EuiSmallButton>
+                  </EuiFlexItem>
+                </EuiFlexGroup>
+                <EuiSpacer size="xxl" />
+              </>
+            )}
+          </EuiPageContent>
+        </EuiPageBody>
+      </EuiPage>
+      {isModalVisible && modalLayout}
+    </>
+  );
+}

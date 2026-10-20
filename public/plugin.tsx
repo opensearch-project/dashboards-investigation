@@ -1,0 +1,355 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { i18n } from '@osd/i18n';
+import React from 'react';
+import { BehaviorSubject, Subscription } from 'rxjs';
+import { first } from 'rxjs/operators';
+import {
+  AppMountParameters,
+  AppNavLinkStatus,
+  AppUpdater,
+  CoreSetup,
+  CoreStart,
+  Plugin,
+} from '../../../src/core/public';
+import {
+  investigationNotebookID,
+  investigationNotebookPluginOrder,
+  investigationNotebookTitle,
+} from '../common/constants/shared';
+import { setOSDHttp, setOSDSavedObjectsClient, uiSettingsService } from '../common/utils';
+import { registerAllPluginNavGroups } from './plugin_helpers/plugin_nav';
+import PPLService from './services/requests/ppl';
+import {
+  AppPluginStartDependencies,
+  InvestigationSetup,
+  InvestigationStart,
+  NoteBookServices,
+  SetupDependencies,
+} from './types';
+
+import './index.scss';
+import { DataDistributionEmbeddableFactory } from './components/notebooks/components/data_distribution/embeddable/data_distribution_embeddable_factory';
+import {
+  setClient,
+  setData,
+  setDataSourceManagementSetup,
+  setEmbeddable,
+  setExpressions,
+  setSearch,
+  ParagraphService,
+  setNotifications,
+  setVisualizations,
+  FindingService,
+} from './services';
+import type { PluginTelemetryRecorder } from '../../../src/core/public';
+import { StartInvestigationAction } from './actions/start_investigation_action';
+import { CONTEXT_MENU_TRIGGER } from '../../../src/plugins/embeddable/public';
+import {
+  ClassicNotebook,
+  ClassicNotebookProps,
+} from './components/notebooks/components/classic_notebook';
+import { NOTEBOOK_APP_NAME } from '../common/constants/notebooks';
+import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opensearch_dashboards_react/public';
+import { paragraphRegistry } from './paragraphs';
+import { ContextService } from './services/context_service';
+import { NoteBookAssistantContext } from '../common/types/assistant_context';
+import { createInvestigateLogActionComponent } from './components/notebooks/components/discover_explorer';
+import { StartInvestigateButton } from './components/notebooks/components/discover_explorer/start_investigate_button';
+import { createInvestigationAction } from './chat/actions/create_investigation_action';
+import { registerInvestigateCommand } from './chat/command/investigate_command';
+import { isAnalyticEngineDataSource } from './utils/data_source_utils';
+import { ChatPluginSetup } from '../../../src/plugins/chat/public';
+
+export class InvestigationPlugin
+  implements
+    Plugin<InvestigationSetup, InvestigationStart, SetupDependencies, AppPluginStartDependencies> {
+  private paragraphService: ParagraphService;
+  private contextService: ContextService;
+  private telemetryRecorder: PluginTelemetryRecorder | undefined;
+  private startDeps: AppPluginStartDependencies | undefined;
+  private unregisterInvestigateCommand?: () => void;
+  private appIdSubscription?: Subscription;
+  private chatSetup?: ChatPluginSetup;
+
+  private appUpdater$ = new BehaviorSubject<AppUpdater>(() => ({}));
+
+  constructor() {
+    this.paragraphService = new ParagraphService();
+    this.contextService = new ContextService();
+  }
+
+  public async setup(
+    core: CoreSetup<AppPluginStartDependencies>,
+    setupDeps: SetupDependencies
+  ): Promise<InvestigationSetup> {
+    uiSettingsService.init(core.uiSettings, core.notifications);
+    setOSDHttp(core.http);
+    core.getStartServices().then(([coreStart]) => {
+      setOSDSavedObjectsClient(coreStart.savedObjects.client);
+    });
+
+    // Setup paragraph service
+    const paragraphServiceSetup = this.paragraphService.setup();
+
+    // Register paragraph types
+    paragraphRegistry.forEach(({ types, item }) => {
+      paragraphServiceSetup.register(types, item);
+    });
+    const contextServiceSetup = await this.contextService.setup();
+
+    const findingService = new FindingService();
+
+    const getServices = async (): Promise<NoteBookServices> => {
+      const [coreStart, depsStart] = await core.getStartServices();
+      const pplService: PPLService = new PPLService(core.http);
+      // Omit chat from deps since coreStart already have chat
+      const { chat: _chat, ...restDepsStart } = depsStart;
+      const services: NoteBookServices = {
+        ...coreStart,
+        ...restDepsStart,
+        appName: NOTEBOOK_APP_NAME,
+        pplService,
+        savedObjects: coreStart.savedObjects,
+        paragraphService: paragraphServiceSetup,
+        contextService: contextServiceSetup,
+        updateContext: this.updateContext,
+        findingService,
+        usageCollection: depsStart.usageCollection,
+        overlay: depsStart.overlay,
+        workspaces: coreStart.workspaces,
+        investigationTelemetry: this.telemetryRecorder!,
+      };
+      return services;
+    };
+
+    const appMountWithStartPage = () => async (params: AppMountParameters) => {
+      const { Observability } = await import('./components/index');
+      const services = await getServices();
+      return Observability({ ...services, appMountService: params }, params!);
+    };
+
+    core.application.register({
+      id: investigationNotebookID,
+      title: investigationNotebookTitle,
+      order: investigationNotebookPluginOrder,
+      mount: appMountWithStartPage(),
+      updater$: this.appUpdater$,
+    });
+
+    registerAllPluginNavGroups(core);
+
+    setupDeps.embeddable.registerEmbeddableFactory(
+      'vega_visualization',
+      new DataDistributionEmbeddableFactory()
+    );
+
+    setDataSourceManagementSetup(
+      !!setupDeps.dataSourceManagement
+        ? {
+            enabled: true,
+            dataSourceManagement: setupDeps.dataSourceManagement,
+          }
+        : {
+            enabled: false,
+            dataSourceManagement: undefined,
+          }
+    );
+
+    // TODO: check if we need to expose agentic notebook
+    const getNotebook = async ({ openedNoteId }: Pick<ClassicNotebookProps, 'openedNoteId'>) => {
+      const services = await getServices();
+
+      return (
+        <OpenSearchDashboardsContextProvider services={services}>
+          <ClassicNotebook openedNoteId={openedNoteId} />
+        </OpenSearchDashboardsContextProvider>
+      );
+    };
+
+    (async () => {
+      const services = await getServices();
+      if (!services.application?.capabilities.investigation.agenticFeaturesEnabled) {
+        return;
+      }
+
+      setupDeps.explore?.logActionRegistry?.registerAction?.({
+        id: 'investigate-single',
+        displayName: i18n.translate('investigate.logAction.investigate-single', {
+          defaultMessage: 'Investigate',
+        }),
+        iconType: 'notebookApp',
+        order: 100,
+        isCompatible: (context) => {
+          return !isAnalyticEngineDataSource(context.metadata?.dataSourceEngineType);
+        },
+        component: createInvestigateLogActionComponent({
+          services,
+        }),
+      });
+
+      if (services.chat?.suggestedActionsService) {
+        services.chat.suggestedActionsService.registerProvider({
+          id: 'finding',
+          priority: 1,
+          isEnabled: () => true,
+          getSuggestions: async (context: any) => {
+            const [coreStart] = await core.getStartServices();
+            const currentAppId = await coreStart.application.currentAppId$
+              .pipe(first())
+              .toPromise();
+
+            if (
+              currentAppId !== investigationNotebookID ||
+              !findingService.currentNotebookId ||
+              !context.currentMessage ||
+              !context.currentMessage.content
+            ) {
+              return [];
+            }
+
+            return [
+              {
+                actionType: 'customize',
+                message: 'Add current result to investigation as a finding',
+                action: async () => {
+                  const input = context.messageHistory.findLast(
+                    (message: any) => message.role === 'user'
+                  )?.content;
+                  const output = context.currentMessage?.content;
+
+                  const notebookId = context.pageContext?.notebookId;
+
+                  if (input && output) {
+                    try {
+                      await findingService.addFinding(input, output, notebookId);
+                      return true;
+                    } catch {
+                      // Return false to indicate failure to the suggestion system
+                      return false;
+                    }
+                  }
+                  return false;
+                },
+              },
+            ];
+          },
+        });
+      }
+    })();
+
+    // Register /investigate command if chat plugin is available
+    this.chatSetup = setupDeps.chat;
+    this.unregisterInvestigateCommand = registerInvestigateCommand(setupDeps.chat);
+
+    // Return methods that should be available to other plugins
+    return {
+      ui: {
+        getNotebook,
+      },
+    };
+  }
+
+  public start(core: CoreStart, startDeps: AppPluginStartDependencies): InvestigationStart {
+    setExpressions(startDeps.expressions);
+    setData(startDeps.data);
+    setSearch(startDeps.data.search);
+    setClient(core.http);
+    setEmbeddable(startDeps.embeddable);
+    setNotifications(core.notifications);
+    setVisualizations(startDeps.visualizations);
+    this.startDeps = startDeps;
+
+    // Get telemetry recorder for this plugin
+    this.telemetryRecorder = core.telemetry.getPluginRecorder('dashboards-investigation');
+
+    if (core.application?.capabilities.investigation.agenticFeaturesEnabled) {
+      startDeps.explore?.slotRegistry?.register?.({
+        id: 'start-investigate-all',
+        order: 10,
+        slotType: 'resultsActionBar',
+        isCompatible: (context) => {
+          return !isAnalyticEngineDataSource(context.dataSourceEngineType);
+        },
+        render: () => {
+          return (
+            <OpenSearchDashboardsContextProvider
+              services={{
+                data: startDeps.data,
+                http: core.http,
+                application: core.application,
+              }}
+            >
+              <StartInvestigateButton />
+            </OpenSearchDashboardsContextProvider>
+          );
+        },
+      });
+
+      // create investigation action
+      const investigationAction = createInvestigationAction(core);
+      const registerAction = this.startDeps?.contextProvider?.actions?.registerAssistantAction;
+      registerAction?.(investigationAction);
+
+      // Disable create_investigation tool and /investigate command on the search-relevance page
+      this.appIdSubscription = core.application.currentAppId$.subscribe((appId) => {
+        if (appId === 'searchRelevance') {
+          if (registerAction) {
+            registerAction({ ...investigationAction, available: 'disabled' });
+          }
+          if (this.unregisterInvestigateCommand) {
+            this.unregisterInvestigateCommand();
+            this.unregisterInvestigateCommand = undefined;
+          }
+        } else {
+          if (registerAction) {
+            registerAction(investigationAction);
+          }
+          if (this.chatSetup && !this.unregisterInvestigateCommand) {
+            this.unregisterInvestigateCommand = registerInvestigateCommand(this.chatSetup);
+          }
+        }
+      });
+      // Register "Start investigation" action for discover visualizations
+      const startInvestigationAction = new StartInvestigationAction(core.overlays, {
+        data: startDeps.data,
+        http: core.http,
+        application: core.application,
+        notifications: core.notifications,
+      });
+      startDeps.uiActions.registerAction(startInvestigationAction);
+      startDeps.uiActions.attachAction(CONTEXT_MENU_TRIGGER, startInvestigationAction.id);
+    }
+
+    if (!core.application.capabilities.investigation?.enabled) {
+      this.appUpdater$.next(() => ({
+        navLinkStatus: AppNavLinkStatus.hidden,
+      }));
+    }
+
+    return {};
+  }
+
+  private updateContext = (id: string, chatContext: NoteBookAssistantContext | undefined) => {
+    const contextStore = this.startDeps?.contextProvider?.getAssistantContextStore();
+    if (!contextStore) return;
+    contextStore.removeContextById(id);
+    if (chatContext) {
+      chatContext.id = id;
+      contextStore.addContext(chatContext);
+    }
+  };
+
+  public stop() {
+    this.appIdSubscription?.unsubscribe();
+
+    // Unregister the /investigate command
+    if (this.unregisterInvestigateCommand) {
+      this.unregisterInvestigateCommand();
+    }
+    this.telemetryRecorder = undefined;
+  }
+}

@@ -1,0 +1,156 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { schema } from '@osd/config-schema';
+import LRUCache from 'lru-cache';
+import { IOpenSearchDashboardsResponse, IRouter } from '../../../../../src/core/server';
+import { NOTEBOOKS_API_PREFIX } from '../../../common/constants/notebooks';
+import { getOpenSearchClientTransport, handleError } from '../utils';
+
+// Initialize LRU cache with max 100 entries and 1 hour TTL
+const mlProxyCache = new LRUCache<string, string>({
+  max: 100,
+  maxAge: 1000 * 60 * 60, // 1 hour
+});
+
+/**
+ * Removes specified characters from the beginning of a string.
+ * @param str The string to trim
+ * @param chars The characters to trim from the beginning (defaults to whitespace)
+ * @returns A new string with specified characters removed from the beginning
+ */
+function trimStart(str: string, chars?: string): string {
+  // Handle empty inputs
+  if (!str) return str;
+
+  // If no chars provided, use whitespace as default
+  if (chars === undefined || chars === '') {
+    return str.replace(/^\s+/, '');
+  }
+
+  // Escape special regex characters in the chars parameter
+  const escapedChars = chars.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // Create a regex that matches any of the specified characters at the beginning
+  const regex = new RegExp(`^[${escapedChars}]+`);
+
+  // Replace matches with empty string
+  return str.replace(regex, '');
+}
+
+function toUrlPath(path: string) {
+  const FAKE_BASE = 'http://localhost';
+  const urlWithFakeBase = new URL(`${FAKE_BASE}/${trimStart(path, '/')}`);
+  const urlPath = urlWithFakeBase.href.replace(urlWithFakeBase.origin, '');
+  return urlPath;
+}
+
+const acceptedHttpVerb = schema.string({
+  validate: (method) => {
+    return ['GET', 'POST', 'PUT', 'DELETE'].some(
+      (verb) => verb.toLowerCase() === method.toLowerCase()
+    )
+      ? undefined
+      : `Method must be one of, case insensitive ['GET', 'POST', 'PUT', 'DELETE']. Received '${method}'.`;
+  },
+});
+
+/**
+ * Validates if the ML API path is allowed for proxy requests.
+ * Only Memory search and ML config related APIs are permitted.
+ * @param path The API path to validate
+ * @returns true if the path is allowed, false otherwise
+ */
+function isAllowedMLPath(path: string): boolean {
+  // Define allowed ML API path patterns
+  const allowedPatterns = [
+    // Agentic Memory related APIs
+    /^\/_plugins\/_ml\/memory_containers\/[^/]+\/memories\/working\/_search$/,
+    /^\/_plugins\/_ml\/memory_containers\/[^/]+\/memories\/sessions$/,
+    // ML Config API
+    /^\/_plugins\/_ml\/config\/[^/]+$/,
+    // Index Insight API
+    /^\/_plugins\/_ml\/insights\/[^/]+\/LOG_RELATED_INDEX_CHECK$/,
+    // Agent Detail API
+    /^\/_plugins\/_ml\/agents\/[^/]+$/,
+  ];
+
+  // Check if path matches any allowed pattern
+  return allowedPatterns.some((pattern) => pattern.test(path));
+}
+
+export function registerMLConnectorRoute(router: IRouter) {
+  router.post(
+    {
+      path: `${NOTEBOOKS_API_PREFIX}/ml/proxy`,
+      validate: {
+        body: schema.maybe(schema.any()),
+        query: schema.object({
+          method: acceptedHttpVerb,
+          path: schema.string(),
+          dataSourceId: schema.maybe(schema.string()),
+        }),
+      },
+    },
+    async (context, request, response): Promise<IOpenSearchDashboardsResponse> => {
+      const { method, path } = request.query;
+      const matchIndexInsight = /\/_plugins\/_ml\/insights\/[^/]+\/LOG_RELATED_INDEX_CHECK$/.test(
+        path
+      );
+      let cacheKey = '';
+      if (matchIndexInsight) {
+        const indexName = path.match(/\/insights\/([^/]+)\//)?.[1] || '';
+        cacheKey = `${request.query.dataSourceId || 'local'}:${indexName}`;
+        if (mlProxyCache.has(cacheKey)) {
+          return response.ok({
+            body: mlProxyCache.get(cacheKey),
+          });
+        }
+      }
+
+      // Validate if the specific ML API is allowed
+      if (!isAllowedMLPath(path)) {
+        return response.forbidden({
+          body: `Error connecting to '${path}':\n\nUnable to send requests to that path.`,
+          headers: {
+            'Content-Type': 'text/plain',
+          },
+        });
+      }
+
+      try {
+        const transport = await getOpenSearchClientTransport({
+          context,
+          request,
+          dataSourceId: request.query.dataSourceId,
+        });
+
+        const result = await transport.request({
+          path: toUrlPath(path),
+          method,
+          body: request.body,
+        });
+        if (
+          matchIndexInsight &&
+          (result.statusCode || 200) >= 200 &&
+          (result.statusCode || 200) < 300
+        ) {
+          mlProxyCache.set(cacheKey, result.body);
+        }
+        const contentType = result.headers?.['Content-Type'];
+
+        return response.custom({
+          body: result.body,
+          statusCode: result.statusCode || 200,
+          headers: {
+            'Content-Type': contentType,
+          },
+        });
+      } catch (error) {
+        return handleError(error, response);
+      }
+    }
+  );
+}

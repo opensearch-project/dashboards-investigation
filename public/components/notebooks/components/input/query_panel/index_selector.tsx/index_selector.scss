@@ -1,0 +1,47 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+.notebookIndexSelector {
+    &__button {
+        height: 32px
+    }
+
+    &__textWrapper {
+        align-items: center;
+        margin-inline-end: $euiSizeXS;
+        gap: $euiSizeXS;
+    }
+
+    &__text {
+        text-align: left;
+        white-space: nowrap;
+        flex: 1;
+        text-overflow: ellipsis;
+        height: $euiSizeL;
+        line-height: $euiSizeL;
+        overflow: hidden;
+        width: auto;
+        max-width: unset;
+        font-weight: 400
+    }
+
+    &__selectable {
+        width: 400px;
+        padding: $euiSizeXS;
+        overflow-y: auto;
+
+        span:is([class*="euiSelectableListItem__text"]) {
+            :first-child {
+                font-size: $euiFontSizeS;
+            }
+        }
+    }
+
+    &__searchContainer {
+        padding: $euiSizeXS;
+        border-bottom: $euiBorderThin;
+        font-size: $euiFontSizeS;
+    }
+}
