@@ -30,6 +30,7 @@
     ".lycheeignore",
     ".whitesource",
     "LICENSE",
-    "NOTICE"
+    "NOTICE",
+    "query_panel/index_selector.tsx"
   ]
 }
