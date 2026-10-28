@@ -10,6 +10,7 @@ import { NotebookContext, NoteBookSource, NotebookType } from '../../../common/t
 import { CoreStart, UiSettingScope } from '../../../../../src/core/public';
 import { AssistantAction } from '../../../../../src/plugins/context_provider/public';
 import { CreateInvestigationToolResult } from './components/CreateInvestigationToolResult';
+import { isAnalyticEngineDataSource } from '../../utils/data_source_utils';
 
 export interface CreateInvestigationRequest {
   name: string;
@@ -148,6 +149,19 @@ export const createInvestigationAction = (
         const dataSourceId =
           args.datasourceId ||
           (await uiSettings.getUserProvidedWithScope<string | null>('defaultDataSource', scope));
+
+        // Investigations rely on DSL, unsupported on AnalyticEngine. Guard the data source this tool
+        // will use (args.datasourceId or the workspace default); throw so the existing catch builds
+        // the error response. An empty id targets the local cluster (usable), so no guard runs; a
+        // lookup failure fails open.
+        if (dataSourceId) {
+          const dataSourceObject = await services.savedObjects.client
+            .get<{ dataSourceEngineType?: string }>('data-source', dataSourceId)
+            .catch(() => undefined);
+          if (isAnalyticEngineDataSource(dataSourceObject?.attributes?.dataSourceEngineType)) {
+            throw new Error('Investigations are not available on AnalyticEngine data sources.');
+          }
+        }
 
         // Build the notebook context
         const context: NotebookContext = {

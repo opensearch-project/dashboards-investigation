@@ -21,6 +21,11 @@ describe('createInvestigationAction', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    (coreStartMock.savedObjects.client.get as jest.Mock).mockReset();
+    (coreStartMock.uiSettings.getUserProvidedWithScope as jest.Mock).mockReset();
+  });
+
   describe('action configuration', () => {
     it('returns correct action configuration', () => {
       const action = createInvestigationAction(coreStartMock);
@@ -222,6 +227,57 @@ describe('createInvestigationAction', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Failed to create investigation notebook');
+    });
+
+    it('blocks creation on an AnalyticEngine data source', async () => {
+      mockHttp.post = jest.fn().mockResolvedValue('should-not-be-called');
+      (coreStartMock.savedObjects.client.get as jest.Mock).mockResolvedValueOnce({
+        attributes: { dataSourceEngineType: 'AnalyticEngine' },
+      });
+
+      const action = createInvestigationAction(coreStartMock);
+      const result = await action.handler({ ...mockArgs, datasourceId: 'ds-ae' });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Investigations are not available on AnalyticEngine data sources.');
+      expect(mockHttp.post).not.toHaveBeenCalled();
+    });
+
+    it('blocks creation when the workspace default data source is AnalyticEngine (no datasourceId arg)', async () => {
+      // Production path: the model does not pass datasourceId, so the tool resolves the workspace
+      // default via uiSettings and guards THAT data source.
+      mockHttp.post = jest.fn().mockResolvedValue('should-not-be-called');
+      (coreStartMock.uiSettings.getUserProvidedWithScope as jest.Mock).mockResolvedValueOnce(
+        'ds-ae'
+      );
+      (coreStartMock.savedObjects.client.get as jest.Mock).mockResolvedValueOnce({
+        attributes: { dataSourceEngineType: 'AnalyticEngine' },
+      });
+
+      const action = createInvestigationAction(coreStartMock);
+      const result = await action.handler(mockArgs);
+
+      expect(coreStartMock.uiSettings.getUserProvidedWithScope).toHaveBeenCalledWith(
+        'defaultDataSource',
+        expect.anything()
+      );
+      expect(coreStartMock.savedObjects.client.get).toHaveBeenCalledWith('data-source', 'ds-ae');
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Investigations are not available on AnalyticEngine data sources.');
+      expect(mockHttp.post).not.toHaveBeenCalled();
+    });
+
+    it('proceeds on a non-AnalyticEngine data source', async () => {
+      mockHttp.post = jest.fn().mockResolvedValue('test-notebook-id');
+      (coreStartMock.savedObjects.client.get as jest.Mock).mockResolvedValueOnce({
+        attributes: { dataSourceEngineType: 'OpenSearch' },
+      });
+
+      const action = createInvestigationAction(coreStartMock);
+      const result = await action.handler({ ...mockArgs, datasourceId: 'ds-os' });
+
+      expect(result.success).toBe(true);
+      expect(mockHttp.post).toHaveBeenCalled();
     });
 
     it('includes success message in response', async () => {
